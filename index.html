@@ -8027,7 +8027,7 @@ function toggleExpand(idx){
         efLink('File Link',f.file_link),
       ].filter(Boolean).join('');
       expandDiv.innerHTML='<div class="expand-grid">'+expandContent+'</div>';
-      var _footerBtns='<button class="cat-card-btn" style="margin-left:0;" data-cod="'+f.codigo.replace(/"/g,'&quot;')+'" onclick="event.stopPropagation();switchMode(\'catalogo\');openCatDetail(this.dataset.cod)">Ver no Catálogo</button>';
+      var _footerBtns=(!window._olgaHasRestricao('acervo.sem_catalogo')?'<button class="cat-card-btn" style="margin-left:0;" data-cod="'+f.codigo.replace(/"/g,'&quot;')+'" onclick="event.stopPropagation();switchMode(\'catalogo\');openCatDetail(this.dataset.cod)">Ver no Catálogo</button>':'');
       if(window._olgaUser&&window._olgaCanEdit('busca')&&window._olgaCopias){
         _footerBtns+='<button class="cat-card-btn" style="margin-left:0;" onclick="event.stopPropagation();openAcervoEdit('+idx+')">✎ Editar registro técnico</button>';
       }
@@ -9095,7 +9095,7 @@ function renderDash(){
   html+=colBlock('controle','Controle de filmes',ctrlBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 04/05/2026 às 18:40';
+  var sysUpdate='última atualização do sistema · 05/05/2026 às 18:50';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -9938,7 +9938,8 @@ var _EQUIPE_RESTRICOES=[
   {k:'vinhetas.publico',label:'Vinhetas · Contador de público'},
   {k:'eventos.locked',label:'Eventos · Bloquear seleção de eventos (usuário vê, não altera)'},
   {k:'vinhetas.templates',label:'Vinhetas · Ocultar atalho de templates de vinheta'},
-  {k:'sessoes.somente_vinhetas',label:'Sessões · Edição restrita a vinhetas (sem criar, duplicar, deletar)'}
+  {k:'sessoes.somente_vinhetas',label:'Sessões · Edição restrita a vinhetas (sem criar, duplicar, deletar)'},
+  {k:'acervo.sem_catalogo',label:'Acervo Técnico · Ocultar botão "Ver no Catálogo"'}
 ];
 
 function renderEquipe(){
@@ -10084,6 +10085,7 @@ function renderEquipeTable(){
         '<td style="padding:9px 12px;font-family:var(--mono);font-size:10px;color:var(--text-muted);">'+mods+' · '+moded+' · '+evs+'</td>'+
         '<td style="padding:9px 12px;text-align:right;white-space:nowrap;">'+
           '<button onclick="openTemplateEdit(&quot;'+esc(t.id)+'&quot;)" style="'+_equipeBtn()+'">editar</button> '+
+          '<button onclick="openTemplateDup(&quot;'+esc(t.id)+'&quot;)" style="'+_equipeBtn('dup')+'">duplicar</button> '+
           '<button onclick="openTemplateDelete(&quot;'+esc(t.id)+'&quot;)" style="'+_equipeBtn('del')+'">excluir</button>'+
         '</td>'+
       '</tr>';
@@ -10413,6 +10415,36 @@ window.saveTemplate=async function(){
   }catch(e){errEl.textContent='Erro: '+e.message;errEl.style.display='block';}
   btn.disabled=false;btn.textContent='Salvar';
 };
+
+function openTemplateDup(id){
+  var t=_equipeTemplates.find(function(x){return x.id===id;});
+  if(!t)return;
+  // Open create form pre-filled with source data, but with blank ID
+  var src=Object.assign({},t.data);
+  _tplEditId=null;
+  var slug=id+'-copia';
+  // Temporarily inject into openTemplateEdit by setting d manually
+  openTemplateEdit(null);
+  // After modal opens, pre-fill the id field and all checkboxes from src
+  var idEl=document.getElementById('tpl_id');
+  if(idEl)idEl.value=slug;
+  var roleEl=document.getElementById('tpl_role');
+  if(roleEl)roleEl.value=src.role||'editor';
+  // Modules
+  var srcMods=src.modulos&&src.modulos.length?src.modulos:_EQUIPE_MODULOS.slice();
+  document.querySelectorAll('input[name="tpl_mod"]').forEach(function(cb){cb.checked=srcMods.indexOf(cb.value)!==-1;});
+  var srcModed=src.modulos_edicao&&src.modulos_edicao.length?src.modulos_edicao:_EQUIPE_MODULOS.slice();
+  document.querySelectorAll('input[name="tpl_moded"]').forEach(function(cb){cb.checked=srcModed.indexOf(cb.value)!==-1;});
+  var srcRes=src.restricoes||[];
+  document.querySelectorAll('input[name="tpl_res"]').forEach(function(cb){cb.checked=srcRes.indexOf(cb.value)!==-1;});
+  var srcCx=src.complexos||[];
+  document.querySelectorAll('input[name="tpl_cx"]').forEach(function(cb){cb.checked=srcCx.indexOf(cb.value)!==-1;});
+  window._tplEvArr=(src.eventos||[]).slice();
+  document.getElementById('tpl_ev_chips').innerHTML=window._tplEvArr.map(function(ev,i){
+    return'<span style="display:inline-flex;align-items:center;gap:5px;font-family:var(--mono);font-size:10px;background:var(--surface2);color:var(--text-dim);border:1px solid var(--border2);padding:3px 8px;border-radius:2px;">'+esc(ev)+'<button onclick="tplRemoveEv('+i+')" style="background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:13px;line-height:1;padding:0;">×</button></span>';
+  }).join(' ');
+  document.getElementById('tplModalTitle').textContent='Duplicar template · '+id;
+}
 
 function openTemplateDelete(id){
   if(!confirm('Excluir template "'+id+'"? Usuários que usam este template manterão seus dados mas ficarão como "personalizado".'))return;
@@ -12176,7 +12208,7 @@ window.addEventListener('popstate',function(e){
 <script>
   if(typeof lucide !== 'undefined') lucide.createIcons();
 </script>
-<div id="page-footer"><span>última atualização · 04/05/2026 às 18:40</span></div>
+<div id="page-footer"><span>última atualização · 05/05/2026 às 18:50</span></div>
 
 </div>
 

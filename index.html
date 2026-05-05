@@ -4879,6 +4879,15 @@ function renderFicha(nome,s){
   }).join('');
   var eventoCol=s.evento&&eventColors[s.evento]?eventColors[s.evento]:null;
   var eventoBadge=eventoCol?'<span class="ficha-evento-badge" style="background:'+eventoCol.bg+';color:'+eventoCol.text+'">'+s.evento+'</span>':(s.evento?'<span class="ficha-evento-badge" style="background:var(--surface2);color:var(--text-dim);border:1px solid var(--border)">'+s.evento+'</span>':'');
+  // Rating badge: highest rating across all films
+  var _RORD=['L','10','12','14','16','18'];var _rMax=null;
+  films.forEach(function(f){
+    var meta=catalogoFilmesMap&&catalogoFilmesMap[f.codigo]||{};
+    var r=meta.content_rating||'';
+    var ri=_RORD.indexOf(r);var ci=_rMax!==null?_RORD.indexOf(_rMax):-1;
+    if(ri>ci)_rMax=r;
+  });
+  var fichaRatingBadge=_rMax&&typeof _catRatingBadge==='function'?_catRatingBadge(_rMax):'';
 
   // extra panel (right side of header)
   function feRow(label,value){if(!value)return'';return'<div class="fe-row"><span class="fe-label">'+label+'</span><span class="fe-value accent">'+value+'</span></div>';}
@@ -4931,7 +4940,7 @@ function renderFicha(nome,s){
       '<div class="ficha-vinhetas-obs">* em caso de mais de uma opção da vinheta indicada escolher a opção que facilite a menor troca de lentes na sessão</div>';
   }
 
-  document.getElementById('fichaWrap').innerHTML='<div class="ficha"><div class="ficha-header"><div class="ficha-header-main"><div class="ficha-session-wrap"><div class="ficha-session-name">'+nome+'</div>'+(s.name?'<div class="prog-sess-display-name-ficha">'+esc(s.name)+'</div>':'')+eventoBadge+'</div><div class="ficha-meta"><div class="meta-item"><div class="meta-label">Cinema</div><div class="meta-value">'+(s.cinema||'—')+'</div></div><div class="meta-item"><div class="meta-label">Data</div><div class="meta-value">'+s.dia+'</div></div><div class="meta-item"><div class="meta-label">Hora</div><div class="meta-value">'+s.hora+'</div></div><div class="meta-item"><div class="meta-label">Filmes</div><div class="meta-value highlight">'+films.length+'</div></div></div></div>'+extraHtml+'</div>'+vinhetasHtml+'<div class="film-table-wrap"><table><thead><tr><th>#</th><th>Filme</th><th class="center">Lente</th><th class="center">Som</th><th>Legenda</th><th class="center">Idioma</th><th class="center">KDM</th><th>CPL</th><th>Duração</th><th>OBS</th><th class="center">Res</th><th class="center">FPS · GB</th><th class="center" title="Acessibilidade"><svg width="13" height="13" viewBox="0 0 24 24" style="stroke:currentColor;stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round;vertical-align:middle;"><circle cx="11" cy="4" r="1"/><path d="m11 9 2 7h5l-1.5 3"/><path d="M9 9H7l1 7"/><path d="M13.5 19a4.5 4.5 0 1 1-9 0 4.5 4.5 0 0 1 9 0z"/></svg></th></tr></thead><tbody>'+(rows||'<tr><td colspan="13" style="text-align:center;color:var(--text-muted);padding:24px">Nenhum filme encontrado para esta sessão.</td></tr>')+'</tbody></table></div><div class="ficha-footer"><div class="footer-total">Duração total: <strong>'+totalDur+'</strong> &nbsp;·&nbsp; Tamanho: <strong>'+totalGBStr+'</strong></div><div class="footer-stamp">OLGA · '+new Date().toLocaleString('pt-BR')+'</div></div></div>';
+  document.getElementById('fichaWrap').innerHTML='<div class="ficha"><div class="ficha-header"><div class="ficha-header-main"><div class="ficha-session-wrap"><div class="ficha-session-name">'+nome+'</div>'+(s.name?'<div class="prog-sess-display-name-ficha">'+esc(s.name)+'</div>':'')+eventoBadge+(fichaRatingBadge?fichaRatingBadge:'')+'</div><div class="ficha-meta"><div class="meta-item"><div class="meta-label">Cinema</div><div class="meta-value">'+(s.cinema||'—')+'</div></div><div class="meta-item"><div class="meta-label">Data</div><div class="meta-value">'+s.dia+'</div></div><div class="meta-item"><div class="meta-label">Hora</div><div class="meta-value">'+s.hora+'</div></div><div class="meta-item"><div class="meta-label">Filmes</div><div class="meta-value highlight">'+films.length+'</div></div></div></div>'+extraHtml+'</div>'+vinhetasHtml+'<div class="film-table-wrap"><table><thead><tr><th>#</th><th>Filme</th><th class="center">Lente</th><th class="center">Som</th><th>Legenda</th><th class="center">Idioma</th><th class="center">KDM</th><th>CPL</th><th>Duração</th><th>OBS</th><th class="center">Res</th><th class="center">FPS · GB</th><th class="center" title="Acessibilidade"><svg width="13" height="13" viewBox="0 0 24 24" style="stroke:currentColor;stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round;vertical-align:middle;"><circle cx="11" cy="4" r="1"/><path d="m11 9 2 7h5l-1.5 3"/><path d="M9 9H7l1 7"/><path d="M13.5 19a4.5 4.5 0 1 1-9 0 4.5 4.5 0 0 1 9 0z"/></svg></th></tr></thead><tbody>'+(rows||'<tr><td colspan="13" style="text-align:center;color:var(--text-muted);padding:24px">Nenhum filme encontrado para esta sessão.</td></tr>')+'</tbody></table></div><div class="ficha-footer"><div class="footer-total">Duração total: <strong>'+totalDur+'</strong> &nbsp;·&nbsp; Tamanho: <strong>'+totalGBStr+'</strong></div><div class="footer-stamp">OLGA · '+new Date().toLocaleString('pt-BR')+'</div></div></div>';
 }
 
 /* GRADE */
@@ -8995,7 +9004,7 @@ function renderDash(){
   html+=colBlock('controle','Controle de filmes',ctrlBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 04/05/2026 às 17:40';
+  var sysUpdate='última atualização do sistema · 04/05/2026 às 17:50';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -9333,6 +9342,18 @@ function _progRenderSessao(sessaoNome){
   var totalDur=totalMins>0?Math.floor(totalMins/60)+'h'+String(totalMins%60).padStart(2,'0'):'—';
   var evColor=s.evento&&eventColors[s.evento]?eventColors[s.evento]:null;
   var eventoBadge=evColor?'<span class="ficha-evento-badge" style="background:'+evColor.bg+';color:'+evColor.text+'">'+esc(s.evento)+'</span>':(s.evento?'<span class="ficha-evento-badge" style="background:var(--surface2);color:var(--text-dim);border:1px solid var(--border)">'+esc(s.evento)+'</span>':'');
+  // Rating: pick highest across all films in session
+  var _RATING_ORDER=['L','10','12','14','16','18'];
+  var _ratingMax=null;
+  s.filmes.forEach(function(cd){
+    var f=filmesMap[cd]||{};
+    var meta=catalogoFilmesMap&&catalogoFilmesMap[cd]||{};
+    var r=meta.content_rating||f.content_rating||'';
+    var ri=_RATING_ORDER.indexOf(r);
+    var ci=_ratingMax!==null?_RATING_ORDER.indexOf(_ratingMax):-1;
+    if(ri>ci)_ratingMax=r;
+  });
+  var ratingBadge=_ratingMax?_catRatingBadge(_ratingMax):'';
   function feRow(label,value){if(!value)return'';return'<div class="fe-row"><span class="fe-label">'+label+'</span><span class="fe-value accent">'+esc(value)+'</span></div>';}
   function feCheck(label,val){var checked=(val||'').toLowerCase()==='sim';return'<div class="fe-check"><span class="fe-box'+(checked?' checked':'')+'">'+( checked?'✕':'')+'</span><span>'+label+'</span></div>';}
   var hasExtra=s.convidados||s.apresentacao||s.ingressos||s.leg_eletronica||s.col_ag||s.acessibilidades;
@@ -9381,6 +9402,7 @@ function _progRenderSessao(sessaoNome){
   if(s.name)html+='<div class="prog-sess-display-name">'+esc(s.name)+'</div>';
   html+='<span class="prog-prog-badge">PROGRAMAÇÃO</span>';
   html+=eventoBadge;
+  if(ratingBadge)html+=ratingBadge;
   if(prog&&(prog.data.competitive||prog.data.popular_vote)){
     html+='<div class="prog-card-flags" style="margin-top:4px;">';
     if(prog.data.competitive)html+='<span class="prog-flag-badge prog-flag-comp">Competitivo</span>';
@@ -11582,7 +11604,7 @@ window.addEventListener('popstate',function(e){
 <script>
   if(typeof lucide !== 'undefined') lucide.createIcons();
 </script>
-<div id="page-footer"><span>última atualização · 04/05/2026 às 17:40</span></div>
+<div id="page-footer"><span>última atualização · 04/05/2026 às 17:50</span></div>
 
 </div>
 

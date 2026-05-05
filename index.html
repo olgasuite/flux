@@ -3421,6 +3421,22 @@ html[data-theme]:not([data-theme="win98"]){--mono:var(--sans);}
     }
   };
 
+  // API templates de papel
+  window._olgaTemplates = {
+    list: async function() {
+      var snap = await getDocs(collection(db, 'roles_templates'));
+      var arr = [];
+      snap.forEach(function(d) { arr.push({ id: d.id, data: d.data() }); });
+      return arr.sort(function(a,b){return a.id.localeCompare(b.id,'pt-BR');});
+    },
+    save: async function(id, data) {
+      await setDoc(doc(db, 'roles_templates', id), data);
+    },
+    remove: async function(id) {
+      await deleteDoc(doc(db, 'roles_templates', id));
+    }
+  };
+
   // API eventos (coleção eventos)
   window._olgaEventos = {
     list: async function() {
@@ -3661,6 +3677,17 @@ html[data-theme]:not([data-theme="win98"]){--mono:var(--sans);}
     return r && r.indexOf(chave) !== -1;
   };
 
+  // Returns true if current user can WRITE to a given module
+  window._olgaCanEdit = function(modulo) {
+    var u = window._olgaUser;
+    if (!u) return false;
+    if (u.role === 'admin') return true;
+    if (u.role !== 'editor') return false;
+    // editor: check modulos_edicao (empty = all allowed)
+    var me = u.modulos_edicao;
+    return !me || !me.length || me.indexOf(modulo) !== -1;
+  };
+
   window._olgaLoadFirestore = async function() {
     var landingDrop = document.getElementById('landingDrop');
     var fileNameEl  = document.getElementById('fileName');
@@ -3829,6 +3856,7 @@ html[data-theme]:not([data-theme="win98"]){--mono:var(--sans);}
           projetor: fs(r['projector_model']),assentos: fs(r['seat_count']),
           proporcao:fs(r['screen_aspect_ratio']),som:  fs(r['sound_system']),
           obs:      fs(r['notes']),        cineassista:fs(r['cineassist_system']),
+          tms:      fs(r['tms_system']),        storage_gb: fs(r['storage_gb']),
           evento:   eventoRaw,             estado:     fs(r['state']),
           endereco: fs(r['address']),
           email_kdm:  fs(r['kdm_email']),
@@ -3951,7 +3979,9 @@ html[data-theme]:not([data-theme="win98"]){--mono:var(--sans);}
             modulos:    (d.modulos    && d.modulos.length)    ? d.modulos    : null,
             eventos:    (d.eventos    && d.eventos.length)    ? d.eventos    : null,
             complexos:  (d.complexos  && d.complexos.length)  ? d.complexos  : null,
-            restricoes: (d.restricoes && d.restricoes.length) ? d.restricoes : []
+            restricoes: (d.restricoes && d.restricoes.length) ? d.restricoes : [],
+            modulos_edicao: (d.modulos_edicao && d.modulos_edicao.length) ? d.modulos_edicao : [],
+            role_template: d.role_template || null
           };
         }
       } catch(e) {
@@ -5467,7 +5497,7 @@ function renderSessoes(){
     var durStr=totalMins>0?Math.floor(totalMins/60)+'h'+String(totalMins%60).padStart(2,'0'):'';
     var safe=s.nome.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
     var acessIcon=s.acessibilidades&&s.acessibilidades.trim()?'<span class="sess-acess-icon" title="'+s.acessibilidades+'"><svg width="14" height="14" viewBox="0 0 24 24" style="stroke:currentColor;stroke-width:1.75;fill:none;stroke-linecap:round;stroke-linejoin:round;" xmlns="http://www.w3.org/2000/svg"><circle cx="11" cy="4" r="1"/><path d="m11 9 2 7h5l-1.5 3"/><path d="M9 9H7l1 7"/><path d="M13.5 19a4.5 4.5 0 1 1-9 0 4.5 4.5 0 0 1 9 0z"/></svg></span>':'';
-    return '<div class="sess-row" onclick="goToFicha(\''+safe+'\')">'+
+    return '<div class="sess-row" onclick="goToProgFichaFromGrade(\''+safe+'\')">'+
       '<span class="sess-time">'+(s.time?s.time.str:'—')+'</span>'+
       '<span class="sess-name">'+s.nome+'</span>'+
       (s.name?'<span class="sess-display-name">'+s.name+'</span>':'')+
@@ -5787,7 +5817,7 @@ function buildCinemasFilters(){
   rebuildCinemasComplexoSelect();
   // show "Nova sala" btn for admin/editor
   var btn=document.getElementById('btnNovoComplexo');
-  if(btn)btn.style.display=(window._olgaUser&&(window._olgaUser.role==='admin'||window._olgaUser.role==='editor')&&window._olgaCinemas)?'':'none';
+  if(btn)btn.style.display=(window._olgaUser&&window._olgaCanEdit('cinemas')&&window._olgaCinemas)?'':'none';
 }
 
 function rebuildCinemasEventoSelect(){
@@ -5863,6 +5893,7 @@ function renderCinemas(){
     if(!_cinemaMatchesEventoFilter(c))return;
     if(!byComplexo[cx]){byComplexo[cx]=[];complexoOrder.push(cx);}
     byComplexo[cx].push(c);
+    byComplexo[cx].sort(function(a,b){return(a.sala||'').localeCompare(b.sala||'','pt-BR');});
   });
 
   if(!complexoOrder.length){cc.style.display='none';ce.style.display='flex';return;}
@@ -5872,10 +5903,11 @@ function renderCinemas(){
   complexoOrder.forEach(function(cx){
     var safeCx=cx.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
     var cxData=byComplexo[cx][0];var cxEndereco=cxData&&cxData.endereco?cxData.endereco:'';var cxEstado=cxData&&cxData.estado?cxData.estado:'';
-    var canEditCx=window._olgaUser&&(window._olgaUser.role==='admin'||window._olgaUser.role==='editor')&&window._olgaCinemas;
+    var canEditCx=window._olgaUser&&window._olgaCanEdit('cinemas')&&window._olgaCinemas;
     var editCxBtn=canEditCx?'<button class="bordero-btn" style="margin-right:4px;" onclick="event.stopPropagation();openCinemaEdit(null,\''+safeCx+'\')" title="Nova sala">+ Sala</button><button class="bordero-btn" style="margin-right:4px;" onclick="event.stopPropagation();openCinemaEdit(\'__complexo__\',\''+safeCx+'\')">✎ Editar complexo</button>':'';
     var emailLine=[]; if(cxData&&cxData.email_kdm)emailLine.push('KDM: '+cxData.email_kdm); if(cxData&&cxData.email_ger)emailLine.push('GER: '+cxData.email_ger);
-    html+='<div class="cinemas-complexo"><div class="cinemas-complexo-header" style="display:flex;align-items:center;justify-content:space-between;gap:8px;"><div style="display:flex;flex-direction:column;gap:2px;"><span>'+cx+'</span>'+(cxEndereco||cxEstado?'<span style="font-family:var(--sans);font-size:10px;font-weight:400;letter-spacing:0;text-transform:none;color:var(--text-muted);">'+(cxEndereco||'')+(cxEndereco&&cxEstado?' · ':''  )+(cxEstado||'')+'</span>':'')+(emailLine.length?'<span style="font-family:var(--mono);font-size:9px;color:var(--text-muted);margin-top:1px;">'+emailLine.join(' · ')+'</span>':'')+'</div>'+editCxBtn+(!window._olgaHasRestricao('cinemas.bordero')?'<button class="bordero-btn" onclick="event.stopPropagation();openBordero(\''+safeCx+'\')">Borderô</button>':'')+'</div>';
+    var tmsLine=cxData&&cxData.tms?'TMS: '+cxData.tms:'';
+    html+='<div class="cinemas-complexo"><div class="cinemas-complexo-header" style="display:flex;align-items:center;justify-content:space-between;gap:8px;"><div style="display:flex;flex-direction:column;gap:2px;"><span>'+cx+'</span>'+(cxEndereco||cxEstado?'<span style="font-family:var(--sans);font-size:10px;font-weight:400;letter-spacing:0;text-transform:none;color:var(--text-muted);">'+(cxEndereco||'')+(cxEndereco&&cxEstado?' · ':''  )+(cxEstado||'')+'</span>':'')+(tmsLine?'<span style="font-family:var(--mono);font-size:9px;color:var(--text-muted);margin-top:1px;">'+tmsLine+'</span>':'')+(emailLine.length?'<span style="font-family:var(--mono);font-size:9px;color:var(--text-muted);margin-top:1px;">'+emailLine.join(' · ')+'</span>':'')+'</div>'+editCxBtn+(!window._olgaHasRestricao('cinemas.bordero')?'<button class="bordero-btn" onclick="event.stopPropagation();openBordero(\''+safeCx+'\')">Borderô</button>':'')+'</div>';
     html+='<div class="cinemas-grid">';
     byComplexo[cx].forEach(function(c){
       var allEvs=cinemaAllEvents(c);
@@ -5893,6 +5925,7 @@ function renderCinemas(){
       if(c.serial)specs.push('<span class="cinema-spec"><span class="cinema-spec-label">S/N</span><span class="cinema-spec-val">'+c.serial+'</span></span>');
       if(c.projetor)specs.push('<span class="cinema-spec"><span class="cinema-spec-label">PROJ</span><span class="cinema-spec-val">'+c.projetor+'</span></span>');
       if(c.tela_h||c.tela_w)specs.push('<span class="cinema-spec"><span class="cinema-spec-label">TELA</span><span class="cinema-spec-val">'+(c.tela_h||'?')+'m × '+(c.tela_w||'?')+'m</span></span>');
+      if(c.storage_gb)specs.push('<span class="cinema-spec"><span class="cinema-spec-label">HDD</span><span class="cinema-spec-val">'+c.storage_gb+' GB</span></span>');
       if(c.som)specs.push('<span class="cinema-spec"><span class="cinema-spec-label">SOM</span><span class="cinema-spec-val">'+c.som+'</span></span>');
       if(c.assentos)specs.push('<span class="cinema-spec"><span class="cinema-spec-label">Assentos</span><span class="cinema-spec-val">'+c.assentos+'</span></span>');
       if(specs.length)html+='<div class="cinema-card-specs">'+specs.join('')+'</div>';
@@ -5989,7 +6022,7 @@ function openCinemaDetail(sala){
   }
 
   var safeSalaBtn=sala.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
-  var canEditSala=window._olgaUser&&(window._olgaUser.role==='admin'||window._olgaUser.role==='editor')&&window._olgaCinemas&&c.docId;
+  var canEditSala=window._olgaUser&&window._olgaCanEdit('cinemas')&&window._olgaCinemas&&c.docId;
   var editSalaBtn=canEditSala?'<button class="bordero-btn" style="margin-right:4px;" onclick="openCinemaEdit(\''+safeSalaBtn+'\')">✎ Editar sala</button>':'';
   dw.innerHTML='<div style="padding:24px 32px 48px;max-width:1100px;margin:0 auto;">'
     +'<div class="cinema-detail-header">'
@@ -6030,7 +6063,7 @@ function _complexoDatalist(all){
   return'<datalist id="cemComplexoList">'+opts.map(function(v){return'<option value="'+_esc(v)+'">';}).join('')+'</datalist>';
 }
 
-function _complexoFields(all, cx, estado, endereco, emailKdm, emailGer){
+function _complexoFields(all, cx, estado, endereco, emailKdm, emailGer, tms){
   return _cemSection('Complexo')+
     _cemRow(
       '<div class="cem-field"><label class="cem-label">Nome do complexo <span style="color:var(--warn)">*</span></label><input class="cem-input" id="cemComplexo" value="'+_esc(cx)+'" list="cemComplexoList" placeholder="Ex: Cinemark Recife"></div>'+
@@ -6039,6 +6072,8 @@ function _complexoFields(all, cx, estado, endereco, emailKdm, emailGer){
       ''
     )+
     _cemFull(_cemField('cemEndereco','Endereço',endereco,'Rua, número · Bairro · Cidade'))+
+    _cemSection('Sistema de TMS')+
+    _cemFull(_cemField('cemTMS','TMS do complexo',tms||'','Ex: Barco, Christie, Sony, Dolby'))+
     _cemSection('E-mails do complexo')+
     _cemRow(
       '<div class="cem-field"><label class="cem-label">E-mail KDM <span style="font-weight:400;text-transform:none;letter-spacing:0;">separados por ;</span></label><input class="cem-input" id="cemEmailKdm" value="'+_esc(emailKdm||'')+'" placeholder="kdm@cinema.com"></div>',
@@ -6080,6 +6115,9 @@ function _equipFields(c){
     )+
     _cemRow(
       _cemField('cemCineassista','Cineassista',c.cineassista,'Sim / Não'),
+      _cemField('cemStorageGB','Armazenamento (GB)',c.storage_gb,'Ex: 2048')
+    )+
+    _cemRow(
       _cemField('cemObs','Observações',c.obs,'')
     );
 }
@@ -6113,7 +6151,7 @@ function openCinemaEdit(sala, complexoCtx){
     var ref=refSala?all.map[refSala]:{};
     title.textContent='Editar complexo · '+complexoCtx;
     body.innerHTML=
-      _complexoFields(all, complexoCtx, ref.estado||'', ref.endereco||'', ref.email_kdm||'', ref.email_ger||'')+
+      _complexoFields(all, complexoCtx, ref.estado||'', ref.endereco||'', ref.email_kdm||'', ref.email_ger||'', ref.tms||'')+
       '<div style="font-family:var(--mono);font-size:9px;color:var(--text-muted);padding:10px 0 4px;">As alterações de nome, estado e endereço serão aplicadas a todas as salas deste complexo.</div>';
 
   }else{
@@ -6127,7 +6165,7 @@ function openCinemaEdit(sala, complexoCtx){
     }
     title.textContent=complexoCtx?'Nova sala · '+complexoCtx:'Nova sala';
     body.innerHTML=
-      _complexoFields(all, complexoCtx||'', ref2?ref2.estado||'':'', ref2?ref2.endereco||'':'', ref2?ref2.email_kdm||'':'', ref2?ref2.email_ger||'':'')+
+      _complexoFields(all, complexoCtx||'', ref2?ref2.estado||'':'', ref2?ref2.endereco||'':'', ref2?ref2.email_kdm||'':'', ref2?ref2.email_ger||'':'', ref2?ref2.tms||'':'')+
       _salaFields('', '', true)+
       _telaFields(null)+
       _equipFields(null);
@@ -6159,7 +6197,7 @@ function openComplexoCreate(){
 
   var all=getAllCinemas();
   body.innerHTML=
-    _complexoFields(all,'','','','','')+
+    _complexoFields(all,'','','','','','')+
     '<div style="margin-top:4px;padding:10px 0 4px;border-top:1px solid var(--border);display:flex;align-items:center;gap:8px;">'+
       '<input type="checkbox" id="cemAddSala" style="accent-color:var(--accent);width:14px;height:14px;cursor:pointer;" onchange="document.getElementById(&quot;cemSalaBlock&quot;).style.display=this.checked?&quot;contents&quot;:&quot;none&quot;">'+
       '<label for="cemAddSala" style="font-family:var(--mono);font-size:9px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:var(--text-muted);cursor:pointer;">Cadastrar uma sala agora</label>'+
@@ -6205,11 +6243,11 @@ async function saveCinemaEdit(){
       await Promise.all(salasInCx.map(function(s){
         var c=all.map[s];
         if(!c.docId)return;
-        var eKdm=g('cemEmailKdm');var eGer=g('cemEmailGer');
-        return window._olgaCinemas.saveSala(c.docId,{complex_name:complexo,state:estado,address:endereco,kdm_email:eKdm,mgmt_email:eGer});
+        var eKdm=g('cemEmailKdm');var eGer=g('cemEmailGer');var tmsVal=g('cemTMS');
+        return window._olgaCinemas.saveSala(c.docId,{complex_name:complexo,state:estado,address:endereco,kdm_email:eKdm,mgmt_email:eGer,tms_system:tmsVal});
       }));
       // update local cache
-      salasInCx.forEach(function(s){Object.assign(all.map[s],{complexo:complexo,estado:estado,endereco:endereco,email_kdm:g('cemEmailKdm'),email_ger:g('cemEmailGer')});});
+      salasInCx.forEach(function(s){Object.assign(all.map[s],{complexo:complexo,estado:estado,endereco:endereco,email_kdm:g('cemEmailKdm'),email_ger:g('cemEmailGer'),tms:g('cemTMS')});});
       if(_cemMode==='complexo-new'){
         // optionally create first sala
         var addSalaEl=document.getElementById('cemAddSala');
@@ -6249,9 +6287,10 @@ async function saveCinemaEdit(){
         if(!c2||!c2.docId)throw new Error('docId não encontrado para esta sala.');
         // sala edit: only sala-specific fields, preserve complexo data
         var telaH=g('cemTelaH');var telaW=g('cemTelaW');
-        var salaFields={venue_name:_cemSala,event_name:evento,server_model:servidor,server_serial:serial,projector_model:projetor,sound_system:som,screen_aspect_ratio:proporcao,seat_count:assentos,cineassist_system:cineassista,notes:obs,screen_height:telaH,screen_width:telaW};
+        var storageGB=g('cemStorageGB');
+        var salaFields={venue_name:_cemSala,event_name:evento,server_model:servidor,server_serial:serial,projector_model:projetor,sound_system:som,screen_aspect_ratio:proporcao,seat_count:assentos,cineassist_system:cineassista,notes:obs,screen_height:telaH,screen_width:telaW,storage_gb:storageGB};
         await window._olgaCinemas.saveSala(c2.docId,salaFields);
-        Object.assign(c2,{evento:evento,servidor:servidor,serial:serial,projetor:projetor,som:som,proporcao:proporcao,assentos:assentos,cineassista:cineassista,obs:obs,tela_h:telaH,tela_w:telaW});
+        Object.assign(c2,{evento:evento,servidor:servidor,serial:serial,projetor:projetor,som:som,proporcao:proporcao,assentos:assentos,cineassista:cineassista,obs:obs,tela_h:telaH,tela_w:telaW,storage_gb:storageGB});
         status.className='cem-status ok';status.textContent='Salvo ✓';
         setTimeout(function(){closeCinemaEdit();openCinemaDetail(_cemSala);},700);
       }else{
@@ -7041,7 +7080,7 @@ function _normalizeSerial(s){
 
 function _cinemaCertSectionHtml(c){
   var hasCert=!!(c.cert_serial_hex);
-  var canImport=window._olgaUser&&(window._olgaUser.role==='admin'||window._olgaUser.role==='editor')&&c.docId;
+  var canImport=window._olgaUser&&window._olgaCanEdit('kdm')&&c.docId;
   var safeSala=(c.sala||'').replace(/\\/g,'\\\\').replace(/'/g,"\\'");
   var importBtn=canImport?'<button class="cinema-cert-import-btn" onclick="importCinemasCert(\''+safeSala+'\')">'+( hasCert?'↺ Atualizar certificado':'+ Importar certificado')+'</button>':'';
   var label=hasCert?'<span class="cinema-cert-label has-cert">Certificado de servidor ✓</span>':'<span class="cinema-cert-label">Certificado de servidor</span>';
@@ -7530,11 +7569,11 @@ function buildVinhetasFilters(){
   });
   rebuildVinhetasCinemaSelect();rebuildVinhetasDaySelect();
   var btn=document.getElementById('btnNovaVinheta');
-  if(btn)btn.style.display=(window._olgaUser&&(window._olgaUser.role==='admin'||window._olgaUser.role==='editor')&&window._olgaVinhetas)?'':'none';
+  if(btn)btn.style.display=(window._olgaUser&&window._olgaCanEdit('vinhetas')&&window._olgaVinhetas)?'':'none';
   _rebuildVinhetasTemplatesSel();
 }
 function _rebuildVinhetasTemplatesSel(){
-  var canTmpl=window._olgaUser&&(window._olgaUser.role==='admin'||window._olgaUser.role==='editor'||window._olgaUser.role==='programacao')&&!window._olgaHasRestricao('vinhetas.templates');
+  var canTmpl=window._olgaUser&&!window._olgaHasRestricao('vinhetas.templates')&&(window._olgaCanEdit('vinhetas')||window._olgaCanEdit('programacao'));
   var btnT=document.getElementById('btnVinhetasTemplates');
   var selT=document.getElementById('vinhetasTemplatesEventSel');
   if(!btnT||!selT)return;
@@ -7617,7 +7656,7 @@ function renderVinhetas(){
     var badges=(info?lenteBadge(info.lente)+somBadge(info.som):'');
     var evC=info&&info.evento&&eventColors&&eventColors[info.evento]?getThemeBlockColor(eventColors[info.evento]):null;
     var evPill=info&&info.evento?'<span class="vinheta-evento-pill"'+(evC?' style="background:'+evC.bg+';color:'+evC.text+';"':'')+'>'+esc(info.evento)+'</span>':'';
-    var canEditV=!!(window._olgaUser&&(window._olgaUser.role==='admin'||window._olgaUser.role==='editor')&&window._olgaVinhetas);
+    var canEditV=!!(window._olgaUser&&window._olgaCanEdit('vinhetas')&&window._olgaVinhetas);
     var safeCod=cod.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
     html+='<div class="vinheta-card" onclick="openVinhetaDetail(\''+safeCod+'\')">'+
       '<div class="vinheta-card-top">'+
@@ -7964,7 +8003,7 @@ function toggleExpand(idx){
       ].filter(Boolean).join('');
       expandDiv.innerHTML='<div class="expand-grid">'+expandContent+'</div>';
       var _footerBtns='<button class="cat-card-btn" style="margin-left:0;" data-cod="'+f.codigo.replace(/"/g,'&quot;')+'" onclick="event.stopPropagation();switchMode(\'catalogo\');openCatDetail(this.dataset.cod)">Ver no Catálogo</button>';
-      if(window._olgaUser&&(window._olgaUser.role==='admin'||window._olgaUser.role==='editor')&&window._olgaCopias){
+      if(window._olgaUser&&window._olgaCanEdit('busca')&&window._olgaCopias){
         _footerBtns+='<button class="cat-card-btn" style="margin-left:0;" onclick="event.stopPropagation();openAcervoEdit('+idx+')">✎ Editar registro técnico</button>';
       }
       expandDiv.innerHTML+='<div style="padding:8px 0 0;border-top:1px solid var(--border);margin-top:8px;display:flex;gap:8px;">'+_footerBtns+'</div>';
@@ -9031,7 +9070,7 @@ function renderDash(){
   html+=colBlock('controle','Controle de filmes',ctrlBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 04/05/2026 às 18:10';
+  var sysUpdate='última atualização do sistema · 04/05/2026 às 18:30';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -9864,7 +9903,7 @@ async function duplicateProgSessao(nome){
 
 var _equipeUsers=[], _equipeEditId=null, _equipeDeleteId=null, _adminEventos=[], _equipeEventoFiltro='';
 var _EQUIPE_MODULOS=['projecao','grade','sessoes','busca','vinhetas','cinemas','kdm','dash','receptivo','bilheteria','catalogo','programacao'];
-var _EQUIPE_ROLES=['admin','editor','projecao','programacao','producao','viewer'];
+var _EQUIPE_ROLES=['admin','editor','viewer'];
 var _EQUIPE_RESTRICOES=[
   {k:'cinemas.bordero',label:'Cinemas · Borderô'},
   {k:'sessoes.bordero',label:'Sessões · Borderô'},
@@ -9884,10 +9923,12 @@ function renderEquipe(){
   if(!window._olgaUsuarios){el.innerHTML='<div style="color:var(--warn);font-family:var(--mono);font-size:11px;">API de usuários não disponível.</div>';return;}
   Promise.all([
     window._olgaUsuarios.list(),
-    window._olgaEventos ? window._olgaEventos.list() : Promise.resolve([])
+    window._olgaEventos ? window._olgaEventos.list() : Promise.resolve([]),
+    window._olgaTemplates ? window._olgaTemplates.list() : Promise.resolve([])
   ]).then(function(results){
     _equipeUsers=results[0].sort(function(a,b){return a.id.localeCompare(b.id);});
     _adminEventos=results[1];
+    _equipeTemplates=results[2];
     window._olgaEventosCache=results[1].map(function(e){return{nome:e.data.nome||e.id};});
     renderEquipeTable();
   }).catch(function(e){
@@ -9930,13 +9971,17 @@ function renderEquipeTable(){
       var modCount=(d.modulos&&d.modulos.length)?d.modulos.length:_EQUIPE_MODULOS.length;
       var evCount=(d.eventos&&d.eventos.length)?d.eventos.length+' evento'+(d.eventos.length!==1?'s':''):'todos os eventos';
       var cxCount=(d.complexos&&d.complexos.length)?d.complexos.join(', '):'todos os complexos';
+      var tplCur=d.role_template||'';
+      var tplOpts='<option value="">— aplicar template —</option>'+_equipeTemplates.map(function(t){return'<option value="'+esc(t.id)+'"'+(tplCur===t.id?' selected':'')+'>'+esc(t.id)+'</option>';}).join('');
+      var tplBadge=tplCur&&tplCur!=='personalizado'?'<span style="font-family:var(--mono);font-size:8px;color:var(--text-muted);display:block;margin-top:3px;">template: '+esc(tplCur)+'</span>':'';
       return '<tr style="'+(ativo?'':'opacity:0.45;')+'">'+
         '<td style="padding:10px 12px;font-family:var(--mono);">'+
           '<div style="font-size:12px;color:var(--text);">'+esc(u.id)+'</div>'+
           (d.name?'<div style="font-size:10px;color:var(--text-dim);margin-top:2px;">'+esc(d.name)+'</div>':'')+
         '</td>'+
         '<td style="padding:10px 12px;font-family:var(--mono);font-size:10px;">'+
-          '<span class="equipe-role-pill">'+esc(role)+'</span>'+
+          '<span class="equipe-role-pill">'+esc(role)+'</span>'+tplBadge+
+          (_equipeTemplates.length?'<select onchange="equipeQuickTemplate(&quot;'+esc(u.id)+'&quot;,this)" style="display:block;margin-top:5px;font-family:var(--mono);font-size:9px;background:var(--bg);color:var(--text-dim);border:1px solid var(--border);padding:2px 5px;width:100%;cursor:pointer;">'+tplOpts+'</select>':'')+
         '</td>'+
         '<td style="padding:10px 12px;font-family:var(--mono);font-size:10px;color:var(--text-dim);">'+modCount+' módulos · '+evCount+'<br><span style="font-size:9px;color:var(--text-muted);">'+cxCount+'</span></td>'+
         '<td style="padding:10px 12px;">'+
@@ -9998,8 +10043,45 @@ function renderEquipeTable(){
   }
 
   var secHdr=function(label){return'<div style="font-family:var(--mono);font-size:9px;font-weight:600;letter-spacing:0.2em;text-transform:uppercase;color:var(--accent);padding:8px 0 6px;border-bottom:1px solid var(--border);margin-bottom:12px;">'+label+'</div>';};
+  var tplHtml='';
+  if(!window._olgaTemplates){
+    tplHtml='<div style="font-family:var(--mono);font-size:11px;color:var(--text-muted);padding:12px 0;">API de templates não disponível.</div>';
+  }else if(!_equipeTemplates.length){
+    tplHtml='<div style="font-family:var(--mono);font-size:11px;color:var(--text-muted);padding:12px 0;">Nenhum template criado ainda.</div>';
+  }else{
+    var tplRows=_equipeTemplates.map(function(t){
+      var d=t.data;
+      var mods=(d.modulos&&d.modulos.length)?d.modulos.length+' mód':_EQUIPE_MODULOS.length+' mód';
+      var moded=(d.modulos_edicao&&d.modulos_edicao.length)?d.modulos_edicao.length+' edit':'todos edit';
+      var evs=(d.eventos&&d.eventos.length)?d.eventos.length+' evento'+(d.eventos.length!==1?'s':''):'todos eventos';
+      return '<tr>'+
+        '<td style="padding:9px 12px;font-family:var(--mono);font-size:12px;color:var(--text);">'+esc(t.id)+'</td>'+
+        '<td style="padding:9px 12px;font-family:var(--mono);font-size:10px;"><span class="equipe-role-pill">'+esc(d.role||'editor')+'</span></td>'+
+        '<td style="padding:9px 12px;font-family:var(--mono);font-size:10px;color:var(--text-muted);">'+mods+' · '+moded+' · '+evs+'</td>'+
+        '<td style="padding:9px 12px;text-align:right;white-space:nowrap;">'+
+          '<button onclick="openTemplateEdit(&quot;'+esc(t.id)+'&quot;)" style="'+_equipeBtn()+'">editar</button> '+
+          '<button onclick="openTemplateDelete(&quot;'+esc(t.id)+'&quot;)" style="'+_equipeBtn('del')+'">excluir</button>'+
+        '</td>'+
+      '</tr>';
+    }).join('');
+    tplHtml='<table style="width:100%;border-collapse:collapse;border:1px solid var(--border);">'+
+      '<thead><tr style="background:var(--surface2);border-bottom:1px solid var(--accent);">'+
+        '<th style="'+_equipeTh()+'">Slug / ID</th>'+
+        '<th style="'+_equipeTh()+'">Role base</th>'+
+        '<th style="'+_equipeTh()+'">Resumo</th>'+
+        '<th style="'+_equipeTh()+'text-align:right">Ações</th>'+
+      '</tr></thead>'+
+      '<tbody>'+tplRows+'</tbody>'+
+    '</table>';
+  }
+  var btnStyle='font-family:var(--mono);font-size:9px;font-weight:600;letter-spacing:0.07em;text-transform:uppercase;padding:4px 12px;background:transparent;border:1px solid var(--border);color:var(--text-dim);cursor:pointer;margin-bottom:12px;';
   el.innerHTML=
-    secHdr('Usuários')+filtroHtml+usuariosHtml+
+    secHdr('Usuários')+
+    '<div style="text-align:right;margin-bottom:8px;"><button onclick="openEquipeNewUser()" style="'+btnStyle+'color:var(--accent);border-color:rgba(255,186,32,0.35);">+ Novo usuário</button></div>'+
+    filtroHtml+usuariosHtml+
+    '<div style="margin-top:32px;">'+secHdr('Templates de papel')+
+    '<div style="text-align:right;margin-bottom:8px;"><button onclick="openTemplateEdit(null)" style="'+btnStyle+'color:var(--accent);border-color:rgba(255,186,32,0.35);">+ Novo template</button></div>'+
+    tplHtml+'</div>'+
     '<div style="margin-top:32px;">'+secHdr('Eventos')+evHtml+'</div>';
 }
 
@@ -10116,10 +10198,12 @@ function _openEquipeForm(id,isDup){
   document.getElementById('equipeModalErr').style.display='none';
 
   var modulos=d.modulos&&d.modulos.length?d.modulos:_EQUIPE_MODULOS.slice();
+  var modEdicao=d.modulos_edicao&&d.modulos_edicao.length?d.modulos_edicao:_EQUIPE_MODULOS.slice();
   var eventos=d.eventos||[];
   var complexos=d.complexos||[];
   var restricoes=d.restricoes||[];
   var ativo=d.ativo!==false;
+  var roleTemplate=d.role_template||null;
 
   // lista de complexos disponíveis derivada do cinemasArr global
   var todosComplexos=[];
@@ -10137,6 +10221,12 @@ function _openEquipeForm(id,isDup){
       '<input type="checkbox" name="eq_mod" value="'+m+'" '+chk+' style="accent-color:var(--accent);">'+m+'</label>';
   }).join('');
 
+  var modEdChk=_EQUIPE_MODULOS.map(function(m){
+    var chk=modEdicao.indexOf(m)!==-1?'checked':'';
+    return '<label style="display:flex;align-items:center;gap:7px;font-family:var(--mono);font-size:10px;color:var(--text-dim);cursor:pointer;padding:2px 0;">'+
+      '<input type="checkbox" name="eq_moded" value="'+m+'" '+chk+' style="accent-color:var(--accent);">'+m+'</label>';
+  }).join('');
+
   var resChk=_EQUIPE_RESTRICOES.map(function(r){
     var chk=restricoes.indexOf(r.k)!==-1?'checked':'';
     return '<label style="display:flex;align-items:center;gap:7px;font-family:var(--mono);font-size:10px;color:var(--text-dim);cursor:pointer;padding:2px 0;">'+
@@ -10151,20 +10241,24 @@ function _openEquipeForm(id,isDup){
   document.getElementById('equipeModalBody').innerHTML=
     _eqField('Email (ID do documento)','<input id="eq_email" type="email" value="'+esc(isDup?'':(id||''))+'" placeholder="email@exemplo.com" '+(id&&!isDup?'readonly style="opacity:0.5;cursor:not-allowed;"':'')+' style="'+_eqInpStyle()+'">')+
     _eqField('Nome de exibição','<input id="eq_name" value="'+esc(d.name||'')+'" placeholder="Nome completo" style="'+_eqInpStyle()+'">')+
-    _eqField('Papel','<select id="eq_role" style="'+_eqInpStyle()+'min-width:180px;">'+
+    _eqField('Papel','<select id="eq_role" onchange="_eqRoleChange(this.value)" style="'+_eqInpStyle()+'min-width:180px;">'+
       _EQUIPE_ROLES.map(function(r){return'<option value="'+r+'"'+(r===(d.role||'viewer')?' selected':'')+'>'+r+'</option>';}).join('')+
     '</select>')+
+    (roleTemplate?'<div style="font-family:var(--mono);font-size:9px;color:var(--text-muted);margin-bottom:14px;padding:5px 8px;border:1px solid var(--border);border-radius:2px;">Template: <strong style="color:var(--text-dim);">'+esc(roleTemplate)+'</strong></div>':'')+
     _eqSep('Complexos permitidos — vazio = todos os complexos')+
     '<div style="display:grid;grid-template-columns:1fr 1fr;gap:4px 20px;margin-bottom:16px;" id="eq_complexo_list">'+complexoChk+'</div>'+
-    _eqSep('Módulos permitidos — desmarque para restringir acesso')+
+    _eqSep('Módulos com acesso — desmarque para restringir')+
     '<div style="display:grid;grid-template-columns:1fr 1fr;gap:4px 20px;margin-bottom:16px;">'+modChk+'</div>'+
+    '<div id="eq_moded_section" style="'+(d.role==='editor'?'':'display:none;')+'">'+
+      _eqSep('Módulos com permissão de edição (editor)')+
+      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:4px 20px;margin-bottom:16px;">'+modEdChk+'</div>'+
+    '</div>'+
     _eqSep('Eventos permitidos — vazio = todos')+
     '<div id="eq_ev_chips" style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:8px;">'+evChips+'</div>'+
     '<div style="display:flex;gap:6px;margin-bottom:16px;">'+
       '<input id="eq_ev_new" placeholder="código do evento…" onkeydown="if(event.key===\'Enter\'){event.preventDefault();equipeAddEv();}" style="'+_eqInpStyle()+'flex:1;min-width:0;">'+
       '<button onclick="equipeAddEv()" style="'+_equipeBtn()+'padding:5px 12px;">+ adicionar</button>'+
     '</div>'+
-
     _eqSep('Restrições ativas — marque para bloquear')+
     '<div style="display:flex;flex-direction:column;gap:4px;margin-bottom:16px;">'+resChk+'</div>'+
     _eqSep('Status')+
@@ -10188,6 +10282,147 @@ function _eqSep(label){
 }
 function _eqInpStyle(){
   return 'width:100%;font-family:var(--mono);font-size:11px;background:var(--surface2);color:var(--text);border:1px solid var(--border2);padding:7px 10px;outline:none;';
+}
+
+
+/* ── Template de papel CRUD ─────────────────────────────────────── */
+var _tplEditId=null;
+
+function openTemplateEdit(id){
+  _tplEditId=id;
+  var t=id?_equipeTemplates.find(function(x){return x.id===id;}):null;
+  var d=t?t.data:{};
+  var modulos=d.modulos&&d.modulos.length?d.modulos:_EQUIPE_MODULOS.slice();
+  var modEdicao=d.modulos_edicao&&d.modulos_edicao.length?d.modulos_edicao:_EQUIPE_MODULOS.slice();
+  var restricoes=d.restricoes||[];
+  var eventos=d.eventos||[];
+  var complexos=d.complexos||[];
+  var todosComplexos=(function(){var s=new Set();cinemasArr.forEach(function(c){if(c.complexo)s.add(c.complexo);});return Array.from(s).sort();})();
+
+  var modChk=_EQUIPE_MODULOS.map(function(m){
+    return'<label style="display:flex;align-items:center;gap:7px;font-family:var(--mono);font-size:10px;color:var(--text-dim);cursor:pointer;padding:2px 0;">'+
+      '<input type="checkbox" name="tpl_mod" value="'+m+'" '+(modulos.indexOf(m)!==-1?'checked':'')+' style="accent-color:var(--accent);">'+m+'</label>';
+  }).join('');
+  var modEdChk=_EQUIPE_MODULOS.map(function(m){
+    return'<label style="display:flex;align-items:center;gap:7px;font-family:var(--mono);font-size:10px;color:var(--text-dim);cursor:pointer;padding:2px 0;">'+
+      '<input type="checkbox" name="tpl_moded" value="'+m+'" '+(modEdicao.indexOf(m)!==-1?'checked':'')+' style="accent-color:var(--accent);">'+m+'</label>';
+  }).join('');
+  var resChk=_EQUIPE_RESTRICOES.map(function(r){
+    return'<label style="display:flex;align-items:center;gap:7px;font-family:var(--mono);font-size:10px;color:var(--text-dim);cursor:pointer;padding:2px 0;">'+
+      '<input type="checkbox" name="tpl_res" value="'+r.k+'" '+(restricoes.indexOf(r.k)!==-1?'checked':'')+' style="accent-color:var(--accent);">'+r.label+'</label>';
+  }).join('');
+  var cxChk=todosComplexos.map(function(cx){
+    return'<label style="display:flex;align-items:center;gap:7px;font-family:var(--mono);font-size:10px;color:var(--text-dim);cursor:pointer;padding:2px 0;">'+
+      '<input type="checkbox" name="tpl_cx" value="'+esc(cx)+'" '+(complexos.indexOf(cx)!==-1?'checked':'')+' style="accent-color:var(--accent);">'+esc(cx)+'</label>';
+  }).join('');
+
+  var modal=document.getElementById('tplModal');
+  document.getElementById('tplModalTitle').textContent=id?'Editar template · '+id:'Novo template';
+  document.getElementById('tplModalErr').style.display='none';
+  document.getElementById('tplModalBody').innerHTML=
+    _eqField('Slug / ID (identificador único)',
+      '<input id="tpl_id" value="'+esc(id||'')+'" placeholder="ex: equipe-projecao" style="'+_eqInpStyle()+'"'+(id?' readonly style="'+_eqInpStyle()+'opacity:0.5;cursor:not-allowed;"':'')+'>'+
+      '<div style="font-family:var(--mono);font-size:8px;color:var(--text-muted);margin-top:3px;">Use letras minúsculas, números e hífens. Não pode ser alterado após criar.</div>')+
+    _eqField('Role base','<select id="tpl_role" style="'+_eqInpStyle()+'min-width:180px;">'+
+      _EQUIPE_ROLES.map(function(r){return'<option value="'+r+'"'+(r===(d.role||'editor')?' selected':'')+'>'+r+'</option>';}).join('')+
+    '</select>')+
+    _eqSep('Módulos permitidos — desmarque para restringir acesso')+
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:4px 20px;margin-bottom:16px;">'+modChk+'</div>'+
+    _eqSep('Módulos com permissão de edição')+
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:4px 20px;margin-bottom:16px;">'+modEdChk+'</div>'+
+    (todosComplexos.length?_eqSep('Complexos permitidos — vazio = todos')+'<div style="display:grid;grid-template-columns:1fr 1fr;gap:4px 20px;margin-bottom:16px;">'+cxChk+'</div>':'')+
+    _eqSep('Eventos permitidos — vazio = todos')+
+    '<div id="tpl_ev_chips" style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:8px;">'+
+      eventos.map(function(ev,i){return'<span style="display:inline-flex;align-items:center;gap:5px;font-family:var(--mono);font-size:10px;background:var(--surface2);color:var(--text-dim);border:1px solid var(--border2);padding:3px 8px;border-radius:2px;">'+esc(ev)+'<button onclick="tplRemoveEv('+i+')" style="background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:13px;line-height:1;padding:0;">×</button></span>';}).join(' ')+
+    '</div>'+
+    '<div style="display:flex;gap:6px;margin-bottom:16px;">'+
+      '<input id="tpl_ev_new" placeholder="código do evento…" onkeydown="if(event.key===\'Enter\'){event.preventDefault();tplAddEv();}" style="'+_eqInpStyle()+'flex:1;min-width:0;">'+
+      '<button onclick="tplAddEv()" style="'+_equipeBtn()+'padding:5px 12px;">+ adicionar</button>'+
+    '</div>'+
+    _eqSep('Restrições ativas — marque para bloquear')+
+    '<div style="display:flex;flex-direction:column;gap:4px;margin-bottom:16px;">'+resChk+'</div>';
+
+  window._tplEvArr=eventos.slice();
+  modal.style.display='flex';
+}
+
+window.tplRemoveEv=function(idx){
+  window._tplEvArr.splice(idx,1);
+  document.getElementById('tpl_ev_chips').innerHTML=window._tplEvArr.map(function(ev,i){
+    return'<span style="display:inline-flex;align-items:center;gap:5px;font-family:var(--mono);font-size:10px;background:var(--surface2);color:var(--text-dim);border:1px solid var(--border2);padding:3px 8px;border-radius:2px;">'+esc(ev)+'<button onclick="tplRemoveEv('+i+')" style="background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:13px;line-height:1;padding:0;">×</button></span>';
+  }).join(' ');
+};
+window.tplAddEv=function(){
+  var inp=document.getElementById('tpl_ev_new');
+  var val=inp.value.trim();if(!val)return;
+  window._tplEvArr.push(val);
+  document.getElementById('tpl_ev_chips').innerHTML=window._tplEvArr.map(function(ev,i){
+    return'<span style="display:inline-flex;align-items:center;gap:5px;font-family:var(--mono);font-size:10px;background:var(--surface2);color:var(--text-dim);border:1px solid var(--border2);padding:3px 8px;border-radius:2px;">'+esc(ev)+'<button onclick="tplRemoveEv('+i+')" style="background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:13px;line-height:1;padding:0;">×</button></span>';
+  }).join(' ');
+  inp.value='';
+};
+
+window.saveTemplate=async function(){
+  var errEl=document.getElementById('tplModalErr');
+  var btn=document.getElementById('tplModalSave');
+  errEl.style.display='none';
+  var slug=(document.getElementById('tpl_id').value||'').trim().toLowerCase().replace(/[^a-z0-9-]/g,'-');
+  if(!slug){errEl.textContent='Slug obrigatório.';errEl.style.display='block';return;}
+  if(!_tplEditId&&_equipeTemplates.find(function(t){return t.id===slug;})){errEl.textContent='Já existe um template com este slug.';errEl.style.display='block';return;}
+  var modulos=Array.from(document.querySelectorAll('input[name="tpl_mod"]:checked')).map(function(x){return x.value;});
+  var modEdicao=Array.from(document.querySelectorAll('input[name="tpl_moded"]:checked')).map(function(x){return x.value;});
+  var restricoes=Array.from(document.querySelectorAll('input[name="tpl_res"]:checked')).map(function(x){return x.value;});
+  var complexos=Array.from(document.querySelectorAll('input[name="tpl_cx"]:checked')).map(function(x){return x.value;});
+  var data={
+    role:document.getElementById('tpl_role').value,
+    modulos:modulos.length===_EQUIPE_MODULOS.length?[]:modulos,
+    modulos_edicao:modEdicao.length===_EQUIPE_MODULOS.length?[]:modEdicao,
+    complexos:complexos,
+    eventos:window._tplEvArr||[],
+    restricoes:restricoes
+  };
+  btn.disabled=true;btn.textContent='Salvando…';
+  try{
+    await window._olgaTemplates.save(slug,data);
+    document.getElementById('tplModal').style.display='none';
+    renderEquipe();
+  }catch(e){errEl.textContent='Erro: '+e.message;errEl.style.display='block';}
+  btn.disabled=false;btn.textContent='Salvar';
+};
+
+function openTemplateDelete(id){
+  if(!confirm('Excluir template "'+id+'"? Usuários que usam este template manterão seus dados mas ficarão como "personalizado".'))return;
+  window._olgaTemplates.remove(id).then(renderEquipe).catch(function(e){alert('Erro: '+e.message);});
+}
+
+/* ── Quick-assign template ─────────────────────────────────────── */
+window.equipeQuickTemplate=async function(userId,sel){
+  var slug=sel.value;
+  if(!slug){return;}
+  var t=_equipeTemplates.find(function(x){return x.id===slug;});
+  if(!t){sel.value='';return;}
+  var u=_equipeUsers.find(function(x){return x.id===userId;});
+  if(!u){return;}
+  if(!confirm('Aplicar template "'+slug+'" ao usuário '+userId+'?\n\nIsso substituirá os módulos, restrições e eventos deste usuário pelos valores do template.')){sel.value=u.data.role_template||'';return;}
+  var d=t.data;
+  var newData=Object.assign({},u.data,{
+    role:d.role||u.data.role,
+    modulos:d.modulos||[],
+    modulos_edicao:d.modulos_edicao||[],
+    complexos:d.complexos||[],
+    eventos:d.eventos||[],
+    restricoes:d.restricoes||[],
+    role_template:slug
+  });
+  try{
+    await window._olgaUsuarios.save(userId,newData);
+    renderEquipe();
+  }catch(e){alert('Erro ao aplicar template: '+e.message);sel.value=u.data.role_template||'';}
+};
+
+function _eqRoleChange(role){
+  var sec=document.getElementById('eq_moded_section');
+  if(sec)sec.style.display=role==='editor'?'':'none';
 }
 
 window.equipeRemoveEv=function(idx){
@@ -10223,16 +10458,20 @@ window.saveEquipeUser=async function(){
   if(!email||!email.includes('@')){errEl.textContent='Email inválido.';errEl.style.display='block';return;}
   if(!_equipeEditId&&_equipeUsers.find(function(u){return u.id===email;})){errEl.textContent='Já existe um usuário com esse email.';errEl.style.display='block';return;}
   var modulos=Array.from(document.querySelectorAll('input[name="eq_mod"]:checked')).map(function(x){return x.value;});
+  var modEdicao=Array.from(document.querySelectorAll('input[name="eq_moded"]:checked')).map(function(x){return x.value;});
   var complexosSel=Array.from(document.querySelectorAll('input[name="eq_complexo"]:checked')).map(function(x){return x.value;});
   var restricoes=Array.from(document.querySelectorAll('input[name="eq_res"]:checked')).map(function(x){return x.value;});
+  var role=document.getElementById('eq_role').value;
   var data={
     name:document.getElementById('eq_name').value.trim(),
-    role:document.getElementById('eq_role').value,
+    role:role,
     modulos:modulos.length===_EQUIPE_MODULOS.length?[]:modulos,
+    modulos_edicao:role==='editor'?(modEdicao.length===_EQUIPE_MODULOS.length?[]:modEdicao):[],
     complexos:complexosSel,
     eventos:window._equipeEvArr||[],
     restricoes:restricoes,
-    ativo:document.getElementById('eq_ativo').checked
+    ativo:document.getElementById('eq_ativo').checked,
+    role_template:'personalizado'
   };
   btn.disabled=true;btn.textContent='Salvando…';
   try{
@@ -10532,7 +10771,7 @@ function _catRenderResults(){
       });
     }
     if(semFilmes.length){
-      var _cE=window._olgaUser&&(window._olgaUser.role==='admin'||window._olgaUser.role==='editor');
+      var _cE=window._olgaUser&&window._olgaCanEdit('programacao');
       semFilmes.forEach(function(ev){
         var evColor=eventColors[ev.id]||{bg:'var(--surface2)',text:'var(--text-dim)'};
         resEl.innerHTML+='<div style="margin-top:12px;padding:14px 16px;border:1px dashed var(--border);display:flex;align-items:center;gap:12px;">'
@@ -10607,7 +10846,7 @@ function renderCatalogo(){
   html+='<button class="cat-clear-btn" onclick="clearCatForm()">↺ Limpar busca</button>';
   html+='<button class="cat-clear-btn" onclick="clearCatResults()">✕ Limpar resultados</button>';
   html+='<button class="cat-all-btn" onclick="catShowAll()">Mostrar todos</button>';
-  var _catCanEdit=window._olgaUser&&(window._olgaUser.role==='admin'||window._olgaUser.role==='editor');
+  var _catCanEdit=window._olgaUser&&window._olgaCanEdit('catalogo');
   if(_catCanEdit)html+='<button class="cat-edit-btn" style="margin-left:auto;" onclick="openCatCreate()">+ Novo filme</button>';
   if(_catCanEdit)html+='<button class="cat-edit-btn" onclick="importCopiasToCatalog()">↓ Importar do Acervo</button>';
   html+='</div>';
@@ -10641,7 +10880,7 @@ function renderCatDetail(){
   var copia=filmesMap[_catCode]||{};var meta=catalogoFilmesMap[_catCode]||{};
   var title=meta.title||copia.titulo||_catCode;var dur=fmtDurMin(copia.duracao);
   var sCls=catStatusCls(copia.status);
-  var canEdit=window._olgaUser&&(window._olgaUser.role==='admin'||window._olgaUser.role==='editor');
+  var canEdit=window._olgaUser&&window._olgaCanEdit('catalogo');
   var dirArr=Array.isArray(meta.director)?meta.director:(meta.director?[meta.director]:[]);
   var dirDisplay=dirArr.join(', ');
   var legDisplay=copia.legenda?_fmtDcncToName(copia.legenda):'—';
@@ -11213,7 +11452,7 @@ async function doSaveAcervoEdit(){
 
 function _dcpFmt(secs){
   var h=Math.floor(secs/3600),m=Math.floor((secs%3600)/60),s=Math.floor(secs%60);
-  return h+'h'+String(m).padStart(2,'0')+"'"+String(s).padStart(2,'0')+'"';
+  return h+':'+String(m).padStart(2,'0')+':'+String(s).padStart(2,'0');
 }
 
 function _dcpEditRate(txt){
@@ -11883,6 +12122,20 @@ window.addEventListener('popstate',function(e){
     </div>
   </div>
 </div>
+<div id="tplModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:501;align-items:center;justify-content:center;" onclick="if(event.target===this)this.style.display='none'">
+  <div style="background:var(--surface);border:1px solid var(--border);width:100%;max-width:640px;margin:20px auto;display:flex;flex-direction:column;max-height:90vh;">
+    <div style="padding:14px 22px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;">
+      <span id="tplModalTitle" style="font-family:var(--mono);font-size:11px;font-weight:600;letter-spacing:0.18em;text-transform:uppercase;color:var(--accent);"></span>
+      <button onclick="document.getElementById('tplModal').style.display='none'" style="background:none;border:none;color:var(--text-muted);font-size:18px;cursor:pointer;">×</button>
+    </div>
+    <div id="tplModalBody" style="padding:20px 22px;overflow-y:auto;flex:1;"></div>
+    <div id="tplModalErr" style="display:none;font-family:var(--mono);font-size:10px;color:var(--warn);padding:0 22px 8px;"></div>
+    <div style="padding:14px 22px;border-top:1px solid var(--border);display:flex;gap:10px;justify-content:flex-end;flex-shrink:0;">
+      <button onclick="document.getElementById('tplModal').style.display='none'" style="font-family:var(--mono);font-size:10px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;padding:7px 16px;background:transparent;color:var(--text-dim);border:1px solid var(--border);cursor:pointer;">Cancelar</button>
+      <button id="tplModalSave" onclick="saveTemplate()" style="font-family:var(--mono);font-size:10px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;padding:7px 20px;background:var(--accent);color:var(--on-accent);border:none;cursor:pointer;">Salvar</button>
+    </div>
+  </div>
+</div>
 <div id="equipeDeleteModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:600;align-items:center;justify-content:center;">
   <div style="background:var(--surface);border:1px solid rgba(255,180,171,0.3);padding:28px;max-width:380px;width:100%;">
     <div style="font-family:var(--mono);font-size:11px;font-weight:600;letter-spacing:0.14em;text-transform:uppercase;color:var(--warn);margin-bottom:10px;">Excluir usuário</div>
@@ -11899,7 +12152,7 @@ window.addEventListener('popstate',function(e){
 <script>
   if(typeof lucide !== 'undefined') lucide.createIcons();
 </script>
-<div id="page-footer"><span>última atualização · 04/05/2026 às 18:10</span></div>
+<div id="page-footer"><span>última atualização · 04/05/2026 às 18:30</span></div>
 
 </div>
 

@@ -5020,9 +5020,11 @@ function buildGradeDays(){var seen=new Set();days=[];sessoesArr.forEach(function
 
 /* INGEST */
 function buildIngestDays(){
+  var _asd=allowedSalas();
   var seen=new Set();ingestDays=[];
   sessoesArr.forEach(function(s){
     if(!s.date)return;
+    if(_asd&&s.cinema&&!_asd.has(s.cinema))return;
     var id=new Date(s.date.getTime());id.setDate(id.getDate()-2);
     var k=id.toISOString().slice(0,10);
     if(!seen.has(k)){seen.add(k);ingestDays.push({key:k,date:id});}
@@ -5036,13 +5038,15 @@ function buildIngestDays(){
 function renderIngestDayTabs(){
   var container=document.getElementById('ingestDayTabs');container.innerHTML='';
   // only days that have ≥1 session from an active event
+  var _asdt=allowedSalas();
   var activeDays=ingestDays.filter(function(d){
     return sessoesArr.some(function(s){
       if(!s.date)return false;
       var id=new Date(s.date.getTime());id.setDate(id.getDate()-2);
       return id.toISOString().slice(0,10)===d.key&&
              (!s.evento||activeEventsIngest.has(s.evento))&&
-             (!ingestCinemaFilter||s.cinema===ingestCinemaFilter);
+             (!ingestCinemaFilter||s.cinema===ingestCinemaFilter)&&
+             (!_asdt||!s.cinema||_asdt.has(s.cinema));
     });
   });
   var validKeys=activeDays.map(function(d){return d.key;});
@@ -5087,12 +5091,14 @@ function renderIngest(){
   renderIngestDayTabs();
   var ie=document.getElementById('ingestEmpty'),iw=document.getElementById('ingest-container');
   if(!currentIngestDay){iw.style.display='none';ie.style.display='flex';return;}
+  var _as=allowedSalas();
   var sessions=sessoesArr.filter(function(s){
     if(!s.date)return false;
     var id=new Date(s.date.getTime());id.setDate(id.getDate()-2);
     if(id.toISOString().slice(0,10)!==currentIngestDay)return false;
     if(ingestCinemaFilter&&s.cinema!==ingestCinemaFilter)return false;
     if(s.evento&&!activeEventsIngest.has(s.evento))return false;
+    if(_as&&s.cinema&&!_as.has(s.cinema))return false;
     return true;
   });
   rebuildIngestHdSelect();
@@ -5104,12 +5110,14 @@ function renderIngest(){
   }
   ie.style.display='none';iw.style.display='block';
 
-  // total GB for the day (all cinemas, regardless of filter)
+  // total GB for the day (respects user scope)
   var totalGB=0;
   sessoesArr.forEach(function(s){
     if(!s.date)return;
     var id=new Date(s.date.getTime());id.setDate(id.getDate()-2);
     if(id.toISOString().slice(0,10)!==currentIngestDay)return;
+    if(s.evento&&!activeEventsIngest.has(s.evento))return;
+    if(_as&&s.cinema&&!_as.has(s.cinema))return;
     s.filmes.forEach(function(c){var f=filmesMap[c];if(!f)return;var g=parseFloat((f.gb||'').toString().replace(',','.'));if(!isNaN(g))totalGB+=g;});
   });
 
@@ -5388,7 +5396,7 @@ function buildPills(container,evColors,activeSet,onToggle){
 /* helpers: sessões filtradas por evento */
 function sessoesFicha(){return sessoesArr.filter(function(s){return!s.evento||activeEventsFicha.has(s.evento);});}
 function sessoesGrade(){var as=allowedSalas();return sessoesArr.filter(function(s){if(s.evento&&!activeEventsGrade.has(s.evento))return false;if(as&&s.cinema&&!as.has(s.cinema))return false;return true;});}
-function sessoesIngest(){return sessoesArr.filter(function(s){return!s.evento||activeEventsIngest.has(s.evento);});}
+function sessoesIngest(){var as=allowedSalas();return sessoesArr.filter(function(s){if(s.evento&&!activeEventsIngest.has(s.evento))return false;if(as&&s.cinema&&!as.has(s.cinema))return false;return true;});}
 
 function rebuildSessionSelect(){
   var sel=document.getElementById('sessionSelect');
@@ -5728,9 +5736,11 @@ function buildBuscaFilters(){buildPills(document.getElementById('buscaEventFilte
 });}
 
 function rebuildIngestCinemaSelect(){
+  var _asc=allowedSalas();
   var cs=new Set();
   sessoesArr.forEach(function(s){
     if(s.evento&&!activeEventsIngest.has(s.evento))return;
+    if(_asc&&s.cinema&&!_asc.has(s.cinema))return;
     if(ingestHdFilter){
       var hasHd=s.filmes.some(function(c){var f=filmesMap[c];return f&&(f.hd||'').toString().trim()===ingestHdFilter;});
       if(!hasHd)return;
@@ -5746,6 +5756,7 @@ function rebuildIngestCinemaSelect(){
 }
 
 function rebuildIngestHdSelect(){
+  var _ash=allowedSalas();
   var hdSet=new Set();
   sessoesArr.forEach(function(s){
     if(!s.date)return;
@@ -5753,6 +5764,7 @@ function rebuildIngestHdSelect(){
     if(id.toISOString().slice(0,10)!==currentIngestDay)return;
     if(ingestCinemaFilter&&s.cinema!==ingestCinemaFilter)return;
     if(s.evento&&!activeEventsIngest.has(s.evento))return;
+    if(_ash&&s.cinema&&!_ash.has(s.cinema))return;
     s.filmes.forEach(function(c){
       var f=filmesMap[c];var h=f&&(f.hd||'').toString().trim();
       if(h&&h!=='-')hdSet.add(h);
@@ -9095,7 +9107,7 @@ function renderDash(){
   html+=colBlock('controle','Controle de filmes',ctrlBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 05/05/2026 às 18:50';
+  var sysUpdate='última atualização do sistema · 05/05/2026 às 19:00';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -12208,7 +12220,7 @@ window.addEventListener('popstate',function(e){
 <script>
   if(typeof lucide !== 'undefined') lucide.createIcons();
 </script>
-<div id="page-footer"><span>última atualização · 05/05/2026 às 18:50</span></div>
+<div id="page-footer"><span>última atualização · 05/05/2026 às 19:00</span></div>
 
 </div>
 

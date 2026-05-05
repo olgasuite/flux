@@ -9031,7 +9031,7 @@ function renderDash(){
   html+=colBlock('controle','Controle de filmes',ctrlBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 04/05/2026 às 18:00';
+  var sysUpdate='última atualização do sistema · 04/05/2026 às 18:10';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -11206,6 +11206,268 @@ async function doSaveAcervoEdit(){
     if(card){var ex=card.querySelector('.card-expand');if(ex){ex.dataset.lazy='1';if(card.classList.contains('expanded')){card.classList.remove('expanded');toggleExpand(_acervoEditIdx);}}}
   }catch(e){if(msg){msg.className='cat-msg err';msg.textContent='Erro: '+e.message;}}
 }
+
+/* ═══════════════════════════════════════════════
+   DCP FOLDER IMPORT
+═══════════════════════════════════════════════ */
+
+function _dcpFmt(secs){
+  var h=Math.floor(secs/3600),m=Math.floor((secs%3600)/60),s=Math.floor(secs%60);
+  return h+'h'+String(m).padStart(2,'0')+"'"+String(s).padStart(2,'0')+'"';
+}
+
+function _dcpEditRate(txt){
+  if(!txt)return 0;
+  var p=txt.trim().split(/\s+/);
+  return p.length===2?parseFloat(p[0])/parseFloat(p[1]):parseFloat(p[0])||0;
+}
+
+function _dcpResolution(xml){
+  var tags=['FrameWidth','StoredWidth','PictureWidth'];
+  for(var i=0;i<tags.length;i++){
+    var n=xml.querySelector(tags[i])||_xmlFindLocal(xml,tags[i]);
+    if(n&&/^\d+$/.test(n.textContent.trim())){
+      var w=parseInt(n.textContent);
+      return w>=3840?'4K':w>=1920?'2K':'';
+    }
+  }
+  var sar=_xmlFindLocal(xml,'ScreenAspectRatio');
+  if(sar){
+    var parts=sar.textContent.trim().split(/\s+/);
+    if(parts.length===2&&/^\d+$/.test(parts[0])){
+      var w=parseInt(parts[0]);return w>=3840?'4K':w>=1920?'2K':'';
+    }
+  }
+  return '';
+}
+
+function _xmlFindLocal(xml,localName){
+  var all=xml.getElementsByTagName('*');
+  for(var i=0;i<all.length;i++){if(all[i].localName===localName)return all[i];}
+  return null;
+}
+
+function _dcpKDM(xml){
+  return _xmlFindLocal(xml,'KeyId')?'Sim':'Não';
+}
+
+async function _parseCPL(file){
+  return new Promise(function(resolve,reject){
+    var r=new FileReader();
+    r.onload=function(e){
+      try{
+        var parser=new DOMParser();
+        var xml=parser.parseFromString(e.target.result,'text/xml');
+        // CPL UUID
+        var idNode=null;
+        var root=xml.documentElement;
+        // first <Id> child of root
+        for(var c=root.firstElementChild;c;c=c.nextElementSibling){
+          if(c.localName==='Id'){idNode=c;break;}
+        }
+        var uuid=(idNode?idNode.textContent:'').replace(/^urn:uuid:/i,'').trim();
+        var ctt=_xmlFindLocal(xml,'ContentTitleText');
+        var er=_xmlFindLocal(xml,'EditRate');
+        var cr=_xmlFindLocal(xml,'Creator');
+        var editRate=_dcpEditRate(er?er.textContent:'');
+        // duration: sum MainPicture reels
+        var reels=xml.querySelectorAll('Reel');
+        if(!reels.length)reels=xml.getElementsByTagName('Reel');
+        var totalFrames=0;
+        for(var i=0;i<reels.length;i++){
+          var pic=reels[i].querySelector('MainPicture')||reels[i].getElementsByTagName('MainPicture')[0];
+          if(!pic)continue;
+          var dur=pic.querySelector('Duration')||pic.getElementsByTagName('Duration')[0];
+          var ept=pic.querySelector('EntryPoint')||pic.getElementsByTagName('EntryPoint')[0];
+          var d=dur?parseInt(dur.textContent)||0:0;
+          var ep=ept?parseInt(ept.textContent)||0:0;
+          totalFrames+=(d-ep);
+        }
+        var secs=editRate>0?totalFrames/editRate:0;
+        resolve({
+          file: file.name,
+          uuid: uuid,
+          title: ctt?ctt.textContent.trim():'',
+          fps: editRate?String(Math.round(editRate*1000)/1000):'',
+          durSecs: secs,
+          dur: secs>0?_dcpFmt(secs):'',
+          creator: cr?cr.textContent.trim():'',
+          resolution: _dcpResolution(xml),
+          kdm: _dcpKDM(xml)
+        });
+      }catch(err){reject(err);}
+    };
+    r.onerror=reject;
+    r.readAsText(file);
+  });
+}
+
+async function handleDCPFolderSelect(files){
+  var panel=document.getElementById('dcpImportPanel');
+  panel.style.display='flex';
+  panel.innerHTML='<div style="font-family:var(--mono);font-size:10px;color:var(--text-muted);">Lendo pasta…</div>';
+
+  // Total size
+  var totalBytes=0;
+  var cplFiles=[];
+  for(var i=0;i<files.length;i++){
+    totalBytes+=files[i].size;
+    var n=files[i].name;
+    if(/CPL/i.test(n)&&n.toLowerCase().endsWith('.xml'))cplFiles.push(files[i]);
+  }
+  var totalGB=Math.ceil(totalBytes/(1024*1024*1024));
+
+  if(!cplFiles.length){
+    panel.innerHTML='<div style="font-family:var(--mono);font-size:10px;color:var(--warn);">⚠ Nenhum CPL encontrado nesta pasta.</div>';
+    return;
+  }
+
+  // Parse all CPLs
+  var parsed=[];
+  for(var i=0;i<cplFiles.length;i++){
+    try{var r=await _parseCPL(cplFiles[i]);r.totalGB=totalGB;parsed.push(r);}catch(e){console.warn('CPL parse error',e);}
+  }
+
+  if(!parsed.length){
+    panel.innerHTML='<div style="font-family:var(--mono);font-size:10px;color:var(--warn);">⚠ Não foi possível ler os CPLs.</div>';
+    return;
+  }
+
+  if(parsed.length===1){
+    _dcpShowOVVF(parsed[0],totalGB,panel);
+  }else{
+    _dcpShowCPLPicker(parsed,totalGB,panel);
+  }
+
+  // reset input so same folder can be re-selected
+  document.getElementById('dcpFolderInput').value='';
+}
+
+function _dcpShowCPLPicker(cpls,totalGB,panel){
+  var rows=cpls.map(function(c,i){
+    return'<label style="display:flex;align-items:flex-start;gap:10px;padding:8px 10px;border:1px solid var(--border);cursor:pointer;background:var(--surface);">'
+      +'<input type="radio" name="dcpCplPick" value="'+i+'" style="margin-top:2px;accent-color:var(--accent);">'
+      +'<div style="flex:1;min-width:0;">'
+        +'<div style="font-family:var(--mono);font-size:10px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+c.title+(c.title?' · ':'')+'<span style="color:var(--text-muted);">'+c.file+'</span></div>'
+        +'<div style="font-family:var(--mono);font-size:9px;color:var(--text-muted);margin-top:2px;">'
+          +(c.fps?c.fps+' fps · ':'')+(c.dur?c.dur+' · ':'')+(c.resolution?c.resolution+' · ':'')+(c.kdm==='Sim'?'<span style="color:#ff6e55;">KDM</span> · ':'')+'UUID: '+c.uuid.slice(0,8)+'…'
+        +'</div>'
+      +'</div>'
+    +'</label>';
+  }).join('');
+  panel.innerHTML=
+    '<div style="font-family:var(--mono);font-size:8px;font-weight:600;letter-spacing:0.14em;text-transform:uppercase;color:var(--text-muted);">'+cpls.length+' CPLs encontrados — escolha um</div>'
+    +'<div style="display:flex;flex-direction:column;gap:5px;">'+rows+'</div>'
+    +'<div style="display:flex;gap:8px;justify-content:flex-end;">'
+      +'<button onclick="document.getElementById(&quot;dcpImportPanel&quot;).style.display=&quot;none&quot;;" style="font-family:var(--mono);font-size:9px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;padding:5px 12px;background:transparent;color:var(--text-muted);border:1px solid var(--border);cursor:pointer;">Cancelar</button>'
+      +'<button onclick="_dcpPickerConfirm()" data-cpls="'+encodeURIComponent(JSON.stringify(cpls))+'" data-gb="'+totalGB+'" style="font-family:var(--mono);font-size:9px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;padding:5px 14px;background:var(--accent);color:var(--on-accent);border:none;cursor:pointer;">Usar este CPL →</button>'
+    +'</div>';
+}
+
+function _dcpPickerConfirm(){
+  var sel=document.querySelector('input[name="dcpCplPick"]:checked');
+  if(!sel){alert('Selecione um CPL.');return;}
+  var btn=document.querySelector('[data-cpls]');
+  var cpls=JSON.parse(decodeURIComponent(btn.dataset.cpls));
+  var totalGB=parseInt(btn.dataset.gb);
+  _dcpShowOVVF(cpls[parseInt(sel.value)],totalGB,document.getElementById('dcpImportPanel'));
+}
+
+function _dcpShowOVVF(cpl,totalGB,panel){
+  panel._dcpCpl=cpl; panel._dcpGB=totalGB;
+  panel.innerHTML=
+    '<div style="font-family:var(--mono);font-size:9px;color:var(--text-dim);">CPL: <strong>'+cpl.title+'</strong> · '+cpl.dur+' · '+(cpl.resolution||'res?')+' · '+(cpl.fps||'?')+' fps</div>'
+    +'<div style="font-family:var(--mono);font-size:8px;font-weight:600;letter-spacing:0.14em;text-transform:uppercase;color:var(--text-muted);">Este DCP é OV ou VF?</div>'
+    +'<div style="display:flex;gap:8px;">'
+      +'<button onclick="_dcpOVVFPick(\'OV\')" style="flex:1;font-family:var(--mono);font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;padding:8px;background:var(--accent);color:var(--on-accent);border:none;cursor:pointer;">OV</button>'
+      +'<button onclick="_dcpOVVFPick(\'VF\')" style="flex:1;font-family:var(--mono);font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;padding:8px;background:var(--surface);color:var(--text-dim);border:1px solid var(--border2);cursor:pointer;">VF</button>'
+    +'</div>';
+}
+function _dcpOVVFPick(tipo){
+  var panel=document.getElementById('dcpImportPanel');
+  _dcpApply(panel._dcpCpl,panel._dcpGB,tipo);
+}
+
+function _dcpApply(cpl,totalGB,tipo){
+  var panel=document.getElementById('dcpImportPanel');
+  // Build map of fields to apply
+  var incoming={};
+  incoming.ae_creator  =cpl.creator;
+  incoming.ae_cpl      =cpl.title;
+  incoming.ae_resolucao=cpl.resolution;
+  incoming.ae_duracao  =cpl.dur;
+  incoming.ae_fps      =cpl.fps;
+  incoming.ae_uuid     =cpl.uuid;
+  incoming.ae_kdm      =cpl.kdm; // "Sim" or "Não"
+  if(tipo==='OV') incoming.ae_gb=String(totalGB);
+
+  // Check for overwrites
+  var conflicts=[];
+  Object.keys(incoming).forEach(function(id){
+    var el=document.getElementById(id);
+    if(!el)return;
+    var cur=(el.tagName==='SELECT'?el.options[el.selectedIndex].value:el.value||'').trim();
+    var nv=(incoming[id]||'').trim();
+    if(cur&&nv&&cur!==nv) conflicts.push({id:id,label:_dcpFieldLabel(id),from:cur,to:nv});
+  });
+
+  if(conflicts.length){
+    var rows=conflicts.map(function(c){
+      return'<tr><td style="font-family:var(--mono);font-size:9px;color:var(--text-muted);padding:3px 8px;white-space:nowrap;">'+c.label+'</td>'
+        +'<td style="font-family:var(--mono);font-size:9px;padding:3px 8px;color:var(--warn);max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="'+c.from+'">'+c.from+'</td>'
+        +'<td style="font-family:var(--mono);font-size:9px;padding:3px 8px;color:#60c88a;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="'+c.to+'">'+c.to+'</td>'
+      +'</tr>';
+    }).join('');
+    panel._dcpPending={incoming:incoming,tipo:tipo};
+    panel.innerHTML=
+      '<div style="font-family:var(--mono);font-size:8px;font-weight:600;letter-spacing:0.14em;text-transform:uppercase;color:var(--warn);">⚠ Campos já preenchidos serão substituídos</div>'
+      +'<table style="width:100%;border-collapse:collapse;">'
+        +'<thead><tr>'
+          +'<th style="font-family:var(--mono);font-size:7.5px;letter-spacing:0.12em;text-transform:uppercase;color:var(--text-muted);padding:2px 8px;text-align:left;">Campo</th>'
+          +'<th style="font-family:var(--mono);font-size:7.5px;letter-spacing:0.12em;text-transform:uppercase;color:var(--warn);padding:2px 8px;text-align:left;">Atual</th>'
+          +'<th style="font-family:var(--mono);font-size:7.5px;letter-spacing:0.12em;text-transform:uppercase;color:#60c88a;padding:2px 8px;text-align:left;">Novo</th>'
+        +'</tr></thead>'
+        +'<tbody>'+rows+'</tbody>'
+      +'</table>'
+      +'<div style="display:flex;gap:8px;justify-content:flex-end;">'
+        +'<button onclick="document.getElementById(&quot;dcpImportPanel&quot;).style.display=&quot;none&quot;;" style="font-family:var(--mono);font-size:9px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;padding:5px 12px;background:transparent;color:var(--text-muted);border:1px solid var(--border);cursor:pointer;">Cancelar</button>'
+        +'<button onclick="_dcpConfirmFill()" style="font-family:var(--mono);font-size:9px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;padding:5px 14px;background:var(--accent);color:var(--on-accent);border:none;cursor:pointer;">Confirmar e preencher</button>'
+      +'</div>';
+  }else{
+    _dcpDoFill(incoming,tipo);
+  }
+}
+
+function _dcpFieldLabel(id){
+  var map={ae_creator:'DCP Creator',ae_cpl:'CPL (ContentTitle)',ae_resolucao:'Resolução',ae_duracao:'Duração',ae_fps:'FPS',ae_uuid:'DCP UUID',ae_kdm:'KDM',ae_gb:'GB'};
+  return map[id]||id;
+}
+
+function _dcpDoFill(incoming,tipo){
+  Object.keys(incoming).forEach(function(id){
+    var el=document.getElementById(id);
+    if(!el)return;
+    var v=incoming[id]||'';
+    if(el.tagName==='SELECT'){
+      for(var i=0;i<el.options.length;i++){
+        if(el.options[i].value.toLowerCase()===v.toLowerCase()){el.selectedIndex=i;break;}
+      }
+    }else{
+      el.value=v;
+    }
+  });
+  var panel=document.getElementById('dcpImportPanel');
+  var warn=tipo==='VF'
+    ?'<div style="font-family:var(--mono);font-size:9px;color:var(--warn);margin-top:6px;">⚠ VF importada — preencha CPL OV e GB com os dados da OV antes de salvar.</div>'
+    :'';
+  panel.innerHTML='<div style="font-family:var(--mono);font-size:9px;color:#60c88a;">✓ Campos preenchidos. Revise e clique em Salvar.'+warn+'</div>';
+  setTimeout(function(){panel.style.display='none';},3500);
+}
+function _dcpConfirmFill(){
+  var panel=document.getElementById('dcpImportPanel');
+  var p=panel._dcpPending;
+  if(p)_dcpDoFill(p.incoming,p.tipo);
+}
 function closeAcervoEditModal(){document.getElementById('acervoEditModal').style.display='none';}
 
 /* ZOOM */
@@ -11550,10 +11812,16 @@ window.addEventListener('popstate',function(e){
 
 <div id="acervoEditModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:500;overflow-y:auto;padding:20px;" onclick="if(event.target===this)closeAcervoEditModal()">
   <div style="background:var(--surface);border:1px solid var(--border);width:100%;max-width:640px;margin:auto;display:flex;flex-direction:column;">
-    <div style="padding:14px 22px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;">
+    <div style="padding:14px 22px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;gap:12px;">
       <span style="font-family:var(--mono);font-size:11px;font-weight:600;letter-spacing:0.18em;text-transform:uppercase;color:var(--accent);">Acervo Técnico · <span id="acervoEditCode"></span></span>
-      <button onclick="closeAcervoEditModal()" style="background:none;border:none;color:var(--text-muted);font-size:18px;cursor:pointer;line-height:1;">×</button>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <input type="file" id="dcpFolderInput" webkitdirectory style="display:none;" onchange="handleDCPFolderSelect(this.files)">
+        <button onclick="document.getElementById('dcpFolderInput').click()" style="font-family:var(--mono);font-size:9px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;padding:5px 12px;background:transparent;color:var(--accent);border:1px solid var(--accent);cursor:pointer;white-space:nowrap;">↑ Importar DCP</button>
+        <button onclick="closeAcervoEditModal()" style="background:none;border:none;color:var(--text-muted);font-size:18px;cursor:pointer;line-height:1;">×</button>
+      </div>
     </div>
+    <!-- DCP import inline panel -->
+    <div id="dcpImportPanel" style="display:none;border-bottom:1px solid var(--border);padding:14px 22px;background:var(--surface2);flex-direction:column;gap:10px;"></div>
     <div id="acervoEditBody" style="padding:20px 22px;overflow-y:auto;max-height:70vh;"></div>
     <div id="acervoEditMsg" style="font-family:var(--mono);font-size:10px;padding:6px 22px;"></div>
     <div style="padding:14px 22px;border-top:1px solid var(--border);display:flex;gap:10px;justify-content:flex-end;flex-shrink:0;">
@@ -11631,7 +11899,7 @@ window.addEventListener('popstate',function(e){
 <script>
   if(typeof lucide !== 'undefined') lucide.createIcons();
 </script>
-<div id="page-footer"><span>última atualização · 04/05/2026 às 18:00</span></div>
+<div id="page-footer"><span>última atualização · 04/05/2026 às 18:10</span></div>
 
 </div>
 

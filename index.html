@@ -1693,7 +1693,8 @@ mark{background:rgba(255,186,32,0.28);color:var(--accent);border-radius:2px;padd
 /* Print */
 @media print{
   body:not(.print-bilh-rel) #bilhRelModal{display:none!important;}
-  body.print-bilh-rel>*{display:none!important;}
+  body.print-bilh-rel>*:not(#olga-app){display:none!important;}
+  body.print-bilh-rel #olga-app>*:not(#bilhRelModal){display:none!important;}
   body.print-bilh-rel #bilhRelModal{display:block!important;position:static!important;background:none!important;padding:0!important;overflow:visible!important;}
   body.print-bilh-rel .bilh-rel-wrap{border:none!important;max-width:none!important;}
   body.print-bilh-rel .bilh-rel-header{border-bottom:2px solid #000!important;padding:8px 0 6px!important;}
@@ -1714,6 +1715,48 @@ mark{background:rgba(255,186,32,0.28);color:var(--accent);border-radius:2px;padd
   body.print-bilh-rel .bilh-rel-name{color:#555!important;}
   body.print-bilh-rel .bilh-rel-td-filme{color:#444!important;}
   body.print-bilh-rel .sess-ev-tag{display:none!important;}
+}
+/* Modal Relatório Acervo */
+#acervoRelModal{position:fixed;inset:0;z-index:6050;background:rgba(0,0,0,0.82);display:none;align-items:flex-start;justify-content:center;overflow-y:auto;padding:24px 16px 60px;}
+.acervo-rel-wrap{background:var(--surface);border:1px solid var(--border);width:100%;max-width:960px;display:flex;flex-direction:column;flex-shrink:0;margin:auto;}
+.acervo-rel-header{padding:16px 22px 12px;border-bottom:1px solid var(--border);display:flex;align-items:baseline;gap:12px;}
+.acervo-rel-title{font-family:var(--mono);font-size:10px;font-weight:600;letter-spacing:0.2em;text-transform:uppercase;color:var(--accent);}
+.acervo-rel-count{font-family:var(--mono);font-size:10px;color:var(--text-muted);margin-left:auto;}
+.acervo-rel-table-area{overflow-x:auto;max-height:calc(100vh - 260px);overflow-y:auto;}
+.acervo-rel-table{width:100%;border-collapse:collapse;}
+.acervo-rel-th{font-family:var(--mono);font-size:8px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--accent);background:var(--surface2);border:1px solid var(--border);padding:5px 8px;text-align:left;position:sticky;top:0;z-index:1;white-space:nowrap;}
+.acervo-rel-td{font-family:var(--mono);font-size:10px;color:var(--text-dim);border-bottom:1px solid var(--border);padding:5px 8px;vertical-align:top;}
+.acervo-rel-td-title{color:var(--text);font-size:10px;}
+.acervo-rel-td-code{color:var(--text-muted);font-size:9px;}
+.acervo-rel-tag-vf{display:inline-block;font-family:var(--mono);font-size:8px;font-weight:700;letter-spacing:0.05em;padding:1px 5px;background:rgba(255,186,32,0.12);color:var(--accent);border:1px solid rgba(255,186,32,0.3);}
+.acervo-rel-tag-kdm{display:inline-block;font-family:var(--mono);font-size:8px;font-weight:700;letter-spacing:0.05em;padding:1px 5px;background:rgba(220,60,60,0.12);color:#ff6b6b;border:1px solid rgba(220,60,60,0.3);}
+.acervo-rel-footer-bar{padding:12px 22px;border-top:2px solid var(--border);display:grid;grid-template-columns:repeat(5,1fr);gap:8px;background:var(--surface2);}
+.acervo-rel-stat{display:flex;flex-direction:column;gap:2px;}
+.acervo-rel-stat-val{font-family:var(--mono);font-size:16px;font-weight:600;color:var(--text);}
+.acervo-rel-stat-lbl{font-family:var(--mono);font-size:8px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:var(--text-muted);}
+.acervo-rel-footer{padding:12px 22px;border-top:1px solid var(--border);display:flex;gap:10px;justify-content:flex-end;align-items:center;}
+.acervo-rel-print-btn{font-family:var(--mono);font-size:10px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;padding:6px 16px;background:transparent;color:var(--text-dim);border:1px solid var(--border);cursor:pointer;transition:all 0.12s;}
+.acervo-rel-print-btn:hover{border-color:var(--accent);color:var(--accent);}
+@media print{
+  body:not(.print-acervo-rel) #acervoRelModal{display:none!important;}
+  body.print-acervo-rel>*:not(#olga-app){display:none!important;}
+  body.print-acervo-rel #olga-app>*:not(#acervoRelModal){display:none!important;}
+  body.print-acervo-rel #acervoRelModal{display:block!important;position:static!important;background:none!important;padding:0!important;overflow:visible!important;}
+  body.print-acervo-rel .acervo-rel-wrap{border:none!important;max-width:none!important;}
+  body.print-acervo-rel .acervo-rel-header{border-bottom:2px solid #000!important;padding:8px 0 6px!important;}
+  body.print-acervo-rel .acervo-rel-title{color:#000!important;font-size:9px!important;}
+  body.print-acervo-rel .acervo-rel-count{color:#555!important;}
+  body.print-acervo-rel .acervo-rel-footer{display:none!important;}
+  body.print-acervo-rel .acervo-rel-table-area{max-height:none!important;overflow:visible!important;}
+  body.print-acervo-rel .acervo-rel-th{background:#e8e8e8!important;color:#000!important;border:1px solid #aaa!important;font-size:7px!important;padding:3px 6px!important;position:static!important;}
+  body.print-acervo-rel .acervo-rel-td{color:#444!important;border-bottom:1px solid #ddd!important;font-size:9px!important;padding:3px 6px!important;}
+  body.print-acervo-rel .acervo-rel-td-title{color:#000!important;}
+  body.print-acervo-rel .acervo-rel-td-code{color:#666!important;}
+  body.print-acervo-rel .acervo-rel-tag-vf{background:#f5f5f5!important;color:#333!important;border:1px solid #888!important;}
+  body.print-acervo-rel .acervo-rel-tag-kdm{background:#f5f5f5!important;color:#333!important;border:1px solid #888!important;}
+  body.print-acervo-rel .acervo-rel-footer-bar{background:#f0f0f0!important;border-top:2px solid #888!important;padding:8px 0!important;}
+  body.print-acervo-rel .acervo-rel-stat-val{color:#000!important;font-size:14px!important;}
+  body.print-acervo-rel .acervo-rel-stat-lbl{color:#555!important;}
 }
 /* Modal Sessão Borderô */
 #sessaoBorderoModal{position:fixed;inset:0;z-index:6100;background:rgba(0,0,0,0.78);display:none;align-items:center;justify-content:center;padding:20px;}
@@ -1794,7 +1837,8 @@ mark{background:rgba(255,186,32,0.28);color:var(--accent);border-radius:2px;padd
 .bordero-print-btn:hover{border-color:var(--accent);color:var(--accent);}
 @media print{
   body:not(.print-bordero) #borderoModal{display:none!important;}
-  body.print-bordero>*:not(#borderoModal){display:none!important;}
+  body.print-bordero>*:not(#olga-app){display:none!important;}
+  body.print-bordero #olga-app>*:not(#borderoModal){display:none!important;}
   body.print-bordero #borderoModal{position:static!important;background:none!important;padding:0!important;overflow:visible!important;display:block!important;}
   body.print-bordero #borderoContent{max-width:none!important;border:1px solid #bbb!important;}
   body.print-bordero .bordero-close,body.print-bordero .bordero-print-btn{display:none!important;}
@@ -4204,6 +4248,7 @@ html[data-theme]:not([data-theme="win98"]){--mono:var(--sans);}
   <div class="event-filters" id="buscaEventFilters"></div>
   <span class="result-count" id="resultCount"></span>
   <button class="print-btn" onclick="printBusca()" style="margin-left:auto;">⎙ Imprimir</button>
+  <button class="print-btn" onclick="openAcervoRelatorio()" style="margin-left:6px;">⎙ Relatório</button>
 </div>
 <div id="filterPanel">
   <div class="fp-header">
@@ -4274,7 +4319,10 @@ html[data-theme]:not([data-theme="win98"]){--mono:var(--sans);}
 <div class="mode-bar hidden" id="barReceptivo"></div>
 <div class="mode-bar hidden" id="barBilheteria" style="flex-wrap:wrap;row-gap:4px;">
   <div class="event-filters" id="bilheteriaEventFilters"></div>
-  <select id="bilheteriaCinemaSelect" style="min-width:160px;margin-left:8px;" onchange="bilheteriaCinemaFilter=this.value;renderBilheteria();">
+  <select id="bilheteriaComplexoSelect" style="min-width:160px;margin-left:8px;" onchange="bilheteriaComplexoFilter=this.value;rebuildBilheteriaCinemaSelect();renderBilheteria();">
+    <option value="">Todos os complexos</option>
+  </select>
+  <select id="bilheteriaCinemaSelect" style="min-width:150px;margin-left:4px;" onchange="bilheteriaCinemaFilter=this.value;renderBilheteria();">
     <option value="">Todas as salas</option>
   </select>
   <select id="bilheteriaDistribuidoraSelect" style="min-width:150px;margin-left:4px;" onchange="bilheteriaDistribuidoraFilter=this.value;renderBilheteria();">
@@ -4624,7 +4672,7 @@ var _browserNav=false;
 var filteredFilmes=[];
 var cinemasArr=[];
 var cinemasComplexoFilter='',cinemasEstadoFilter='',cinemasEventoFilter='',currentCinemaDetail=null;
-var bilheteriaCinemaFilter='',bilheteriaDistribuidoraFilter='',bilheteriaFilmeFilter='';
+var bilheteriaCinemaFilter='',bilheteriaDistribuidoraFilter='',bilheteriaFilmeFilter='',bilheteriaComplexoFilter='';
 var kdmComplexoFilter='',kdmSalaFilter='';
 var ingestDays=[],currentIngestDay=null,ingestCinemaFilter='',ingestHdFilter='',gradeCinemaFilter='';
 var grade2Days=[],grade2CurrentDay=null,grade2CinemaFilter='';
@@ -5296,6 +5344,76 @@ function printBusca(){
   window.print();
   document.body.classList.remove('print-busca');
   hdr.style.display='none';
+}
+
+/* RELATÓRIO ACERVO TÉCNICO */
+function openAcervoRelatorio(){
+  _acervoRelRenderTabela();
+  document.getElementById('acervoRelModal').style.display='flex';
+}
+function closeAcervoRelatorio(){document.getElementById('acervoRelModal').style.display='none';}
+
+function _acervoRelRenderTabela(){
+  var filmes=filteredFilmes;
+  var totalSecs=0,totalGB=0,countVF=0,countKDM=0;
+  filmes.forEach(function(f){
+    totalSecs+=_parseDurSecs(f.duracao);
+    var g=parseFloat((f.gb||'').toString().replace(',','.'));
+    if(!isNaN(g))totalGB+=g;
+    if((f.cplOV||'').toString().trim())countVF++;
+    if((f.kdm||'').toLowerCase()==='sim')countKDM++;
+  });
+  var totalDur=totalSecs>0?_secsToHMS(totalSecs):'—';
+  var totalGBStr=totalGB>0?totalGB.toFixed(1)+' GB':'—';
+
+  var q=buscaQuery?'"'+buscaQuery+'" · ':'';
+  document.getElementById('acervoRelCount').textContent=q+filmes.length+' filme'+(filmes.length!==1?'s':'')+' · '+new Date().toLocaleDateString('pt-BR');
+
+  var rows=filmes.map(function(f,i){
+    var titulo=(f.titulo||f.codigo||'').replace(/</g,'&lt;');
+    var cod=(f.codigo||'').replace(/</g,'&lt;');
+    var evento=f.evento||'';
+    var col=eventColors[evento]||null;
+    var evTag=evento?(col?'<span style="display:inline-block;font-family:var(--mono);font-size:8px;font-weight:700;padding:1px 5px;background:'+col.bg+';color:'+col.text+'">'+evento+'</span>':'<span style="display:inline-block;font-family:var(--mono);font-size:8px;padding:1px 5px;border:1px solid var(--border);color:var(--text-muted)">'+evento+'</span>'):'';
+    var vf=(f.cplOV||'').toString().trim();
+    var kdm=(f.kdm||'').toLowerCase()==='sim';
+    var tags=(vf?'<span class="acervo-rel-tag-vf">VF</span> ':'')+(kdm?'<span class="acervo-rel-tag-kdm">KDM</span>':'');
+    var dur=(f.duracao||'').toString().trim()||'—';
+    var gb=(f.gb||'').toString().trim()||'—';
+    return '<tr>'
+      +'<td class="acervo-rel-td" style="text-align:right;color:var(--text-muted);min-width:28px">'+(i+1)+'</td>'
+      +'<td class="acervo-rel-td"><div class="acervo-rel-td-title">'+titulo+'</div><div class="acervo-rel-td-code">'+cod+'</div></td>'
+      +'<td class="acervo-rel-td">'+evTag+'</td>'
+      +'<td class="acervo-rel-td">'+tags+'</td>'
+      +'<td class="acervo-rel-td" style="white-space:nowrap">'+dur+'</td>'
+      +'<td class="acervo-rel-td" style="white-space:nowrap">'+gb+'</td>'
+      +'</tr>';
+  }).join('');
+
+  var tableHtml='<table class="acervo-rel-table">'
+    +'<thead><tr>'
+    +'<th class="acervo-rel-th" style="text-align:right">#</th>'
+    +'<th class="acervo-rel-th">Filme</th>'
+    +'<th class="acervo-rel-th">Evento</th>'
+    +'<th class="acervo-rel-th">Tags</th>'
+    +'<th class="acervo-rel-th">Duração</th>'
+    +'<th class="acervo-rel-th">GB</th>'
+    +'</tr></thead>'
+    +'<tbody>'+rows+'</tbody>'
+    +'</table>';
+  document.getElementById('acervoRelTableArea').innerHTML=tableHtml;
+
+  document.getElementById('acervoRelStatTotal').textContent=filmes.length;
+  document.getElementById('acervoRelStatVF').textContent=countVF;
+  document.getElementById('acervoRelStatKDM').textContent=countKDM;
+  document.getElementById('acervoRelStatDur').textContent=totalDur;
+  document.getElementById('acervoRelStatGB').textContent=totalGBStr;
+}
+
+function printAcervoRelatorio(){
+  document.body.classList.add('print-acervo-rel');
+  window.print();
+  document.body.classList.remove('print-acervo-rel');
 }
 
 /* GRADE PRINT TABLE */
@@ -7129,11 +7247,16 @@ function _bilhFilmeLabel(cod){
 
 // Aplica todos os filtros ativos e retorna sessões filtradas
 function _bilheteriaFiltered(){
+  var allC=getAllCinemas();
   var as=allowedSalas();
   return sessoesArr.filter(function(s){
     if(s.evento&&!activeEventsBilheteria.has(s.evento))return false;
-    if(bilheteriaCinemaFilter&&s.cinema!==bilheteriaCinemaFilter)return false;
     if(as&&s.cinema&&!as.has(s.cinema))return false;
+    if(bilheteriaComplexoFilter){
+      var c=allC.map[s.cinema];
+      if(((c&&c.complexo)||s.cinema)!==bilheteriaComplexoFilter)return false;
+    }
+    if(bilheteriaCinemaFilter&&s.cinema!==bilheteriaCinemaFilter)return false;
     if(bilheteriaDistribuidoraFilter){
       if(!_bilheteriaSessionDistribuidoras(s).has(bilheteriaDistribuidoraFilter))return false;
     }
@@ -7144,13 +7267,43 @@ function _bilheteriaFiltered(){
   });
 }
 
+function rebuildBilheteriaComplexoSelect(){
+  var allC=getAllCinemas();
+  var as=allowedSalas();
+  var complexos=new Set();
+  _bilheteriaSessoes().forEach(function(s){
+    if(as&&s.cinema&&!as.has(s.cinema))return;
+    var c=allC.map[s.cinema];
+    complexos.add((c&&c.complexo)||s.cinema);
+  });
+  var sel=document.getElementById('bilheteriaComplexoSelect');if(!sel)return;
+  var prev=sel.value;
+  sel.innerHTML='<option value="">Todos os complexos</option>';
+  Array.from(complexos).sort().forEach(function(cx){
+    var o=document.createElement('option');o.value=cx;o.textContent=cx;sel.appendChild(o);
+  });
+  if(prev&&complexos.has(prev))sel.value=prev;
+  else{sel.value='';bilheteriaComplexoFilter='';}
+  rebuildBilheteriaCinemaSelect();
+}
+
 function rebuildBilheteriaCinemaSelect(){
+  var allC=getAllCinemas();
   var cs=new Set();
   var as=allowedSalas();
-  _bilheteriaSessoes().forEach(function(s){if(s.cinema&&(!as||as.has(s.cinema)))cs.add(s.cinema);});
+  _bilheteriaSessoes().forEach(function(s){
+    if(!s.cinema)return;
+    if(as&&!as.has(s.cinema))return;
+    if(bilheteriaComplexoFilter){
+      var c=allC.map[s.cinema];
+      if(((c&&c.complexo)||s.cinema)!==bilheteriaComplexoFilter)return;
+    }
+    cs.add(s.cinema);
+  });
   var sel=document.getElementById('bilheteriaCinemaSelect');if(!sel)return;
   var prev=sel.value;
-  sel.innerHTML='<option value="">Todas as salas'+(as?' do complexo':'')+'</option>';
+  var lbl=bilheteriaComplexoFilter?'Todas as salas do complexo':(as?'Todas as salas do complexo':'Todas as salas');
+  sel.innerHTML='<option value="">'+lbl+'</option>';
   Array.from(cs).sort().forEach(function(c){var o=document.createElement('option');o.value=c;o.textContent=c;sel.appendChild(o);});
   if(prev&&cs.has(prev))sel.value=prev;
   else{sel.value='';bilheteriaCinemaFilter='';}
@@ -7192,18 +7345,18 @@ function rebuildBilheteriaFilmeSelect(){
 
 function buildBilheteriaFilters(){
   buildPills(document.getElementById('bilheteriaEventFilters'),eventColors,activeEventsBilheteria,function(){
-    rebuildBilheteriaCinemaSelect();
+    rebuildBilheteriaComplexoSelect();
     rebuildBilheteriaDistribuidoraSelect();
     rebuildBilheteriaFilmeSelect();
     renderBilheteria();
   });
-  rebuildBilheteriaCinemaSelect();
+  rebuildBilheteriaComplexoSelect();
   rebuildBilheteriaDistribuidoraSelect();
   rebuildBilheteriaFilmeSelect();
 }
 
 function renderBilheteria(){
-  rebuildBilheteriaCinemaSelect();
+  rebuildBilheteriaComplexoSelect();
   rebuildBilheteriaDistribuidoraSelect();
   rebuildBilheteriaFilmeSelect();
   var sc=document.getElementById('bilheteria-container');
@@ -7372,6 +7525,7 @@ function _bilhRelRenderTabela(){
 
   // Build summary line for filter context
   var filterParts=[];
+  if(bilheteriaComplexoFilter)filterParts.push('Complexo: '+bilheteriaComplexoFilter);
   if(bilheteriaCinemaFilter)filterParts.push('Sala: '+bilheteriaCinemaFilter);
   if(bilheteriaDistribuidoraFilter)filterParts.push('Dist.: '+bilheteriaDistribuidoraFilter);
   if(bilheteriaFilmeFilter)filterParts.push('Filme: '+_bilhFilmeLabel(bilheteriaFilmeFilter));
@@ -12524,6 +12678,26 @@ window.addEventListener('popstate',function(e){
   </div>
 </div>
 
+<div id="acervoRelModal" onclick="if(event.target===this)closeAcervoRelatorio()">
+  <div class="acervo-rel-wrap">
+    <div class="acervo-rel-header">
+      <span class="acervo-rel-title">Relatório · Acervo Técnico</span>
+      <span class="acervo-rel-count" id="acervoRelCount"></span>
+    </div>
+    <div class="acervo-rel-table-area" id="acervoRelTableArea"></div>
+    <div class="acervo-rel-footer-bar">
+      <div class="acervo-rel-stat"><span class="acervo-rel-stat-val" id="acervoRelStatTotal">—</span><span class="acervo-rel-stat-lbl">Total filmes</span></div>
+      <div class="acervo-rel-stat"><span class="acervo-rel-stat-val" id="acervoRelStatVF">—</span><span class="acervo-rel-stat-lbl">Com VF</span></div>
+      <div class="acervo-rel-stat"><span class="acervo-rel-stat-val" id="acervoRelStatKDM">—</span><span class="acervo-rel-stat-lbl">Com KDM</span></div>
+      <div class="acervo-rel-stat"><span class="acervo-rel-stat-val" id="acervoRelStatDur">—</span><span class="acervo-rel-stat-lbl">Duração total</span></div>
+      <div class="acervo-rel-stat"><span class="acervo-rel-stat-val" id="acervoRelStatGB">—</span><span class="acervo-rel-stat-lbl">Tamanho total</span></div>
+    </div>
+    <div class="acervo-rel-footer">
+      <button class="acervo-rel-print-btn" onclick="closeAcervoRelatorio()">Fechar</button>
+      <button class="acervo-rel-print-btn" onclick="printAcervoRelatorio()" style="border-color:var(--accent);color:var(--accent);">⎙ Imprimir</button>
+    </div>
+  </div>
+</div>
 <div id="bilhRelModal" onclick="if(event.target===this)closeBilhRelatorio()">
   <div class="bilh-rel-wrap">
     <div class="bilh-rel-header">

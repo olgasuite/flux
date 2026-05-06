@@ -3825,7 +3825,7 @@ html[data-theme]:not([data-theme="win98"]){--mono:var(--sans);}
           filmes: codes,            date:           _parseDate(dateVal),
           time: _parseTime(timeVal),evento:         evento,
           vinhetas: vinhetas2,      convidados:     fs(r['guests']),
-          apresentacao: fs(r['has_introduction']),  publico:    fs(r['total_audience']),
+          apresentacao: fs(r['has_introduction']),  publico:    fs(r['total_audience']),  renda: fs(r['total_revenue']),
           ingressos: fs(r['reserved_tickets']),     leg_eletronica: fs(r['has_electronic_subtitles']),
           acessibilidades: fs(r['available_accessibility']), col_ag: fs(r['has_debate']),
           name: fs(r['name']),      program_id:     fs(r['program_id']),
@@ -4482,7 +4482,7 @@ self.onmessage=function(e){
       var vinhetas=[];
       if(Array.isArray(r['bumpers'])&&r['bumpers'].length){r['bumpers'].forEach(function(vc){var vcs=(vc||'').toString().trim();if(vcs&&vcs!=='-'&&!/^=/.test(vcs))vinhetas.push(vcs);});}
       else{for(var vi=1;vi<=10;vi++){var vc=(r['bumper_'+vi]||'').toString().trim();if(vc&&vc!=='-'&&!/^=/.test(vc))vinhetas.push(vc);}}
-      var s={nome:nome,cinema:r['venue_name']||'',dia:fmtDateStr(r['date']),hora:fmtTimeStr(r['time']),filmes:codes,date:parseDate(r['date']),time:parseTime(r['time']),evento:evento,vinhetas:vinhetas,convidados:(r['guests']||'').toString().trim(),apresentacao:(r['has_introduction']||'').toString().trim(),publico:(r['total_audience']||'').toString().trim(),ingressos:(r['reserved_tickets']||'').toString().trim(),leg_eletronica:(r['has_electronic_subtitles']||'').toString().trim(),acessibilidades:(r['available_accessibility']||'').toString().trim(),col_ag:(r['has_debate']||'').toString().trim(),name:(r['name']||'').toString().trim(),program_id:(r['program_id']||'').toString().trim(),subprogram_id:(r['subprogram_id']||'').toString().trim(),session_description:(r['session_description']||'').toString().trim()};
+      var s={nome:nome,cinema:r['venue_name']||'',dia:fmtDateStr(r['date']),hora:fmtTimeStr(r['time']),filmes:codes,date:parseDate(r['date']),time:parseTime(r['time']),evento:evento,vinhetas:vinhetas,convidados:(r['guests']||'').toString().trim(),apresentacao:(r['has_introduction']||'').toString().trim(),publico:(r['total_audience']||'').toString().trim(),renda:(r['total_revenue']||'').toString().trim(),ingressos:(r['reserved_tickets']||'').toString().trim(),leg_eletronica:(r['has_electronic_subtitles']||'').toString().trim(),acessibilidades:(r['available_accessibility']||'').toString().trim(),col_ag:(r['has_debate']||'').toString().trim(),name:(r['name']||'').toString().trim(),program_id:(r['program_id']||'').toString().trim(),subprogram_id:(r['subprogram_id']||'').toString().trim(),session_description:(r['session_description']||'').toString().trim()};
       sessoesArr.push(s);sessoesMap[nome]=s;
       codes.forEach(function(c){if(!buscaReverseSessoes[c])buscaReverseSessoes[c]=[];buscaReverseSessoes[c].push(nome);});
     }
@@ -4686,7 +4686,7 @@ function parseWorkbook(data,filename){
       var vinhetas2=[];
       if(Array.isArray(r['bumpers'])&&r['bumpers'].length){r['bumpers'].forEach(function(vc){var vcs=(vc||'').toString().trim();if(vcs&&vcs!=='-'&&!/^=/.test(vcs))vinhetas2.push(vcs);});}
       else{for(var vi=1;vi<=10;vi++){var vc2=(r['bumper_'+vi]||'').toString().trim();if(vc2&&vc2!=='-'&&!/^=/.test(vc2))vinhetas2.push(vc2);}}
-      var s={nome:nome,cinema:r['venue_name']||'',dia:fmtDateStr(r['date']),hora:fmtTimeStr(r['time']),filmes:codes,date:parseDate(r['date']),time:parseTime(r['time']),evento:evento,vinhetas:vinhetas2,convidados:(r['guests']||'').toString().trim(),apresentacao:(r['has_introduction']||'').toString().trim(),publico:(r['total_audience']||'').toString().trim(),ingressos:(r['reserved_tickets']||'').toString().trim(),leg_eletronica:(r['has_electronic_subtitles']||'').toString().trim(),acessibilidades:(r['available_accessibility']||'').toString().trim(),col_ag:(r['has_debate']||'').toString().trim(),name:(r['name']||'').toString().trim(),program_id:(r['program_id']||'').toString().trim(),subprogram_id:(r['subprogram_id']||'').toString().trim(),session_description:(r['session_description']||'').toString().trim()};
+      var s={nome:nome,cinema:r['venue_name']||'',dia:fmtDateStr(r['date']),hora:fmtTimeStr(r['time']),filmes:codes,date:parseDate(r['date']),time:parseTime(r['time']),evento:evento,vinhetas:vinhetas2,convidados:(r['guests']||'').toString().trim(),apresentacao:(r['has_introduction']||'').toString().trim(),publico:(r['total_audience']||'').toString().trim(),renda:(r['total_revenue']||'').toString().trim(),ingressos:(r['reserved_tickets']||'').toString().trim(),leg_eletronica:(r['has_electronic_subtitles']||'').toString().trim(),acessibilidades:(r['available_accessibility']||'').toString().trim(),col_ag:(r['has_debate']||'').toString().trim(),name:(r['name']||'').toString().trim(),program_id:(r['program_id']||'').toString().trim(),subprogram_id:(r['subprogram_id']||'').toString().trim(),session_description:(r['session_description']||'').toString().trim()};
       sessoesArr.push(s);sessoesMap[nome]=s;
       codes.forEach(function(c){if(!buscaReverseSessoes[c])buscaReverseSessoes[c]=[];buscaReverseSessoes[c].push(nome);});
     }
@@ -5552,7 +5552,7 @@ function renderSessoes(){
       '<div class="sess-day-header">'+
         '<span class="sess-day-label'+(isToday?' today':'')+'">'+lbl+(isToday?' · hoje':'')+'</span>'+
         '<span class="sess-day-count">'+d.length+' '+(d.length===1?'sessão':'sessões')+'</span>'+
-        ''+(!window._olgaHasRestricao("sessoes.bordero")?'<button class="bordero-btn" style="margin-left:auto;font-size:8px;padding:2px 8px;" onclick="event.stopPropagation();openBorderoSessoesDay(\''+safeKey+'\')">Borderô</button>':'')+''+
+        ''+(!window._olgaHasRestricao("sessoes.bordero")?'<button class="bordero-btn" style="margin-left:auto;font-size:8px;padding:2px 8px;" onclick="event.stopPropagation();openBorderoSessoesDay(\''+safeKey+'\')">Público</button>'+'<button class=\"bordero-btn\" onclick=\"event.stopPropagation();_openBorderoSessDayR(\''+safeKey+'\')\">Renda</button>':'')+'\'+'
       '</div>'+
       rows+
     '</div>';
@@ -5944,7 +5944,7 @@ function renderCinemas(){
     var editCxBtn=canEditCx?'<button class="bordero-btn" style="margin-right:4px;" onclick="event.stopPropagation();openCinemaEdit(null,\''+safeCx+'\')" title="Nova sala">+ Sala</button><button class="bordero-btn" style="margin-right:4px;" onclick="event.stopPropagation();openCinemaEdit(\'__complexo__\',\''+safeCx+'\')">✎ Editar complexo</button>':'';
     var emailLine=[]; if(cxData&&cxData.email_kdm)emailLine.push('KDM: '+cxData.email_kdm); if(cxData&&cxData.email_ger)emailLine.push('GER: '+cxData.email_ger);
     var tmsLine=cxData&&cxData.tms?'TMS: '+cxData.tms:'';
-    html+='<div class="cinemas-complexo"><div class="cinemas-complexo-header" style="display:flex;align-items:center;justify-content:space-between;gap:8px;"><div style="display:flex;flex-direction:column;gap:2px;"><span>'+cx+'</span>'+(cxEndereco||cxEstado?'<span style="font-family:var(--sans);font-size:10px;font-weight:400;letter-spacing:0;text-transform:none;color:var(--text-muted);">'+(cxEndereco||'')+(cxEndereco&&cxEstado?' · ':''  )+(cxEstado||'')+'</span>':'')+(tmsLine?'<span style="font-family:var(--mono);font-size:9px;color:var(--text-muted);margin-top:1px;">'+tmsLine+'</span>':'')+(emailLine.length?'<span style="font-family:var(--mono);font-size:9px;color:var(--text-muted);margin-top:1px;">'+emailLine.join(' · ')+'</span>':'')+'</div>'+editCxBtn+(!window._olgaHasRestricao('cinemas.bordero')?'<button class="bordero-btn" onclick="event.stopPropagation();openBordero(\''+safeCx+'\')">Borderô</button>':'')+'</div>';
+    html+='<div class="cinemas-complexo"><div class="cinemas-complexo-header" style="display:flex;align-items:center;justify-content:space-between;gap:8px;"><div style="display:flex;flex-direction:column;gap:2px;"><span>'+cx+'</span>'+(cxEndereco||cxEstado?'<span style="font-family:var(--sans);font-size:10px;font-weight:400;letter-spacing:0;text-transform:none;color:var(--text-muted);">'+(cxEndereco||'')+(cxEndereco&&cxEstado?' · ':''  )+(cxEstado||'')+'</span>':'')+(tmsLine?'<span style="font-family:var(--mono);font-size:9px;color:var(--text-muted);margin-top:1px;">'+tmsLine+'</span>':'')+(emailLine.length?'<span style="font-family:var(--mono);font-size:9px;color:var(--text-muted);margin-top:1px;">'+emailLine.join(' · ')+'</span>':'')+'</div>'+editCxBtn+(!window._olgaHasRestricao('cinemas.bordero')?'<button class="bordero-btn" onclick="event.stopPropagation();openBordero(\''+safeCx+'\')">Público</button>'+'<button class="bordero-btn" onclick="event.stopPropagation();_openBorderoCxR(\''+safeCx+'\')">Renda</button>':'')+'</div>';
     html+='<div class="cinemas-grid">';
     byComplexo[cx].forEach(function(c){
       var allEvs=cinemaAllEvents(c);
@@ -6065,7 +6065,7 @@ function openCinemaDetail(sala){
     +'<div class="cinema-detail-header">'
     +'<div class="cinema-detail-title" style="display:flex;align-items:center;justify-content:space-between;gap:12px;">'+
       '<span>'+sala+(c.complexo&&c.complexo!==sala?' <span style="font-size:13px;font-weight:400;opacity:0.5">'+c.complexo+'</span>':'')+'</span>'+
-      '<div style="display:flex;gap:6px;align-items:center;">'+editSalaBtn+(!window._olgaHasRestricao('cinemas.bordero')?'<button class="bordero-btn" onclick="openBorderoCinema(\''+safeSalaBtn+'\')">Borderô</button>':'')+'</div>'+
+      '<div style="display:flex;gap:6px;align-items:center;">'+editSalaBtn+(!window._olgaHasRestricao('cinemas.bordero')?'<button class="bordero-btn" onclick="openBorderoCinema(\''+safeSalaBtn+'\')">Público</button>'+'<button class="bordero-btn" onclick="event.stopPropagation();_openBorderoSalaR(\''+safeSalaBtn+'\')">Renda</button>':'')+'</div>'+
     '</div>'
     +(specsHtml?'<div class="cinema-detail-meta">'+specsHtml+'</div>':'')
     +(evTags?'<div style="padding:8px 16px;border-top:1px solid var(--border);display:flex;gap:4px;flex-wrap:wrap;">'+evTags+'</div>':'')
@@ -6358,8 +6358,24 @@ function togglePastSess(btn){
   btn.textContent=(open?'▸':'▾')+' '+(open?'Ver ':'Ocultar ')+count+' '+(count===1?'sessão anterior':'sessões anteriores');
 }
 
-function openBordero(cx){
+
+function _openBorderoCxR(cx){openBordero(cx,'renda');}
+function _openBorderoSalaR(sala){openBorderoCinema(sala,'renda');}
+function _openBorderoSessDayR(key){openBorderoSessoesDay(key,'renda');}
+function _openBorderoDashR(scope){openBorderoDashSessoes(scope,'renda');}
+
+// Renders Público+Renda button pair for bordero
+function _borderoButtons(type, onclick1, onclick2, extraStyle){
+  extraStyle=extraStyle||'';
+  if(window._olgaHasRestricao&&window._olgaHasRestricao(type))return'';
+  return'<span style="display:flex;gap:4px;'+extraStyle+'"><button class="bordero-btn" onclick="'+onclick1+'">Público</button><button class="bordero-btn" onclick="'+onclick2+'">Renda</button></span>';
+}
+function openBordero(cx,tipo){
+  tipo=tipo||'publico';
   function parsePub(v){var n=parseInt((v||'').toString().replace(/\D/g,''));return isNaN(n)?0:n;}
+  function fmtVal(n){return tipo==='renda'?'R\xa0'+n.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2}):n.toLocaleString('pt-BR');}
+  var _tipoLabel=tipo==='renda'?'Renda':'Público';
+  var _tipoUnit=tipo==='renda'?'':'ingressos';
   // salas pertencentes a este complexo
   var all=getAllCinemas();
   var salasInCx=all.order.filter(function(sala){return(all.map[sala].complexo||sala)===cx;});
@@ -6368,7 +6384,7 @@ function openBordero(cx){
     return salasInCx.indexOf(s.cinema)!==-1&&(!s.evento||activeEventsCinemas.has(s.evento));
   }).sort(function(a,b){return a.date&&b.date?a.date-b.date||0:0;});
 
-  var totalGeral=sessions.reduce(function(acc,s){return acc+parsePub(s.publico);},0);
+  var totalGeral=sessions.reduce(function(acc,s){return acc+parsePub(s[tipo]);},0);
 
   // agrupar por evento (incluindo '' como "Sem evento")
   var evOrder=[];var evMap={};
@@ -6386,7 +6402,7 @@ function openBordero(cx){
   html+='</div></div>';
   html+='<div class="bordero-total-bar">';
   html+='<span class="bordero-total-label">Total Geral</span>';
-  html+='<span class="bordero-total-num">'+totalGeral.toLocaleString('pt-BR')+'</span>';
+  html+='<span class="bordero-total-num">'+fmtVal(totalGeral)+'</span>';
   html+='<span class="bordero-total-sub">ingressos · '+sessions.length+' sess'+(sessions.length===1?'ão':'ões')+'</span>';
   html+='</div>';
 
@@ -6395,7 +6411,7 @@ function openBordero(cx){
   }else{
     evOrder.forEach(function(ev){
       var evSessions=evMap[ev];
-      var evTotal=evSessions.reduce(function(acc,s){return acc+parsePub(s.publico);},0);
+      var evTotal=evSessions.reduce(function(acc,s){return acc+parsePub(s[tipo]);},0);
       var evCol=ev&&eventColors[ev]?eventColors[ev]:{bg:'var(--surface2)',text:'var(--text-dim)'};
       // dias e salas únicas
       var daySet={};var salaSet={};
@@ -6421,34 +6437,34 @@ function openBordero(cx){
       days.forEach(function(d){html+='<th>'+d+'</th>';});
       html+='<th class="bordero-th-total">Total</th></tr></thead><tbody>';
       salas.forEach(function(sala){
-        var salaTotal=evSessions.filter(function(s){return s.cinema===sala;}).reduce(function(acc,s){return acc+parsePub(s.publico);},0);
+        var salaTotal=evSessions.filter(function(s){return s.cinema===sala;}).reduce(function(acc,s){return acc+parsePub(s[tipo]);},0);
         html+='<tr><td class="bordero-sala">'+sala+'</td>';
         days.forEach(function(d){
-          var ct=evSessions.filter(function(s){return s.cinema===sala&&s.dia===d;}).reduce(function(acc,s){return acc+parsePub(s.publico);},0);
-          html+='<td class="bordero-num">'+(ct>0?ct.toLocaleString('pt-BR'):ct===0&&evSessions.some(function(s){return s.cinema===sala&&s.dia===d;})?'0':'—')+'</td>';
+          var ct=evSessions.filter(function(s){return s.cinema===sala&&s.dia===d;}).reduce(function(acc,s){return acc+parsePub(s[tipo]);},0);
+          html+='<td class="bordero-num">'+(ct>0?fmtVal(ct):ct===0&&evSessions.some(function(s){return s.cinema===sala&&s.dia===d;})?'0':'—')+'</td>';
         });
-        html+='<td class="bordero-num bordero-row-total">'+salaTotal.toLocaleString('pt-BR')+'</td></tr>';
+        html+='<td class="bordero-num bordero-row-total">'+fmtVal(salaTotal)+'</td></tr>';
       });
       // linha de totais por dia
       html+='<tr class="bordero-total-row"><td class="bordero-sala" style="font-weight:600;color:var(--text-dim)">Total</td>';
       days.forEach(function(d){
-        var dt=evSessions.filter(function(s){return s.dia===d;}).reduce(function(acc,s){return acc+parsePub(s.publico);},0);
-        html+='<td class="bordero-num bordero-col-total">'+dt.toLocaleString('pt-BR')+'</td>';
+        var dt=evSessions.filter(function(s){return s.dia===d;}).reduce(function(acc,s){return acc+parsePub(s[tipo]);},0);
+        html+='<td class="bordero-num bordero-col-total">'+fmtVal(dt)+'</td>';
       });
-      html+='<td class="bordero-num bordero-corner">'+evTotal.toLocaleString('pt-BR')+'</td></tr>';
+      html+='<td class="bordero-num bordero-corner">'+fmtVal(evTotal)+'</td></tr>';
       html+='</tbody></table></div>';
 
       // lista por sessão (collapsível)
       html+='<div class="bordero-sess-toggle" onclick="this.classList.toggle(\'open\');var l=this.nextElementSibling;l.style.display=l.style.display===\'none\'?\'block\':\'none\';">Ver por sessão ('+evSessions.length+')</div>';
       html+='<div class="bordero-sess-list" style="display:none;">';
       evSessions.forEach(function(s){
-        var pub=parsePub(s.publico);
+        var pub=parsePub(s[tipo]);
         html+='<div class="bordero-sess-row">';
         html+='<span class="bordero-sess-date">'+s.dia+'</span>';
         html+='<span class="bordero-sess-time">'+s.hora+'</span>';
         html+='<span class="bordero-sess-name">'+s.nome+'</span>';
         html+='<span class="bordero-sess-cinema">'+s.cinema+'</span>';
-        html+='<span class="bordero-sess-pub">'+(s.publico?pub.toLocaleString('pt-BR'):'—')+'</span>';
+        html+='<span class="bordero-sess-pub">'+(s[tipo]?fmtVal(parsePub(s[tipo])):'—')+'</span>';
         html+='</div>';
       });
       html+='</div>';
@@ -6461,8 +6477,12 @@ function openBordero(cx){
   document.body.style.overflow='hidden';
 }
 
-function openBorderoDashSessoes(scope){
+function openBorderoDashSessoes(scope,tipo){
+  tipo=tipo||'publico';
   function parsePub(v){var n=parseInt((v||'').toString().replace(/\D/g,''));return isNaN(n)?0:n;}
+  function fmtVal(n){return tipo==='renda'?'R\xa0'+n.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2}):n.toLocaleString('pt-BR');}
+  var _tipoLabel=tipo==='renda'?'Renda':'Público';
+  var _tipoUnit=tipo==='renda'?'':'ingressos';
   var sessoes;
   if(scope==='days'){
     sessoes=sessoesArr.filter(function(s){
@@ -6476,7 +6496,7 @@ function openBorderoDashSessoes(scope){
       return true;
     });
   }
-  var totalPub=sessoes.reduce(function(acc,s){return acc+parsePub(s.publico);},0);
+  var totalPub=sessoes.reduce(function(acc,s){return acc+parsePub(s[tipo]);},0);
   var hasPubData=sessoes.some(function(s){return s.publico&&s.publico.toString().trim()!=='';});
 
   var html='';
@@ -6522,18 +6542,18 @@ function openBorderoDashSessoes(scope){
       dias.forEach(function(d){tableHtml+='<th>'+d+'</th>';});
       tableHtml+='<th class="bordero-th-total">Total</th></tr></thead><tbody>';
       salas.forEach(function(sala){
-        var salaTotal=evSessoes.filter(function(s){return s.cinema===sala;}).reduce(function(acc,s){return acc+parsePub(s.publico);},0);
+        var salaTotal=evSessoes.filter(function(s){return s.cinema===sala;}).reduce(function(acc,s){return acc+parsePub(s[tipo]);},0);
         tableHtml+='<tr><td class="bts-hora" style="font-size:10px;">'+sala+'</td>';
         dias.forEach(function(d){
           var cell=(idx[sala]&&idx[sala][d])||[];
           if(!cell.length){tableHtml+='<td class="bts-empty"></td>';}
           else{
             tableHtml+='<td class="bts-cell">'+cell.map(function(s){
-              var pub=parsePub(s.publico);var hasPub=s.publico!==''&&s.publico!==null&&s.publico!==undefined;
+              var pub=parsePub(s[tipo]);var hasPub=s[tipo]!==''&&s[tipo]!==null&&s[tipo]!==undefined;
               var safe=s.nome.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
               return'<div class="bts-cell-entry" style="cursor:pointer" onclick="closeBordero();goToFicha(\''+safe+'\')">'+
                 '<span class="bts-cell-nome">'+s.nome+'</span>'+
-                '<span class="bts-cell-pub">'+(hasPub?pub.toLocaleString('pt-BR'):'—')+'</span>'+
+                '<span class="bts-cell-pub">'+(hasPub?fmtVal(parsePub(s[tipo])):'—')+'</span>'+
               '</div>';
             }).join('')+'</td>';
           }
@@ -6542,10 +6562,10 @@ function openBorderoDashSessoes(scope){
       });
       tableHtml+='<tr class="bordero-total-row"><td class="bts-hora" style="font-weight:600;color:var(--text-dim);">Total</td>';
       dias.forEach(function(d){
-        var dt=evSessoes.filter(function(s){return s.dia===d;}).reduce(function(acc,s){return acc+parsePub(s.publico);},0);
+        var dt=evSessoes.filter(function(s){return s.dia===d;}).reduce(function(acc,s){return acc+parsePub(s[tipo]);},0);
         tableHtml+='<td class="bordero-num bordero-col-total">'+(evHasPub?dt.toLocaleString('pt-BR'):'—')+'</td>';
       });
-      var evTot=evSessoes.reduce(function(acc,s){return acc+parsePub(s.publico);},0);
+      var evTot=evSessoes.reduce(function(acc,s){return acc+parsePub(s[tipo]);},0);
       tableHtml+='<td class="bordero-num bordero-corner">'+(evHasPub?evTot.toLocaleString('pt-BR'):'—')+'</td></tr>';
       tableHtml+='</tbody></table></div>';
     }else{
@@ -6562,18 +6582,18 @@ function openBorderoDashSessoes(scope){
       horas.forEach(function(hk){tableHtml+='<th>'+hk+'</th>';});
       tableHtml+='<th class="bordero-th-total">Total</th></tr></thead><tbody>';
       salas2.forEach(function(sala){
-        var salaTotal=evSessoes.filter(function(s){return s.cinema===sala;}).reduce(function(acc,s){return acc+parsePub(s.publico);},0);
+        var salaTotal=evSessoes.filter(function(s){return s.cinema===sala;}).reduce(function(acc,s){return acc+parsePub(s[tipo]);},0);
         tableHtml+='<tr><td class="bts-hora" style="font-size:10px;">'+sala+'</td>';
         horas.forEach(function(hk){
           var cell=(idx2[sala]&&idx2[sala][hk])||[];
           if(!cell.length){tableHtml+='<td class="bts-empty"></td>';}
           else{
             tableHtml+='<td class="bts-cell">'+cell.map(function(s){
-              var pub=parsePub(s.publico);var hasPub=s.publico!==''&&s.publico!==null&&s.publico!==undefined;
+              var pub=parsePub(s[tipo]);var hasPub=s[tipo]!==''&&s[tipo]!==null&&s[tipo]!==undefined;
               var safe=s.nome.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
               return'<div class="bts-cell-entry" style="cursor:pointer" onclick="closeBordero();goToFicha(\''+safe+'\')">'+
                 '<span class="bts-cell-nome">'+s.nome+'</span>'+
-                '<span class="bts-cell-pub">'+(hasPub?pub.toLocaleString('pt-BR'):'—')+'</span>'+
+                '<span class="bts-cell-pub">'+(hasPub?fmtVal(parsePub(s[tipo])):'—')+'</span>'+
               '</div>';
             }).join('')+'</td>';
           }
@@ -6582,10 +6602,10 @@ function openBorderoDashSessoes(scope){
       });
       tableHtml+='<tr class="bordero-total-row"><td class="bts-hora" style="font-weight:600;color:var(--text-dim);">Total</td>';
       horas.forEach(function(hk){
-        var ht=evSessoes.filter(function(s){var k=s.time?String(s.time.h).padStart(2,'0')+':'+String(s.time.m).padStart(2,'0'):s.hora||'';return k===hk;}).reduce(function(acc,s){return acc+parsePub(s.publico);},0);
+        var ht=evSessoes.filter(function(s){var k=s.time?String(s.time.h).padStart(2,'0')+':'+String(s.time.m).padStart(2,'0'):s.hora||'';return k===hk;}).reduce(function(acc,s){return acc+parsePub(s[tipo]);},0);
         tableHtml+='<td class="bordero-num bordero-col-total">'+(evHasPub?ht.toLocaleString('pt-BR'):'—')+'</td>';
       });
-      var evTot2=evSessoes.reduce(function(acc,s){return acc+parsePub(s.publico);},0);
+      var evTot2=evSessoes.reduce(function(acc,s){return acc+parsePub(s[tipo]);},0);
       tableHtml+='<td class="bordero-num bordero-corner">'+(evHasPub?evTot2.toLocaleString('pt-BR'):'—')+'</td></tr>';
       tableHtml+='</tbody></table></div>';
     }
@@ -6594,13 +6614,13 @@ function openBorderoDashSessoes(scope){
 
   evOrder.forEach(function(ev){
     var evSessoes=evMap[ev];
-    var evTotal=evSessoes.reduce(function(acc,s){return acc+parsePub(s.publico);},0);
+    var evTotal=evSessoes.reduce(function(acc,s){return acc+parsePub(s[tipo]);},0);
     var evHasPub=evSessoes.some(function(s){return s.publico&&s.publico.toString().trim()!=='';});
     var evCol=ev&&eventColors[ev]?eventColors[ev]:{bg:'var(--surface2)',text:'var(--text-dim)'};
     html+='<div class="bordero-ev-section">';
     html+='<div class="bordero-ev-header">'+
       '<span class="bordero-ev-pill" style="background:'+evCol.bg+';color:'+evCol.text+'">'+(ev||'Sem evento')+'</span>'+
-      '<span class="bordero-ev-total">'+(evHasPub?evTotal.toLocaleString('pt-BR')+' ingressos':'—')+'</span>'+
+      '<span class="bordero-ev-total">'+(evHasPub?fmtVal(evTotal)+(_tipoUnit?' '+_tipoUnit:''):'—')+'</span>'+
       '<span class="bordero-ev-meta">'+evSessoes.length+' sess'+(evSessoes.length===1?'ão':'ões')+'</span>'+
     '</div>';
     html+=buildTable(evSessoes,scope==='global');
@@ -6617,8 +6637,12 @@ function closeBordero(){
   document.body.style.overflow='';
 }
 
-function openBorderoSessoesDay(dayKey){
+function openBorderoSessoesDay(dayKey,tipo){
+  tipo=tipo||'publico';
   function parsePub(v){var n=parseInt((v||'').toString().replace(/\D/g,''));return isNaN(n)?0:n;}
+  function fmtVal(n){return tipo==='renda'?'R\xa0'+n.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2}):n.toLocaleString('pt-BR');}
+  var _tipoLabel=tipo==='renda'?'Renda':'Público';
+  var _tipoUnit=tipo==='renda'?'':'ingressos';
 
   // sessions for this day filtered by active events + cinema filter
   var daySess=sessoesArr.filter(function(s){
@@ -6630,7 +6654,7 @@ function openBorderoSessoesDay(dayKey){
     return(a.time?a.time.h*60+a.time.m:0)-(b.time?b.time.h*60+b.time.m:0);
   });
 
-  var totalPub=daySess.reduce(function(acc,s){return acc+parsePub(s.publico);},0);
+  var totalPub=daySess.reduce(function(acc,s){return acc+parsePub(s[tipo]);},0);
   var hasPubData=daySess.some(function(s){return s.publico&&s.publico.toString().trim()!=='';});
 
   // day label
@@ -6686,7 +6710,7 @@ function openBorderoSessoesDay(dayKey){
       var horaTotal=daySess.filter(function(s){
         var k=s.time?String(s.time.h).padStart(2,'0')+':'+String(s.time.m).padStart(2,'0'):s.hora||'';
         return k===hk;
-      }).reduce(function(acc,s){return acc+parsePub(s.publico);},0);
+      }).reduce(function(acc,s){return acc+parsePub(s[tipo]);},0);
 
       html+='<tr><td class="bts-hora">'+hk+'</td>';
       salas.forEach(function(sala){
@@ -6695,12 +6719,12 @@ function openBorderoSessoesDay(dayKey){
           html+='<td class="bts-empty"></td>';
         }else{
           var cellHtml=cell.map(function(s){
-            var pub=parsePub(s.publico);
-            var hasPub=s.publico!==''&&s.publico!==null&&s.publico!==undefined;
+            var pub=parsePub(s[tipo]);
+            var hasPub=s[tipo]!==''&&s[tipo]!==null&&s[tipo]!==undefined;
             var safe=s.nome.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
             return'<div class="bts-cell-entry" style="cursor:pointer" onclick="closeBordero();goToFicha(\''+safe+'\')">'+
               '<span class="bts-cell-nome">'+s.nome+'</span>'+
-              '<span class="bts-cell-pub">'+(hasPub?pub.toLocaleString('pt-BR'):'—')+'</span>'+
+              '<span class="bts-cell-pub">'+(hasPub?fmtVal(parsePub(s[tipo])):'—')+'</span>'+
             '</div>';
           }).join('');
           html+='<td class="bts-cell">'+cellHtml+'</td>';
@@ -6713,7 +6737,7 @@ function openBorderoSessoesDay(dayKey){
     // totais por sala
     html+='<tr class="bordero-total-row"><td class="bts-hora" style="font-weight:600;color:var(--text-dim);">Total</td>';
     salas.forEach(function(sala){
-      var salaTotal=daySess.filter(function(s){return s.cinema===sala;}).reduce(function(acc,s){return acc+parsePub(s.publico);},0);
+      var salaTotal=daySess.filter(function(s){return s.cinema===sala;}).reduce(function(acc,s){return acc+parsePub(s[tipo]);},0);
       html+='<td class="bordero-num bordero-col-total">'+(hasPubData?salaTotal.toLocaleString('pt-BR'):'—')+'</td>';
     });
     html+='<td class="bordero-num bordero-corner">'+(hasPubData?totalPub.toLocaleString('pt-BR'):'—')+'</td>';
@@ -6732,13 +6756,17 @@ function printBordero(){
   document.body.classList.remove('print-bordero');
 }
 
-function openBorderoCinema(sala){
+function openBorderoCinema(sala,tipo){
+  tipo=tipo||'publico';
   function parsePub(v){var n=parseInt((v||'').toString().replace(/\D/g,''));return isNaN(n)?0:n;}
+  function fmtVal(n){return tipo==='renda'?'R\xa0'+n.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2}):n.toLocaleString('pt-BR');}
+  var _tipoLabel=tipo==='renda'?'Renda':'Público';
+  var _tipoUnit=tipo==='renda'?'':'ingressos';
   var sessions=sessoesArr.filter(function(s){
     return s.cinema===sala&&(!s.evento||activeEventsCinemas.has(s.evento));
   }).sort(function(a,b){return a.date&&b.date?a.date-b.date:0;});
 
-  var totalGeral=sessions.reduce(function(acc,s){return acc+parsePub(s.publico);},0);
+  var totalGeral=sessions.reduce(function(acc,s){return acc+parsePub(s[tipo]);},0);
 
   // agrupar por evento
   var evOrder=[];var evMap={};
@@ -6756,7 +6784,7 @@ function openBorderoCinema(sala){
   html+='</div></div>';
   html+='<div class="bordero-total-bar">';
   html+='<span class="bordero-total-label">Total Geral</span>';
-  html+='<span class="bordero-total-num">'+totalGeral.toLocaleString('pt-BR')+'</span>';
+  html+='<span class="bordero-total-num">'+fmtVal(totalGeral)+'</span>';
   html+='<span class="bordero-total-sub">ingressos · '+sessions.length+' sess'+(sessions.length===1?'ão':'ões')+'</span>';
   html+='</div>';
 
@@ -6765,7 +6793,7 @@ function openBorderoCinema(sala){
   }else{
     evOrder.forEach(function(ev){
       var evSessions=evMap[ev];
-      var evTotal=evSessions.reduce(function(acc,s){return acc+parsePub(s.publico);},0);
+      var evTotal=evSessions.reduce(function(acc,s){return acc+parsePub(s[tipo]);},0);
       var evCol=ev&&eventColors[ev]?eventColors[ev]:{bg:'var(--surface2)',text:'var(--text-dim)'};
 
       // dias únicos ordenados por data
@@ -6809,7 +6837,7 @@ function openBorderoCinema(sala){
         var horaTotal=evSessions.filter(function(s){
           var k=s.time?String(s.time.h).padStart(2,'0')+':'+String(s.time.m).padStart(2,'0'):s.hora||'';
           return k===hk;
-        }).reduce(function(acc,s){return acc+parsePub(s.publico);},0);
+        }).reduce(function(acc,s){return acc+parsePub(s[tipo]);},0);
 
         html+='<tr><td class="bts-hora">'+hk+'</td>';
         days.forEach(function(d){
@@ -6819,11 +6847,11 @@ function openBorderoCinema(sala){
           }else{
             // normalmente 1 sessão por slot; caso raro de múltiplas, empilha
             var cellHtml=cell.map(function(s){
-              var pub=parsePub(s.publico);
-              var hasPub=s.publico!==''&&s.publico!==null&&s.publico!==undefined;
+              var pub=parsePub(s[tipo]);
+              var hasPub=s[tipo]!==''&&s[tipo]!==null&&s[tipo]!==undefined;
               return'<div class="bts-cell-entry">'+
                 '<span class="bts-cell-nome">'+s.nome+'</span>'+
-                '<span class="bts-cell-pub">'+(hasPub?pub.toLocaleString('pt-BR'):'—')+'</span>'+
+                '<span class="bts-cell-pub">'+(hasPub?fmtVal(parsePub(s[tipo])):'—')+'</span>'+
               '</div>';
             }).join('');
             html+='<td class="bts-cell">'+cellHtml+'</td>';
@@ -6837,8 +6865,8 @@ function openBorderoCinema(sala){
       html+='<tr class="bordero-total-row">';
       html+='<td class="bts-hora" style="font-weight:600;color:var(--text-dim);letter-spacing:0.08em;">Total</td>';
       days.forEach(function(d){
-        var dt=evSessions.filter(function(s){return s.dia===d;}).reduce(function(acc,s){return acc+parsePub(s.publico);},0);
-        html+='<td class="bordero-num bordero-col-total">'+dt.toLocaleString('pt-BR')+'</td>';
+        var dt=evSessions.filter(function(s){return s.dia===d;}).reduce(function(acc,s){return acc+parsePub(s[tipo]);},0);
+        html+='<td class="bordero-num bordero-col-total">'+fmtVal(dt)+'</td>';
       });
       html+='<td class="bordero-num bordero-corner">'+evTotal.toLocaleString('pt-BR')+'</td>';
       html+='</tr>';
@@ -8830,7 +8858,7 @@ function renderDash(){
     }else if(key==='sessoes'){
       title='Sessões ('+sessoes.length+')';
       var sorted=sessoes.slice().sort(function(a,b){return a.date&&b.date?a.date-b.date||(a.time&&b.time?a.time.h*60+a.time.m-(b.time.h*60+b.time.m):0):0;});
-      var borderoBtn=!window._olgaHasRestricao('dashboard.bordero')?'<button class="bordero-btn" style="margin-left:8px;font-size:9px;padding:3px 10px;" onclick="openBorderoDashSessoes(\''+scope+'\')">⊞ Borderô</button>':'';
+      var borderoBtn=!window._olgaHasRestricao('dashboard.bordero')?'<span style="display:flex;gap:4px;margin-left:8px;"><button class="bordero-btn" style="font-size:9px;padding:3px 10px;" onclick="openBorderoDashSessoes(\''+scope+'\')">'+'Público'+'</button><button class="bordero-btn" style="font-size:9px;padding:3px 10px;" onclick="openBorderoDashSessoes(\''+scope+'\',\'renda\')">'+'Renda'+'</button></span>':'';
       bodyHtml='';
       sorted.forEach(function(s){
         var safe=s.nome.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
@@ -9107,7 +9135,7 @@ function renderDash(){
   html+=colBlock('controle','Controle de filmes',ctrlBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 05/05/2026 às 19:00';
+  var sysUpdate='última atualização do sistema · 06/05/2026 às 10:40';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -12220,7 +12248,7 @@ window.addEventListener('popstate',function(e){
 <script>
   if(typeof lucide !== 'undefined') lucide.createIcons();
 </script>
-<div id="page-footer"><span>última atualização · 05/05/2026 às 19:00</span></div>
+<div id="page-footer"><span>última atualização · 06/05/2026 às 10:40</span></div>
 
 </div>
 

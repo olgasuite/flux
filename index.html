@@ -3177,7 +3177,7 @@ mark{background:rgba(255,186,32,0.28);color:var(--accent);border-radius:2px;padd
 .sess-time{font-family:var(--mono);font-size:11px;font-weight:600;color:var(--text);white-space:nowrap;min-width:40px;}
 .sess-name{font-family:var(--mono);font-size:9px;font-weight:600;color:var(--accent);white-space:nowrap;flex-shrink:0;opacity:0.7;letter-spacing:0.05em;}
 .sess-display-name{font-family:var(--sans);font-size:13px;font-weight:600;color:var(--text);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-.sess-cinema{font-family:var(--mono);font-size:10px;color:var(--text-dim);white-space:nowrap;}
+.sess-cinema{font-family:var(--mono);font-size:10px;color:var(--text-dim);white-space:nowrap;display:block;}
 .sess-films{font-family:var(--sans);font-size:11px;color:var(--text-muted);flex:2;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .sess-dur{font-family:var(--mono);font-size:9px;color:var(--text-muted);white-space:nowrap;}
 .sess-ev-tag{font-family:var(--mono);font-size:8px;font-weight:600;letter-spacing:0.06em;padding:2px 7px;border-radius:2px;white-space:nowrap;}
@@ -10050,7 +10050,7 @@ function _progRenderProgram(programId){
   });
   var safePid=programId.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
   var html='<div class="prog-module-wrap">';
-  html+='<div class="prog-view-header"><button class="prog-back-btn" onclick="_progBack()">← voltar</button>';
+  html+='<div class="prog-view-header">';
   html+='<span class="prog-event-badge" style="background:'+evColor.bg+';color:'+evColor.text+';">'+esc(ev)+'</span>';
   if(prog.data.competitive)html+='<span class="prog-flag-badge prog-flag-comp">Competitivo</span>';
   if(prog.data.popular_vote)html+='<span class="prog-flag-badge prog-flag-pop">Voto popular</span>';
@@ -10171,7 +10171,7 @@ function _progRenderSessao(sessaoNome){
   var safeNome=sessaoNome.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
   var safePid=(_progView.programId||'').replace(/\\/g,'\\\\').replace(/'/g,"\\'");
   var html='<div class="prog-module-wrap">';
-  html+='<div class="prog-view-header"><button class="prog-back-btn" onclick="_progBack()">← voltar</button>';
+  html+='<div class="prog-view-header">';
   if(prog)html+='<span class="prog-breadcrumb">'+esc(prog.data.name||prog.id)+'</span>';
   if(canEdit||vinOnly)html+='<button class="prog-btn-sm" style="margin-left:auto;" onclick="openProgSessaoModal(\''+safeNome+'\',\''+safePid+'\',null)">'+(vinOnly?'✎ editar vinhetas':'✎ editar sessão')+'</button>';
   html+='</div>';

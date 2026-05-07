@@ -3185,6 +3185,22 @@ mark{background:rgba(255,186,32,0.28);color:var(--accent);border-radius:2px;padd
 .recep-roles-row{display:flex;gap:14px;flex-wrap:wrap;margin-top:4px;}
 .recep-roles-row label{display:flex;align-items:center;gap:5px;font-family:var(--mono);font-size:10px;color:var(--text-dim);cursor:pointer;}
 .recep-2col{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.recep-th-sort{cursor:pointer;user-select:none;white-space:nowrap;}
+.recep-th-sort:hover{color:var(--text);}
+.recep-print-btn{font-family:var(--mono);font-size:11px;background:none;border:1px solid var(--border);color:var(--text-muted);padding:4px 10px;cursor:pointer;transition:all 0.12s;white-space:nowrap;}
+.recep-print-btn:hover{border-color:var(--accent);color:var(--accent);}
+/* recep print */
+body.print-recep>*:not(#olga-app){display:none!important;}
+body.print-recep #olga-app>*:not(#receptivo-panel){display:none!important;}
+body.print-recep #receptivo-panel{display:block!important;padding:0!important;}
+@media print{
+  .recep-bar{display:none!important;}
+  .recep-row-btn,.recep-print-btn,.recep-add-btn{display:none!important;}
+  .recep-table{font-size:9pt;}
+  .recep-table th,.recep-table td{padding:4px 8px!important;border:1px solid #ccc!important;}
+  .recep-status,.recep-role-badge{border:1px solid #999!important;background:none!important;color:#000!important;}
+  .recep-section-header .recep-add-btn{display:none!important;}
+}
 /* KDM */
 #kdm-container{padding:0 0 60px;}
 .kdm-day-group{border-bottom:1px solid var(--border);}
@@ -4754,7 +4770,7 @@ var filmesMap={},filmesArr=[],sessoesArr=[],sessoesMap={};
 var buscaReverseSessoes={},eventColors={};
 var vinhetasArr=[],vinhetaReverseSessoes={},currentVinhetaDetail=null;
 var activeEventsGrade=new Set(),activeEventsBusca=new Set(),activeEventsIngest=new Set(),activeEventsFicha=new Set(),activeEventsCinemas=new Set(),activeEventsDash=new Set(),activeEventsGrade2=new Set(),activeEventsSessoes=new Set(),activeEventsProjecao=new Set(),activeEventsVinhetas=new Set();
-var activeEventsCatalogo=new Set(),activeEventsProgramacao=new Set(),activeEventsKDM=new Set(),activeEventsBilheteria=new Set();
+var activeEventsCatalogo=new Set(),activeEventsProgramacao=new Set(),activeEventsKDM=new Set(),activeEventsBilheteria=new Set(),activeEventsReceptivo=new Set();
 var catalogoFilmesMap={};
 var days=[],currentDay=null,buscaQuery='',dataLoaded=false,currentMode=null;
 var _browserNav=false;
@@ -4868,10 +4884,10 @@ function applyParsedData(d,filename){
   var initEvs=currentEvs.size>0?currentEvs:new Set(events);
   // Só inicializar os sets na primeira carga. Nas recargas (dataLoaded já true), preservar estado atual.
   if(!dataLoaded){
-    activeEventsGrade=new Set(initEvs);activeEventsBusca=new Set(initEvs);activeEventsIngest=new Set(initEvs);activeEventsFicha=new Set(initEvs);activeEventsCinemas=new Set(initEvs);activeEventsDash=new Set(initEvs);activeEventsGrade2=new Set(initEvs);activeEventsSessoes=new Set(initEvs);activeEventsProjecao=new Set(initEvs);activeEventsVinhetas=new Set(initEvs);activeEventsCatalogo=new Set(initEvs);activeEventsProgramacao=new Set(initEvs);activeEventsKDM=new Set(initEvs);activeEventsBilheteria=new Set(initEvs);
+    activeEventsGrade=new Set(initEvs);activeEventsBusca=new Set(initEvs);activeEventsIngest=new Set(initEvs);activeEventsFicha=new Set(initEvs);activeEventsCinemas=new Set(initEvs);activeEventsDash=new Set(initEvs);activeEventsGrade2=new Set(initEvs);activeEventsSessoes=new Set(initEvs);activeEventsProjecao=new Set(initEvs);activeEventsVinhetas=new Set(initEvs);activeEventsCatalogo=new Set(initEvs);activeEventsProgramacao=new Set(initEvs);activeEventsKDM=new Set(initEvs);activeEventsBilheteria=new Set(initEvs);activeEventsReceptivo=new Set(initEvs);
   } else {
     var evSet=new Set(events);
-    var allSets=[activeEventsGrade,activeEventsBusca,activeEventsIngest,activeEventsFicha,activeEventsCinemas,activeEventsDash,activeEventsGrade2,activeEventsSessoes,activeEventsProjecao,activeEventsVinhetas,activeEventsCatalogo,activeEventsProgramacao,activeEventsKDM,activeEventsBilheteria];
+    var allSets=[activeEventsGrade,activeEventsBusca,activeEventsIngest,activeEventsFicha,activeEventsCinemas,activeEventsDash,activeEventsGrade2,activeEventsSessoes,activeEventsProjecao,activeEventsVinhetas,activeEventsCatalogo,activeEventsProgramacao,activeEventsKDM,activeEventsBilheteria,activeEventsReceptivo];
     // Remover eventos que não existem mais no banco
     allSets.forEach(function(st){st.forEach(function(ev){if(!evSet.has(ev))st.delete(ev);});});
     // Adicionar eventos novos que ainda não estão em nenhum set
@@ -7265,11 +7281,50 @@ function goToProgFichaFromGrade(nomeSessao){
 /* ═══════════════ RECEPTIVO ═══════════════ */
 var _recepGuests=[],_recepHotels=[],_recepBookings=[],_recepFlights=[],_recepTransfers=[];
 var _recepEvList=[],_recepEvFilter='',_recepSection='',_recepEditId=null,_recepParentId=null;
+var _recepSort={sec:'',field:'',dir:1},_recepTransDate='',_recepTransVeh='',_recepHandlingPop=false;
 
 function _re(s){return(s||'').toString().replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 
 function _recepLoading(){document.getElementById('receptivo-container').innerHTML='<div style="padding:40px;font-family:var(--mono);font-size:11px;color:var(--text-muted);">Carregando…</div>';}
 function _recepErr(e){document.getElementById('receptivo-container').innerHTML='<div style="padding:40px;font-family:var(--mono);font-size:11px;color:var(--warn);">Erro: '+_re(e.message)+'</div>';}
+
+function _recepPush(state){
+  if(!_recepHandlingPop)history.pushState({olga:'receptivo',recep:state},'');
+}
+window.addEventListener('popstate',function(ev){
+  if(!ev.state||ev.state.olga!=='receptivo')return;
+  _recepHandlingPop=true;
+  var s=ev.state.recep||{};
+  if(s.view==='hub'){renderReceptivo();}
+  else if(s.view==='section'){openRecepSection(s.section);}
+  else if(s.view==='detail'){openGuestDetail(s.guestId);}
+  _recepHandlingPop=false;
+});
+
+function _recepPrint(){
+  document.body.classList.add('print-recep');
+  window.print();
+  window.addEventListener('afterprint',function h(){document.body.classList.remove('print-recep');window.removeEventListener('afterprint',h);});
+}
+
+function _recepSortTh(label,field,sec){
+  var active=_recepSort.sec===sec&&_recepSort.field===field;
+  var arrow=active?(_recepSort.dir===1?' ▴':' ▾'):'';
+  return'<th class="recep-th-sort" onclick="_recepSetSort(\''+sec+'\',\''+field+'\')">'+label+arrow+'</th>';
+}
+function _recepSetSort(sec,field){
+  if(_recepSort.sec===sec&&_recepSort.field===field){_recepSort.dir*=-1;}
+  else{_recepSort={sec:sec,field:field,dir:1};}
+  if(sec==='convidados')_renderConvidados();
+  else if(sec==='hoteis')_renderHoteis();
+  else if(sec==='voos')_renderVoos();
+  else if(sec==='transporte')_renderTransporte();
+}
+function _recepApplySort(arr,keyFn){
+  if(!keyFn)return arr;
+  var d=_recepSort.dir;
+  return arr.slice().sort(function(a,b){var ka=keyFn(a)||'',kb=keyFn(b)||'';return ka.localeCompare(kb,undefined,{numeric:true,sensitivity:'base'})*d;});
+}
 
 function _recepShowModal(html){
   var old=document.getElementById('recepModal');if(old)old.remove();
@@ -7281,9 +7336,14 @@ function _recepCloseModal(){var m=document.getElementById('recepModal');if(m)m.r
 
 async function _recepLoadEvs(){
   if(_recepEvList.length)return;
-  if(window._olgaEventos){
+  _recepEvList=window._adminEventos&&window._adminEventos.length?window._adminEventos:[];
+  if(!_recepEvList.length&&window._olgaEventos){
     try{_recepEvList=await window._olgaEventos.list();}catch(e){_recepEvList=[];}
   }
+}
+function _recepAllowedEvs(){
+  // restringe aos eventos visíveis ao usuário (chaves de eventColors)
+  return _recepEvList.filter(function(e){return !!(eventColors&&eventColors[e.id]);});
 }
 
 function renderReceptivo(){
@@ -7310,19 +7370,24 @@ function renderReceptivo(){
       card('voos',SVG_FLIGHT,'Voos','Registro de chegadas e partidas por convidado e evento')+
       card('transporte',SVG_BUS,'Transporte','Roteamento e agendamento de transfers e veículos')+
     '</div></div>';
+  _recepPush({view:'hub'});
 }
 
 function openRecepSection(section){
   _recepSection=section;_recepEvFilter='';_recepParentId=null;
+  if(section!==_recepSort.sec)_recepSort={sec:'',field:'',dir:1};
+  if(section==='transporte'){_recepTransDate='';_recepTransVeh='';}
+  _recepPush({view:'section',section:section});
   _recepLoading();
   _recepLoadEvs().then(function(){
     var proms=[window._olgaGuests.list()];
-    if(section==='hoteis')proms.push(window._olgaHotels.list(),window._olgaBookings.list());
+    if(section==='convidados')proms.push(window._olgaHotels.list(),window._olgaBookings.list());
+    else if(section==='hoteis')proms.push(window._olgaHotels.list(),window._olgaBookings.list());
     else if(section==='voos')proms.push(window._olgaFlights.list());
     else if(section==='transporte')proms.push(window._olgaTransfers.list());
     Promise.all(proms).then(function(r){
       _recepGuests=r[0];
-      if(section==='convidados')_renderConvidados();
+      if(section==='convidados'){_recepHotels=r[1];_recepBookings=r[2];_renderConvidados();}
       else if(section==='hoteis'){_recepHotels=r[1];_recepBookings=r[2];_renderHoteis();}
       else if(section==='voos'){_recepFlights=r[1];_renderVoos();}
       else if(section==='transporte'){_recepTransfers=r[1];_renderTransporte();}
@@ -7339,7 +7404,11 @@ function _recepEvLabel(eid){
   return e?(e.data.nome||e.id):(eid||'—');
 }
 function _recepEvSelect(selId,blank){
-  return (blank?'<option value="">'+_re(blank)+'</option>':'')+_recepEvList.map(function(e){return'<option value="'+_re(e.id)+'"'+(e.id===selId?' selected':'')+'>'+_re(e.data.nome||e.id)+'</option>';}).join('');
+  var allowed=_recepAllowedEvs();
+  var opts=allowed.length
+    ?allowed.map(function(e){return'<option value="'+_re(e.id)+'"'+(e.id===selId?' selected':'')+'>'+_re(e.data.nome||e.id)+'</option>';}).join('')
+    :Object.keys(eventColors||{}).sort().map(function(k){return'<option value="'+_re(k)+'"'+(k===selId?' selected':'')+'>'+_re(k)+'</option>';}).join('');
+  return (blank?'<option value="">'+_re(blank)+'</option>':'')+opts;
 }
 function _recepGuestSelect(selId){
   return _recepGuests.map(function(g){return'<option value="'+_re(g.id)+'"'+(g.id===selId?' selected':'')+'>'+_re(g.data.name||g.id)+'</option>';}).join('');
@@ -7347,14 +7416,18 @@ function _recepGuestSelect(selId){
 
 function _renderConvidados(){
   var canEdit=window._olgaCanEdit('receptivo');
-  var filtered=_recepGuests.filter(function(g){return!_recepEvFilter||g.data.event_id===_recepEvFilter;});
-  var rows=filtered.map(function(g){
-    var d=g.data;
-    var sid=_re(g.id);
+  var hotelMap={};_recepHotels.forEach(function(h){hotelMap[h.id]=h.data.name||h.id;});
+  var bookMap={};_recepBookings.forEach(function(b){if(b.data.guest_id)bookMap[b.data.guest_id]=hotelMap[b.data.hotel_id]||'—';});
+  var filtered=_recepGuests.filter(function(g){var ev=g.data.event_id;return!ev||activeEventsReceptivo.has(ev);});
+  var keyFns={nome:function(g){return g.data.name||'';},evento:function(g){return _recepEvLabel(g.data.event_id)||'';},hotel:function(g){return bookMap[g.id]||'';},email:function(g){return(g.data.contact&&g.data.contact.email)||'';}};
+  var sorted=(_recepSort.sec==='convidados'&&keyFns[_recepSort.field])?_recepApplySort(filtered,keyFns[_recepSort.field]):filtered.slice().sort(function(a,b){return(a.data.name||'').localeCompare(b.data.name||'',undefined,{sensitivity:'base'});});
+  var rows=sorted.map(function(g){
+    var d=g.data,sid=_re(g.id);
     return'<tr>'+
       '<td><button style="background:none;border:none;font-family:var(--mono);font-size:10px;font-weight:600;color:var(--text);cursor:pointer;padding:0;text-align:left;" onclick="openGuestDetail(\''+sid+'\')">'+_re(d.name||'—')+'</button></td>'+
       '<td>'+_recepRoleBadges(d.roles)+'</td>'+
       '<td>'+_re(_recepEvLabel(d.event_id))+'</td>'+
+      '<td>'+_re(bookMap[g.id]||'—')+'</td>'+
       '<td>'+_re((d.contact&&d.contact.email)||'—')+'</td>'+
       '<td>'+(canEdit?'<button class="recep-row-btn" onclick="openGuestModal(\''+sid+'\')">editar</button>':'')+'</td>'+
     '</tr>';
@@ -7363,11 +7436,19 @@ function _renderConvidados(){
     '<div class="recep-bar">'+
       '<button class="recep-back-btn" onclick="renderReceptivo()">← Receptivo</button>'+
       '<span class="recep-bar-title">Convidados</span>'+
-      '<select class="recep-select" style="width:auto;font-size:9px;margin-left:8px;" onchange="_recepEvFilter=this.value;_renderConvidados()"><option value="">Todos os eventos</option>'+_recepEvSelect(_recepEvFilter)+'</select>'+
+      '<div id="recepPills" style="display:contents;"></div>'+
+      '<button class="recep-print-btn" onclick="_recepPrint()">imprimir</button>'+
       (canEdit?'<button class="recep-add-btn" onclick="openGuestModal(null)">+ Convidado</button>':'')+
     '</div>'+
-    '<table class="recep-table"><thead><tr><th>Nome</th><th>Papel</th><th>Evento</th><th>E-mail</th><th></th></tr></thead>'+
-    '<tbody>'+(rows||'<tr><td colspan="5" class="recep-empty">Nenhum convidado encontrado.</td></tr>')+'</tbody></table>';
+    '<table class="recep-table"><thead><tr>'+
+      _recepSortTh('Nome','nome','convidados')+
+      '<th>Papel</th>'+
+      _recepSortTh('Evento','evento','convidados')+
+      _recepSortTh('Hotel','hotel','convidados')+
+      _recepSortTh('E-mail','email','convidados')+
+      '<th></th></tr></thead>'+
+    '<tbody>'+(rows||'<tr><td colspan="6" class="recep-empty">Nenhum convidado encontrado.</td></tr>')+'</tbody></table>';
+  buildPills(document.getElementById('recepPills'),eventColors,activeEventsReceptivo,function(){_renderConvidados();});
 }
 
 function openGuestModal(id){
@@ -7409,7 +7490,7 @@ window.deleteGuest=async function(id){
 
 /* ─── GUEST DETAIL ─── */
 function openGuestDetail(guestId){
-  _recepParentId=guestId;_recepLoading();
+  _recepParentId=guestId;_recepPush({view:'detail',guestId:guestId});_recepLoading();
   _recepLoadEvs().then(function(){
     Promise.all([window._olgaGuests.list(),window._olgaFlights.list(),window._olgaBookings.list(),window._olgaHotels.list(),window._olgaTransfers.list()]).then(function(r){
       _recepGuests=r[0];_recepFlights=r[1];_recepBookings=r[2];_recepHotels=r[3];_recepTransfers=r[4];
@@ -7484,7 +7565,9 @@ function _renderGuestDetail(guestId){
 /* ─── HOTÉIS ─── */
 function _renderHoteis(){
   var canEdit=window._olgaCanEdit('receptivo');
-  var rows=_recepHotels.map(function(h){var hd=h.data,hid=_re(h.id);var cnt=_recepBookings.filter(function(b){return b.data.hotel_id===h.id;}).length;return'<tr>'+
+  var keyFns={nome:function(h){return h.data.name||'';},endereco:function(h){return h.data.address||'';},contato:function(h){return h.data.contact||'';}};
+  var sorted=(_recepSort.sec==='hoteis'&&keyFns[_recepSort.field])?_recepApplySort(_recepHotels,keyFns[_recepSort.field]):_recepHotels.slice().sort(function(a,b){return(a.data.name||'').localeCompare(b.data.name||'',undefined,{sensitivity:'base'});});
+  var rows=sorted.map(function(h){var hd=h.data,hid=_re(h.id);var cnt=_recepBookings.filter(function(b){return b.data.hotel_id===h.id;}).length;return'<tr>'+
     '<td style="color:var(--text);font-weight:600;">'+_re(hd.name||'—')+'</td>'+
     '<td>'+_re(hd.address||'—')+'</td>'+
     '<td>'+_re(hd.contact||'—')+'</td>'+
@@ -7495,9 +7578,14 @@ function _renderHoteis(){
     '<div class="recep-bar">'+
       '<button class="recep-back-btn" onclick="renderReceptivo()">← Receptivo</button>'+
       '<span class="recep-bar-title">Hotéis</span>'+
+      '<button class="recep-print-btn" onclick="_recepPrint()">imprimir</button>'+
       (canEdit?'<button class="recep-add-btn" onclick="openHotelModal(null)">+ Hotel</button>':'')+
     '</div>'+
-    '<table class="recep-table"><thead><tr><th>Nome</th><th>Endereço</th><th>Contato</th><th>Reservas</th><th></th></tr></thead>'+
+    '<table class="recep-table"><thead><tr>'+
+      _recepSortTh('Nome','nome','hoteis')+
+      _recepSortTh('Endereço','endereco','hoteis')+
+      _recepSortTh('Contato','contato','hoteis')+
+      '<th>Reservas</th><th></th></tr></thead>'+
     '<tbody>'+(rows||'<tr><td colspan="5" class="recep-empty">Nenhum hotel cadastrado.</td></tr>')+'</tbody></table>';
 }
 function openHotelModal(id){
@@ -7589,8 +7677,10 @@ window.deleteBooking=async function(id,guestId){
 function _renderVoos(){
   var canEdit=window._olgaCanEdit('receptivo');
   var guestMap={};_recepGuests.forEach(function(g){guestMap[g.id]=g.data.name||g.id;});
-  var filtered=_recepFlights.filter(function(f){return!_recepEvFilter||f.data.event_id===_recepEvFilter;}).sort(function(a,b){return(a.data.datetime||'').localeCompare(b.data.datetime||'');});
-  var rows=filtered.map(function(f){var fd=f.data,fid=_re(f.id);return'<tr>'+
+  var base=_recepFlights.filter(function(f){var ev=f.data.event_id;return!ev||activeEventsReceptivo.has(ev);});
+  var keyFns={convidado:function(f){return guestMap[f.data.guest_id]||'';},tipo:function(f){return f.data.type||'';},voo:function(f){return f.data.flight_number||'';},rota:function(f){return(f.data.origin||'')+(f.data.destination?'→'+f.data.destination:'');},data:function(f){return f.data.datetime||'';}};
+  var sorted=(_recepSort.sec==='voos'&&keyFns[_recepSort.field])?_recepApplySort(base,keyFns[_recepSort.field]):base.slice().sort(function(a,b){return(a.data.datetime||'').localeCompare(b.data.datetime||'');});
+  var rows=sorted.map(function(f){var fd=f.data,fid=_re(f.id);return'<tr>'+
     '<td style="color:var(--text)">'+_re(guestMap[fd.guest_id]||fd.guest_id||'—')+'</td>'+
     '<td>'+(fd.type==='chegada'?'↓ chegada':'↑ partida')+'</td>'+
     '<td>'+_re(fd.flight_number||'—')+'</td>'+
@@ -7602,11 +7692,19 @@ function _renderVoos(){
     '<div class="recep-bar">'+
       '<button class="recep-back-btn" onclick="renderReceptivo()">← Receptivo</button>'+
       '<span class="recep-bar-title">Voos</span>'+
-      '<select class="recep-select" style="width:auto;font-size:9px;margin-left:8px;" onchange="_recepEvFilter=this.value;_renderVoos()"><option value="">Todos os eventos</option>'+_recepEvSelect(_recepEvFilter)+'</select>'+
+      '<div id="recepPills" style="display:contents;"></div>'+
+      '<button class="recep-print-btn" onclick="_recepPrint()">imprimir</button>'+
       (canEdit?'<button class="recep-add-btn" onclick="openVooModal(null,null)">+ Voo</button>':'')+
     '</div>'+
-    '<table class="recep-table"><thead><tr><th>Convidado</th><th>Tipo</th><th>Voo</th><th>Rota</th><th>Data/Hora</th><th></th></tr></thead>'+
+    '<table class="recep-table"><thead><tr>'+
+      _recepSortTh('Convidado','convidado','voos')+
+      _recepSortTh('Tipo','tipo','voos')+
+      _recepSortTh('Voo','voo','voos')+
+      _recepSortTh('Rota','rota','voos')+
+      _recepSortTh('Data/Hora','data','voos')+
+      '<th></th></tr></thead>'+
     '<tbody>'+(rows||'<tr><td colspan="6" class="recep-empty">Nenhum voo registrado.</td></tr>')+'</tbody></table>';
+  buildPills(document.getElementById('recepPills'),eventColors,activeEventsReceptivo,function(){_renderVoos();});
 }
 function openVooModal(id,guestId){
   _recepEditId=id;var parentGid=guestId||_recepParentId;
@@ -7653,8 +7751,15 @@ window.deleteVoo=async function(id,parentGid){
 function _renderTransporte(){
   var canEdit=window._olgaCanEdit('receptivo');
   var guestMap={};_recepGuests.forEach(function(g){guestMap[g.id]=g.data.name||g.id;});
-  var filtered=_recepTransfers.filter(function(t){return!_recepEvFilter||t.data.event_id===_recepEvFilter;}).sort(function(a,b){return(a.data.datetime||'').localeCompare(b.data.datetime||'');});
-  var rows=filtered.map(function(t){var td=t.data,tid=_re(t.id);var sc='recep-status recep-status-'+(td.status||'pendente').toLowerCase();return'<tr>'+
+  var base=_recepTransfers.filter(function(t){
+    var ev=t.data.event_id;if(ev&&!activeEventsReceptivo.has(ev))return false;
+    if(_recepTransDate&&!(t.data.datetime||'').startsWith(_recepTransDate))return false;
+    if(_recepTransVeh&&t.data.vehicle_type!==_recepTransVeh)return false;
+    return true;
+  });
+  var keyFns={convidado:function(t){return guestMap[t.data.guest_id]||'';},tipo:function(t){return t.data.category||'';},rota:function(t){return(t.data.origin||'')+(t.data.destination?'→'+t.data.destination:'');},veiculo:function(t){return t.data.vehicle_type||'';},data:function(t){return t.data.datetime||'';},status:function(t){return t.data.status||'';}};
+  var sorted=(_recepSort.sec==='transporte'&&keyFns[_recepSort.field])?_recepApplySort(base,keyFns[_recepSort.field]):base.slice().sort(function(a,b){return(a.data.datetime||'').localeCompare(b.data.datetime||'');});
+  var rows=sorted.map(function(t){var td=t.data,tid=_re(t.id);var sc='recep-status recep-status-'+(td.status||'pendente').toLowerCase();return'<tr>'+
     '<td style="color:var(--text)">'+_re(guestMap[td.guest_id]||td.guest_id||'—')+'</td>'+
     '<td>'+(td.category==='chegada'?'↓ chegada':td.category==='partida'?'↑ partida':'↔ interno')+'</td>'+
     '<td>'+_re(td.origin||'')+(td.destination?' → '+_re(td.destination):'')+'</td>'+
@@ -7667,11 +7772,25 @@ function _renderTransporte(){
     '<div class="recep-bar">'+
       '<button class="recep-back-btn" onclick="renderReceptivo()">← Receptivo</button>'+
       '<span class="recep-bar-title">Transporte</span>'+
-      '<select class="recep-select" style="width:auto;font-size:9px;margin-left:8px;" onchange="_recepEvFilter=this.value;_renderTransporte()"><option value="">Todos os eventos</option>'+_recepEvSelect(_recepEvFilter)+'</select>'+
+      '<div id="recepPills" style="display:contents;"></div>'+
+      '<input type="date" class="recep-input" style="width:130px;font-size:10px;padding:3px 7px;" value="'+_re(_recepTransDate)+'" onchange="_recepTransDate=this.value;_renderTransporte()" title="Filtrar por data">'+
+      '<select class="recep-select" style="width:100px;font-size:10px;padding:3px 7px;" onchange="_recepTransVeh=this.value;_renderTransporte()">'+
+        '<option value="">Todos veículos</option>'+
+        ['van','uber','taxi','outro'].map(function(v){return'<option value="'+v+'"'+(_recepTransVeh===v?' selected':'')+'>'+v+'</option>';}).join('')+
+      '</select>'+
+      '<button class="recep-print-btn" onclick="_recepPrint()">imprimir</button>'+
       (canEdit?'<button class="recep-add-btn" onclick="openTransferModal(null,null)">+ Transfer</button>':'')+
     '</div>'+
-    '<table class="recep-table"><thead><tr><th>Convidado</th><th>Tipo</th><th>Rota</th><th>Veículo</th><th>Data/Hora</th><th>Status</th><th></th></tr></thead>'+
+    '<table class="recep-table"><thead><tr>'+
+      _recepSortTh('Convidado','convidado','transporte')+
+      _recepSortTh('Tipo','tipo','transporte')+
+      _recepSortTh('Rota','rota','transporte')+
+      _recepSortTh('Veículo','veiculo','transporte')+
+      _recepSortTh('Data/Hora','data','transporte')+
+      _recepSortTh('Status','status','transporte')+
+      '<th></th></tr></thead>'+
     '<tbody>'+(rows||'<tr><td colspan="7" class="recep-empty">Nenhum transfer registrado.</td></tr>')+'</tbody></table>';
+  buildPills(document.getElementById('recepPills'),eventColors,activeEventsReceptivo,function(){_renderTransporte();});
 }
 function openTransferModal(id,guestId){
   _recepEditId=id;var parentGid=guestId||_recepParentId;

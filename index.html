@@ -1288,6 +1288,7 @@ td.cpl-cell{background:var(--cpl-bg);border-left:3px solid var(--cpl-border);pad
 .block-display-name{font-family:var(--sans);font-size:11px;font-weight:600;color:rgba(0,0,0,0.85);line-height:1.2;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;}
 .block-films{font-family:var(--mono);font-size:9px;color:rgba(0,0,0,0.5);margin-top:3px;}
 .block-event{font-family:var(--mono);font-size:8px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:rgba(0,0,0,0.45);margin-top:2px;}
+.block-mostra{font-family:var(--mono);font-size:7px;color:rgba(0,0,0,0.38);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-style:italic;}
 .block-hint{font-family:var(--mono);font-size:8px;color:rgba(0,0,0,0.3);margin-top:4px;opacity:0;transition:opacity 0.15s;}
 .session-block:hover .block-hint{opacity:1;}
 .block-acess{font-size:9px;color:rgba(0,0,0,0.55);margin-top:2px;line-height:1;}
@@ -1316,11 +1317,14 @@ td.cpl-cell{background:var(--cpl-bg);border-left:3px solid var(--cpl-border);pad
 .gpt-sess-time{font-family:var(--mono);font-size:9px;font-weight:600;color:var(--accent);margin-bottom:1px;}
 .gpt-sess-name{font-family:var(--sans);font-size:11px;font-weight:600;color:var(--text);line-height:1.3;}
 .gpt-sess-films{font-family:var(--mono);font-size:9px;color:var(--text-muted);margin-top:1px;}
+.gpt-sess-event{font-family:var(--mono);font-size:8px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:var(--accent);opacity:0.7;margin-top:2px;}
+.gpt-sess-mostra{font-family:var(--mono);font-size:8px;color:var(--text-muted);font-style:italic;margin-top:1px;}
 /* Grade table print mode */
 @page{size:A4 landscape;margin:8mm;}
 @media print{
-  body.print-grade-table>*{display:none!important;}
-  body.print-grade-table #gradePrintArea{display:block!important;}
+  body.print-grade-table>*:not(#olga-app){display:none!important;}
+  body.print-grade-table #olga-app>*:not(#gradePrintArea){display:none!important;}
+  body.print-grade-table #gradePrintArea{display:block!important;position:static!important;background:white!important;padding:10mm!important;}
   body.print-grade-table #gradePrintArea table{width:100%!important;}
 }
 #gradePrintArea{padding:0;display:none;}
@@ -1332,6 +1336,8 @@ td.cpl-cell{background:var(--cpl-bg);border-left:3px solid var(--cpl-border);pad
 #gradePrintArea .gpt-sess-time{font-family:monospace;font-size:7px;font-weight:700;color:#444;}
 #gradePrintArea .gpt-sess-name{font-family:sans-serif;font-size:9px;font-weight:600;color:#000;word-break:break-word;}
 #gradePrintArea .gpt-sess-films{font-family:monospace;font-size:7px;color:#666;}
+#gradePrintArea .gpt-sess-event{font-family:monospace;font-size:6px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;color:#555;margin-top:1px;}
+#gradePrintArea .gpt-sess-mostra{font-family:monospace;font-size:6px;color:#888;font-style:italic;margin-top:1px;}
 #gradePrintArea .gpt-print-header{font-family:monospace;font-size:11px;font-weight:700;margin-bottom:8px;padding-bottom:5px;border-bottom:2px solid #000;color:#000;}
 
 /* BUSCA */
@@ -3322,8 +3328,9 @@ mark{background:rgba(255,186,32,0.28);color:var(--accent);border-radius:2px;padd
 .vinheta-sess-name{font-family:var(--sans);font-size:12px;font-weight:600;color:var(--accent);flex:1;}
 /* print */
 @media print{
-  body.print-vinhetas>*{display:none!important;}
-  body.print-vinhetas #vinhetasPrintArea{display:block!important;}
+  body.print-vinhetas>*:not(#olga-app){display:none!important;}
+  body.print-vinhetas #olga-app>*:not(#vinhetasPrintArea){display:none!important;}
+  body.print-vinhetas #vinhetasPrintArea{display:block!important;position:static!important;background:white!important;padding:10mm!important;}
 }
 .vinhetas-print-area{font-family:monospace;font-size:10px;}
 .vp-header{font-size:12px;font-weight:700;margin-bottom:10px;padding-bottom:6px;border-bottom:2px solid #000;}
@@ -5648,10 +5655,13 @@ function gptRenderTable(headers,slots,getSessionsFn){
         var _progTotalSecs=0;
         s.filmes.forEach(function(cod){var f=filmesMap[cod];if(!f)return;_progTotalSecs+=_parseDurSecs(f.duracao);});
         var durStr=_secsToHMS(_progTotalSecs);
+        var _gptProg=_gradeProgName(s);
         html+='<div class="gpt-sess-entry" onclick="closeGradePrintModal();goToFicha(\''+safeName+'\')" title="Abrir ficha: '+s.nome.replace(/"/g,'&quot;')+'">';
         if(durStr)html+='<div class="gpt-sess-time">'+durStr+'</div>';
         html+='<div class="gpt-sess-name">'+s.nome+'</div>';
         if(nf)html+='<div class="gpt-sess-films">'+nf+' filme'+(nf!==1?'s':'')+'</div>';
+        if(s.evento)html+='<div class="gpt-sess-event">'+s.evento+'</div>';
+        if(_gptProg)html+='<div class="gpt-sess-mostra">'+_gptProg+'</div>';
         html+='</div>';
       });
       html+='</td>';
@@ -6012,6 +6022,13 @@ function getThemeBlockColor(evColor){
   }
   return evColor;
 }
+function _gradeProgName(s){
+  var parts=[];
+  if(s.program_id){var p=_progData.programs.find(function(x){return x.id===s.program_id;});parts.push(p&&p.data&&p.data.name?p.data.name:s.program_id);}
+  if(s.subprogram_id){var sub=_progData.subprograms.find(function(x){return x.id===s.subprogram_id;});parts.push(sub&&sub.data&&sub.data.name?sub.data.name:s.subprogram_id);}
+  return parts.join(' · ');
+}
+
 function renderGrade2(){
   renderGrade2DayTabs();
   var ge=document.getElementById('grade2Empty'),gw=document.getElementById('grade2Wrap');
@@ -6054,7 +6071,8 @@ function renderGrade2(){
       if(s.leg_eletronica&&s.leg_eletronica.toUpperCase()==='SIM')_blkIcons+='<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" title="Leg. eletrônica"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>';
       var _blkFilmsStr=s.filmes.length?'<span>'+s.filmes.length+' filme'+(s.filmes.length!==1?'s':'')+'</span>':'';
       var _blkRow3=(_blkFilmsStr||_blkIcons)?'<div class="block-row3">'+_blkFilmsStr+(_blkIcons?'<span class="block-icons">'+_blkIcons+'</span>':'')+'</div>':'';
-      blk.innerHTML='<div class="block-time">'+s.time.str+'</div><div class="block-name">'+s.nome+'</div>'+(s.name?'<div class="block-display-name">'+s.name+'</div>':'')+_blkRow3+(s.evento?'<div class="block-event">'+s.evento+'</div>':'')+'<div class="block-hint">↗ ficha</div>';
+      var _blkProgName=_gradeProgName(s);
+      blk.innerHTML='<div class="block-time">'+s.time.str+'</div><div class="block-name">'+s.nome+'</div>'+(s.name?'<div class="block-display-name">'+s.name+'</div>':'')+_blkRow3+(s.evento?'<div class="block-event">'+s.evento+'</div>':'')+(_blkProgName?'<div class="block-mostra">'+_blkProgName+'</div>':'')+'<div class="block-hint">↗ ficha</div>';
       blk.addEventListener('mouseenter',function(ev){showTooltip(ev,s);});
       blk.addEventListener('mousemove',function(ev){moveTooltip(ev);});
       blk.addEventListener('mouseleave',function(){tip.style.display='none';});
@@ -6725,7 +6743,7 @@ function _borderoButtons(type, onclick1, onclick2, extraStyle){
 function openBordero(cx,tipo){
   tipo=tipo||'publico';
   function parsePub(v){var n=parseInt((v||'').toString().replace(/\D/g,''));return isNaN(n)?0:n;}
-  function fmtVal(n){return tipo==='renda'?'R\xa0'+n.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2}):n.toLocaleString('pt-BR');}
+  function fmtVal(n){return tipo==='renda'?'R$\xa0'+n.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2}):n.toLocaleString('pt-BR');}
   var _tipoLabel=tipo==='renda'?'Renda':'Público';
   var _tipoUnit=tipo==='renda'?'':'ingressos';
   // salas pertencentes a este complexo
@@ -6832,7 +6850,7 @@ function openBordero(cx,tipo){
 function openBorderoDashSessoes(scope,tipo){
   tipo=tipo||'publico';
   function parsePub(v){var n=parseInt((v||'').toString().replace(/\D/g,''));return isNaN(n)?0:n;}
-  function fmtVal(n){return tipo==='renda'?'R\xa0'+n.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2}):n.toLocaleString('pt-BR');}
+  function fmtVal(n){return tipo==='renda'?'R$\xa0'+n.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2}):n.toLocaleString('pt-BR');}
   var _tipoLabel=tipo==='renda'?'Renda':'Público';
   var _tipoUnit=tipo==='renda'?'':'ingressos';
   var sessoes;
@@ -6992,7 +7010,7 @@ function closeBordero(){
 function openBorderoSessoesDay(dayKey,tipo){
   tipo=tipo||'publico';
   function parsePub(v){var n=parseInt((v||'').toString().replace(/\D/g,''));return isNaN(n)?0:n;}
-  function fmtVal(n){return tipo==='renda'?'R\xa0'+n.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2}):n.toLocaleString('pt-BR');}
+  function fmtVal(n){return tipo==='renda'?'R$\xa0'+n.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2}):n.toLocaleString('pt-BR');}
   var _tipoLabel=tipo==='renda'?'Renda':'Público';
   var _tipoUnit=tipo==='renda'?'':'ingressos';
 
@@ -7111,7 +7129,7 @@ function printBordero(){
 function openBorderoCinema(sala,tipo){
   tipo=tipo||'publico';
   function parsePub(v){var n=parseInt((v||'').toString().replace(/\D/g,''));return isNaN(n)?0:n;}
-  function fmtVal(n){return tipo==='renda'?'R\xa0'+n.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2}):n.toLocaleString('pt-BR');}
+  function fmtVal(n){return tipo==='renda'?'R$\xa0'+n.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2}):n.toLocaleString('pt-BR');}
   var _tipoLabel=tipo==='renda'?'Renda':'Público';
   var _tipoUnit=tipo==='renda'?'':'ingressos';
   var sessions=sessoesArr.filter(function(s){
@@ -8057,7 +8075,7 @@ function renderBilheteria(){
 
   function parsePub(v){var n=parseInt((v||'').toString().replace(/\D/g,''));return isNaN(n)?0:n;}
   function parseRenda(v){if(!v||v==='')return null;var n=parseFloat((v||'').toString().replace(/[^\d,\.]/g,'').replace(',','.'));return isNaN(n)?null:n;}
-  function fmtRenda(v){if(v===null)return'—';return'R\xa0'+v.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});}
+  function fmtRenda(v){if(v===null)return'—';return'R$\xa0'+v.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});}
   function calcPMI(pub,renda){if(!pub||!renda)return 0;return renda/pub;}
   function fmtPMI(pmi){if(!pmi)return'0,00';return pmi.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});}
 
@@ -8151,8 +8169,8 @@ var _bilhRelTipo='ambos'; // 'publico' | 'renda' | 'ambos'
 
 function _bilhParsePub(v){var n=parseInt((v||'').toString().replace(/\D/g,''));return isNaN(n)?0:n;}
 function _bilhParseRenda(v){if(!v||v==='')return null;var n=parseFloat((v||'').toString().replace(/[^\d,\.]/g,'').replace(',','.'));return isNaN(n)?null:n;}
-function _bilhFmtRenda(v){if(v===null||v===undefined)return'—';return'R\xa0'+v.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});}
-function _bilhFmtPMI(pmi){if(!pmi||isNaN(pmi))return'—';return'R\xa0'+pmi.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});}
+function _bilhFmtRenda(v){if(v===null||v===undefined)return'—';return'R$\xa0'+v.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});}
+function _bilhFmtPMI(pmi){if(!pmi||isNaN(pmi))return'—';return'R$\xa0'+pmi.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});}
 
 function openBilhRelatorio(){
   _bilhRelTipo='ambos';
@@ -9285,7 +9303,8 @@ function renderGrade(){
       if(s.leg_eletronica&&s.leg_eletronica.toUpperCase()==='SIM')_blkIcons+='<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" title="Leg. eletrônica"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>';
       var _blkFilmsStr=s.filmes.length?'<span>'+s.filmes.length+' filme'+(s.filmes.length!==1?'s':'')+'</span>':'';
       var _blkRow3=(_blkFilmsStr||_blkIcons)?'<div class="block-row3">'+_blkFilmsStr+(_blkIcons?'<span class="block-icons">'+_blkIcons+'</span>':'')+'</div>':'';
-      blk.innerHTML='<div class="block-time">'+s.time.str+'</div><div class="block-name">'+s.nome+'</div>'+(s.name?'<div class="block-display-name">'+s.name+'</div>':'')+_blkRow3+(s.evento?'<div class="block-event">'+s.evento+'</div>':'')+'<div class="block-hint">↗ programação</div>';
+      var _blkProgName=_gradeProgName(s);
+      blk.innerHTML='<div class="block-time">'+s.time.str+'</div><div class="block-name">'+s.nome+'</div>'+(s.name?'<div class="block-display-name">'+s.name+'</div>':'')+_blkRow3+(s.evento?'<div class="block-event">'+s.evento+'</div>':'')+(_blkProgName?'<div class="block-mostra">'+_blkProgName+'</div>':'')+'<div class="block-hint">↗ programação</div>';
       blk.addEventListener('mouseenter',function(ev){showTooltip(ev,s);});
       blk.addEventListener('mousemove',function(ev){moveTooltip(ev);});
       blk.addEventListener('mouseleave',function(){tip.style.display='none';});
@@ -14665,7 +14684,7 @@ function _mobRenderBilheteria(params,back){
   var userEvs=u&&u.eventos&&u.eventos.length?new Set(u.eventos):null;
   function parsePub(v){var n=parseInt((v||'').toString().replace(/\D/g,''));return isNaN(n)?0:n;}
   function parseRenda(v){if(!v||v==='')return null;var n=parseFloat((v||'').toString().replace(/[^\d,\.]/g,'').replace(',','.'));return isNaN(n)?null:n;}
-  function fmtRenda(v){if(v===null)return'—';return'R\xa0'+v.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});}
+  function fmtRenda(v){if(v===null)return'—';return'R$\xa0'+v.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});}
   var filtered=sessoesArr.filter(function(s){
     if(userEvs&&s.evento&&!userEvs.has(s.evento))return false;
     if(_mobActiveEvs&&s.evento&&!_mobActiveEvs.has(s.evento))return false;

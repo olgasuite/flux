@@ -9387,7 +9387,7 @@ function efv(v){return(!v||v==='-'||v==='0')?'—':v;}// expand field value
 /* EVENT FILTER SYNC */
 function syncEventFiltersFrom(src){
   var evs=Array.from(src);
-  [activeEventsGrade,activeEventsBusca,activeEventsIngest,activeEventsFicha,activeEventsCinemas,activeEventsDash,activeEventsGrade2,activeEventsSessoes,activeEventsProjecao,activeEventsVinhetas,activeEventsProgramacao,activeEventsKDM].forEach(function(s){s.clear();evs.forEach(function(e){s.add(e);});});
+  [activeEventsGrade,activeEventsBusca,activeEventsIngest,activeEventsFicha,activeEventsCinemas,activeEventsDash,activeEventsGrade2,activeEventsSessoes,activeEventsProjecao,activeEventsVinhetas,activeEventsProgramacao,activeEventsKDM,activeEventsCatalogo].forEach(function(s){s.clear();evs.forEach(function(e){s.add(e);});});
 }
 function activeEventsForMode(m){
   if(m==='grade')return activeEventsGrade;if(m==='busca')return activeEventsBusca;
@@ -12156,9 +12156,7 @@ function catStatusCls(st){
 }
 function buildCatalogoFilters(){
   var bar=document.getElementById('catEventFilters');if(!bar)return;
-  var fromFilmes=filmesArr.map(function(f){return f.evento;}).filter(Boolean);
-  var fromColors=Object.keys(eventColors);
-  var events=Array.from(new Set(fromFilmes.concat(fromColors))).sort();
+  var events=Object.keys(eventColors);
   var isWin98=(document.documentElement.getAttribute('data-theme')||'dark')==='win98';
   var allActive=function(){return events.every(function(ev){return activeEventsCatalogo.has(ev);});};
   var lbl=document.createElement('button');

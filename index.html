@@ -3187,8 +3187,8 @@ mark{background:rgba(255,186,32,0.28);color:var(--accent);border-radius:2px;padd
 .recep-2col{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
 .recep-th-sort{cursor:pointer;user-select:none;white-space:nowrap;}
 .recep-th-sort:hover{color:var(--text);}
-.recep-print-btn{font-family:var(--mono);font-size:11px;background:none;border:1px solid var(--border);color:var(--text-muted);padding:4px 10px;cursor:pointer;transition:all 0.12s;white-space:nowrap;}
-.recep-print-btn:hover{border-color:var(--accent);color:var(--accent);}
+.recep-print-btn{font-family:var(--mono);font-size:11px;background:rgba(173,198,255,0.07);border:1px solid rgba(173,198,255,0.35);color:var(--accent);padding:4px 10px;cursor:pointer;transition:all 0.12s;white-space:nowrap;}
+.recep-print-btn:hover{background:rgba(173,198,255,0.15);border-color:var(--accent);}
 /* recep print */
 body.print-recep>*:not(#olga-app){display:none!important;}
 body.print-recep #olga-app>*:not(#receptivo-panel){display:none!important;}
@@ -7304,7 +7304,14 @@ window.addEventListener('popstate',function(ev){
 function _recepPrint(){
   document.body.classList.add('print-recep');
   window.print();
-  window.addEventListener('afterprint',function h(){document.body.classList.remove('print-recep');window.removeEventListener('afterprint',h);});
+  window.addEventListener('afterprint',function h(){
+    document.body.classList.remove('print-recep');
+    window.removeEventListener('afterprint',h);
+    if(_recepSection==='convidados')_renderConvidados();
+    else if(_recepSection==='hoteis')_renderHoteis();
+    else if(_recepSection==='voos')_renderVoos();
+    else if(_recepSection==='transporte')_renderTransporte();
+  });
 }
 
 function _recepSortTh(label,field,sec){
@@ -7774,10 +7781,7 @@ function _renderTransporte(){
       '<span class="recep-bar-title">Transporte</span>'+
       '<div id="recepPills" style="display:contents;"></div>'+
       '<input type="date" class="recep-input" style="width:130px;font-size:10px;padding:3px 7px;" value="'+_re(_recepTransDate)+'" onchange="_recepTransDate=this.value;_renderTransporte()" title="Filtrar por data">'+
-      '<select class="recep-select" style="width:100px;font-size:10px;padding:3px 7px;" onchange="_recepTransVeh=this.value;_renderTransporte()">'+
-        '<option value="">Todos veículos</option>'+
-        ['van','uber','taxi','outro'].map(function(v){return'<option value="'+v+'"'+(_recepTransVeh===v?' selected':'')+'>'+v+'</option>';}).join('')+
-      '</select>'+
+      (function(){var vs=[...new Set(_recepTransfers.map(function(t){return t.data.vehicle_type;}).filter(Boolean))].sort();return'<select class="recep-select" style="width:100px;font-size:10px;padding:3px 7px;" onchange="_recepTransVeh=this.value;_renderTransporte()"><option value="">Todos veículos</option>'+vs.map(function(v){return'<option value="'+_re(v)+'"'+(_recepTransVeh===v?' selected':'')+'>'+_re(v)+'</option>';}).join('')+'</select>';})()+
       '<button class="recep-print-btn" onclick="_recepPrint()">imprimir</button>'+
       (canEdit?'<button class="recep-add-btn" onclick="openTransferModal(null,null)">+ Transfer</button>':'')+
     '</div>'+
@@ -7806,7 +7810,7 @@ function openTransferModal(id,guestId){
       '<div class="recep-field"><label class="recep-label">Evento</label><select id="tr_event" class="recep-select"><option value="">—</option>'+_recepEvSelect(d.event_id||'')+'</select></div>'+
       '<div class="recep-2col">'+
         '<div class="recep-field"><label class="recep-label">Categoria</label><select id="tr_cat" class="recep-select">'+selOpts(['chegada','partida','interno'],d.category||'chegada')+'</select></div>'+
-        '<div class="recep-field"><label class="recep-label">Veículo</label><select id="tr_veh" class="recep-select">'+selOpts(['van','uber','taxi','outro'],d.vehicle_type||'van')+'</select></div>'+
+        '<div class="recep-field"><label class="recep-label">Veículo</label><input id="tr_veh" class="recep-input" list="tr_veh_list" value="'+_re(d.vehicle_type||'')+'" placeholder="ex: van, uber…"><datalist id="tr_veh_list">'+[...new Set(_recepTransfers.map(function(t){return t.data.vehicle_type;}).filter(Boolean))].sort().map(function(v){return'<option value="'+_re(v)+'"></option>';}).join('')+'</datalist></div>'+
       '</div>'+
       '<div class="recep-2col">'+
         '<div class="recep-field"><label class="recep-label">Origem</label><input id="tr_orig" class="recep-input" value="'+_re(d.origin||'')+'"></div>'+

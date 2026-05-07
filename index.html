@@ -9941,7 +9941,7 @@ function _progGoSessao(nome,programId){
 /* ── Landing ── */
 function _progRenderLanding(){
   var c=document.getElementById('programacao-container');
-  var canEdit=window._olgaUser&&(window._olgaUser.role==='admin'||window._olgaUser.role==='editor'||window._olgaUser.role==='programacao');
+  var canEdit=window._olgaCanEdit('programacao');
   var evList=Object.keys(eventColors).filter(function(ev){return activeEventsProgramacao.has(ev);});
   if(!evList.length){c.innerHTML='<div style="padding:40px;text-align:center;color:var(--text-muted);font-family:var(--mono);font-size:11px;">Nenhum evento selecionado.</div>';return;}
   evList.sort(function(a,b){
@@ -10042,7 +10042,7 @@ function _progRenderProgram(programId){
   var c=document.getElementById('programacao-container');
   var prog=_progData.programs.find(function(p){return p.id===programId;});
   if(!prog){c.innerHTML='<div style="padding:40px;color:var(--warn);font-family:var(--mono);font-size:11px;">Mostra não encontrada.</div>';return;}
-  var canEdit=window._olgaUser&&(window._olgaUser.role==='admin'||window._olgaUser.role==='editor'||window._olgaUser.role==='programacao');
+  var canEdit=window._olgaCanEdit('programacao');
   var vinOnly=canEdit&&window._olgaHasRestricao('sessoes.somente_vinhetas');
   var ev=prog.data.event_id;
   var evColor=eventColors[ev]||{bg:'var(--surface2)',text:'var(--text-dim)'};
@@ -10113,7 +10113,7 @@ function _progRenderSessao(sessaoNome){
   var c=document.getElementById('programacao-container');
   var s=sessoesMap[sessaoNome];
   if(!s){c.innerHTML='<div style="padding:40px;color:var(--warn);font-family:var(--mono);font-size:11px;">Sessão não encontrada.</div>';return;}
-  var canEdit=window._olgaUser&&(window._olgaUser.role==='admin'||window._olgaUser.role==='editor'||window._olgaUser.role==='programacao');
+  var canEdit=window._olgaCanEdit('programacao');
   var vinOnly=canEdit&&window._olgaHasRestricao('sessoes.somente_vinhetas');
   var prog=_progData.programs.find(function(p){return p.id===_progView.programId;});
   var films=s.filmes.map(function(cd){

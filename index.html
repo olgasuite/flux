@@ -3090,8 +3090,9 @@ mark{background:rgba(255,186,32,0.28);color:var(--accent);border-radius:2px;padd
 .proj-hub{max-width:680px;margin:0 auto;display:flex;flex-direction:column;gap:32px;}
 .proj-hub-title{font-family:var(--mono);font-size:10px;font-weight:600;letter-spacing:0.22em;text-transform:uppercase;color:var(--text-muted);}
 .proj-cards{display:grid;grid-template-columns:1fr 1fr;gap:1px;border:1px solid var(--border);}
-.proj-card{background:var(--surface);padding:28px 28px 24px;cursor:pointer;transition:background 0.15s;display:flex;flex-direction:column;gap:8px;border:none;text-align:left;}
+.proj-card{background:var(--surface);padding:28px 28px 24px;cursor:pointer;transition:background 0.15s;display:flex;flex-direction:column;gap:8px;border:none;text-align:left;position:relative;}
 .proj-card:hover:not(:disabled){background:var(--surface2);}
+.proj-card:hover:not(:disabled)::before{content:'';position:absolute;left:0;top:0;bottom:0;width:2px;background:var(--accent);}
 .proj-card:disabled{opacity:0.3;cursor:not-allowed;}
 .proj-card+.proj-card{border-left:1px solid var(--border);}
 .proj-cards .proj-card:nth-child(3),.proj-cards .proj-card:nth-child(4){border-top:1px solid var(--border);}
@@ -3109,8 +3110,9 @@ mark{background:rgba(255,186,32,0.28);color:var(--accent);border-radius:2px;padd
 .recep-hub-title{font-family:var(--mono);font-size:10px;font-weight:600;letter-spacing:0.22em;text-transform:uppercase;color:var(--text-muted);}
 .recep-hub-desc{font-family:var(--sans);font-size:13px;color:var(--text-muted);line-height:1.6;max-width:500px;}
 .recep-cards{display:grid;grid-template-columns:1fr 1fr;gap:1px;border:1px solid var(--border);}
-.recep-card{background:var(--surface);padding:28px 28px 24px;cursor:pointer;transition:background 0.15s;display:flex;flex-direction:column;gap:8px;border:none;text-align:left;}
+.recep-card{background:var(--surface);padding:28px 28px 24px;cursor:pointer;transition:background 0.15s;display:flex;flex-direction:column;gap:8px;border:none;text-align:left;position:relative;}
 .recep-card:hover{background:var(--surface2);}
+.recep-card:hover::before{content:'';position:absolute;left:0;top:0;bottom:0;width:2px;background:var(--accent);}
 .recep-card+.recep-card{border-left:1px solid var(--border);}
 .recep-cards .recep-card:nth-child(3),.recep-cards .recep-card:nth-child(4){border-top:1px solid var(--border);}
 .recep-cards .recep-card:nth-child(3){border-left:none;}

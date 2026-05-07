@@ -3084,6 +3084,12 @@ mark{background:rgba(255,186,32,0.28);color:var(--accent);border-radius:2px;padd
   body.print-busca .card-sessions{display:none!important;}
   body.print-busca #busca-results{padding:0!important;gap:5px!important;}
   body.print-busca .busca-print-header{display:block!important;font-family:var(--mono);font-size:10px;color:#666;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid #ccc;}
+  /* RECEPTIVO */
+  .recep-bar,.recep-row-btn,.recep-print-btn,.recep-add-btn,.recep-th-sort{display:none!important;}
+  .recep-table{font-size:9pt;width:100%;}
+  .recep-table th,.recep-table td{padding:4px 8px!important;border:1px solid #ccc!important;color:#000!important;}
+  .recep-table th{background:#e8e8e8!important;font-size:8px;}
+  .recep-status,.recep-role-badge{border:1px solid #999!important;background:none!important;color:#000!important;}
 }
 /* PROJEÇÃO HUB */
 #projecao-panel{padding:48px 40px;}
@@ -3189,18 +3195,6 @@ mark{background:rgba(255,186,32,0.28);color:var(--accent);border-radius:2px;padd
 .recep-th-sort:hover{color:var(--text);}
 .recep-print-btn{font-family:var(--mono);font-size:11px;background:rgba(173,198,255,0.07);border:1px solid rgba(173,198,255,0.35);color:var(--accent);padding:4px 10px;cursor:pointer;transition:all 0.12s;white-space:nowrap;}
 .recep-print-btn:hover{background:rgba(173,198,255,0.15);border-color:var(--accent);}
-/* recep print */
-body.print-recep>*:not(#olga-app){display:none!important;}
-body.print-recep #olga-app>*:not(#receptivo-panel){display:none!important;}
-body.print-recep #receptivo-panel{display:block!important;padding:0!important;}
-@media print{
-  .recep-bar{display:none!important;}
-  .recep-row-btn,.recep-print-btn,.recep-add-btn{display:none!important;}
-  .recep-table{font-size:9pt;}
-  .recep-table th,.recep-table td{padding:4px 8px!important;border:1px solid #ccc!important;}
-  .recep-status,.recep-role-badge{border:1px solid #999!important;background:none!important;color:#000!important;}
-  .recep-section-header .recep-add-btn{display:none!important;}
-}
 /* KDM */
 #kdm-container{padding:0 0 60px;}
 .kdm-day-group{border-bottom:1px solid var(--border);}
@@ -7287,6 +7281,7 @@ function _re(s){return(s||'').toString().replace(/&/g,'&amp;').replace(/</g,'&lt
 
 function _recepLoading(){document.getElementById('receptivo-container').innerHTML='<div style="padding:40px;font-family:var(--mono);font-size:11px;color:var(--text-muted);">Carregando…</div>';}
 function _recepErr(e){document.getElementById('receptivo-container').innerHTML='<div style="padding:40px;font-family:var(--mono);font-size:11px;color:var(--warn);">Erro: '+_re(e.message)+'</div>';}
+function _recepNow(){var d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')+'T12:00';}
 
 function _recepPush(state){
   if(!_recepHandlingPop)history.pushState({olga:'receptivo',recep:state},'');
@@ -7301,18 +7296,7 @@ window.addEventListener('popstate',function(ev){
   _recepHandlingPop=false;
 });
 
-function _recepPrint(){
-  document.body.classList.add('print-recep');
-  window.print();
-  window.addEventListener('afterprint',function h(){
-    document.body.classList.remove('print-recep');
-    window.removeEventListener('afterprint',h);
-    if(_recepSection==='convidados')_renderConvidados();
-    else if(_recepSection==='hoteis')_renderHoteis();
-    else if(_recepSection==='voos')_renderVoos();
-    else if(_recepSection==='transporte')_renderTransporte();
-  });
-}
+function _recepPrint(){window.print();}
 
 function _recepSortTh(label,field,sec){
   var active=_recepSort.sec===sec&&_recepSort.field===field;
@@ -7411,10 +7395,11 @@ function _recepEvLabel(eid){
   return e?(e.data.nome||e.id):(eid||'—');
 }
 function _recepEvSelect(selId,blank){
-  var allowed=_recepAllowedEvs();
-  var opts=allowed.length
-    ?allowed.map(function(e){return'<option value="'+_re(e.id)+'"'+(e.id===selId?' selected':'')+'>'+_re(e.data.nome||e.id)+'</option>';}).join('')
-    :Object.keys(eventColors||{}).sort().map(function(k){return'<option value="'+_re(k)+'"'+(k===selId?' selected':'')+'>'+_re(k)+'</option>';}).join('');
+  var keys=Object.keys(eventColors||{}).sort();
+  var opts=keys.map(function(k){
+    var label=_recepEvLabel(k);
+    return'<option value="'+_re(k)+'"'+(k===selId?' selected':'')+'>'+_re(label)+'</option>';
+  }).join('');
   return (blank?'<option value="">'+_re(blank)+'</option>':'')+opts;
 }
 function _recepGuestSelect(selId){
@@ -7462,6 +7447,11 @@ function openGuestModal(id,tmplData){
   _recepEditId=id;
   var g=id?_recepGuests.find(function(x){return x.id===id;}):null;
   var d=tmplData||(g?g.data:{});
+  var curBook=id?_recepBookings.find(function(b){return b.data.guest_id===id;}):null;
+  var curHotelId=curBook?curBook.data.hotel_id:'';
+  var evId=d.event_id||'';
+  var hotelsFiltered=_recepHotels.filter(function(h){return!h.data.event_id||!evId||h.data.event_id===evId;});
+  var hotelOpts='<option value="">— sem hotel —</option>'+hotelsFiltered.map(function(h){return'<option value="'+_re(h.id)+'"'+(h.id===curHotelId?' selected':'')+'>'+_re(h.data.name||h.id)+'</option>';}).join('');
   var roleCheck=function(r){return'<label class="recep-roles-row" style="margin:0;"><input type="checkbox" name="g_role" value="'+r+'"'+((d.roles||[]).indexOf(r)>=0?' checked':'')+'>'+r+'</label>';};
   var title=id?'Editar Convidado':tmplData?'Duplicar Convidado':'Novo Convidado';
   _recepShowModal(
@@ -7470,7 +7460,8 @@ function openGuestModal(id,tmplData){
     '<div id="recepMErr" class="recep-modal-err" style="margin:0 18px;"></div>'+
     '<div class="recep-modal-body">'+
       '<div class="recep-field"><label class="recep-label">Nome</label><input id="g_name" class="recep-input" value="'+_re(d.name||'')+'"></div>'+
-      '<div class="recep-field"><label class="recep-label">Evento</label><select id="g_event" class="recep-select"><option value="">—</option>'+_recepEvSelect(d.event_id||'')+'</select></div>'+
+      '<div class="recep-field"><label class="recep-label">Evento</label><select id="g_event" class="recep-select"><option value="">—</option>'+_recepEvSelect(evId)+'</select></div>'+
+      '<div class="recep-field"><label class="recep-label">Hotel</label><select id="g_hotel" class="recep-select">'+hotelOpts+'</select></div>'+
       '<div class="recep-field"><label class="recep-label">Papel</label><div class="recep-roles-row">'+roleCheck('jurado')+roleCheck('diretor')+roleCheck('debatedor')+roleCheck('convidado')+'</div></div>'+
       '<div class="recep-field"><label class="recep-label">E-mail</label><input id="g_email" class="recep-input" value="'+_re((d.contact&&d.contact.email)||'')+'"></div>'+
       '<div class="recep-field"><label class="recep-label">Telefone</label><input id="g_phone" class="recep-input" value="'+_re((d.contact&&d.contact.phone)||'')+'"></div>'+
@@ -7479,16 +7470,25 @@ function openGuestModal(id,tmplData){
     '<div class="recep-modal-foot">'+
       (id?'<button class="recep-btn-del" onclick="deleteGuest(\''+_re(id)+'\')">excluir</button>':'')+
       '<button class="recep-btn-cancel" onclick="_recepCloseModal()">Cancelar</button>'+
-      '<button class="recep-btn-save" onclick="saveGuest()">Salvar</button>'+
+      '<button class="recep-btn-save" onclick="saveGuest(\''+_re(curBook?curBook.id:'')+'\')">Salvar</button>'+
     '</div></div>'
   );
 }
 window.dupeGuest=function(id){var g=_recepGuests.find(function(x){return x.id===id;});if(g)openGuestModal(null,g.data);};
-window.saveGuest=async function(){
+window.saveGuest=async function(curBookId){
   var name=(document.getElementById('g_name').value||'').trim();
   if(!name){var e=document.getElementById('recepMErr');e.textContent='Nome obrigatório.';e.style.display='block';return;}
-  var data={name:name,event_id:document.getElementById('g_event').value||'',roles:Array.from(document.querySelectorAll('input[name="g_role"]:checked')).map(function(x){return x.value;}),contact:{email:(document.getElementById('g_email').value||'').trim(),phone:(document.getElementById('g_phone').value||'').trim()},notes:(document.getElementById('g_notes').value||'').trim()};
-  try{await window._olgaGuests.save(_recepEditId,data);_recepCloseModal();openRecepSection('convidados');}
+  var hotelId=document.getElementById('g_hotel').value||'';
+  var data={name:name,event_id:document.getElementById('g_event').value||'',roles:Array.from(document.querySelectorAll('input[name="g_role"]:checked')).map(function(x){return x.value;}),contact:{email:(document.getElementById('g_email').value||'').trim(),phone:(document.getElementById('g_phone').value||'').trim()},notes:(document.getElementById('g_notes').value||'').trim(),updated_at:_recepNow()};
+  try{
+    var guestId=await window._olgaGuests.save(_recepEditId,data);
+    var resolvedId=_recepEditId||guestId;
+    if(hotelId){
+      var bookData={guest_id:resolvedId,hotel_id:hotelId,status:'reservado',payment_type:'festival',updated_at:_recepNow()};
+      await window._olgaBookings.save(curBookId||null,bookData);
+    }
+    _recepCloseModal();openRecepSection('convidados');
+  }
   catch(err){var e=document.getElementById('recepMErr');e.textContent='Erro: '+err.message;e.style.display='block';}
 };
 window.deleteGuest=async function(id){
@@ -7627,7 +7627,7 @@ function openHotelModal(id,tmplData){
 window.saveHotel=async function(){
   var name=(document.getElementById('h_name').value||'').trim();
   if(!name){var e=document.getElementById('recepMErr');e.textContent='Nome obrigatório.';e.style.display='block';return;}
-  var data={name:name,event_id:document.getElementById('h_event').value||'',address:(document.getElementById('h_address').value||'').trim(),contact:(document.getElementById('h_contact').value||'').trim(),notes:(document.getElementById('h_notes').value||'').trim()};
+  var data={name:name,event_id:document.getElementById('h_event').value||'',address:(document.getElementById('h_address').value||'').trim(),contact:(document.getElementById('h_contact').value||'').trim(),notes:(document.getElementById('h_notes').value||'').trim(),updated_at:_recepNow()};
   try{await window._olgaHotels.save(_recepEditId,data);_recepCloseModal();openRecepSection('hoteis');}
   catch(err){var e=document.getElementById('recepMErr');e.textContent='Erro: '+err.message;e.style.display='block';}
 };
@@ -7684,7 +7684,7 @@ function openBookingModal(id,guestId,tmplData){
   );
 }
 window.saveBooking=async function(){
-  var data={guest_id:_recepParentId||'',hotel_id:document.getElementById('b_hotel').value||'',check_in_date:document.getElementById('b_ci_d').value||'',check_in_time:document.getElementById('b_ci_t').value||'',check_out_date:document.getElementById('b_co_d').value||'',check_out_time:document.getElementById('b_co_t').value||'',room_type:(document.getElementById('b_rtype').value||'').trim(),room_number:(document.getElementById('b_rnum').value||'').trim(),status:document.getElementById('b_status').value,payment_type:document.getElementById('b_pay').value,confirmation_code:(document.getElementById('b_code').value||'').trim(),notes:(document.getElementById('b_notes').value||'').trim()};
+  var data={guest_id:_recepParentId||'',hotel_id:document.getElementById('b_hotel').value||'',check_in_date:document.getElementById('b_ci_d').value||'',check_in_time:document.getElementById('b_ci_t').value||'',check_out_date:document.getElementById('b_co_d').value||'',check_out_time:document.getElementById('b_co_t').value||'',room_type:(document.getElementById('b_rtype').value||'').trim(),room_number:(document.getElementById('b_rnum').value||'').trim(),status:document.getElementById('b_status').value,payment_type:document.getElementById('b_pay').value,confirmation_code:(document.getElementById('b_code').value||'').trim(),notes:(document.getElementById('b_notes').value||'').trim(),updated_at:_recepNow()};
   try{await window._olgaBookings.save(_recepEditId,data);_recepCloseModal();openGuestDetail(_recepParentId);}
   catch(err){var e=document.getElementById('recepMErr');e.textContent='Erro: '+err.message;e.style.display='block';}
 };
@@ -7760,7 +7760,7 @@ function openVooModal(id,guestId,tmplData){
   );
 }
 window.saveVoo=async function(parentGid){
-  var data={guest_id:document.getElementById('v_guest').value||parentGid||'',event_id:document.getElementById('v_event').value||'',type:document.getElementById('v_type').value,flight_number:(document.getElementById('v_num').value||'').trim(),origin:(document.getElementById('v_orig').value||'').trim(),destination:(document.getElementById('v_dest').value||'').trim(),datetime:document.getElementById('v_dt').value,notes:(document.getElementById('v_notes').value||'').trim()};
+  var data={guest_id:document.getElementById('v_guest').value||parentGid||'',event_id:document.getElementById('v_event').value||'',type:document.getElementById('v_type').value,flight_number:(document.getElementById('v_num').value||'').trim(),origin:(document.getElementById('v_orig').value||'').trim(),destination:(document.getElementById('v_dest').value||'').trim(),datetime:document.getElementById('v_dt').value,notes:(document.getElementById('v_notes').value||'').trim(),updated_at:_recepNow()};
   try{await window._olgaFlights.save(_recepEditId,data);_recepCloseModal();if(parentGid)openGuestDetail(parentGid);else openRecepSection('voos');}
   catch(err){var e=document.getElementById('recepMErr');e.textContent='Erro: '+err.message;e.style.display='block';}
 };
@@ -7848,7 +7848,7 @@ function openTransferModal(id,guestId,tmplData){
   );
 }
 window.saveTransfer=async function(parentGid){
-  var data={guest_id:document.getElementById('tr_guest').value||parentGid||'',event_id:document.getElementById('tr_event').value||'',category:document.getElementById('tr_cat').value,vehicle_type:document.getElementById('tr_veh').value,origin:(document.getElementById('tr_orig').value||'').trim(),destination:(document.getElementById('tr_dest').value||'').trim(),datetime:document.getElementById('tr_dt').value,status:document.getElementById('tr_status').value,notes:(document.getElementById('tr_notes').value||'').trim()};
+  var data={guest_id:document.getElementById('tr_guest').value||parentGid||'',event_id:document.getElementById('tr_event').value||'',category:document.getElementById('tr_cat').value,vehicle_type:document.getElementById('tr_veh').value,origin:(document.getElementById('tr_orig').value||'').trim(),destination:(document.getElementById('tr_dest').value||'').trim(),datetime:document.getElementById('tr_dt').value,status:document.getElementById('tr_status').value,notes:(document.getElementById('tr_notes').value||'').trim(),updated_at:_recepNow()};
   try{await window._olgaTransfers.save(_recepEditId,data);_recepCloseModal();if(parentGid)openGuestDetail(parentGid);else openRecepSection('transporte');}
   catch(err){var e=document.getElementById('recepMErr');e.textContent='Erro: '+err.message;e.style.display='block';}
 };

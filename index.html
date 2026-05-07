@@ -3085,7 +3085,7 @@ mark{background:rgba(255,186,32,0.28);color:var(--accent);border-radius:2px;padd
   body.print-busca #busca-results{padding:0!important;gap:5px!important;}
   body.print-busca .busca-print-header{display:block!important;font-family:var(--mono);font-size:10px;color:#666;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid #ccc;}
   /* RECEPTIVO */
-  .recep-bar,.recep-row-btn,.recep-print-btn,.recep-add-btn,.recep-th-sort{display:none!important;}
+  .recep-bar,.recep-row-btn,.recep-print-btn,.recep-add-btn{display:none!important;}
   .recep-table{font-size:9pt;width:100%;}
   .recep-table th,.recep-table td{padding:4px 8px!important;border:1px solid #ccc!important;color:#000!important;}
   .recep-table th{background:#e8e8e8!important;font-size:8px;}
@@ -10421,7 +10421,7 @@ function renderDash(){
   html+=colBlock('controle','Controle de filmes',ctrlBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 06/05/2026 às 21:18';
+  var sysUpdate='última atualização do sistema · 07/05/2026 às 12:30';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -13696,7 +13696,7 @@ window.addEventListener('popstate',function(e){
 <script>
   if(typeof lucide !== 'undefined') lucide.createIcons();
 </script>
-<div id="page-footer"><span>última atualização · 06/05/2026 às 21:18</span></div>
+<div id="page-footer"><span>última atualização · 07/05/2026 às 12:30</span></div>
 
 </div>
 
@@ -14291,19 +14291,19 @@ function olgaMobileReceptivo(){
 
 function _mobRenderReceptivo(params){
   var AREAS=[
-    {nome:'Convidados',desc:'Cadastro e gestão de convidados, acreditações e participações nos eventos',
+    {nome:'Convidados',sec:'convidados',desc:'Cadastro e gestão de convidados, acreditações e participações nos eventos',
      icon:'<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><polyline points="16 11 18 13 22 9"/>'},
-    {nome:'Hotéis',desc:'Controle de hospedagem, quartos e estadias por convidado e período',
+    {nome:'Hotéis',sec:'hoteis',desc:'Controle de hospedagem, quartos e estadias por convidado e período',
      icon:'<path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z"/><path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2"/><path d="M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2"/><path d="M10 6h4"/><path d="M10 10h4"/><path d="M10 14h4"/><path d="M10 18h4"/>'},
-    {nome:'Vôos',desc:'Registro de chegadas e partidas, companhias e horários de voo',
+    {nome:'Voos',sec:'voos',desc:'Registro de chegadas e partidas, companhias e horários de voo',
      icon:'<path d="M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.5-.1 1 .3 1.3L9 12l-2 3H4l-1 1 3 2 2 3 1-1v-3l3-2 3.5 5.3c.3.4.8.5 1.3.3l.5-.2c.4-.3.6-.7.5-1.2z"/>'},
-    {nome:'Transporte',desc:'Roteamento e agendamento de transfers, rotas e veículos',
+    {nome:'Transporte',sec:'transporte',desc:'Roteamento e agendamento de transfers, rotas e veículos',
      icon:'<path d="M8 6v6"/><path d="M15 6v6"/><path d="M2 12h19.6"/><path d="M18 18h3s.5-1.7.8-2.8c.1-.4.2-.8.2-1.2 0-.4-.1-.8-.2-1.2l-1.4-5C20.1 6.8 19.1 6 18 6H4a2 2 0 0 0-2 2v10h3"/><circle cx="7" cy="18" r="2"/><path d="M9 18h5"/><circle cx="16" cy="18" r="2"/>'},
   ];
   var html='<div style="padding:16px;">';
   html+='<div style="font-family:var(--mono);font-size:10px;color:var(--text-muted);margin-bottom:16px;">Gestão de convidados, hospedagem, deslocamentos e logística de transporte.</div>';
   html+=AREAS.map(function(a){
-    return'<div onclick="_mobReceptivoWip(\''+_mobEsc(a.nome)+'\')" style="display:flex;align-items:center;gap:14px;background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:16px;margin-bottom:10px;cursor:pointer;">'+
+    return'<div onclick="_mobReceptivoSection(\''+_mobEsc(a.sec)+'\')" style="display:flex;align-items:center;gap:14px;background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:16px;margin-bottom:10px;cursor:pointer;">'+
       '<svg style="width:26px;height:26px;stroke:var(--accent);stroke-width:1.5;fill:none;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0;" viewBox="0 0 24 24">'+a.icon+'</svg>'+
       '<div style="flex:1;min-width:0;">'+
         '<div style="font-family:var(--mono);font-size:11px;font-weight:600;color:var(--text-dim);margin-bottom:3px;">'+_mobEsc(a.nome)+'</div>'+
@@ -14316,16 +14316,62 @@ function _mobRenderReceptivo(params){
   _mobSetContent(html);
 }
 
-window._mobReceptivoWip=function(nome){
-  _mobPush({view:'receptivo-wip',params:{nome:nome}});
-  _mobSetContent(
-    '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:60px 24px;text-align:center;">'+
-    '<div style="font-size:40px;margin-bottom:16px;">🚧</div>'+
-    '<div style="font-family:var(--mono);font-size:9px;font-weight:600;letter-spacing:0.2em;text-transform:uppercase;color:var(--accent);background:rgba(255,186,32,0.1);border:1px solid rgba(255,186,32,0.25);padding:4px 12px;border-radius:2px;margin-bottom:14px;">Em construção</div>'+
-    '<div style="font-family:var(--mono);font-size:16px;font-weight:600;color:var(--text);margin-bottom:10px;">'+_mobEsc(nome)+'</div>'+
-    '<div style="font-family:var(--mono);font-size:10px;color:var(--text-muted);line-height:1.6;max-width:280px;">Este módulo está em desenvolvimento e estará disponível em breve.</div>'+
-    '</div>'
-  );
+window._mobReceptivoSection=function(sec){
+  _mobPush({view:'receptivo-'+sec,params:{sec:sec}});
+  _mobSetContent('<div class="mob-empty">Carregando…</div>');
+  function _re2(s){return(s||'').toString().replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+  function row(cols){return'<div style="display:flex;gap:6px;padding:10px 16px;border-bottom:1px solid var(--border);font-family:var(--mono);font-size:10px;color:var(--text);">'+cols.map(function(c,i){return'<span style="'+(i===0?'flex:2;font-weight:600;color:var(--text-dim)':'flex:1;color:var(--text-muted)')+';min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+c+'</span>';}).join('')+'</div>';}
+  var loadFns={
+    convidados:function(){
+      Promise.all([window._olgaGuests.list(),window._olgaHotels.list(),window._olgaBookings.list()]).then(function(r){
+        var gs=r[0],hs=r[1],bs=r[2];
+        var hMap={};hs.forEach(function(h){hMap[h.id]=h.data.name||h.id;});
+        var bMap={};bs.forEach(function(b){if(b.data.guest_id)bMap[b.data.guest_id]=hMap[b.data.hotel_id]||'';});
+        var evColors=eventColors||{};
+        var gs2=gs.filter(function(g){return!g.data.event_id||evColors[g.data.event_id];}).sort(function(a,b){return(a.data.name||'').localeCompare(b.data.name||'','pt-BR');});
+        var html='<div class="mob-section-title">Convidados · '+gs2.length+'</div>';
+        if(!gs2.length){html+='<div class="mob-empty">Nenhum convidado encontrado.</div>';}
+        else{html+=gs2.map(function(g){var d=g.data;var ev=d.event_id||'';var hotel=bMap[g.id]||'—';return row([_re2(d.name||'—'),_re2(ev),_re2(hotel)]);}).join('');}
+        _mobSetContent(html);
+      }).catch(function(e){_mobSetContent('<div class="mob-empty">Erro: '+_re2(e.message)+'</div>');});
+    },
+    hoteis:function(){
+      Promise.all([window._olgaHotels.list(),window._olgaBookings.list()]).then(function(r){
+        var hs=r[0],bs=r[1];
+        var evColors=eventColors||{};
+        var hs2=hs.filter(function(h){return!h.data.event_id||evColors[h.data.event_id];}).sort(function(a,b){return(a.data.name||'').localeCompare(b.data.name||'','pt-BR');});
+        var html='<div class="mob-section-title">Hotéis · '+hs2.length+'</div>';
+        if(!hs2.length){html+='<div class="mob-empty">Nenhum hotel encontrado.</div>';}
+        else{html+=hs2.map(function(h){var d=h.data;var cnt=bs.filter(function(b){return b.data.hotel_id===h.id;}).length;return row([_re2(d.name||'—'),_re2(d.event_id||'—'),cnt+' reserva'+(cnt!==1?'s':'')]);}).join('');}
+        _mobSetContent(html);
+      }).catch(function(e){_mobSetContent('<div class="mob-empty">Erro: '+_re2(e.message)+'</div>');});
+    },
+    voos:function(){
+      Promise.all([window._olgaFlights.list(),window._olgaGuests.list()]).then(function(r){
+        var fs=r[0],gs=r[1];
+        var gMap={};gs.forEach(function(g){gMap[g.id]=g.data.name||g.id;});
+        var evColors=eventColors||{};
+        var fs2=fs.filter(function(f){return!f.data.event_id||evColors[f.data.event_id];}).sort(function(a,b){return(a.data.datetime||'').localeCompare(b.data.datetime||'');});
+        var html='<div class="mob-section-title">Voos · '+fs2.length+'</div>';
+        if(!fs2.length){html+='<div class="mob-empty">Nenhum voo encontrado.</div>';}
+        else{html+=fs2.map(function(f){var d=f.data;var tipo=d.type==='chegada'?'↓ chegada':'↑ partida';var dt=(d.datetime||'—').replace('T',' ');return row([_re2(gMap[d.guest_id]||'—'),tipo,_re2(dt)]);}).join('');}
+        _mobSetContent(html);
+      }).catch(function(e){_mobSetContent('<div class="mob-empty">Erro: '+_re2(e.message)+'</div>');});
+    },
+    transporte:function(){
+      Promise.all([window._olgaTransfers.list(),window._olgaGuests.list()]).then(function(r){
+        var ts=r[0],gs=r[1];
+        var gMap={};gs.forEach(function(g){gMap[g.id]=g.data.name||g.id;});
+        var evColors=eventColors||{};
+        var ts2=ts.filter(function(t){return!t.data.event_id||evColors[t.data.event_id];}).sort(function(a,b){return(a.data.datetime||'').localeCompare(b.data.datetime||'');});
+        var html='<div class="mob-section-title">Transporte · '+ts2.length+'</div>';
+        if(!ts2.length){html+='<div class="mob-empty">Nenhum transfer encontrado.</div>';}
+        else{html+=ts2.map(function(t){var d=t.data;var tipo=d.category==='chegada'?'↓ chegada':d.category==='partida'?'↑ partida':'↔ interno';var dt=(d.datetime||'—').replace('T',' ');return row([_re2(gMap[d.guest_id]||'—'),tipo,_re2(d.vehicle_type||'—')]);}).join('');}
+        _mobSetContent(html);
+      }).catch(function(e){_mobSetContent('<div class="mob-empty">Erro: '+_re2(e.message)+'</div>');});
+    }
+  };
+  if(loadFns[sec])loadFns[sec]();else _mobSetContent('<div class="mob-empty">Seção desconhecida.</div>');
 };
 
 /* ── kdm ─────────────────────────────────────────────────────────── */
@@ -14349,14 +14395,57 @@ function olgaMobileBilheteria(){
   _mobRenderBilheteria({});
 }
 function _mobRenderBilheteria(params,back){
-  _mobSetContent(
-    '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:60px 24px;text-align:center;">'+
-    '<div style="font-size:40px;margin-bottom:16px;">🚧</div>'+
-    '<div style="font-family:var(--mono);font-size:9px;font-weight:600;letter-spacing:0.2em;text-transform:uppercase;color:var(--accent);background:rgba(255,186,32,0.1);border:1px solid rgba(255,186,32,0.25);padding:4px 12px;border-radius:2px;margin-bottom:14px;">Em construção</div>'+
-    '<div style="font-family:var(--mono);font-size:16px;font-weight:600;color:var(--text);margin-bottom:10px;">Bilheteria</div>'+
-    '<div style="font-family:var(--mono);font-size:10px;color:var(--text-muted);line-height:1.6;max-width:280px;">Este módulo está em desenvolvimento e estará disponível em breve.</div>'+
-    '</div>'
-  );
+  if(!dataLoaded){_mobSetContent('<div class="mob-empty">Dados não carregados.</div>');return;}
+  var u=window._olgaUser;
+  var userEvs=u&&u.eventos&&u.eventos.length?new Set(u.eventos):null;
+  function parsePub(v){var n=parseInt((v||'').toString().replace(/\D/g,''));return isNaN(n)?0:n;}
+  function parseRenda(v){if(!v||v==='')return null;var n=parseFloat((v||'').toString().replace(/[^\d,\.]/g,'').replace(',','.'));return isNaN(n)?null:n;}
+  function fmtRenda(v){if(v===null)return'—';return'R\xa0'+v.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});}
+  var filtered=sessoesArr.filter(function(s){
+    if(userEvs&&s.evento&&!userEvs.has(s.evento))return false;
+    if(_mobActiveEvs&&s.evento&&!_mobActiveEvs.has(s.evento))return false;
+    return true;
+  });
+  if(!filtered.length){_mobSetContent(_mobEventFilterHtml(_mobActiveEvs)+'<div class="mob-empty">Nenhuma sessão.</div>');return;}
+  var byDay={},dayOrder=[];
+  filtered.forEach(function(s){
+    var k=s.date?s.date.toISOString().slice(0,10):'0000-00-00';
+    if(!byDay[k]){byDay[k]=[];dayOrder.push(k);}
+    byDay[k].push(s);
+  });
+  dayOrder.sort();
+  dayOrder.forEach(function(k){byDay[k].sort(function(a,b){return(a.time?a.time.h*60+a.time.m:0)-(b.time?b.time.h*60+b.time.m:0);});});
+  var html=_mobEventFilterHtml(_mobActiveEvs);
+  dayOrder.forEach(function(k){
+    var ss=byDay[k];
+    var d=k!=='0000-00-00'?new Date(k+'T12:00'):null;
+    var dLabel=d?d.toLocaleDateString('pt-BR',{weekday:'short',day:'2-digit',month:'2-digit'}).replace('.','/'):k;
+    var totPub=0,totRenda=0,hasRenda=false;
+    ss.forEach(function(s){totPub+=parsePub(s.publico);var r=parseRenda(s.renda);if(r!==null){totRenda+=r;hasRenda=true;}});
+    html+='<div class="mob-section-title">'+_mobEsc(dLabel)+'</div>';
+    ss.forEach(function(s){
+      var evCol=s.evento&&eventColors[s.evento]?eventColors[s.evento]:null;
+      var pub=parsePub(s.publico);var renda=parseRenda(s.renda);
+      html+='<div style="padding:10px 16px;border-bottom:1px solid var(--border);font-family:var(--mono);">'+
+        '<div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;">'+
+          (s.evento?'<span style="font-size:8px;padding:1px 5px;border-radius:2px;background:'+(evCol?evCol.bg:'var(--surface2)')+';color:'+(evCol?evCol.text:'var(--text-dim)')+'">'+_mobEsc(s.evento)+'</span>':'')+
+          '<span style="font-size:10px;font-weight:600;color:var(--text-dim);">'+_mobEsc(s.nome)+'</span>'+
+          '<span style="font-size:9px;color:var(--text-muted);margin-left:auto;">'+_mobEsc(s.hora||'')+'</span>'+
+        '</div>'+
+        '<div style="font-size:9px;color:var(--text-muted);">'+_mobEsc(s.cinema||'')+'</div>'+
+        (s.publico||renda!==null?
+          '<div style="display:flex;gap:12px;margin-top:4px;font-size:9px;">'+
+          (s.publico?'<span>público: <strong style="color:var(--text);">'+pub+'</strong></span>':'')+
+          (renda!==null?'<span>renda: <strong style="color:var(--text);">'+fmtRenda(renda)+'</strong></span>':'')+
+          '</div>':'')+'</div>';
+    });
+    html+='<div style="padding:6px 16px;font-family:var(--mono);font-size:9px;color:var(--text-muted);background:var(--surface);border-bottom:1px solid var(--border);">'+
+      ss.length+' sessão'+(ss.length!==1?'ões':'')+
+      (totPub?' · público: '+totPub:'')+
+      (hasRenda?' · renda: '+fmtRenda(totRenda):'')+
+    '</div>';
+  });
+  _mobSetContent(html);
 }
 
 /* ── vinhetas ───────────────────────────────────────────────────── */

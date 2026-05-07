@@ -996,6 +996,12 @@ td.cpl-cell{background:var(--cpl-bg);border-left:2px solid var(--cpl-border);pad
 .zoom-level:hover{color:var(--text-dim);}
 .zoom-level[title]{cursor:pointer;}
 .equipe-role-pill{display:inline-block;font-size:8px;font-weight:700;letter-spacing:0.06em;padding:1px 6px;border-radius:var(--r-pill);text-transform:uppercase;border:1px solid;color:var(--blue);border-color:rgba(173,198,255,0.2);background:rgba(173,198,255,0.07);}
+.equipe-role-viewer{color:var(--text-muted)!important;border-color:rgba(160,160,170,0.2)!important;background:rgba(160,160,170,0.06)!important;}
+.equipe-role-editor{color:#d4933a!important;border-color:rgba(212,147,58,0.28)!important;background:rgba(212,147,58,0.08)!important;}
+.equipe-role-admin{color:#d96060!important;border-color:rgba(217,96,96,0.28)!important;background:rgba(217,96,96,0.08)!important;}
+.equipe-tpl-badge{display:inline-block;font-family:var(--mono);font-size:8px;font-weight:700;letter-spacing:0.05em;padding:2px 7px;border-radius:var(--r-pill);text-transform:uppercase;border:1px solid;color:var(--accent);border-color:rgba(173,198,255,0.3);background:rgba(173,198,255,0.1);}
+.equipe-tpl-refresh{background:none;border:none;padding:0 1px;font-size:13px;line-height:1;cursor:pointer;color:var(--text-muted);vertical-align:middle;transition:color 0.12s;}
+.equipe-tpl-refresh:hover{color:var(--accent);}
 
 /* ── PAGE FOOTER: status bar ── */
 #page-footer{position:fixed;bottom:0;left:0;right:0;z-index:100;height:20px;background:var(--surface);border-top:1px solid var(--border);display:flex;align-items:center;justify-content:flex-end;padding:0 var(--sp-md);pointer-events:none;}
@@ -10730,14 +10736,15 @@ function renderEquipeTable(){
       var cxCount=(d.complexos&&d.complexos.length)?d.complexos.join(', '):'todos os complexos';
       var tplCur=d.role_template||'';
       var tplOpts='<option value="">— aplicar template —</option>'+_equipeTemplates.map(function(t){return'<option value="'+esc(t.id)+'"'+(tplCur===t.id?' selected':'')+'>'+esc(t.id)+'</option>';}).join('');
-      var tplBadge=tplCur&&tplCur!=='personalizado'?'<span style="font-family:var(--mono);font-size:8px;color:var(--text-muted);display:block;margin-top:3px;">template: '+esc(tplCur)+'</span>':'';
+      var safeUid=esc(u.id);
+      var tplBadge=tplCur&&tplCur!=='personalizado'?'<div style="display:flex;align-items:center;gap:3px;margin-top:5px;"><span class="equipe-tpl-badge">'+esc(tplCur)+'</span><button class="equipe-tpl-refresh" onclick="equipeRefreshTemplate(&quot;'+safeUid+'&quot;)" title="Sincronizar com template atual">↻</button></div>':'';
       return '<tr style="'+(ativo?'':'opacity:0.45;')+'">'+
         '<td style="padding:10px 12px;font-family:var(--mono);">'+
           '<div style="font-size:12px;color:var(--text);">'+esc(u.id)+'</div>'+
           (d.name?'<div style="font-size:10px;color:var(--text-dim);margin-top:2px;">'+esc(d.name)+'</div>':'')+
         '</td>'+
         '<td style="padding:10px 12px;font-family:var(--mono);font-size:10px;">'+
-          '<span class="equipe-role-pill">'+esc(role)+'</span>'+tplBadge+
+          '<span class="equipe-role-pill equipe-role-'+esc(role)+'">'+esc(role)+'</span>'+tplBadge+
           (_equipeTemplates.length?'<select onchange="equipeQuickTemplate(&quot;'+esc(u.id)+'&quot;,this)" style="display:block;margin-top:5px;font-family:var(--mono);font-size:9px;background:var(--bg);color:var(--text-dim);border:1px solid var(--border);padding:2px 5px;width:100%;cursor:pointer;">'+tplOpts+'</select>':'')+
         '</td>'+
         '<td style="padding:10px 12px;font-family:var(--mono);font-size:10px;color:var(--text-dim);">'+modCount+' módulos · '+evCount+'<br><span style="font-size:9px;color:var(--text-muted);">'+cxCount+'</span></td>'+
@@ -11208,6 +11215,30 @@ window.equipeQuickTemplate=async function(userId,sel){
     await window._olgaUsuarios.save(userId,newData);
     renderEquipe();
   }catch(e){alert('Erro ao aplicar template: '+e.message);sel.value=u.data.role_template||'';}
+};
+
+window.equipeRefreshTemplate=async function(userId){
+  var u=_equipeUsers.find(function(x){return x.id===userId;});
+  if(!u)return;
+  var slug=u.data.role_template;
+  if(!slug||slug==='personalizado')return;
+  var t=_equipeTemplates.find(function(x){return x.id===slug;});
+  if(!t){alert('Template "'+slug+'" não encontrado.');return;}
+  if(!confirm('Sincronizar '+userId+' com o template "'+slug+'"?\n\nMódulos, eventos, complexos e restrições serão atualizados com os valores atuais do template.'))return;
+  var d=t.data;
+  var newData=Object.assign({},u.data,{
+    role:d.role||u.data.role,
+    modulos:d.modulos||[],
+    modulos_edicao:d.modulos_edicao||[],
+    complexos:d.complexos||[],
+    eventos:d.eventos||[],
+    restricoes:d.restricoes||[],
+    role_template:slug
+  });
+  try{
+    await window._olgaUsuarios.save(userId,newData);
+    renderEquipe();
+  }catch(e){alert('Erro ao sincronizar: '+e.message);}
 };
 
 function _eqRoleChange(role){

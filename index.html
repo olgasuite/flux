@@ -9788,8 +9788,7 @@ function renderDash(){
   html+=colBlock('controle','Controle de filmes',ctrlBody);
 
   // footer
-  var _now=new Date(),_upd=new Date(_now);if(_now.getHours()<21)_upd.setDate(_upd.getDate()-1);
-  var sysUpdate='última atualização do sistema · '+_upd.toLocaleDateString('pt-BR')+' às 21:00';
+  var sysUpdate='última atualização do sistema · 06/05/2026 às 21:18';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -13017,22 +13016,8 @@ window.addEventListener('popstate',function(e){
 </div>
 <script>
   if(typeof lucide !== 'undefined') lucide.createIcons();
-  (function(){
-    var now=new Date(),upd=new Date(now);
-    if(now.getHours()<21)upd.setDate(upd.getDate()-1);
-    var label='última atualização · '+upd.toLocaleDateString('pt-BR')+' às 21:00';
-    var el=document.querySelector('#page-footer span');
-    if(el)el.textContent=label;
-  })();
-  (function scheduleAutoUpdate(){
-    var now=new Date();
-    var target=new Date();
-    target.setHours(21,0,0,0);
-    if(now>=target)target.setDate(target.getDate()+1);
-    setTimeout(function(){window.location.reload();},target-now);
-  })();
 </script>
-<div id="page-footer"><span></span></div>
+<div id="page-footer"><span>última atualização · 06/05/2026 às 21:18</span></div>
 
 </div>
 

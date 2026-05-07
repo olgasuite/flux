@@ -2988,6 +2988,11 @@ mark{background:rgba(255,186,32,0.28);color:var(--accent);border-radius:2px;padd
 .cat-slot-chip{display:inline-flex;align-items:center;gap:6px;font-family:var(--mono);font-size:9px;padding:3px 10px;background:var(--accent-dim);color:var(--accent);border:1px solid rgba(90,160,214,0.35);}
 .cat-slot-rm{background:none;border:none;color:var(--accent);cursor:pointer;font-size:14px;line-height:1;padding:0;opacity:0.7;}
 .cat-slot-rm:hover{opacity:1;}
+.sset-select{font-family:var(--mono);font-size:9px;background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:3px 6px;border-radius:2px;cursor:pointer;max-width:170px;}
+.sset-btn{font-family:var(--mono);font-size:9px;font-weight:600;padding:3px 8px;border-radius:2px;border:1px solid var(--border);background:var(--surface2);color:var(--text-muted);cursor:pointer;white-space:nowrap;}
+.sset-btn:hover:not(:disabled){color:var(--text);}
+.sset-btn.del:hover{color:var(--warn,#e57);border-color:var(--warn,#e57);}
+.sset-btn:disabled{opacity:0.3;cursor:not-allowed;}
 .cat-res-hdr{display:flex;align-items:center;gap:10px;padding:8px 24px;border-bottom:1px solid var(--border);background:var(--surface);}
 .cat-item-ev{font-family:var(--mono);font-size:8px;font-weight:700;padding:1px 6px;border:1px solid;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;border-radius:2px;display:block;max-width:100%;text-align:center;}
 .cat-item-kdm{font-family:var(--mono);font-size:8px;font-weight:700;padding:1px 5px;border-radius:2px;text-align:center;display:block;background:rgba(232,55,32,0.12);color:#ff6e55;border:1px solid rgba(232,55,32,0.28);}
@@ -4344,6 +4349,8 @@ html[data-theme]:not([data-theme="win98"]){--mono:var(--sans);}
   </div>
   <button class="filter-toggle-btn" id="filterToggleBtn" onclick="toggleFilterPanel()">⊞ Filtros <span class="filter-badge" id="filterBadge"></span></button>
   <button class="cat-add-btn" id="addSlotBtn" onclick="addBuscaSlot()" title="Salvar filtros atuais como conjunto e iniciar novo" disabled>+ Adicionar ao conjunto</button>
+  <button class="cat-add-btn" id="saveBuscaSetBtn" onclick="saveBuscaSet()" style="display:none;">Salvar conjunto</button>
+  <div id="buscaSetsWrap" style="display:none;align-items:center;gap:4px;"></div>
   <div class="event-filters" id="buscaEventFilters"></div>
   <span class="result-count" id="resultCount"></span>
   <button class="print-btn" onclick="printBusca()" style="margin-left:auto;">⎙ Imprimir</button>
@@ -4412,6 +4419,8 @@ html[data-theme]:not([data-theme="win98"]){--mono:var(--sans);}
   <div class="event-filters" id="dashEventFilters" style="margin-left:4px;"></div>
 </div>
 <div class="mode-bar hidden" id="barCatalogo">
+  <button class="cat-add-btn" id="saveCatSetBtn" onclick="saveCatSet()" style="display:none;">Salvar conjunto</button>
+  <div id="catSetsWrap" style="display:none;align-items:center;gap:4px;"></div>
   <div class="event-filters" id="catEventFilters"></div>
   <span class="result-count" id="catResultCount"></span>
 </div>
@@ -7395,7 +7404,7 @@ function _recepEvLabel(eid){
   return e?(e.data.nome||e.id):(eid||'—');
 }
 function _recepEvSelect(selId,blank){
-  var keys=Object.keys(eventColors||{}).sort();
+  var keys=Array.from(activeEventsReceptivo).sort();
   var opts=keys.map(function(k){
     var label=_recepEvLabel(k);
     return'<option value="'+_re(k)+'"'+(k===selId?' selected':'')+'>'+_re(label)+'</option>';
@@ -7587,7 +7596,7 @@ function _renderHoteis(){
     '<td>'+_re(hd.address||'—')+'</td>'+
     '<td>'+_re(hd.contact||'—')+'</td>'+
     '<td>'+cnt+'</td>'+
-    '<td>'+(canEdit?'<button class="recep-row-btn" onclick="openHotelModal(\''+hid+'\')">editar</button>':'')+'<button class="recep-row-btn" onclick="dupeHotel(\''+hid+'\')">duplicar</button></td>'+
+    '<td>'+(canEdit?'<button class="recep-row-btn" onclick="openHotelModal(\''+hid+'\')">editar</button><button class="recep-row-btn del" onclick="deleteHotel(\''+hid+'\')">excluir</button>':'')+'<button class="recep-row-btn" onclick="dupeHotel(\''+hid+'\')">duplicar</button></td>'+
   '</tr>';}).join('');
   document.getElementById('receptivo-container').innerHTML=
     '<div class="recep-bar">'+
@@ -7637,7 +7646,7 @@ window.saveHotel=async function(){
 };
 window.deleteHotel=async function(id){
   if(!confirm('Excluir este hotel?'))return;
-  try{await window._olgaHotels.remove(id);_recepCloseModal();openRecepSection('hoteis');}
+  try{await window._olgaHotels.remove(id);if(document.getElementById('recepModal').style.display!=='none')_recepCloseModal();openRecepSection('hoteis');}
   catch(e){alert('Erro: '+e.message);}
 };
 window.dupeHotel=function(id){var h=_recepHotels.find(function(x){return x.id===id;});if(h)openHotelModal(null,h.data);};
@@ -9438,13 +9447,121 @@ function renderAdditiveSlots(){
   var bar=document.getElementById('buscaAdditiveBar');
   var btn=document.getElementById('addSlotBtn');
   if(btn)btn.disabled=!(buscaQuery||(countActiveFilters()>0));
-  if(!buscaAdditiveSlots.length){bar.classList.remove('visible');return;}
-  bar.classList.add('visible');
-  var html='<span class="additive-bar-label">Busca aditiva</span>';
-  buscaAdditiveSlots.forEach(function(snap,i){
-    html+='<span class="additive-slot-tag">'+slotDescription(snap,i)+'<button class="additive-slot-rm" onclick="removeAdditiveSlot('+i+')" title="Remover conjunto">×</button></span>';
-  });
-  bar.innerHTML=html;
+  if(!buscaAdditiveSlots.length){bar.classList.remove('visible');}
+  else{
+    bar.classList.add('visible');
+    var html='<span class="additive-bar-label">Busca aditiva</span>';
+    buscaAdditiveSlots.forEach(function(snap,i){
+      html+='<span class="additive-slot-tag">'+slotDescription(snap,i)+'<button class="additive-slot-rm" onclick="removeAdditiveSlot('+i+')" title="Remover conjunto">×</button></span>';
+    });
+    bar.innerHTML=html;
+  }
+  renderBuscaSets();
+}
+
+/* CONJUNTOS DE BUSCA SALVOS */
+function _ssetKey(mod){return'olga_ssets_'+mod+'_'+((window._olgaUser&&window._olgaUser.email)||'anon');}
+function _ssetLoad(mod){try{return JSON.parse(localStorage.getItem(_ssetKey(mod))||'[]');}catch(e){return[];}}
+function _ssetStore(mod,arr){localStorage.setItem(_ssetKey(mod),JSON.stringify(arr));}
+
+function _serSnap(snap){
+  var nk=['evento','hd','idioma','legenda','vf','lente','som','kdm','status','col_k','resolucao','fps'];
+  var out={query:snap.query||'',duracao_min:snap.duracao_min,duracao_max:snap.duracao_max,gb_min:snap.gb_min,gb_max:snap.gb_max,eventos:Array.from(snap.eventos||[]),sessao:Array.from(snap.sessao||[]),norm:{},bin:{}};
+  nk.forEach(function(k){out.norm[k]=Array.from((snap.norm||{})[k]||[]);out.norm[k+'_ex']=Array.from((snap.norm||{})[k+'_ex']||[]);});
+  Object.keys(snap.bin||{}).forEach(function(k){out.bin[k]=(snap.bin||{})[k];});
+  return out;
+}
+function _deserSnap(raw){
+  var nk=['evento','hd','idioma','legenda','vf','lente','som','kdm','status','col_k','resolucao','fps'];
+  var out={query:raw.query||'',duracao_min:raw.duracao_min,duracao_max:raw.duracao_max,gb_min:raw.gb_min,gb_max:raw.gb_max,eventos:new Set(raw.eventos||[]),sessao:new Set(raw.sessao||[]),norm:{},bin:{}};
+  nk.forEach(function(k){out.norm[k]=new Set((raw.norm||{})[k]||[]);out.norm[k+'_ex']=new Set((raw.norm||{})[k+'_ex']||[]);});
+  Object.keys(raw.bin||{}).forEach(function(k){out.bin[k]=(raw.bin||{})[k];});
+  return out;
+}
+
+function saveBuscaSet(){
+  if(!buscaQuery&&countActiveFilters()===0&&!buscaAdditiveSlots.length)return;
+  var name=(prompt('Nome do conjunto:')||'').trim();if(!name)return;
+  var sets=_ssetLoad('busca');
+  sets.push({id:Date.now()+'',name:name,created_at:new Date().toISOString(),slots:buscaAdditiveSlots.map(_serSnap),current:_serSnap(snapshotCurrentSearch())});
+  _ssetStore('busca',sets);
+  renderBuscaSets();
+}
+function loadBuscaSet(id){
+  var sets=_ssetLoad('busca');
+  var set=sets.find(function(s){return s.id===id;});if(!set)return;
+  buscaQuery='';
+  document.getElementById('searchInput').value='';document.getElementById('searchClear').style.display='none';
+  clearAllBuscaFilters();
+  buscaAdditiveSlots=(set.slots||[]).map(_deserSnap);
+  var cur=_deserSnap(set.current||{});
+  buscaQuery=cur.query||'';
+  if(buscaQuery){document.getElementById('searchInput').value=buscaQuery;document.getElementById('searchClear').style.display='block';}
+  activeEventsBusca.clear();cur.eventos.forEach(function(e){activeEventsBusca.add(e);});
+  var nk=['evento','hd','idioma','legenda','vf','lente','som','kdm','status','col_k','resolucao','fps'];
+  nk.forEach(function(k){buscaFilters[k]=cur.norm[k]||new Set();buscaFilters[k+'_ex']=cur.norm[k+'_ex']||new Set();});
+  ['titulo_bin','obs_bin','cpl_bin','cplOV_bin','col_n_bin','legenda_bin'].forEach(function(k){buscaFilters[k]=(cur.bin&&cur.bin[k]!==undefined)?cur.bin[k]:null;});
+  buscaFilters.duracao_min=cur.duracao_min;buscaFilters.duracao_max=cur.duracao_max;
+  buscaFilters.gb_min=cur.gb_min;buscaFilters.gb_max=cur.gb_max;
+  buscaFilters.sessao=cur.sessao||new Set();
+  buildBuscaFilters();buildBuscaFilterPanel();renderBuscaResults();
+}
+function deleteBuscaSet(id){
+  var sets=_ssetLoad('busca').filter(function(s){return s.id!==id;});
+  _ssetStore('busca',sets);renderBuscaSets();
+}
+function renderBuscaSets(){
+  var saveBtn=document.getElementById('saveBuscaSetBtn');
+  var wrap=document.getElementById('buscaSetsWrap');
+  if(!wrap)return;
+  var hasActive=!!(buscaQuery||countActiveFilters()>0||buscaAdditiveSlots.length>0);
+  if(saveBtn)saveBtn.style.display=hasActive?'':'none';
+  var sets=_ssetLoad('busca');
+  if(!sets.length){wrap.style.display='none';return;}
+  wrap.style.display='flex';
+  var html='<select class="sset-select" id="buscaSetsSelect"><option value="">Conjuntos salvos…</option>';
+  sets.forEach(function(s){html+='<option value="'+s.id+'">'+_re(s.name)+'</option>';});
+  html+='</select>';
+  html+='<button class="sset-btn" onclick="var v=document.getElementById(\'buscaSetsSelect\').value;if(v)loadBuscaSet(v);">Carregar</button>';
+  html+='<button class="sset-btn del" onclick="var v=document.getElementById(\'buscaSetsSelect\').value;if(v)deleteBuscaSet(v);">Excluir</button>';
+  wrap.innerHTML=html;
+}
+
+function saveCatSet(){
+  if(!_catRan&&!_catShowAll&&!_catSlots.length)return;
+  var name=(prompt('Nome do conjunto:')||'').trim();if(!name)return;
+  var sets=_ssetLoad('catalogo');
+  sets.push({id:Date.now()+'',name:name,created_at:new Date().toISOString(),slots:JSON.parse(JSON.stringify(_catSlots)),search:JSON.parse(JSON.stringify(_catSearch)),eventos:Array.from(activeEventsCatalogo),ran:_catRan,showAll:_catShowAll});
+  _ssetStore('catalogo',sets);renderCatSets();
+}
+function loadCatSet(id){
+  var sets=_ssetLoad('catalogo');
+  var set=sets.find(function(s){return s.id===id;});if(!set)return;
+  _catSlots=JSON.parse(JSON.stringify(set.slots||[]));
+  _catSearch=JSON.parse(JSON.stringify(set.search||{}));
+  _catRan=!!set.ran;_catShowAll=!!set.showAll;
+  activeEventsCatalogo.clear();(set.eventos||[]).forEach(function(e){activeEventsCatalogo.add(e);});
+  buildCatalogoFilters();renderCatalogo();
+}
+function deleteCatSet(id){
+  var sets=_ssetLoad('catalogo').filter(function(s){return s.id!==id;});
+  _ssetStore('catalogo',sets);renderCatSets();
+}
+function renderCatSets(){
+  var saveBtn=document.getElementById('saveCatSetBtn');
+  var wrap=document.getElementById('catSetsWrap');
+  if(!wrap)return;
+  var hasActive=!!(_catRan||_catShowAll||_catSlots.length);
+  if(saveBtn)saveBtn.style.display=hasActive?'':'none';
+  var sets=_ssetLoad('catalogo');
+  if(!sets.length){wrap.style.display='none';return;}
+  wrap.style.display='flex';
+  var html='<select class="sset-select" id="catSetsSelect"><option value="">Conjuntos salvos…</option>';
+  sets.forEach(function(s){html+='<option value="'+s.id+'">'+_re(s.name)+'</option>';});
+  html+='</select>';
+  html+='<button class="sset-btn" onclick="var v=document.getElementById(\'catSetsSelect\').value;if(v)loadCatSet(v);">Carregar</button>';
+  html+='<button class="sset-btn del" onclick="var v=document.getElementById(\'catSetsSelect\').value;if(v)deleteCatSet(v);">Excluir</button>';
+  wrap.innerHTML=html;
 }
 
 /* FILTROS AVANÇADOS */
@@ -10425,7 +10542,7 @@ function renderDash(){
   html+=colBlock('controle','Controle de filmes',ctrlBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 07/05/2026 às 12:30';
+  var sysUpdate='última atualização do sistema · 07/05/2026 às 14:00';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -12197,6 +12314,7 @@ function clearCatForm(){
 }
 
 function _catRenderResults(){
+  renderCatSets();
   var resEl=document.getElementById('cat-res-area');if(!resEl)return;
   var slotsEl=document.getElementById('cat-slots-bar');
   if(slotsEl){
@@ -12324,6 +12442,7 @@ function renderCatalogo(){
   // pres fields are now text inputs — neg state restored by maybeNeg below
   maybeNeg('syn',s.syn_neg);maybeNeg('scr',s.scr_neg);maybeNeg('email',s.email_neg);
   if(_catRan||_catShowAll||_catSlots.length)_catRenderResults();
+  else renderCatSets();
 }
 
 function openCatDetail(codigo){
@@ -13700,7 +13819,7 @@ window.addEventListener('popstate',function(e){
 <script>
   if(typeof lucide !== 'undefined') lucide.createIcons();
 </script>
-<div id="page-footer"><span>última atualização · 07/05/2026 às 12:30</span></div>
+<div id="page-footer"><span>última atualização · 07/05/2026 às 14:00</span></div>
 
 </div>
 

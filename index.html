@@ -7402,6 +7402,10 @@ function _recepEvSelect(selId,blank){
   }).join('');
   return (blank?'<option value="">'+_re(blank)+'</option>':'')+opts;
 }
+function _recepFlightLink(num){
+  if(!num)return'—';
+  return'<a href="https://www.flightaware.com/live/flight/'+_re(num.replace(/\s/g,''))+'" target="_blank" rel="noopener" style="color:var(--accent);text-decoration:none;font-family:var(--mono);">'+_re(num)+'</a>';
+}
 function _recepGuestSelect(selId){
   return _recepGuests.map(function(g){return'<option value="'+_re(g.id)+'"'+(g.id===selId?' selected':'')+'>'+_re(g.data.name||g.id)+'</option>';}).join('');
 }
@@ -7520,7 +7524,7 @@ function _renderGuestDetail(guestId){
   var gFlights=_recepFlights.filter(function(f){return f.data.guest_id===guestId;}).sort(function(a,b){return(a.data.datetime||'').localeCompare(b.data.datetime||'');});
   var flightRows=gFlights.map(function(f){var fd=f.data,fid=_re(f.id);return'<tr>'+
     '<td>'+(fd.type==='chegada'?'↓ chegada':'↑ partida')+'</td>'+
-    '<td style="color:var(--text)">'+_re(fd.flight_number||'—')+'</td>'+
+    '<td>'+_recepFlightLink(fd.flight_number)+'</td>'+
     '<td>'+_re(fd.origin||'')+(fd.destination?' → '+_re(fd.destination):'')+'</td>'+
     '<td>'+_re(fd.datetime?fd.datetime.replace('T',' '):'—')+'</td>'+
     '<td>'+(canEdit?'<button class="recep-row-btn" onclick="openVooModal(\''+fid+'\',\''+sid+'\')">editar</button><button class="recep-row-btn del" onclick="deleteVoo(\''+fid+'\',\''+sid+'\')">excluir</button>':'')+'<button class="recep-row-btn" onclick="dupeVoo(\''+fid+'\',\''+sid+'\')">duplicar</button></td>'+
@@ -7705,7 +7709,7 @@ function _renderVoos(){
   var rows=sorted.map(function(f){var fd=f.data,fid=_re(f.id);return'<tr>'+
     '<td style="color:var(--text)">'+_re(guestMap[fd.guest_id]||fd.guest_id||'—')+'</td>'+
     '<td>'+(fd.type==='chegada'?'↓ chegada':'↑ partida')+'</td>'+
-    '<td>'+_re(fd.flight_number||'—')+'</td>'+
+    '<td>'+_recepFlightLink(fd.flight_number)+'</td>'+
     '<td>'+_re(fd.origin||'')+(fd.destination?' → '+_re(fd.destination):'')+'</td>'+
     '<td>'+_re(fd.datetime?fd.datetime.replace('T',' '):'—')+'</td>'+
     '<td>'+(canEdit?'<button class="recep-row-btn" onclick="openVooModal(\''+fid+'\',null)">editar</button><button class="recep-row-btn del" onclick="deleteVoo(\''+fid+'\',null)">excluir</button>':'')+'<button class="recep-row-btn" onclick="dupeVoo(\''+fid+'\',null)">duplicar</button></td>'+

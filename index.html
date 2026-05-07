@@ -5773,7 +5773,7 @@ function renderSessoes(){
       '<div class="sess-day-header">'+
         '<span class="sess-day-label'+(isToday?' today':'')+'">'+lbl+(isToday?' · hoje':'')+'</span>'+
         '<span class="sess-day-count">'+d.length+' '+(d.length===1?'sessão':'sessões')+'</span>'+
-        (!window._olgaHasRestricao("sessoes.bordero")?'<span style="display:flex;gap:3px;margin-left:auto;"><button class="bordero-btn" style="font-size:8px;padding:2px 8px;" onclick="event.stopPropagation();openBorderoSessoesDay(\''+safeKey+'\')">Público</button><button class="bordero-btn" style="font-size:8px;padding:2px 8px;" onclick="event.stopPropagation();_openBorderoSessDayR(\''+safeKey+'\')" >Renda</button></span>':'')+
+        (function(){var sp=!window._olgaHasRestricao("sessoes.publico"),sr=!window._olgaHasRestricao("sessoes.renda");if(!sp&&!sr)return'';return'<span style="display:flex;gap:3px;margin-left:auto;">'+(sp?'<button class="bordero-btn" style="font-size:8px;padding:2px 8px;" onclick="event.stopPropagation();openBorderoSessoesDay(\''+safeKey+'\')">Público</button>':'')+(sr?'<button class="bordero-btn" style="font-size:8px;padding:2px 8px;" onclick="event.stopPropagation();_openBorderoSessDayR(\''+safeKey+'\')">Renda</button>':'')+'</span>';})()+
       '</div>'+
       rows+
     '</div>';
@@ -6170,7 +6170,7 @@ function renderCinemas(){
     var editCxBtn=canEditCx?'<button class="bordero-btn" style="margin-right:4px;" onclick="event.stopPropagation();openCinemaEdit(null,\''+safeCx+'\')" title="Nova sala">+ Sala</button><button class="bordero-btn" style="margin-right:4px;" onclick="event.stopPropagation();openCinemaEdit(\'__complexo__\',\''+safeCx+'\')">✎ Editar complexo</button>':'';
     var emailLine=[]; if(cxData&&cxData.email_kdm)emailLine.push('KDM: '+cxData.email_kdm); if(cxData&&cxData.email_ger)emailLine.push('GER: '+cxData.email_ger);
     var tmsLine=cxData&&cxData.tms?'TMS: '+cxData.tms:'';
-    html+='<div class="cinemas-complexo"><div class="cinemas-complexo-header" style="display:flex;align-items:center;justify-content:space-between;gap:8px;"><div style="display:flex;flex-direction:column;gap:2px;"><span>'+cx+'</span>'+(cxEndereco||cxEstado?'<span style="font-family:var(--sans);font-size:10px;font-weight:400;letter-spacing:0;text-transform:none;color:var(--text-muted);">'+(cxEndereco||'')+(cxEndereco&&cxEstado?' · ':''  )+(cxEstado||'')+'</span>':'')+(tmsLine?'<span style="font-family:var(--mono);font-size:9px;color:var(--text-muted);margin-top:1px;">'+tmsLine+'</span>':'')+(emailLine.length?'<span style="font-family:var(--mono);font-size:9px;color:var(--text-muted);margin-top:1px;">'+emailLine.join(' · ')+'</span>':'')+'</div>'+editCxBtn+(!window._olgaHasRestricao('cinemas.bordero')?'<span style="display:flex;gap:3px;"><button class="bordero-btn" onclick="event.stopPropagation();openBordero(\''+safeCx+'\')">Público</button><button class="bordero-btn" onclick="event.stopPropagation();_openBorderoCxR(\''+safeCx+'\')">Renda</button></span>':'')+'</div>';
+    html+='<div class="cinemas-complexo"><div class="cinemas-complexo-header" style="display:flex;align-items:center;justify-content:space-between;gap:8px;"><div style="display:flex;flex-direction:column;gap:2px;"><span>'+cx+'</span>'+(cxEndereco||cxEstado?'<span style="font-family:var(--sans);font-size:10px;font-weight:400;letter-spacing:0;text-transform:none;color:var(--text-muted);">'+(cxEndereco||'')+(cxEndereco&&cxEstado?' · ':''  )+(cxEstado||'')+'</span>':'')+(tmsLine?'<span style="font-family:var(--mono);font-size:9px;color:var(--text-muted);margin-top:1px;">'+tmsLine+'</span>':'')+(emailLine.length?'<span style="font-family:var(--mono);font-size:9px;color:var(--text-muted);margin-top:1px;">'+emailLine.join(' · ')+'</span>':'')+'</div>'+editCxBtn+(function(){var sp=!window._olgaHasRestricao('cinemas.publico'),sr=!window._olgaHasRestricao('cinemas.renda');if(!sp&&!sr)return'';return'<span style="display:flex;gap:3px;">'+(sp?'<button class="bordero-btn" onclick="event.stopPropagation();openBordero(\''+safeCx+'\')">Público</button>':'')+(sr?'<button class="bordero-btn" onclick="event.stopPropagation();_openBorderoCxR(\''+safeCx+'\')">Renda</button>':'')+'</span>';})()+('</div>');
     html+='<div class="cinemas-grid">';
     byComplexo[cx].forEach(function(c){
       var allEvs=cinemaAllEvents(c);
@@ -6291,7 +6291,7 @@ function openCinemaDetail(sala){
     +'<div class="cinema-detail-header">'
     +'<div class="cinema-detail-title" style="display:flex;align-items:center;justify-content:space-between;gap:12px;">'+
       '<span>'+sala+(c.complexo&&c.complexo!==sala?' <span style="font-size:13px;font-weight:400;opacity:0.5">'+c.complexo+'</span>':'')+'</span>'+
-      '<div style="display:flex;gap:6px;align-items:center;">'+editSalaBtn+(!window._olgaHasRestricao('cinemas.bordero')?'<span style="display:flex;gap:3px;"><button class="bordero-btn" onclick="openBorderoCinema(\''+safeSalaBtn+'\')">Público</button><button class="bordero-btn" onclick="event.stopPropagation();_openBorderoSalaR(\''+safeSalaBtn+'\')">Renda</button></span>':'')+'</div>'+
+      '<div style="display:flex;gap:6px;align-items:center;">'+editSalaBtn+(function(){var sp=!window._olgaHasRestricao('cinemas.publico'),sr=!window._olgaHasRestricao('cinemas.renda');if(!sp&&!sr)return'';return'<span style="display:flex;gap:3px;">'+(sp?'<button class="bordero-btn" onclick="openBorderoCinema(\''+safeSalaBtn+'\')">Público</button>':'')+(sr?'<button class="bordero-btn" onclick="event.stopPropagation();_openBorderoSalaR(\''+safeSalaBtn+'\')">Renda</button>':'')+'</span>';})()+('</div>')+
     '</div>'
     +(specsHtml?'<div class="cinema-detail-meta">'+specsHtml+'</div>':'')
     +(evTags?'<div style="padding:8px 16px;border-top:1px solid var(--border);display:flex;gap:4px;flex-wrap:wrap;">'+evTags+'</div>':'')
@@ -10658,8 +10658,10 @@ var _equipeUsers=[], _equipeEditId=null, _equipeDeleteId=null, _adminEventos=[],
 var _EQUIPE_MODULOS=['projecao','grade','sessoes','busca','vinhetas','cinemas','kdm','dash','receptivo','bilheteria','catalogo','programacao'];
 var _EQUIPE_ROLES=['admin','editor','viewer'];
 var _EQUIPE_RESTRICOES=[
-  {k:'cinemas.bordero',label:'Cinemas · Borderô'},
-  {k:'sessoes.bordero',label:'Sessões · Borderô'},
+  {k:'cinemas.publico',label:'Cinemas · Público'},
+  {k:'cinemas.renda',label:'Cinemas · Renda'},
+  {k:'sessoes.publico',label:'Sessões · Público'},
+  {k:'sessoes.renda',label:'Sessões · Renda'},
   {k:'bilheteria.bordero',label:'Bilheteria · Público e Renda'},
   {k:'dashboard.publico_total',label:'Dashboard · Público total'},
   {k:'dashboard.publico_dias',label:'Dashboard · Público por dia'},

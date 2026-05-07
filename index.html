@@ -5125,9 +5125,9 @@ function renderFicha(nome,s){
 
   // vinhetas strip (between header and film table)
   var vinhetasHtml='';
+  var totalVinSecs=0;
   if(s.vinhetas&&s.vinhetas.length){
     var vMap={};vinhetasArr.forEach(function(v){vMap[v.codigo]=v;});
-    var totalVinSecs=0;
     var tags=s.vinhetas.map(function(cod){
       var info=vMap[cod];
       var display=info&&info.cpl?info.cpl:cod;
@@ -5150,7 +5150,7 @@ function renderFicha(nome,s){
       '<div class="ficha-vinhetas-obs">* em caso de mais de uma opção da vinheta indicada escolher a opção que facilite a menor troca de lentes na sessão</div>';
   }
 
-  document.getElementById('fichaWrap').innerHTML='<div class="ficha"><div class="ficha-header"><div class="ficha-header-main"><div class="ficha-session-wrap"><div class="ficha-session-name">'+nome+'</div>'+(s.name?'<div class="prog-sess-display-name-ficha">'+esc(s.name)+'</div>':'')+eventoBadge+(fichaRatingBadge?fichaRatingBadge:'')+'</div><div class="ficha-meta"><div class="meta-item"><div class="meta-label">Cinema</div><div class="meta-value">'+(s.cinema||'—')+'</div></div><div class="meta-item"><div class="meta-label">Data</div><div class="meta-value">'+s.dia+'</div></div><div class="meta-item"><div class="meta-label">Hora</div><div class="meta-value">'+s.hora+'</div></div><div class="meta-item"><div class="meta-label">Filmes</div><div class="meta-value highlight">'+films.length+'</div></div></div></div>'+extraHtml+'</div>'+vinhetasHtml+'<div class="film-table-wrap"><table><thead><tr><th>#</th><th>Filme</th><th class="center">Lente</th><th class="center">Som</th><th>Legenda</th><th class="center">Idioma</th><th class="center">KDM</th><th>CPL</th><th>Duração</th><th>OBS</th><th class="center">Res</th><th class="center">FPS · GB</th><th class="center" title="Acessibilidade"><svg width="13" height="13" viewBox="0 0 24 24" style="stroke:currentColor;stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round;vertical-align:middle;"><circle cx="11" cy="4" r="1"/><path d="m11 9 2 7h5l-1.5 3"/><path d="M9 9H7l1 7"/><path d="M13.5 19a4.5 4.5 0 1 1-9 0 4.5 4.5 0 0 1 9 0z"/></svg></th></tr></thead><tbody>'+(rows||'<tr><td colspan="13" style="text-align:center;color:var(--text-muted);padding:24px">Nenhum filme encontrado para esta sessão.</td></tr>')+'</tbody></table></div><div class="ficha-footer"><div class="footer-total">Duração total: <strong>'+totalDur+'</strong> &nbsp;·&nbsp; Tamanho: <strong>'+totalGBStr+'</strong></div><div class="footer-stamp">OLGA · '+new Date().toLocaleString('pt-BR')+'</div></div></div>';
+  document.getElementById('fichaWrap').innerHTML='<div class="ficha"><div class="ficha-header"><div class="ficha-header-main"><div class="ficha-session-wrap"><div class="ficha-session-name">'+nome+'</div>'+(s.name?'<div class="prog-sess-display-name-ficha">'+esc(s.name)+'</div>':'')+eventoBadge+(fichaRatingBadge?fichaRatingBadge:'')+'</div><div class="ficha-meta"><div class="meta-item"><div class="meta-label">Cinema</div><div class="meta-value">'+(s.cinema||'—')+'</div></div><div class="meta-item"><div class="meta-label">Data</div><div class="meta-value">'+s.dia+'</div></div><div class="meta-item"><div class="meta-label">Hora</div><div class="meta-value">'+s.hora+'</div></div><div class="meta-item"><div class="meta-label">Filmes</div><div class="meta-value highlight">'+films.length+'</div></div></div></div>'+extraHtml+'</div>'+vinhetasHtml+'<div class="film-table-wrap"><table><thead><tr><th>#</th><th>Filme</th><th class="center">Lente</th><th class="center">Som</th><th>Legenda</th><th class="center">Idioma</th><th class="center">KDM</th><th>CPL</th><th>Duração</th><th>OBS</th><th class="center">Res</th><th class="center">FPS · GB</th><th class="center" title="Acessibilidade"><svg width="13" height="13" viewBox="0 0 24 24" style="stroke:currentColor;stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round;vertical-align:middle;"><circle cx="11" cy="4" r="1"/><path d="m11 9 2 7h5l-1.5 3"/><path d="M9 9H7l1 7"/><path d="M13.5 19a4.5 4.5 0 1 1-9 0 4.5 4.5 0 0 1 9 0z"/></svg></th></tr></thead><tbody>'+(rows||'<tr><td colspan="13" style="text-align:center;color:var(--text-muted);padding:24px">Nenhum filme encontrado para esta sessão.</td></tr>')+'</tbody></table></div><div class="ficha-footer"><div class="footer-total">Duração total dos filmes: <strong>'+totalDur+'</strong>'+(totalVinSecs>0?' &nbsp;·&nbsp; Vinhetas: <strong>'+_secsToHMS(totalVinSecs)+'</strong>':'')+' &nbsp;·&nbsp; Tamanho: <strong>'+totalGBStr+'</strong></div><div class="footer-stamp">OLGA · '+new Date().toLocaleString('pt-BR')+'</div></div></div>';
 }
 
 /* GRADE */
@@ -10148,9 +10148,16 @@ function _progRenderSessao(sessaoNome){
     extraHtml='<div class="ficha-extra">'+(s.convidados?feRow('Convidados',s.convidados):'')+(s.ingressos?feRow('Ing. reservados',s.ingressos):'')+checkFields+(acessSet2.length?feRow('Acessib.',acessSet2.join(' · ')):'')+'</div>';
   }
   var vinhetasHtml='';
+  var totalVinSecs=0;
   if(s.vinhetas&&s.vinhetas.length){
     var vMap={};vinhetasArr.forEach(function(v){vMap[v.codigo]=v;});
-    var tags=s.vinhetas.map(function(cod){var info=vMap[cod];var display=info&&info.nome?info.nome:cod;var t=display.length>13?display.slice(0,13)+'…':display;return'<span class="ficha-vinheta-tag" title="'+esc(display)+' · '+esc(cod)+'">'+t+'</span>';}).join('');
+    var tags=s.vinhetas.map(function(cod){
+      var info=vMap[cod];var display=info&&info.nome?info.nome:cod;
+      var t=display.length>13?display.slice(0,13)+'…':display;
+      if(info&&info.duracao){var dv=info.duracao.toString().trim();var m3=dv.match(/^(\d+):(\d{2}):(\d{2})$/);var m2=dv.match(/^(\d+):(\d{2})$/);if(m3)totalVinSecs+=parseInt(m3[1])*3600+parseInt(m3[2])*60+parseInt(m3[3]);else if(m2)totalVinSecs+=parseInt(m2[1])*60+parseInt(m2[2]);else{var nv=parseFloat(dv.replace(',','.'));if(!isNaN(nv))totalVinSecs+=Math.round(nv);}}
+      return'<span class="ficha-vinheta-tag" title="'+esc(display)+' · '+esc(cod)+'">'+t+'</span>';
+    }).join('');
+    if(totalVinSecs>0){var vh=Math.floor(totalVinSecs/3600),vm=Math.floor((totalVinSecs%3600)/60),vs=totalVinSecs%60;var durSum=vh>0?(vh+"h"+String(vm).padStart(2,'0')+"'"):(vm>0?(vs>0?vm+"'"+String(vs).padStart(2,'0')+'"':vm+"'"):(vs+'"'));tags+='<span style="font-family:var(--mono);font-size:9px;color:var(--text-muted);margin-left:6px;border-left:1px solid var(--border);padding-left:8px;">'+durSum+'</span>';}
     vinhetasHtml='<div class="ficha-vinhetas"><span class="ficha-vinhetas-label">Vinhetas</span>'+tags+'</div>';
   }
   var rows=films.map(function(f,idx){
@@ -10198,7 +10205,7 @@ function _progRenderSessao(sessaoNome){
   html+=vinhetasHtml;
   if(s.session_description)html+='<div class="prog-sess-desc-block">'+esc(s.session_description)+'</div>';
   html+='<div class="film-table-wrap"><table><thead><tr><th>#</th><th>Título PT</th><th>Duração</th><th class="center">Idioma</th><th>Legendas</th><th class="center">KDM</th><th class="center" title="Acessibilidade"><svg width="13" height="13" viewBox="0 0 24 24" style="stroke:currentColor;stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round;vertical-align:middle;"><circle cx="11" cy="4" r="1"/><path d="m11 9 2 7h5l-1.5 3"/><path d="M9 9H7l1 7"/><path d="M13.5 19a4.5 4.5 0 1 1-9 0 4.5 4.5 0 0 1 9 0z"/></svg></th><th>País</th></tr></thead><tbody>'+(rows||'<tr><td colspan="8" style="text-align:center;color:var(--text-muted);padding:24px">Nenhum filme encontrado para esta sessão.</td></tr>')+'</tbody></table></div>';
-  html+='<div class="ficha-footer"><div class="footer-total">Duração total: <strong>'+totalDur+'</strong></div><div class="footer-stamp">OLGA · '+new Date().toLocaleString('pt-BR')+'</div></div></div>';
+  html+='<div class="ficha-footer"><div class="footer-total">Duração total dos filmes: <strong>'+totalDur+'</strong>'+(totalVinSecs>0?' &nbsp;·&nbsp; Vinhetas: <strong>'+_secsToHMS(totalVinSecs)+'</strong>':'')+'</div><div class="footer-stamp">OLGA · '+new Date().toLocaleString('pt-BR')+'</div></div></div>';
   c.innerHTML=html+'</div>';
 }
 
@@ -11005,7 +11012,8 @@ function _openEquipeForm(id,isDup){
     _eqSep('Eventos permitidos — vazio = todos')+
     '<div id="eq_ev_chips" style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:8px;">'+evChips+'</div>'+
     '<div style="display:flex;gap:6px;margin-bottom:16px;">'+
-      '<input id="eq_ev_new" placeholder="código do evento…" onkeydown="if(event.key===\'Enter\'){event.preventDefault();equipeAddEv();}" style="'+_eqInpStyle()+'flex:1;min-width:0;">'+
+      '<input id="eq_ev_new" list="eq_ev_datalist" placeholder="código do evento…" onkeydown="if(event.key===\'Enter\'){event.preventDefault();equipeAddEv();}" style="'+_eqInpStyle()+'flex:1;min-width:0;">'+
+      '<datalist id="eq_ev_datalist">'+Object.keys(eventColors).sort().map(function(ev){return'<option value="'+esc(ev)+'">';}).join('')+'</datalist>'+
       '<button onclick="equipeAddEv()" style="'+_equipeBtn()+'padding:5px 12px;">+ adicionar</button>'+
     '</div>'+
     _eqSep('Restrições ativas — marque para bloquear')+
@@ -11085,7 +11093,8 @@ function openTemplateEdit(id){
       eventos.map(function(ev,i){return'<span style="display:inline-flex;align-items:center;gap:5px;font-family:var(--mono);font-size:10px;background:var(--surface2);color:var(--text-dim);border:1px solid var(--border2);padding:3px 8px;border-radius:2px;">'+esc(ev)+'<button onclick="tplRemoveEv('+i+')" style="background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:13px;line-height:1;padding:0;">×</button></span>';}).join(' ')+
     '</div>'+
     '<div style="display:flex;gap:6px;margin-bottom:16px;">'+
-      '<input id="tpl_ev_new" placeholder="código do evento…" onkeydown="if(event.key===\'Enter\'){event.preventDefault();tplAddEv();}" style="'+_eqInpStyle()+'flex:1;min-width:0;">'+
+      '<input id="tpl_ev_new" list="tpl_ev_datalist" placeholder="código do evento…" onkeydown="if(event.key===\'Enter\'){event.preventDefault();tplAddEv();}" style="'+_eqInpStyle()+'flex:1;min-width:0;">'+
+      '<datalist id="tpl_ev_datalist">'+Object.keys(eventColors).sort().map(function(ev){return'<option value="'+esc(ev)+'">';}).join('')+'</datalist>'+
       '<button onclick="tplAddEv()" style="'+_equipeBtn()+'padding:5px 12px;">+ adicionar</button>'+
     '</div>'+
     _eqSep('Restrições ativas — marque para bloquear')+

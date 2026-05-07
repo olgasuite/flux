@@ -1159,6 +1159,12 @@ select:disabled{opacity:0.35;cursor:not-allowed;}
 .prog-autocomplete-results{position:absolute;top:100%;left:0;right:0;background:var(--surface);border:1px solid var(--border2);z-index:300;max-height:200px;overflow-y:auto;display:none;box-shadow:0 4px 12px rgba(0,0,0,0.3);}
 .prog-autocomplete-item{padding:7px 10px;cursor:pointer;font-family:var(--mono);font-size:10px;color:var(--text-dim);border-bottom:1px solid var(--border);}
 .prog-autocomplete-item:hover{background:var(--surface2);color:var(--text);}
+.convidados-tag-wrap{display:flex;flex-wrap:wrap;align-items:center;gap:4px;min-height:32px;padding:4px 6px;border:1px solid var(--border2);background:var(--bg);cursor:text;position:relative;box-sizing:border-box;width:100%;}
+.convidados-tag-wrap:focus-within{border-color:var(--accent);}
+.convidados-tag-chip{display:inline-flex;align-items:center;gap:3px;font-family:var(--mono);font-size:9px;padding:2px 6px;background:var(--surface2);border:1px solid var(--border);border-radius:2px;white-space:nowrap;}
+.convidados-tag-rm{background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:12px;padding:0 0 0 1px;line-height:1;}
+.convidados-tag-rm:hover{color:var(--warn,#e57);}
+.convidados-tag-input{flex:1;min-width:80px;border:none;outline:none;background:transparent;font-family:var(--mono);font-size:10px;color:var(--text);padding:2px 0;}
 .prog-modal-field{display:flex;flex-direction:column;gap:4px;}
 .prog-modal-label{font-family:var(--mono);font-size:8px;font-weight:600;letter-spacing:0.14em;text-transform:uppercase;color:var(--text-muted);}
 .prog-modal-input{font-family:var(--mono);font-size:12px;background:var(--bg);color:var(--text);border:1px solid var(--border2);padding:6px 10px;outline:none;width:100%;box-sizing:border-box;}
@@ -10648,6 +10654,7 @@ var _progData={programs:[],subprograms:[]};
 var _progProgramEditId=null,_progSubprogramEditId=null,_progSubprogramProgramId=null;
 var _progSessaoEditNome=null,_progSessaoContextProgramId=null,_progSessaoContextSubId=null;
 var _progSessaoFilmsArr=[],_progSessaoBumpersArr=[],_progSessaoVinOnly=false;
+var _progSessaoConvidadosTags=[],_progSessaoEvento='';
 var _progVinTemplates=[];
 
 function buildProgramacaoFilters(){
@@ -11194,6 +11201,7 @@ function openProgSessaoModal(sessaoNome,programId,subprogramId){
   var s=sessaoNome?sessoesMap[sessaoNome]:null;
   var prog=_progData.programs.find(function(p){return p.id===programId;});
   var ev=s?s.evento:(prog?prog.data.event_id:'');
+  _progSessaoEvento=ev||'';
   var evData=(_adminEventos||[]).find(function(e){return e.id===ev;});
   var evEstados=evData&&evData.data&&evData.data.estados?new Set(evData.data.estados):null;
   var cinemasFilt=cinemasArr.filter(function(c){
@@ -11226,7 +11234,7 @@ function openProgSessaoModal(sessaoNome,programId,subprogramId){
   document.getElementById('progSessaoTime').value=s&&s.time&&s.time.str&&s.time.str!=='?'?s.time.str:'';
   document.getElementById('progSessaoCinemaSelect').innerHTML='<option value="">— selecionar sala —</option>'+cinemaOpts;
   document.getElementById('progSessaoDesc').value=s&&s.session_description?s.session_description:'';
-  document.getElementById('progSessaoConvidados').value=s?s.convidados||'':'';
+  _progSessaoConvidadosTags=(s&&s.convidados)?s.convidados.split(',').map(function(n){return n.trim();}).filter(Boolean):[];
   document.getElementById('progSessaoIngressos').value=s?s.ingressos||'':'';
   document.getElementById('progSessaoApresentacao').checked=s&&(s.apresentacao||'').toLowerCase()==='sim';
   document.getElementById('progSessaoLegEletronica').checked=s&&(s.leg_eletronica||'').toLowerCase()==='sim';
@@ -11242,16 +11250,66 @@ function openProgSessaoModal(sessaoNome,programId,subprogramId){
   document.getElementById('progSessaoModalErr').style.display='none';
   _progSessaoVinOnly=!!(sessaoNome&&window._olgaHasRestricao('sessoes.somente_vinhetas'));
   _progRenderFilmsEdit();_progRenderBumpersEdit();
-  ['progSessaoName','progSessaoDate','progSessaoTime','progSessaoCinemaSelect','progSessaoSubprogramSelect','progSessaoDesc','progSessaoConvidados','progSessaoIngressos','progSessaoAcessibilidade','progSessaoApresentacao','progSessaoLegEletronica','progSessaoDebate','progFilmSearch'].forEach(function(fid){var el=document.getElementById(fid);if(el){el.disabled=_progSessaoVinOnly;el.style.opacity=_progSessaoVinOnly?'0.4':'';}});
+  ['progSessaoName','progSessaoDate','progSessaoTime','progSessaoCinemaSelect','progSessaoSubprogramSelect','progSessaoDesc','progSessaoIngressos','progSessaoAcessibilidade','progSessaoApresentacao','progSessaoLegEletronica','progSessaoDebate','progFilmSearch'].forEach(function(fid){var el=document.getElementById(fid);if(el){el.disabled=_progSessaoVinOnly;el.style.opacity=_progSessaoVinOnly?'0.4':'';}});
   document.getElementById('progSessaoModalTitle').textContent=_progSessaoVinOnly?'editar vinhetas · '+sessaoNome:'';
   document.getElementById('progSessaoModal').style.display='flex';
-  _progFillGuestDatalist();
+  _progRenderConvidadosTags();
 }
-function _progFillGuestDatalist(){
-  var dl=document.getElementById('progSessaoConvidadosList');if(!dl)return;
-  function fill(guests){dl.innerHTML=guests.map(function(g){return'<option value="'+esc(g.data.name||'')+'"></option>';}).filter(function(o){return o.indexOf('value=""')===-1;}).join('');}
-  if(_recepGuests.length){fill(_recepGuests);return;}
-  if(window._olgaGuests){window._olgaGuests.list().then(function(r){_recepGuests=r;fill(r);}).catch(function(){});}
+function _progRenderConvidadosTags(){
+  var wrap=document.getElementById('progConvidadosTagWrap');if(!wrap)return;
+  var disabled=_progSessaoVinOnly;
+  var chips=_progSessaoConvidadosTags.map(function(name,i){
+    return'<span class="convidados-tag-chip">'+esc(name)+(disabled?'':'<button type="button" class="convidados-tag-rm" onmousedown="event.preventDefault();_progConvidadosRemove('+i+')">×</button>')+'</span>';
+  }).join('');
+  wrap.innerHTML=chips+'<input id="progConvidadosInput" type="text" class="convidados-tag-input" autocomplete="off" placeholder="'+(disabled?'':(!_progSessaoConvidadosTags.length?'nome + Enter…':''))+'"'+(disabled?' disabled':'')
+    +' oninput="_progConvidadosSuggest()" onkeydown="_progConvidadosKeydown(event)" onblur="setTimeout(function(){var r=document.getElementById(\'progConvidadosSugg\');if(r)r.style.display=\'none\';},200)">';
+}
+function _progConvidadosKeydown(e){
+  var inp=document.getElementById('progConvidadosInput');if(!inp)return;
+  var v=(inp.value||'').trim();
+  if(e.key==='Enter'){
+    e.preventDefault();
+    if(v&&_progSessaoConvidadosTags.indexOf(v)<0)_progSessaoConvidadosTags.push(v);
+    inp.value='';
+    var r=document.getElementById('progConvidadosSugg');if(r)r.style.display='none';
+    _progRenderConvidadosTags();
+    setTimeout(function(){var ni=document.getElementById('progConvidadosInput');if(ni)ni.focus();},0);
+  } else if(e.key==='Backspace'&&!v&&_progSessaoConvidadosTags.length){
+    _progSessaoConvidadosTags.pop();
+    _progRenderConvidadosTags();
+    setTimeout(function(){var ni=document.getElementById('progConvidadosInput');if(ni)ni.focus();},0);
+  }
+}
+function _progConvidadosRemove(i){
+  _progSessaoConvidadosTags.splice(i,1);
+  _progRenderConvidadosTags();
+  setTimeout(function(){var ni=document.getElementById('progConvidadosInput');if(ni)ni.focus();},0);
+}
+function _progConvidadosSuggest(){
+  var inp=document.getElementById('progConvidadosInput');
+  var res=document.getElementById('progConvidadosSugg');
+  if(!inp||!res)return;
+  var q=(inp.value||'').trim().toLowerCase();
+  if(!q){res.style.display='none';return;}
+  function doFill(guests){
+    var filtered=guests.filter(function(g){
+      if(_progSessaoEvento&&g.data.event_id&&g.data.event_id!==_progSessaoEvento)return false;
+      var name=(g.data.name||'').toLowerCase();
+      return name.includes(q)&&_progSessaoConvidadosTags.indexOf(g.data.name||'')<0;
+    }).slice(0,8);
+    if(!filtered.length){res.style.display='none';return;}
+    res.innerHTML=filtered.map(function(g){return'<div class="prog-autocomplete-item" onmousedown="_progConvidadosAdd(\''+esc(g.data.name||'')+'\')">'+esc(g.data.name||'')+'</div>';}).join('');
+    res.style.display='block';
+  }
+  if(_recepGuests.length){doFill(_recepGuests);}
+  else if(window._olgaGuests){window._olgaGuests.list().then(function(r){_recepGuests=r;doFill(r);}).catch(function(){res.style.display='none';});}
+}
+function _progConvidadosAdd(name){
+  if(name&&_progSessaoConvidadosTags.indexOf(name)<0)_progSessaoConvidadosTags.push(name);
+  var inp=document.getElementById('progConvidadosInput');if(inp)inp.value='';
+  var res=document.getElementById('progConvidadosSugg');if(res)res.style.display='none';
+  _progRenderConvidadosTags();
+  setTimeout(function(){var ni=document.getElementById('progConvidadosInput');if(ni)ni.focus();},0);
 }
 function closeProgSessaoModal(){document.getElementById('progSessaoModal').style.display='none';}
 function _progSessaoProgramChanged(){
@@ -11372,7 +11430,7 @@ async function saveProgSessaoModal(){
     subprogram_id:(document.getElementById('progSessaoSubprogramSelect').value)||_progSessaoContextSubId||'',
     session_description:(document.getElementById('progSessaoDesc').value||'').trim(),
     films:_progSessaoFilmsArr,bumpers:_progSessaoBumpersArr,
-    guests:(document.getElementById('progSessaoConvidados').value||'').trim(),
+    guests:_progSessaoConvidadosTags.join(', '),
     has_introduction:document.getElementById('progSessaoApresentacao').checked?'Sim':'Não',
     has_debate:document.getElementById('progSessaoDebate').checked?'Sim':'Não',
     has_electronic_subtitles:document.getElementById('progSessaoLegEletronica').checked?'Sim':'Não',
@@ -13631,8 +13689,10 @@ window.addEventListener('popstate',function(e){
       <div style="border-top:1px solid var(--border);padding-top:14px;display:flex;flex-direction:column;gap:10px;">
         <div class="prog-modal-field">
           <label class="prog-modal-label">Convidados</label>
-          <input id="progSessaoConvidados" type="text" class="prog-modal-input" autocomplete="off" list="progSessaoConvidadosList">
-          <datalist id="progSessaoConvidadosList"></datalist>
+          <div class="prog-autocomplete-wrap">
+            <div class="convidados-tag-wrap" id="progConvidadosTagWrap" onclick="document.getElementById('progConvidadosInput')&&document.getElementById('progConvidadosInput').focus()"></div>
+            <div id="progConvidadosSugg" class="prog-autocomplete-results"></div>
+          </div>
         </div>
         <div class="prog-modal-field">
           <label class="prog-modal-label">Ingressos reservados</label>

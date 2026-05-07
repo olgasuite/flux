@@ -9517,7 +9517,7 @@ function renderDash(){
     }else if(key==='sessoes'){
       title='Sessões ('+sessoes.length+')';
       var sorted=sessoes.slice().sort(function(a,b){return a.date&&b.date?a.date-b.date||(a.time&&b.time?a.time.h*60+a.time.m-(b.time.h*60+b.time.m):0):0;});
-      var borderoBtn=!window._olgaHasRestricao('dashboard.bordero')?'<span style="display:flex;gap:4px;margin-left:8px;"><button class="bordero-btn" style="font-size:9px;padding:3px 10px;" onclick="openBorderoDashSessoes(\''+scope+'\')">'+'Público'+'</button><button class="bordero-btn" style="font-size:9px;padding:3px 10px;" onclick="openBorderoDashSessoes(\''+scope+'\',\'renda\')">'+'Renda'+'</button></span>':'';
+      var borderoBtn=(function(){var sp=!window._olgaHasRestricao('dashboard.publico'),sr=!window._olgaHasRestricao('dashboard.renda');if(!sp&&!sr)return'';return'<span style="display:flex;gap:4px;margin-left:8px;">'+(sp?'<button class="bordero-btn" style="font-size:9px;padding:3px 10px;" onclick="openBorderoDashSessoes(\''+scope+'\')">Público</button>':'')+(sr?'<button class="bordero-btn" style="font-size:9px;padding:3px 10px;" onclick="openBorderoDashSessoes(\''+scope+'\',\'renda\')">Renda</button>':'')+'</span>';})();
       bodyHtml='';
       sorted.forEach(function(s){
         var safe=s.nome.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
@@ -10669,6 +10669,8 @@ var _EQUIPE_RESTRICOES=[
   {k:'sessoes.publico',label:'Sessões · Público'},
   {k:'sessoes.renda',label:'Sessões · Renda'},
   {k:'bilheteria.bordero',label:'Bilheteria · Público e Renda'},
+  {k:'dashboard.publico',label:'Dashboard · Público (borderô)'},
+  {k:'dashboard.renda',label:'Dashboard · Renda (borderô)'},
   {k:'dashboard.publico_total',label:'Dashboard · Público total'},
   {k:'dashboard.publico_dias',label:'Dashboard · Público por dia'},
   {k:'vinhetas.sessoes',label:'Vinhetas · Contador de sessões'},

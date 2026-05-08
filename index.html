@@ -10231,32 +10231,51 @@ function _batchModeToggle(field){
     +'</div>';
 }
 function _buildBatchForm(){
-  function inp(id,label,ph,full){
-    return'<div class="batch-fld'+(full?' batch-full':'')+'"><div class="batch-fld-label">'+label+'</div><input class="batch-fld-inp" id="bf_'+id+'" placeholder="'+ph+'"></div>';
+  if(_batchSource==='catalogo'){
+    return '<div class="batch-fld"><div class="batch-fld-label">Título PT</div><input class="batch-fld-inp" id="bf_title_pt"></div>'+
+      '<div class="batch-fld"><div class="batch-fld-label">Título Original</div><input class="batch-fld-inp" id="bf_original_title"></div>'+
+      '<div class="batch-fld"><div class="batch-fld-label">Título EN</div><input class="batch-fld-inp" id="bf_english_title"></div>'+
+      '<div class="batch-fld"><div class="batch-fld-label">Ano</div><input class="batch-fld-inp" id="bf_year" type="number"></div>'+
+      '<div class="batch-fld"><div class="batch-fld-label">Direção</div>'+catTagInp('bf_director',[])+_batchModeToggle('director')+'</div>'+
+      '<div class="batch-fld"><div class="batch-fld-label">Gênero</div>'+catTagInp('bf_genre',[])+_batchModeToggle('genre')+'</div>'+
+      '<div class="batch-fld"><div class="batch-fld-label">País</div>'+catTagInp('bf_countries',[])+_batchModeToggle('countries')+'</div>'+
+      '<div class="batch-fld"><div class="batch-fld-label">Metragem</div><input class="batch-fld-inp" id="bf_film_type"></div>'+
+      '<div class="batch-fld"><div class="batch-fld-label">Classificação etária</div><input class="batch-fld-inp" id="bf_content_rating"></div>'+
+      '<div class="batch-fld batch-full"><div class="batch-fld-label">Sinopse</div><textarea class="batch-fld-inp batch-fld-ta" id="bf_synopsis"></textarea></div>'+
+      '<div class="batch-fld"><div class="batch-fld-label">Produtora</div>'+catTagInp('bf_production_company',[])+_batchModeToggle('production_company')+'</div>'+
+      '<div class="batch-fld"><div class="batch-fld-label">Distribuidora</div>'+catTagInp('bf_distribution_company',[])+_batchModeToggle('distribution_company')+'</div>'+
+      '<div class="batch-fld"><div class="batch-fld-label">Prêmios</div>'+catTagInp('bf_awards',[])+_batchModeToggle('awards')+'</div>'+
+      '<div class="batch-fld"><div class="batch-fld-label">Filmografia do diretor</div>'+catTagInp('bf_director_filmography',[])+_batchModeToggle('director_filmography')+'</div>'+
+      '<div class="batch-fld"><div class="batch-fld-label">Palavras-chave</div>'+catTagInp('bf_keywords',[])+_batchModeToggle('keywords')+'</div>'+
+      '<div class="batch-fld"><div class="batch-fld-label">Screener URL</div><input class="batch-fld-inp" id="bf_screener"></div>'+
+      '<div class="batch-fld"><div class="batch-fld-label">Email de contato</div><input class="batch-fld-inp" id="bf_contact_email"></div>'+
+      '<div class="batch-fld"><div class="batch-fld-label">Previsão de chegada</div><input class="batch-fld-inp" id="bf_copy_arrival_forecast"></div>'+
+      '<div class="batch-fld"><div class="batch-fld-label">Notas sobre a cópia</div><input class="batch-fld-inp" id="bf_copy_notes"></div>';
+  } else {
+    // Acervo Técnico – campos de cópia (DCP)
+    return '<div class="batch-fld"><div class="batch-fld-label">Título (copias)</div><input class="batch-fld-inp" id="bf_title"></div>'+
+      '<div class="batch-fld"><div class="batch-fld-label">Idioma</div><input class="batch-fld-inp" id="bf_idioma"></div>'+
+      '<div class="batch-fld"><div class="batch-fld-label">Legendas</div><input class="batch-fld-inp" id="bf_legenda"></div>'+
+      '<div class="batch-fld"><div class="batch-fld-label">VF</div><input class="batch-fld-inp" id="bf_vf"></div>'+
+      '<div class="batch-fld"><div class="batch-fld-label">Lente</div><input class="batch-fld-inp" id="bf_lente"></div>'+
+      '<div class="batch-fld"><div class="batch-fld-label">Som</div><input class="batch-fld-inp" id="bf_som"></div>'+
+      '<div class="batch-fld"><div class="batch-fld-label">Status</div><input class="batch-fld-inp" id="bf_status"></div>'+
+      '<div class="batch-fld"><div class="batch-fld-label">KDM</div><select class="batch-fld-inp" id="bf_kdm"><option value="Não">Não</option><option value="Sim">Sim</option></select></div>'+
+      '<div class="batch-fld"><div class="batch-fld-label">CPL</div><input class="batch-fld-inp" id="bf_cpl"></div>'+
+      '<div class="batch-fld"><div class="batch-fld-label">CPL OV</div><input class="batch-fld-inp" id="bf_cplOV"></div>'+
+      '<div class="batch-fld"><div class="batch-fld-label">Resolução</div><input class="batch-fld-inp" id="bf_resolucao"></div>'+
+      '<div class="batch-fld"><div class="batch-fld-label">FPS</div><input class="batch-fld-inp" id="bf_fps"></div>'+
+      '<div class="batch-fld"><div class="batch-fld-label">Duração (H:MM:SS)</div><input class="batch-fld-inp" id="bf_duracao"></div>'+
+      '<div class="batch-fld"><div class="batch-fld-label">GB</div><input class="batch-fld-inp" id="bf_gb"></div>'+
+      '<div class="batch-fld"><div class="batch-fld-label">Storage / HD</div><input class="batch-fld-inp" id="bf_hd"></div>'+
+      '<div class="batch-fld"><div class="batch-fld-label">DCP Creator</div><input class="batch-fld-inp" id="bf_creator"></div>'+
+      '<div class="batch-fld"><div class="batch-fld-label">DCP UUID</div><input class="batch-fld-inp" id="bf_uuid"></div>'+
+      '<div class="batch-fld"><div class="batch-fld-label">DCP Link</div><input class="batch-fld-inp" id="bf_dcp_link"></div>'+
+      '<div class="batch-fld"><div class="batch-fld-label">File Link</div><input class="batch-fld-inp" id="bf_file_link"></div>'+
+      '<div class="batch-fld"><div class="batch-fld-label">Status Legenda</div><input class="batch-fld-inp" id="bf_col_n"></div>'+
+      '<div class="batch-fld"><div class="batch-fld-label">Acessibilidade</div><input class="batch-fld-inp" id="bf_acess"></div>'+
+      '<div class="batch-fld batch-full"><div class="batch-fld-label">Observações</div><textarea class="batch-fld-inp batch-fld-ta" id="bf_obs"></textarea></div>';
   }
-  function tagInp(id,label,full){
-    return'<div class="batch-fld'+(full?' batch-full':'')+'"><div class="batch-fld-label">'+label+'</div>'+catTagInp('bf_'+id,[])+_batchModeToggle(id)+'</div>';
-  }
-  function ta(id,label){
-    return'<div class="batch-fld batch-full"><div class="batch-fld-label">'+label+'</div><textarea class="batch-fld-inp batch-fld-ta" id="bf_'+id+'" placeholder="deixe vazio para não alterar"></textarea></div>';
-  }
-  return inp('title_pt','Título PT','deixe vazio para não alterar')
-    +inp('original_title','Título Original','deixe vazio para não alterar')
-    +inp('english_title','Título EN','deixe vazio para não alterar')
-    +inp('year','Ano','deixe vazio para não alterar')
-    +tagInp('director','Direção')
-    +tagInp('genre','Gênero')
-    +tagInp('countries','País')
-    +inp('film_type','Metragem','curta / média / longa')
-    +inp('content_rating','Classificação etária','deixe vazio para não alterar')
-    +ta('synopsis','Sinopse')
-    +tagInp('production_company','Produtora',true)
-    +tagInp('distribution_company','Distribuidora',true)
-    +tagInp('awards','Prêmios',true)
-    +tagInp('director_filmography','Filmografia do diretor',true)
-    +tagInp('keywords','Palavras-chave',true)
-    +inp('screener','Screener URL','deixe vazio para não alterar',true)
-    +inp('contact_email','Email de contato','deixe vazio para não alterar',true);
 }
 
 function _getBatchMode(field){

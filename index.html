@@ -1673,9 +1673,8 @@ mark{background:rgba(255,186,32,0.28);color:var(--accent);border-radius:2px;padd
 .bordero-btn{font-family:var(--mono);font-size:9px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;padding:3px 10px;background:transparent;color:var(--accent);border:1px solid rgba(255,186,32,0.4);cursor:pointer;transition:all 0.15s;white-space:nowrap;flex-shrink:0;}
 .bordero-btn:hover{background:var(--accent);color:var(--on-accent);}
 /* BILHETERIA */
-.bilh-sess-row{flex-wrap:wrap;gap:4px 8px;padding:8px 12px;align-items:center;}
-.bilh-films-abbr{flex:1;min-width:0;}
-.bilh-bordero-row{display:flex;gap:8px;flex-wrap:wrap;width:100%;padding-top:3px;border-top:1px solid var(--border);}
+.bilh-sess-row{column-gap:8px;row-gap:4px;padding:8px 12px;}
+.bilh-bordero-row{display:flex;gap:8px;flex-wrap:wrap;padding-top:3px;border-top:1px solid var(--border);grid-column:1/-1;}
 .bilh-stat{display:flex;align-items:baseline;gap:4px;}
 .bilh-stat-label{font-family:var(--mono);font-size:8px;font-weight:600;letter-spacing:0.12em;text-transform:uppercase;color:var(--text-muted);}
 .bilh-stat-val{font-family:var(--mono);font-size:11px;font-weight:600;color:var(--accent-text);}
@@ -3222,9 +3221,10 @@ mark{background:rgba(255,186,32,0.28);color:var(--accent);border-radius:2px;padd
 .kdm-day-count{font-family:var(--mono);font-size:9px;color:var(--text-muted);}
 .kdm-row{display:flex;align-items:center;gap:12px;padding:10px 24px;border-bottom:1px solid var(--border);min-height:44px;}
 .kdm-row:last-child{border-bottom:none;}
-.kdm-row-time{font-family:var(--mono);font-size:11px;font-weight:600;color:var(--text);min-width:40px;flex-shrink:0;}
-.kdm-row-cinema{font-family:var(--mono);font-size:11px;color:var(--text-dim);min-width:140px;flex-shrink:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.kdm-row-time{font-family:var(--mono);font-size:11px;font-weight:600;color:var(--text);width:44px;flex-shrink:0;}
+.kdm-row-cinema{font-family:var(--mono);font-size:11px;color:var(--text-dim);width:170px;flex-shrink:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .kdm-row-body{flex:1;min-width:0;}
+.kdm-row-right{display:flex;align-items:center;gap:8px;flex-shrink:0;margin-left:auto;}
 .kdm-row-name{font-family:var(--mono);font-size:11px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .kdm-row-films{font-family:var(--sans);font-size:11px;color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .kdm-status{font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;padding:2px 8px;border:1px solid;border-radius:2px;flex-shrink:0;white-space:nowrap;}
@@ -3245,6 +3245,11 @@ mark{background:rgba(255,186,32,0.28);color:var(--accent);border-radius:2px;padd
 .kdm-check-fail{color:#ffb4ab;}
 .kdm-check-warn{color:var(--accent);}
 .kdm-check-info{color:var(--text-muted);}
+.kdm-check-alert{margin-top:6px;padding:6px 10px;background:rgba(255,186,32,0.10);border:1px solid rgba(255,186,32,0.35);border-radius:2px;color:var(--accent);font-weight:600;gap:8px;}
+[data-theme="light"] .kdm-check-ok,[data-theme="gray"] .kdm-check-ok,[data-theme="win98"] .kdm-check-ok{color:#1a7a43;}
+[data-theme="light"] .kdm-check-fail,[data-theme="gray"] .kdm-check-fail,[data-theme="win98"] .kdm-check-fail{color:#c0392b;}
+[data-theme="light"] .kdm-check-warn,[data-theme="gray"] .kdm-check-warn,[data-theme="win98"] .kdm-check-warn{color:#b07d0a;}
+[data-theme="light"] .kdm-check-alert,[data-theme="gray"] .kdm-check-alert,[data-theme="win98"] .kdm-check-alert{color:#b07d0a;background:rgba(176,125,10,0.08);border-color:rgba(176,125,10,0.30);}
 /* Cert section in cinema detail */
 .cinema-cert-section{margin-top:12px;border:1px solid var(--border);border-left:3px solid var(--border2);}
 .cinema-cert-section.has-cert{border-left-color:rgba(61,186,110,0.6);}
@@ -3268,14 +3273,15 @@ mark{background:rgba(255,186,32,0.28);color:var(--accent);border-radius:2px;padd
 .sess-day-label{font-family:var(--mono);font-size:11px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:var(--text);}
 .sess-day-label.today{color:var(--accent);}
 .sess-day-count{font-family:var(--mono);font-size:9px;color:var(--text-muted);}
-.sess-row{display:flex;align-items:center;gap:12px;padding:10px 24px;border-bottom:1px solid var(--border);cursor:pointer;transition:background 0.1s;}
+.sess-row{display:grid;grid-template-columns:44px 120px 1fr 170px 2fr auto;column-gap:12px;align-items:center;padding:10px 24px;border-bottom:1px solid var(--border);cursor:pointer;transition:background 0.1s;}
 .sess-row:last-child{border-bottom:none;}
 .sess-row:hover{background:var(--surface2);}
-.sess-time{font-family:var(--mono);font-size:11px;font-weight:600;color:var(--text);white-space:nowrap;min-width:40px;}
-.sess-name{font-family:var(--mono);font-size:9px;font-weight:600;color:var(--accent);white-space:nowrap;flex-shrink:0;opacity:0.7;letter-spacing:0.05em;}
-.sess-display-name{font-family:var(--sans);font-size:13px;font-weight:600;color:var(--text);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-.sess-cinema{font-family:var(--mono);font-size:10px;color:var(--text-dim);white-space:nowrap;display:block;}
-.sess-films{font-family:var(--sans);font-size:11px;color:var(--text-muted);flex:2;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.sess-time{font-family:var(--mono);font-size:11px;font-weight:600;color:var(--text);white-space:nowrap;}
+.sess-name{font-family:var(--mono);font-size:9px;font-weight:600;color:var(--accent);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;opacity:0.7;letter-spacing:0.05em;}
+.sess-display-name{font-family:var(--sans);font-size:13px;font-weight:600;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.sess-cinema{font-family:var(--mono);font-size:10px;color:var(--text-dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.sess-films{font-family:var(--sans);font-size:11px;color:var(--text-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.sess-extras{display:flex;align-items:center;gap:6px;flex-shrink:0;}
 .sess-dur{font-family:var(--mono);font-size:9px;color:var(--text-muted);white-space:nowrap;}
 .sess-ev-tag{font-family:var(--mono);font-size:8px;font-weight:600;letter-spacing:0.06em;padding:2px 7px;border-radius:2px;white-space:nowrap;}
 /* VINHETAS */
@@ -5883,12 +5889,14 @@ function renderSessoes(){
     return '<div class="sess-row" onclick="goToProgFichaFromGrade(\''+safe+'\')">'+
       '<span class="sess-time">'+(s.time?s.time.str:'—')+'</span>'+
       '<span class="sess-name">'+s.nome+'</span>'+
-      (s.name?'<span class="sess-display-name">'+s.name+'</span>':'')+
+      '<span class="sess-display-name">'+(s.name||'')+'</span>'+
       '<span class="sess-cinema">'+s.cinema+'</span>'+
-      (filmTitles?'<span class="sess-films">'+filmTitles+'</span>':'')+
-      (durStr?'<span class="sess-dur">'+durStr+'</span>':'')+
-      acessIcon+
-      (evTag?evTag:'')+
+      '<span class="sess-films">'+(filmTitles||'')+'</span>'+
+      '<span class="sess-extras">'+
+        (durStr?'<span class="sess-dur">'+durStr+'</span>':'')+
+        acessIcon+
+        (evTag||'')+
+      '</span>'+
     '</div>';
   }
 
@@ -8114,15 +8122,17 @@ function renderBilheteria(){
     return'<div class="sess-row bilh-sess-row">'
       +'<span class="sess-time">'+(s.time?s.time.str:'—')+'</span>'
       +'<span class="sess-name">'+esc(s.nome)+'</span>'
-      +(s.name?'<span class="sess-display-name">'+esc(s.name)+'</span>':'')
+      +'<span class="sess-display-name">'+esc(s.name||'')+'</span>'
       +'<span class="sess-cinema">'+esc(s.cinema)+'</span>'
       +(hasBordero
         ?'<span class="sess-films bilh-films-abbr" title="'+esc(filmFull)+'">'+esc(filmAbbr)+'</span>'
         :'<span class="sess-films" title="'+esc(filmFull)+'">'+esc(filmFull)+'</span>'
       )
+      +'<span class="sess-extras">'
+        +(canBordero?'<button class="bordero-btn" style="white-space:nowrap;" onclick="event.stopPropagation();openSessaoBordero(\''+safe+'\')">Público e Renda</button>':'')
+        +evTag
+      +'</span>'
       +borderoHtml
-      +(canBordero?'<button class="bordero-btn bilh-pr-btn" style="margin-left:auto;white-space:nowrap;" onclick="event.stopPropagation();openSessaoBordero(\''+safe+'\')">Público e Renda</button>':'')
-      +evTag
       +'</div>';
   }
 
@@ -8637,9 +8647,7 @@ function renderKDM(){
       +'<span class="kdm-row-time">'+(s.time?s.time.str:'—')+'</span>'
       +'<span class="kdm-row-cinema">'+s.cinema+'</span>'
       +'<div class="kdm-row-body"><div class="kdm-row-name">'+s.nome+'</div>'+(filmTitles?'<div class="kdm-row-films">'+filmTitles+'</div>':'')+'</div>'
-      +(evTag?evTag:'')
-      +'<span class="kdm-status '+st.cls+'">'+st.label+'</span>'
-      +'<button class="kdm-test-btn" onclick="testKDM(\''+safe+'\')">Testar KDM</button>'
+      +'<div class="kdm-row-right">'+(evTag||'')+'<span class="kdm-status '+st.cls+'">'+st.label+'</span>'+'<button class="kdm-test-btn" onclick="testKDM(\''+safe+'\')">Testar KDM</button>'+'</div>'
       +'</div>'+prevResult;
   }
 
@@ -8696,7 +8704,7 @@ function _kdmResultHtml(sessaoNome){
     if(l.diag){
       html+='<div class="kdm-check-line kdm-check-info" style="font-size:9px;padding:1px 0 1px 16px;word-break:break-all;opacity:0.8;"><span>'+l.text+'</span></div>';
     }else if(!l.ok&&l.warn&&l.text&&l.text.indexOf('KDM pertence')!==-1){
-      html+='<div class="kdm-check-line" style="margin-top:6px;padding:6px 10px;background:rgba(255,186,32,0.10);border:1px solid rgba(255,186,32,0.35);border-radius:2px;color:var(--accent);font-weight:600;gap:8px;"><span>⚑</span><span>'+l.text.replace(/^⚑\s*/,'')+'</span></div>';
+      html+='<div class="kdm-check-line kdm-check-alert"><span>⚑</span><span>'+l.text.replace(/^⚑\s*/,'')+'</span></div>';
     }else{
       var cls=l.ok?'kdm-check-ok':l.warn?'kdm-check-warn':'kdm-check-fail';
       html+='<div class="kdm-check-line '+cls+'"><span>'+(l.ok?'✓':l.warn?'⚠':'✗')+'</span><span>'+l.text+'</span></div>';

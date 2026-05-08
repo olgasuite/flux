@@ -10345,13 +10345,79 @@ async function executeBatchSave(){
     },{});
     window._logFirestoreEdit('lote',batchIds,batchFields,'catalogo','filmes');
   }
+
   if(errors.length)prog.textContent='Concluído com erros: '+errors.join('; ');
   else prog.textContent='Concluído: '+codes.length+' filme'+(codes.length!==1?'s':'')+' atualizados.';
   btn.disabled=false;
   if(_batchSource==='busca'){renderBuscaResults();}else{_catRenderResults();}
   setTimeout(closeBatchModal,1800);
 }
-
+  } else {
+    // ── Edição em lote do Acervo Técnico (copias) ───────────────
+    for(var i=0;i<codes.length;i++){
+      var cod=codes[i];
+      prog.textContent='Processando '+(i+1)+'/'+codes.length+': '+cod;
+      try{
+        var patchCopias = {};
+        var copiaFields = {
+          title: _bfVal('title'),
+          original_language: _bfVal('idioma'),
+          dcp_subtitle_code: _bfVal('legenda'),
+          vf_subtitle_code: _bfVal('vf'),
+          projection_lens: _bfVal('lente'),
+          audio_format: _bfVal('som'),
+          status: _bfVal('status'),
+          has_kdm: _bfVal('kdm'),
+          cpl_id: _bfVal('cpl'),
+          ov_cpl_id: _bfVal('cplOV'),
+          dcp_resolution: _bfVal('resolucao'),
+          dcp_fps: _bfVal('fps'),
+          dcp_duration: _bfVal('duracao'),
+          dcp_size: _bfVal('gb'),
+          storage_location: _bfVal('hd'),
+          dcp_creator: _bfVal('creator'),
+          dcp_uuid: _bfVal('uuid'),
+          dcp_link: _bfVal('dcp_link'),
+          file_link: _bfVal('file_link'),
+          subtitle_status: _bfVal('col_n'),
+          accessibility_features: _bfVal('acess'),
+          notes: _bfVal('obs')
+        };
+        for(var k in copiaFields){
+          var v = copiaFields[k];
+          if(v !== '') patchCopias[k] = v;
+        }
+        if(!patchCopias.event_name){
+          var existingCopia = filmesMap[cod];
+          if(existingCopia && existingCopia.evento) patchCopias.event_name = existingCopia.evento;
+        }
+        patchCopias.festival_code = cod;
+        if(!Object.keys(patchCopias).length) continue;
+        await window._olgaCopias.save(cod, patchCopias);
+        var f = filmesMap[cod];
+        if(f){
+          var fieldMap = {
+            title: 'titulo', original_language: 'idioma', dcp_subtitle_code: 'legenda',
+            vf_subtitle_code: 'vf', projection_lens: 'lente', audio_format: 'som',
+            status: 'status', has_kdm: 'kdm', cpl_id: 'cpl', ov_cpl_id: 'cplOV',
+            dcp_resolution: 'resolucao', dcp_fps: 'fps', dcp_duration: 'duracao',
+            dcp_size: 'gb', storage_location: 'hd', dcp_creator: 'col_k',
+            dcp_uuid: 'dcp_uuid', dcp_link: 'dcp_link', file_link: 'file_link',
+            subtitle_status: 'col_n', accessibility_features: 'acessibilidade',
+            notes: 'obs'
+          };
+          for(var k in patchCopias){
+            var internalKey = fieldMap[k];
+            if(internalKey) f[internalKey] = patchCopias[k];
+          }
+        }
+        if(window._logFirestoreEdit) window._logFirestoreEdit('lote',cod,patchCopias,'acervo','copias');
+      }catch(e){errors.push(cod+': '+e.message);}
+    }
+    if(window._logFirestoreEdit && !errors.length){
+      window._logFirestoreEdit('lote',codes,{campos:'copias'},'acervo','copias');
+    }
+  }
 function renderBuscaResults(){
   var re=document.getElementById('busca-results'),be=document.getElementById('buscaEmpty');
   document.getElementById('buscaLoading').style.display='none';

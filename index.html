@@ -10229,51 +10229,52 @@ function _batchModeToggle(field){
     +'<input type="radio" name="bm_'+field+'" id="bm_'+field+'_add" value="add"><label for="bm_'+field+'_add">Adicionar</label>'
     +'</div>';
 }
+// Função _buildBatchForm corrigida
 function _buildBatchForm(){
   // Edição em lote do Catálogo – todos os campos curatoriais
-  if(_batchSource==='catalogo'){
-    return '<div class="batch-fld"><div class="batch-fld-label">Título PT</div><input class="batch-fld-inp" id="bf_title_pt"></div>'+
-      '<div class="batch-fld"><div class="batch-fld-label">Título Original</div><input class="batch-fld-inp" id="bf_original_title"></div>'+
-      '<div class="batch-fld"><div class="batch-fld-label">Título EN</div><input class="batch-fld-inp" id="bf_english_title"></div>'+
-      '<div class="batch-fld"><div class="batch-fld-label">Ano</div><input class="batch-fld-inp" id="bf_year" type="number"></div>'+
-      '<div class="batch-fld"><div class="batch-fld-label">Direção</div>'+catTagInp('bf_director',[])+_batchModeToggle('director')+'</div>'+
-      '<div class="batch-fld"><div class="batch-fld-label">Gênero</div>'+catTagInp('bf_genre',[])+_batchModeToggle('genre')+'</div>'+
-      '<div class="batch-fld"><div class="batch-fld-label">País</div>'+catTagInp('bf_countries',[])+_batchModeToggle('countries')+'</div>'+
-      '<div class="batch-fld"><div class="batch-fld-label">Metragem</div><input class="batch-fld-inp" id="bf_film_type"></div>'+
-      '<div class="batch-fld"><div class="batch-fld-label">Classificação etária</div><input class="batch-fld-inp" id="bf_content_rating"></div>'+
-      '<div class="batch-fld batch-full"><div class="batch-fld-label">Sinopse</div><textarea class="batch-fld-inp batch-fld-ta" id="bf_synopsis"></textarea></div>'+
-      '<div class="batch-fld"><div class="batch-fld-label">Produtora</div>'+catTagInp('bf_production_company',[])+_batchModeToggle('production_company')+'</div>'+
-      '<div class="batch-fld"><div class="batch-fld-label">Distribuidora</div>'+catTagInp('bf_distribution_company',[])+_batchModeToggle('distribution_company')+'</div>'+
-      '<div class="batch-fld"><div class="batch-fld-label">Prêmios</div>'+catTagInp('bf_awards',[])+_batchModeToggle('awards')+'</div>'+
-      '<div class="batch-fld"><div class="batch-fld-label">Filmografia do diretor</div>'+catTagInp('bf_director_filmography',[])+_batchModeToggle('director_filmography')+'</div>'+
-      '<div class="batch-fld"><div class="batch-fld-label">Palavras-chave</div>'+catTagInp('bf_keywords',[])+_batchModeToggle('keywords')+'</div>'+
-      '<div class="batch-fld"><div class="batch-fld-label">Screener URL</div><input class="batch-fld-inp" id="bf_screener"></div>'+
-      '<div class="batch-fld"><div class="batch-fld-label">Email de contato</div><input class="batch-fld-inp" id="bf_contact_email"></div>'+
-      '<div class="batch-fld"><div class="batch-fld-label">Previsão de chegada</div><input class="batch-fld-inp" id="bf_copy_arrival_forecast"></div>'+
+  if (_batchSource === 'catalogo') {
+    return '<div class="batch-fld"><div class="batch-fld-label">Título PT</div><input class="batch-fld-inp" id="bf_title_pt"></div>' +
+      '<div class="batch-fld"><div class="batch-fld-label">Título Original</div><input class="batch-fld-inp" id="bf_original_title"></div>' +
+      '<div class="batch-fld"><div class="batch-fld-label">Título EN</div><input class="batch-fld-inp" id="bf_english_title"></div>' +
+      '<div class="batch-fld"><div class="batch-fld-label">Ano</div><input class="batch-fld-inp" id="bf_year" type="number"></div>' +
+      '<div class="batch-fld"><div class="batch-fld-label">Direção</div>' + catTagInp('bf_director', []) + _batchModeToggle('director') + '</div>' +
+      '<div class="batch-fld"><div class="batch-fld-label">Gênero</div>' + catTagInp('bf_genre', []) + _batchModeToggle('genre') + '</div>' +
+      '<div class="batch-fld"><div class="batch-fld-label">País</div>' + catTagInp('bf_countries', []) + _batchModeToggle('countries') + '</div>' +
+      '<div class="batch-fld"><div class="batch-fld-label">Metragem</div><input class="batch-fld-inp" id="bf_film_type"></div>' +
+      '<div class="batch-fld"><div class="batch-fld-label">Classificação etária</div><input class="batch-fld-inp" id="bf_content_rating"></div>' +
+      '<div class="batch-fld batch-full"><div class="batch-fld-label">Sinopse</div><textarea class="batch-fld-inp batch-fld-ta" id="bf_synopsis"></textarea></div>' +
+      '<div class="batch-fld"><div class="batch-fld-label">Produtora</div>' + catTagInp('bf_production_company', []) + _batchModeToggle('production_company') + '</div>' +
+      '<div class="batch-fld"><div class="batch-fld-label">Distribuidora</div>' + catTagInp('bf_distribution_company', []) + _batchModeToggle('distribution_company') + '</div>' +
+      '<div class="batch-fld"><div class="batch-fld-label">Prêmios</div>' + catTagInp('bf_awards', []) + _batchModeToggle('awards') + '</div>' +
+      '<div class="batch-fld"><div class="batch-fld-label">Filmografia do diretor</div>' + catTagInp('bf_director_filmography', []) + _batchModeToggle('director_filmography') + '</div>' +
+      '<div class="batch-fld"><div class="batch-fld-label">Palavras-chave</div>' + catTagInp('bf_keywords', []) + _batchModeToggle('keywords') + '</div>' +
+      '<div class="batch-fld"><div class="batch-fld-label">Screener URL</div><input class="batch-fld-inp" id="bf_screener"></div>' +
+      '<div class="batch-fld"><div class="batch-fld-label">Email de contato</div><input class="batch-fld-inp" id="bf_contact_email"></div>' +
+      '<div class="batch-fld"><div class="batch-fld-label">Previsão de chegada</div><input class="batch-fld-inp" id="bf_copy_arrival_forecast"></div>' +
       '<div class="batch-fld"><div class="batch-fld-label">Notas sobre a cópia</div><input class="batch-fld-inp" id="bf_copy_notes"></div>';
   } else {
     // Edição em lote do Acervo Técnico – campos de cópia (DCP)
-    return '<div class="batch-fld"><div class="batch-fld-label">Título (copias)</div><input class="batch-fld-inp" id="bf_title"></div>'+
-      '<div class="batch-fld"><div class="batch-fld-label">Idioma</div><input class="batch-fld-inp" id="bf_idioma"></div>'+
-      '<div class="batch-fld"><div class="batch-fld-label">Legendas</div><input class="batch-fld-inp" id="bf_legenda"></div>'+
-      '<div class="batch-fld"><div class="batch-fld-label">VF</div><input class="batch-fld-inp" id="bf_vf"></div>'+
-      '<div class="batch-fld"><div class="batch-fld-label">Lente</div><input class="batch-fld-inp" id="bf_lente"></div>'+
-      '<div class="batch-fld"><div class="batch-fld-label">Som</div><input class="batch-fld-inp" id="bf_som"></div>'+
-      '<div class="batch-fld"><div class="batch-fld-label">Status</div><input class="batch-fld-inp" id="bf_status"></div>'+
-      '<div class="batch-fld"><div class="batch-fld-label">KDM</div><select class="batch-fld-inp" id="bf_kdm"><option value="Não">Não</option><option value="Sim">Sim</option></select></div>'+
-      '<div class="batch-fld"><div class="batch-fld-label">CPL</div><input class="batch-fld-inp" id="bf_cpl"></div>'+
-      '<div class="batch-fld"><div class="batch-fld-label">CPL OV</div><input class="batch-fld-inp" id="bf_cplOV"></div>'+
-      '<div class="batch-fld"><div class="batch-fld-label">Resolução</div><input class="batch-fld-inp" id="bf_resolucao"></div>'+
-      '<div class="batch-fld"><div class="batch-fld-label">FPS</div><input class="batch-fld-inp" id="bf_fps"></div>'+
-      '<div class="batch-fld"><div class="batch-fld-label">Duração (H:MM:SS)</div><input class="batch-fld-inp" id="bf_duracao"></div>'+
-      '<div class="batch-fld"><div class="batch-fld-label">GB</div><input class="batch-fld-inp" id="bf_gb"></div>'+
-      '<div class="batch-fld"><div class="batch-fld-label">Storage / HD</div><input class="batch-fld-inp" id="bf_hd"></div>'+
-      '<div class="batch-fld"><div class="batch-fld-label">DCP Creator</div><input class="batch-fld-inp" id="bf_creator"></div>'+
-      '<div class="batch-fld"><div class="batch-fld-label">DCP UUID</div><input class="batch-fld-inp" id="bf_uuid"></div>'+
-      '<div class="batch-fld"><div class="batch-fld-label">DCP Link</div><input class="batch-fld-inp" id="bf_dcp_link"></div>'+
-      '<div class="batch-fld"><div class="batch-fld-label">File Link</div><input class="batch-fld-inp" id="bf_file_link"></div>'+
-      '<div class="batch-fld"><div class="batch-fld-label">Status Legenda</div><input class="batch-fld-inp" id="bf_col_n"></div>'+
-      '<div class="batch-fld"><div class="batch-fld-label">Acessibilidade</div><input class="batch-fld-inp" id="bf_acess"></div>'+
+    return '<div class="batch-fld"><div class="batch-fld-label">Título (copias)</div><input class="batch-fld-inp" id="bf_title"></div>' +
+      '<div class="batch-fld"><div class="batch-fld-label">Idioma</div><input class="batch-fld-inp" id="bf_idioma"></div>' +
+      '<div class="batch-fld"><div class="batch-fld-label">Legendas</div><input class="batch-fld-inp" id="bf_legenda"></div>' +
+      '<div class="batch-fld"><div class="batch-fld-label">VF</div><input class="batch-fld-inp" id="bf_vf"></div>' +
+      '<div class="batch-fld"><div class="batch-fld-label">Lente</div><input class="batch-fld-inp" id="bf_lente"></div>' +
+      '<div class="batch-fld"><div class="batch-fld-label">Som</div><input class="batch-fld-inp" id="bf_som"></div>' +
+      '<div class="batch-fld"><div class="batch-fld-label">Status</div><input class="batch-fld-inp" id="bf_status"></div>' +
+      '<div class="batch-fld"><div class="batch-fld-label">KDM</div><select class="batch-fld-inp" id="bf_kdm"><option value="Não">Não</option><option value="Sim">Sim</option></select></div>' +
+      '<div class="batch-fld"><div class="batch-fld-label">CPL</div><input class="batch-fld-inp" id="bf_cpl"></div>' +
+      '<div class="batch-fld"><div class="batch-fld-label">CPL OV</div><input class="batch-fld-inp" id="bf_cplOV"></div>' +
+      '<div class="batch-fld"><div class="batch-fld-label">Resolução</div><input class="batch-fld-inp" id="bf_resolucao"></div>' +
+      '<div class="batch-fld"><div class="batch-fld-label">FPS</div><input class="batch-fld-inp" id="bf_fps"></div>' +
+      '<div class="batch-fld"><div class="batch-fld-label">Duração (H:MM:SS)</div><input class="batch-fld-inp" id="bf_duracao"></div>' +
+      '<div class="batch-fld"><div class="batch-fld-label">GB</div><input class="batch-fld-inp" id="bf_gb"></div>' +
+      '<div class="batch-fld"><div class="batch-fld-label">Storage / HD</div><input class="batch-fld-inp" id="bf_hd"></div>' +
+      '<div class="batch-fld"><div class="batch-fld-label">DCP Creator</div><input class="batch-fld-inp" id="bf_creator"></div>' +
+      '<div class="batch-fld"><div class="batch-fld-label">DCP UUID</div><input class="batch-fld-inp" id="bf_uuid"></div>' +
+      '<div class="batch-fld"><div class="batch-fld-label">DCP Link</div><input class="batch-fld-inp" id="bf_dcp_link"></div>' +
+      '<div class="batch-fld"><div class="batch-fld-label">File Link</div><input class="batch-fld-inp" id="bf_file_link"></div>' +
+      '<div class="batch-fld"><div class="batch-fld-label">Status Legenda</div><input class="batch-fld-inp" id="bf_col_n"></div>' +
+      '<div class="batch-fld"><div class="batch-fld-label">Acessibilidade</div><input class="batch-fld-inp" id="bf_acess"></div>' +
       '<div class="batch-fld batch-full"><div class="batch-fld-label">Observações</div><textarea class="batch-fld-inp batch-fld-ta" id="bf_obs"></textarea></div>';
   }
 }
@@ -10286,72 +10287,68 @@ function _bfTags(field){return catGetTags('bf_'+field);}
 function _bfVal(id){var el=document.getElementById('bf_'+id);return el?el.value.trim():'';}
 
 async function executeBatchSave(){
-  if(!window._olgaCatalogo && !window._olgaCopias) return;
-  var sel=_batchSource==='busca'?_buscaBatchSel:_catBatchSel;
-  if(!sel.size)return;
-  var codes=Array.from(sel);
-  var btn=document.getElementById('batchSaveBtn');
-  var prog=document.getElementById('batchProgress');
-  btn.disabled=true;
-  var errors=[];
-  var allChanged={};
+  if (!window._olgaCatalogo && !window._olgaCopias) return;
+  var sel = _batchSource === 'busca' ? _buscaBatchSel : _catBatchSel;
+  if (!sel.size) return;
+  var codes = Array.from(sel);
+  var btn = document.getElementById('batchSaveBtn');
+  var prog = document.getElementById('batchProgress');
+  btn.disabled = true;
+  var errors = [];
+  var allChanged = {};
 
-  if(_batchSource==='catalogo'){
-    // ── Edição em lote do Catálogo ──────────────────────────────
-    var simples=['title_pt','original_title','english_title','year','film_type','content_rating','screener','contact_email','synopsis'];
-    var arrays=['director','genre','countries','production_company','distribution_company','awards','director_filmography','keywords'];
+  if (_batchSource === 'catalogo') {
+    var simples = ['title_pt','original_title','english_title','year','film_type','content_rating','screener','contact_email','synopsis'];
+    var arrays = ['director','genre','countries','production_company','distribution_company','awards','director_filmography','keywords'];
 
-    for(var i=0;i<codes.length;i++){
-      var cod=codes[i];
-      prog.textContent='Processando '+(i+1)+'/'+codes.length+': '+cod;
-      try{
-        var existing=catalogoFilmesMap[cod]||{};
-        var patch={};
-        // Campos simples: só aplica se preenchido
-        simples.forEach(function(f){
-          var v=_bfVal(f);
-          if(!v)return;
-          patch[f]=f==='year'?(parseInt(v)||null):v;
+    for (var i = 0; i < codes.length; i++) {
+      var cod = codes[i];
+      prog.textContent = 'Processando ' + (i + 1) + '/' + codes.length + ': ' + cod;
+      try {
+        var existing = catalogoFilmesMap[cod] || {};
+        var patch = {};
+        simples.forEach(function(f) {
+          var v = _bfVal(f);
+          if (!v) return;
+          patch[f] = f === 'year' ? (parseInt(v) || null) : v;
         });
-        // Campos array
-        arrays.forEach(function(f){
-          var tags=_bfTags(f);
-          if(!tags.length)return;
-          var mode=_getBatchMode(f);
-          if(mode==='add'){
-            var prev=Array.isArray(existing[f])?existing[f]:(existing[f]?[existing[f]]:[]);
-            var merged=prev.slice();
-            tags.forEach(function(t){if(merged.indexOf(t)===-1)merged.push(t);});
-            patch[f]=merged;
-            allChanged[f]={mode:'add',value:tags};
-          }else{
-            patch[f]=tags;
+        arrays.forEach(function(f) {
+          var tags = _bfTags(f);
+          if (!tags.length) return;
+          var mode = _getBatchMode(f);
+          if (mode === 'add') {
+            var prev = Array.isArray(existing[f]) ? existing[f] : (existing[f] ? [existing[f]] : []);
+            var merged = prev.slice();
+            tags.forEach(function(t) { if (merged.indexOf(t) === -1) merged.push(t); });
+            patch[f] = merged;
+            allChanged[f] = { mode: 'add', value: tags };
+          } else {
+            patch[f] = tags;
           }
         });
-        if(!Object.keys(patch).length)continue;
-        var newData=Object.assign({},existing,patch,{festival_code:cod});
-        await window._olgaCatalogo.save(cod,newData);
-        catalogoFilmesMap[cod]=newData;
-        var logFields=Object.assign({},patch,allChanged);
-        if(window._logFirestoreEdit)window._logFirestoreEdit('lote',cod,logFields,'catalogo','filmes');
-      }catch(e){errors.push(cod+': '+e.message);}
+        if (!Object.keys(patch).length) continue;
+        var newData = Object.assign({}, existing, patch, { festival_code: cod });
+        await window._olgaCatalogo.save(cod, newData);
+        catalogoFilmesMap[cod] = newData;
+        var logFields = Object.assign({}, patch, allChanged);
+        if (window._logFirestoreEdit) window._logFirestoreEdit('lote', cod, logFields, 'catalogo', 'filmes');
+      } catch (e) { errors.push(cod + ': ' + e.message); }
     }
-    // Log lote global
-    if(window._logFirestoreEdit){
-      var batchIds=codes;
-      var batchFields=simples.concat(arrays).reduce(function(acc,f){
-        var v=simples.indexOf(f)!==-1?_bfVal(f):_bfTags(f);
-        var hasVal=Array.isArray(v)?v.length>0:!!v;
-        if(hasVal)acc[f]=v;return acc;
-      },{});
-      window._logFirestoreEdit('lote',batchIds,batchFields,'catalogo','filmes');
+    if (window._logFirestoreEdit) {
+      var batchIds = codes;
+      var batchFields = simples.concat(arrays).reduce(function(acc, f) {
+        var v = simples.indexOf(f) !== -1 ? _bfVal(f) : _bfTags(f);
+        var hasVal = Array.isArray(v) ? v.length > 0 : !!v;
+        if (hasVal) acc[f] = v;
+        return acc;
+      }, {});
+      window._logFirestoreEdit('lote', batchIds, batchFields, 'catalogo', 'filmes');
     }
   } else {
-    // ── Edição em lote do Acervo Técnico (copias) ───────────────
-    for(var i=0;i<codes.length;i++){
-      var cod=codes[i];
-      prog.textContent='Processando '+(i+1)+'/'+codes.length+': '+cod;
-      try{
+    for (var i = 0; i < codes.length; i++) {
+      var cod = codes[i];
+      prog.textContent = 'Processando ' + (i + 1) + '/' + codes.length + ': ' + cod;
+      try {
         var patchCopias = {};
         var copiaFields = {
           title: _bfVal('title'),
@@ -10377,26 +10374,19 @@ async function executeBatchSave(){
           accessibility_features: _bfVal('acess'),
           notes: _bfVal('obs')
         };
-        for(var k in copiaFields){
+        for (var k in copiaFields) {
           var v = copiaFields[k];
-          if(v !== '') patchCopias[k] = v;
+          if (v !== '') patchCopias[k] = v;
         }
-
-        // Se não tem evento informado, herda do registro existente
-        if(!patchCopias.event_name){
+        if (!patchCopias.event_name) {
           var existingCopia = filmesMap[cod];
-          if(existingCopia && existingCopia.evento) patchCopias.event_name = existingCopia.evento;
+          if (existingCopia && existingCopia.evento) patchCopias.event_name = existingCopia.evento;
         }
         patchCopias.festival_code = cod;
-
-        if(!Object.keys(patchCopias).length) continue;
-
+        if (!Object.keys(patchCopias).length) continue;
         await window._olgaCopias.save(cod, patchCopias);
-
-        // Atualiza cache local (filmesMap)
         var f = filmesMap[cod];
-        if(f){
-          // Mapeia os nomes dos campos de volta para o formato interno
+        if (f) {
           var fieldMap = {
             title: 'titulo', original_language: 'idioma', dcp_subtitle_code: 'legenda',
             vf_subtitle_code: 'vf', projection_lens: 'lente', audio_format: 'som',
@@ -10407,24 +10397,24 @@ async function executeBatchSave(){
             subtitle_status: 'col_n', accessibility_features: 'acessibilidade',
             notes: 'obs'
           };
-          for(var k in patchCopias){
+          for (var k in patchCopias) {
             var internalKey = fieldMap[k];
-            if(internalKey) f[internalKey] = patchCopias[k];
+            if (internalKey) f[internalKey] = patchCopias[k];
           }
         }
-        if(window._logFirestoreEdit)window._logFirestoreEdit('lote',cod,patchCopias,'acervo','copias');
-      }catch(e){errors.push(cod+': '+e.message);}
+        if (window._logFirestoreEdit) window._logFirestoreEdit('lote', cod, patchCopias, 'acervo', 'copias');
+      } catch (e) { errors.push(cod + ': ' + e.message); }
     }
-    if(window._logFirestoreEdit && !errors.length){
-      window._logFirestoreEdit('lote',codes,{campos:'copias'},'acervo','copias');
+    if (window._logFirestoreEdit && !errors.length) {
+      window._logFirestoreEdit('lote', codes, {campos: 'copias'}, 'acervo', 'copias');
     }
   }
 
-  if(errors.length)prog.textContent='Concluído com erros: '+errors.join('; ');
-  else prog.textContent='Concluído: '+codes.length+' filme'+(codes.length!==1?'s':'')+' atualizados.';
-  btn.disabled=false;
-  if(_batchSource==='busca'){renderBuscaResults();}else{_catRenderResults();}
-  setTimeout(closeBatchModal,1800);
+  if (errors.length) prog.textContent = 'Concluído com erros: ' + errors.join('; ');
+  else prog.textContent = 'Concluído: ' + codes.length + ' filme' + (codes.length !== 1 ? 's' : '') + ' atualizados.';
+  btn.disabled = false;
+  if (_batchSource === 'busca') { renderBuscaResults(); } else { _catRenderResults(); }
+  setTimeout(closeBatchModal, 1800);
 }
 function renderBuscaResults(){
   var re=document.getElementById('busca-results'),be=document.getElementById('buscaEmpty');

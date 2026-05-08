@@ -3284,6 +3284,45 @@ mark{background:rgba(255,186,32,0.28);color:var(--accent);border-radius:2px;padd
 .sess-extras{display:flex;align-items:center;gap:6px;flex-shrink:0;}
 .sess-dur{font-family:var(--mono);font-size:9px;color:var(--text-muted);white-space:nowrap;}
 .sess-ev-tag{font-family:var(--mono);font-size:8px;font-weight:600;letter-spacing:0.06em;padding:2px 7px;border-radius:2px;white-space:nowrap;}
+/* EDIÇÃO EM LOTE */
+.batch-toolbar{grid-column:1/-1;display:flex;align-items:center;gap:8px;padding:8px 0 10px;flex-wrap:wrap;}
+.batch-toolbar-btn{font-family:var(--mono);font-size:9px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;padding:4px 12px;border:1px solid var(--border2);background:transparent;color:var(--text-dim);cursor:pointer;transition:all 0.12s;}
+.batch-toolbar-btn:hover{border-color:var(--accent);color:var(--accent);}
+.batch-toolbar-btn.primary{background:var(--accent);color:var(--on-accent);border-color:var(--accent);}
+.batch-toolbar-btn.primary:hover{opacity:0.88;}
+.batch-toolbar-btn:disabled{opacity:0.35;cursor:default;pointer-events:none;}
+.batch-toolbar-count{font-family:var(--mono);font-size:10px;color:var(--text-muted);margin-left:auto;}
+.batch-cb-wrap{display:flex;align-items:center;position:absolute;top:8px;left:8px;z-index:2;line-height:1;}
+.batch-cb-wrap input[type=checkbox]{width:14px;height:14px;cursor:pointer;accent-color:var(--accent);}
+.film-card{position:relative;}
+.cat-item-wrap{position:relative;display:flex;align-items:stretch;}
+.cat-item-wrap .batch-cb-wrap{position:static;padding:0 6px 0 10px;display:flex;align-items:center;}
+.cat-item-wrap .cat-item{flex:1;}
+/* modal lote */
+#batchModal{display:none;position:fixed;inset:0;z-index:600;background:rgba(0,0,0,0.7);overflow-y:auto;padding:20px;}
+.batch-modal-box{background:var(--surface);border:1px solid var(--border2);max-width:780px;margin:0 auto;display:flex;flex-direction:column;}
+.batch-modal-hdr{display:flex;align-items:center;justify-content:space-between;padding:14px 20px;border-bottom:1px solid var(--border);}
+.batch-modal-title{font-family:var(--mono);font-size:12px;font-weight:700;letter-spacing:0.08em;color:var(--text);}
+.batch-modal-close{background:none;border:none;font-size:18px;color:var(--text-muted);cursor:pointer;line-height:1;padding:0 4px;}
+.batch-modal-body{padding:20px;overflow-y:auto;max-height:70vh;display:grid;grid-template-columns:1fr 1fr;gap:14px 20px;}
+.batch-modal-body .batch-full{grid-column:1/-1;}
+.batch-fld{display:flex;flex-direction:column;gap:4px;}
+.batch-fld-label{font-family:var(--mono);font-size:9px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:var(--text-muted);}
+.batch-fld-inp{font-family:var(--mono);font-size:11px;background:var(--bg);border:1px solid var(--border2);color:var(--text);padding:5px 8px;outline:none;width:100%;box-sizing:border-box;}
+.batch-fld-inp:focus{border-color:var(--accent);}
+.batch-fld-ta{resize:vertical;min-height:64px;font-family:var(--sans);font-size:11px;}
+.batch-mode{display:flex;gap:0;margin-top:3px;}
+.batch-mode label{font-family:var(--mono);font-size:9px;padding:2px 8px;border:1px solid var(--border2);cursor:pointer;color:var(--text-muted);}
+.batch-mode input[type=radio]{display:none;}
+.batch-mode input[type=radio]:checked+label{background:var(--accent);color:var(--on-accent);border-color:var(--accent);}
+.batch-modal-ftr{display:flex;align-items:center;gap:8px;padding:14px 20px;border-top:1px solid var(--border);}
+.batch-progress{font-family:var(--mono);font-size:10px;color:var(--text-muted);flex:1;}
+/* equipe log */
+.log-export-section{margin-top:28px;padding:20px;border:1px solid var(--border);background:var(--surface);}
+.log-export-title{font-family:var(--mono);font-size:10px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:var(--text-muted);margin-bottom:12px;}
+.log-export-row{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;}
+.log-export-inp{font-family:var(--mono);font-size:11px;background:var(--bg);border:1px solid var(--border2);color:var(--text);padding:5px 8px;outline:none;}
+.log-export-inp:focus{border-color:var(--accent);}
 /* VINHETAS */
 #vinhetas-container{padding:0 0 60px;}
 .vinheta-list{max-width:1100px;margin:0 auto;padding:20px 32px 0;}
@@ -3615,7 +3654,7 @@ html[data-theme]:not([data-theme="win98"]){--mono:var(--sans);}
 <script type="module">
   import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
   import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
-  import { getFirestore, collection, doc, getDoc, getDocs, setDoc, deleteDoc, addDoc } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+  import { getFirestore, collection, doc, getDoc, getDocs, setDoc, deleteDoc, addDoc, serverTimestamp, query, where, orderBy } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
 
   const firebaseConfig = {
     apiKey: "AIzaSyDIBhcsqlK3QebTmbWMNqsN_rPPybREj64",
@@ -4280,6 +4319,38 @@ html[data-theme]:not([data-theme="win98"]){--mono:var(--sans);}
       appWrap.style.display = 'none';
     }
   });
+
+  window._logFirestoreEdit = async function(tipo, idAlterado, campos, modulo, entidade) {
+    try {
+      if (!window._olgaUser) return;
+      await addDoc(collection(db, 'logs'), {
+        timestamp: serverTimestamp(),
+        user: window._olgaUser.email || '',
+        tipo: tipo || 'individual',
+        modulo: modulo || '',
+        entidade: entidade || '',
+        id_alterado: idAlterado,
+        campos_alterados: campos || {}
+      });
+    } catch(e) { /* silencioso */ }
+  };
+
+  window._queryLogs = async function(opts) {
+    opts = opts || {};
+    var colRef = collection(db, 'logs');
+    var constraints = [orderBy('timestamp', 'desc')];
+    if (opts.dateFrom) constraints.push(where('timestamp', '>=', new Date(opts.dateFrom)));
+    if (opts.dateTo) {
+      var dt = new Date(opts.dateTo);
+      dt.setDate(dt.getDate() + 1);
+      constraints.push(where('timestamp', '<', dt));
+    }
+    var q = query(colRef, ...constraints);
+    var snap = await getDocs(q);
+    var rows = snap.docs.map(function(d) { return Object.assign({ _id: d.id }, d.data()); });
+    if (opts.user) rows = rows.filter(function(r) { return r.user === opts.user; });
+    return rows;
+  };
 </script>
 </head>
 <body>
@@ -4718,6 +4789,21 @@ html[data-theme]:not([data-theme="win98"]){--mono:var(--sans);}
 
 </div><!-- /main-content -->
 
+<!-- Modal edição em lote -->
+<div id="batchModal">
+  <div class="batch-modal-box">
+    <div class="batch-modal-hdr">
+      <span class="batch-modal-title" id="batchModalTitle">Editar filmes selecionados</span>
+      <button class="batch-modal-close" onclick="closeBatchModal()">×</button>
+    </div>
+    <div class="batch-modal-body" id="batchModalBody"></div>
+    <div class="batch-modal-ftr">
+      <span class="batch-progress" id="batchProgress"></span>
+      <button class="batch-toolbar-btn" onclick="closeBatchModal()">Cancelar</button>
+      <button class="batch-toolbar-btn primary" id="batchSaveBtn" onclick="executeBatchSave()">Salvar alterações</button>
+    </div>
+  </div>
+</div>
 <!-- Hidden area used during grade table print — MUST be direct child of body -->
 <div id="gradePrintArea" style="display:none;"></div>
 <!-- Hidden area used during vinhetas print — MUST be direct child of body -->
@@ -6706,6 +6792,7 @@ async function saveCinemaEdit(){
         var storageGB=g('cemStorageGB');
         var salaFields={venue_name:_cemSala,event_name:evento,server_model:servidor,server_serial:serial,projector_model:projetor,sound_system:som,screen_aspect_ratio:proporcao,seat_count:assentos,cineassist_system:cineassista,notes:obs,screen_height:telaH,screen_width:telaW,storage_gb:storageGB};
         await window._olgaCinemas.saveSala(c2.docId,salaFields);
+        window._logFirestoreEdit&&window._logFirestoreEdit('individual',c2.docId,salaFields,'cinemas','cinemas');
         Object.assign(c2,{evento:evento,servidor:servidor,serial:serial,projetor:projetor,som:som,proporcao:proporcao,assentos:assentos,cineassista:cineassista,obs:obs,tela_h:telaH,tela_w:telaW,storage_gb:storageGB});
         status.className='cem-status ok';status.textContent='Salvo ✓';
         setTimeout(function(){closeCinemaEdit();openCinemaDetail(_cemSala);},700);
@@ -6717,6 +6804,7 @@ async function saveCinemaEdit(){
         var telaH2=g('cemTelaH');var telaW2=g('cemTelaW');
         var fields={venue_name:salaNome,complex_name:complexo,state:estado,address:endereco,kdm_email:g('cemEmailKdm'),mgmt_email:g('cemEmailGer'),event_name:evento,server_model:servidor,server_serial:serial,projector_model:projetor,sound_system:som,screen_aspect_ratio:proporcao,seat_count:assentos,cineassist_system:cineassista,notes:obs,screen_height:telaH2,screen_width:telaW2};
         var newId=await window._olgaCinemas.createSala(fields);
+        window._logFirestoreEdit&&window._logFirestoreEdit('individual',newId,fields,'cinemas','cinemas');
         cinemasArr.push({docId:newId,sala:salaNome,complexo:complexo,estado:estado,endereco:endereco,evento:evento,servidor:servidor,serial:serial,projetor:projetor,som:som,proporcao:proporcao,assentos:assentos,cineassista:cineassista,obs:'',cert_serial_hex:'',cert_serial_dec:'',cert_issuer:'',cert_subject:'',cert_thumbprint:'',cert_filename:'',cert_imported_at:null});
         status.className='cem-status ok';status.textContent='Sala criada ✓';
         setTimeout(function(){closeCinemaEdit();renderCinemas();openCinemaDetail(salaNome);},700);
@@ -7545,10 +7633,12 @@ window.saveGuest=async function(curBookId){
   var data={name:name,event_id:document.getElementById('g_event').value||'',roles:Array.from(document.querySelectorAll('input[name="g_role"]:checked')).map(function(x){return x.value;}),contact:{email:(document.getElementById('g_email').value||'').trim(),phone:(document.getElementById('g_phone').value||'').trim()},notes:(document.getElementById('g_notes').value||'').trim(),updated_at:_recepNow()};
   try{
     var guestId=await window._olgaGuests.save(_recepEditId,data);
+    window._logFirestoreEdit&&window._logFirestoreEdit('individual',_recepEditId||guestId,data,'receptivo','convidados');
     var resolvedId=_recepEditId||guestId;
     if(hotelId){
       var bookData={guest_id:resolvedId,hotel_id:hotelId,status:'reservado',payment_type:'festival',updated_at:_recepNow()};
       await window._olgaBookings.save(curBookId||null,bookData);
+      window._logFirestoreEdit&&window._logFirestoreEdit('individual',curBookId||null,bookData,'receptivo','reservas');
     }
     _recepCloseModal();openRecepSection('convidados');
   }
@@ -7556,7 +7646,7 @@ window.saveGuest=async function(curBookId){
 };
 window.deleteGuest=async function(id){
   if(!confirm('Excluir este convidado e todos os seus registros de voos, hospedagem e transfers?'))return;
-  try{await window._olgaGuests.remove(id);_recepCloseModal();openRecepSection('convidados');}
+  try{await window._olgaGuests.remove(id);window._logFirestoreEdit&&window._logFirestoreEdit('delete',id,{},'receptivo','convidados');_recepCloseModal();openRecepSection('convidados');}
   catch(e){alert('Erro: '+e.message);}
 };
 
@@ -7691,12 +7781,12 @@ window.saveHotel=async function(){
   var name=(document.getElementById('h_name').value||'').trim();
   if(!name){var e=document.getElementById('recepMErr');e.textContent='Nome obrigatório.';e.style.display='block';return;}
   var data={name:name,event_id:document.getElementById('h_event').value||'',address:(document.getElementById('h_address').value||'').trim(),contact:(document.getElementById('h_contact').value||'').trim(),notes:(document.getElementById('h_notes').value||'').trim(),updated_at:_recepNow()};
-  try{await window._olgaHotels.save(_recepEditId,data);_recepCloseModal();openRecepSection('hoteis');}
+  try{await window._olgaHotels.save(_recepEditId,data);window._logFirestoreEdit&&window._logFirestoreEdit('individual',_recepEditId,data,'receptivo','hoteis');_recepCloseModal();openRecepSection('hoteis');}
   catch(err){var e=document.getElementById('recepMErr');e.textContent='Erro: '+err.message;e.style.display='block';}
 };
 window.deleteHotel=async function(id){
   if(!confirm('Excluir este hotel?'))return;
-  try{await window._olgaHotels.remove(id);_recepCloseModal();openRecepSection('hoteis');}
+  try{await window._olgaHotels.remove(id);window._logFirestoreEdit&&window._logFirestoreEdit('delete',id,{},'receptivo','hoteis');_recepCloseModal();openRecepSection('hoteis');}
   catch(e){alert('Erro: '+e.message);}
 };
 window.dupeHotel=function(id){var h=_recepHotels.find(function(x){return x.id===id;});if(h)openHotelModal(null,h.data);};
@@ -7748,12 +7838,12 @@ function openBookingModal(id,guestId,tmplData){
 }
 window.saveBooking=async function(){
   var data={guest_id:_recepParentId||'',hotel_id:document.getElementById('b_hotel').value||'',check_in_date:document.getElementById('b_ci_d').value||'',check_in_time:document.getElementById('b_ci_t').value||'',check_out_date:document.getElementById('b_co_d').value||'',check_out_time:document.getElementById('b_co_t').value||'',room_type:(document.getElementById('b_rtype').value||'').trim(),room_number:(document.getElementById('b_rnum').value||'').trim(),status:document.getElementById('b_status').value,payment_type:document.getElementById('b_pay').value,confirmation_code:(document.getElementById('b_code').value||'').trim(),notes:(document.getElementById('b_notes').value||'').trim(),updated_at:_recepNow()};
-  try{await window._olgaBookings.save(_recepEditId,data);_recepCloseModal();openGuestDetail(_recepParentId);}
+  try{await window._olgaBookings.save(_recepEditId,data);window._logFirestoreEdit&&window._logFirestoreEdit('individual',_recepEditId,data,'receptivo','reservas');_recepCloseModal();openGuestDetail(_recepParentId);}
   catch(err){var e=document.getElementById('recepMErr');e.textContent='Erro: '+err.message;e.style.display='block';}
 };
 window.deleteBooking=async function(id,guestId){
   if(!confirm('Excluir esta reserva?'))return;
-  try{await window._olgaBookings.remove(id);_recepCloseModal();openGuestDetail(guestId||_recepParentId);}
+  try{await window._olgaBookings.remove(id);window._logFirestoreEdit&&window._logFirestoreEdit('delete',id,{},'receptivo','reservas');_recepCloseModal();openGuestDetail(guestId||_recepParentId);}
   catch(e){alert('Erro: '+e.message);}
 };
 window.dupeBooking=function(id,guestId){var b=_recepBookings.find(function(x){return x.id===id;});if(b)openBookingModal(null,guestId||b.data.guest_id,b.data);};
@@ -7824,12 +7914,12 @@ function openVooModal(id,guestId,tmplData){
 }
 window.saveVoo=async function(parentGid){
   var data={guest_id:document.getElementById('v_guest').value||parentGid||'',event_id:document.getElementById('v_event').value||'',type:document.getElementById('v_type').value,flight_number:(document.getElementById('v_num').value||'').trim(),origin:(document.getElementById('v_orig').value||'').trim(),destination:(document.getElementById('v_dest').value||'').trim(),datetime:document.getElementById('v_dt').value,notes:(document.getElementById('v_notes').value||'').trim(),updated_at:_recepNow()};
-  try{await window._olgaFlights.save(_recepEditId,data);_recepCloseModal();if(parentGid)openGuestDetail(parentGid);else openRecepSection('voos');}
+  try{await window._olgaFlights.save(_recepEditId,data);window._logFirestoreEdit&&window._logFirestoreEdit('individual',_recepEditId,data,'receptivo','voos');_recepCloseModal();if(parentGid)openGuestDetail(parentGid);else openRecepSection('voos');}
   catch(err){var e=document.getElementById('recepMErr');e.textContent='Erro: '+err.message;e.style.display='block';}
 };
 window.deleteVoo=async function(id,parentGid){
   if(!confirm('Excluir este voo?'))return;
-  try{await window._olgaFlights.remove(id);_recepCloseModal();if(parentGid)openGuestDetail(parentGid);else openRecepSection('voos');}
+  try{await window._olgaFlights.remove(id);window._logFirestoreEdit&&window._logFirestoreEdit('delete',id,{},'receptivo','voos');_recepCloseModal();if(parentGid)openGuestDetail(parentGid);else openRecepSection('voos');}
   catch(e){alert('Erro: '+e.message);}
 };
 window.dupeVoo=function(id,guestId){var f=_recepFlights.find(function(x){return x.id===id;});if(f)openVooModal(null,guestId||f.data.guest_id,f.data);};
@@ -7912,12 +8002,12 @@ function openTransferModal(id,guestId,tmplData){
 }
 window.saveTransfer=async function(parentGid){
   var data={guest_id:document.getElementById('tr_guest').value||parentGid||'',event_id:document.getElementById('tr_event').value||'',category:document.getElementById('tr_cat').value,vehicle_type:document.getElementById('tr_veh').value,origin:(document.getElementById('tr_orig').value||'').trim(),destination:(document.getElementById('tr_dest').value||'').trim(),datetime:document.getElementById('tr_dt').value,status:document.getElementById('tr_status').value,notes:(document.getElementById('tr_notes').value||'').trim(),updated_at:_recepNow()};
-  try{await window._olgaTransfers.save(_recepEditId,data);_recepCloseModal();if(parentGid)openGuestDetail(parentGid);else openRecepSection('transporte');}
+  try{await window._olgaTransfers.save(_recepEditId,data);window._logFirestoreEdit&&window._logFirestoreEdit('individual',_recepEditId,data,'receptivo','transfers');_recepCloseModal();if(parentGid)openGuestDetail(parentGid);else openRecepSection('transporte');}
   catch(err){var e=document.getElementById('recepMErr');e.textContent='Erro: '+err.message;e.style.display='block';}
 };
 window.deleteTransfer=async function(id,parentGid){
   if(!confirm('Excluir este transfer?'))return;
-  try{await window._olgaTransfers.remove(id);_recepCloseModal();if(parentGid)openGuestDetail(parentGid);else openRecepSection('transporte');}
+  try{await window._olgaTransfers.remove(id);window._logFirestoreEdit&&window._logFirestoreEdit('delete',id,{},'receptivo','transfers');_recepCloseModal();if(parentGid)openGuestDetail(parentGid);else openRecepSection('transporte');}
   catch(e){alert('Erro: '+e.message);}
 };
 window.dupeTransfer=function(id,guestId){var t=_recepTransfers.find(function(x){return x.id===id;});if(t)openTransferModal(null,guestId||t.data.guest_id,t.data);};
@@ -9208,6 +9298,7 @@ async function saveVinhetaModal(){
   var btn=document.getElementById('vinhetaModalSave');btn.disabled=true;btn.textContent='Salvando…';
   try{
     await window._olgaVinhetas.save(code,data);
+    window._logFirestoreEdit&&window._logFirestoreEdit('individual',code,data,'vinhetas','vinhetas');
     await window._olgaLoadFirestore();
     closeVinhetaModal();renderVinhetas();
   }catch(e){_vinhetaErr('Erro: '+e.message);}
@@ -10068,6 +10159,175 @@ function buildSubmostraFilterSection(){
   _buildCheckList(container,items,buscaFilters.submostra,'fpsubmostra_');
 }
 
+/* ── EDIÇÃO EM LOTE ── */
+var _buscaBatchSel=new Set();
+var _catBatchSel=new Set();
+var _batchSource=''; // 'busca' | 'catalogo'
+
+function _batchCanEdit(){return !!(window._olgaCanEdit&&window._olgaCanEdit('catalogo'));}
+
+function _buscaToggleSel(cb){
+  var cod=cb.dataset.codigo;
+  if(cb.checked)_buscaBatchSel.add(cod);else _buscaBatchSel.delete(cod);
+  _updateBuscaBatchToolbar();
+}
+function _buscaSelectAll(){
+  document.querySelectorAll('#busca-results .batch-cb').forEach(function(cb){cb.checked=true;_buscaBatchSel.add(cb.dataset.codigo);});
+  _updateBuscaBatchToolbar();
+}
+function _buscaClearSel(){
+  _buscaBatchSel.clear();
+  document.querySelectorAll('#busca-results .batch-cb').forEach(function(cb){cb.checked=false;});
+  _updateBuscaBatchToolbar();
+}
+function _updateBuscaBatchToolbar(){
+  var btn=document.getElementById('buscaBatchEditBtn');
+  var cnt=document.getElementById('buscaBatchCount');
+  if(btn)btn.style.display=_buscaBatchSel.size>0?'':'none';
+  if(cnt)cnt.textContent=_buscaBatchSel.size>0?_buscaBatchSel.size+' selecionado'+(+_buscaBatchSel.size!==1?'s':''):'';
+}
+
+function _catToggleSel(cb){
+  var cod=cb.dataset.codigo;
+  if(cb.checked)_catBatchSel.add(cod);else _catBatchSel.delete(cod);
+  _updateCatBatchToolbar();
+}
+function _catSelectAll(){
+  document.querySelectorAll('#cat-res-area .batch-cb').forEach(function(cb){cb.checked=true;_catBatchSel.add(cb.dataset.codigo);});
+  _updateCatBatchToolbar();
+}
+function _catClearSel(){
+  _catBatchSel.clear();
+  document.querySelectorAll('#cat-res-area .batch-cb').forEach(function(cb){cb.checked=false;});
+  _updateCatBatchToolbar();
+}
+function _updateCatBatchToolbar(){
+  var btn=document.getElementById('catBatchEditBtn');
+  var cnt=document.getElementById('catBatchCount');
+  if(btn)btn.style.display=_catBatchSel.size>0?'':'none';
+  if(cnt)cnt.textContent=_catBatchSel.size>0?_catBatchSel.size+' selecionado'+(+_catBatchSel.size!==1?'s':''):'';
+}
+
+function openBatchModal(source){
+  _batchSource=source;
+  var sel=source==='busca'?_buscaBatchSel:_catBatchSel;
+  document.getElementById('batchModalTitle').textContent='Editar '+sel.size+' filme'+(sel.size!==1?'s':'')+' selecionado'+(sel.size!==1?'s':'');
+  document.getElementById('batchProgress').textContent='';
+  document.getElementById('batchSaveBtn').disabled=false;
+  document.getElementById('batchModalBody').innerHTML=_buildBatchForm();
+  document.getElementById('batchModal').style.display='block';
+}
+function closeBatchModal(){document.getElementById('batchModal').style.display='none';}
+
+function _batchModeToggle(field){
+  return'<div class="batch-mode">'
+    +'<input type="radio" name="bm_'+field+'" id="bm_'+field+'_rep" value="replace" checked><label for="bm_'+field+'_rep">Substituir</label>'
+    +'<input type="radio" name="bm_'+field+'" id="bm_'+field+'_add" value="add"><label for="bm_'+field+'_add">Adicionar</label>'
+    +'</div>';
+}
+function _buildBatchForm(){
+  function inp(id,label,ph,full){
+    return'<div class="batch-fld'+(full?' batch-full':'')+'"><div class="batch-fld-label">'+label+'</div><input class="batch-fld-inp" id="bf_'+id+'" placeholder="'+ph+'"></div>';
+  }
+  function tagInp(id,label,full){
+    return'<div class="batch-fld'+(full?' batch-full':'')+'"><div class="batch-fld-label">'+label+'</div>'+catTagInp('bf_'+id,[])+_batchModeToggle(id)+'</div>';
+  }
+  function ta(id,label){
+    return'<div class="batch-fld batch-full"><div class="batch-fld-label">'+label+'</div><textarea class="batch-fld-inp batch-fld-ta" id="bf_'+id+'" placeholder="deixe vazio para não alterar"></textarea></div>';
+  }
+  return inp('title_pt','Título PT','deixe vazio para não alterar')
+    +inp('original_title','Título Original','deixe vazio para não alterar')
+    +inp('english_title','Título EN','deixe vazio para não alterar')
+    +inp('year','Ano','deixe vazio para não alterar')
+    +tagInp('director','Direção')
+    +tagInp('genre','Gênero')
+    +tagInp('countries','País')
+    +inp('film_type','Metragem','curta / média / longa')
+    +inp('content_rating','Classificação etária','deixe vazio para não alterar')
+    +ta('synopsis','Sinopse')
+    +tagInp('production_company','Produtora',true)
+    +tagInp('distribution_company','Distribuidora',true)
+    +tagInp('awards','Prêmios',true)
+    +tagInp('director_filmography','Filmografia do diretor',true)
+    +tagInp('keywords','Palavras-chave',true)
+    +inp('screener','Screener URL','deixe vazio para não alterar',true)
+    +inp('contact_email','Email de contato','deixe vazio para não alterar',true);
+}
+
+function _getBatchMode(field){
+  var el=document.querySelector('input[name="bm_'+field+'"]:checked');
+  return el?el.value:'replace';
+}
+function _bfTags(field){return catGetTags('bf_'+field);}
+function _bfVal(id){var el=document.getElementById('bf_'+id);return el?el.value.trim():'';}
+
+async function executeBatchSave(){
+  if(!window._olgaCatalogo)return;
+  var sel=_batchSource==='busca'?_buscaBatchSel:_catBatchSel;
+  if(!sel.size)return;
+  var codes=Array.from(sel);
+  var btn=document.getElementById('batchSaveBtn');
+  var prog=document.getElementById('batchProgress');
+  btn.disabled=true;
+  var errors=[];
+  var allChanged={};
+
+  // Ler campos simples
+  var simples=['title_pt','original_title','english_title','year','film_type','content_rating','screener','contact_email','synopsis'];
+  var arrays=['director','genre','countries','production_company','distribution_company','awards','director_filmography','keywords'];
+
+  for(var i=0;i<codes.length;i++){
+    var cod=codes[i];
+    prog.textContent='Processando '+(i+1)+'/'+codes.length+': '+cod;
+    try{
+      var existing=catalogoFilmesMap[cod]||{};
+      var patch={};
+      // Campos simples: só aplica se preenchido
+      simples.forEach(function(f){
+        var v=_bfVal(f);
+        if(!v)return;
+        patch[f]=f==='year'?(parseInt(v)||null):v;
+      });
+      // Campos array
+      arrays.forEach(function(f){
+        var tags=_bfTags(f);
+        if(!tags.length)return;
+        var mode=_getBatchMode(f);
+        if(mode==='add'){
+          var prev=Array.isArray(existing[f])?existing[f]:(existing[f]?[existing[f]]:[]);
+          var merged=prev.slice();
+          tags.forEach(function(t){if(merged.indexOf(t)===-1)merged.push(t);});
+          patch[f]=merged;
+          allChanged[f]={mode:'add',value:tags};
+        }else{
+          patch[f]=tags;
+        }
+      });
+      if(!Object.keys(patch).length)continue;
+      var newData=Object.assign({},existing,patch,{festival_code:cod});
+      await window._olgaCatalogo.save(cod,newData);
+      catalogoFilmesMap[cod]=newData;
+      var logFields=Object.assign({},patch,allChanged);
+      if(window._logFirestoreEdit)window._logFirestoreEdit('lote',cod,logFields,'catalogo','filmes');
+    }catch(e){errors.push(cod+': '+e.message);}
+  }
+  // Log lote global
+  if(window._logFirestoreEdit){
+    var batchIds=codes;
+    var batchFields=simples.concat(arrays).reduce(function(acc,f){
+      var v=simples.indexOf(f)!==-1?_bfVal(f):_bfTags(f);
+      var hasVal=Array.isArray(v)?v.length>0:!!v;
+      if(hasVal)acc[f]=v;return acc;
+    },{});
+    window._logFirestoreEdit('lote',batchIds,batchFields,'catalogo','filmes');
+  }
+  if(errors.length)prog.textContent='Concluído com erros: '+errors.join('; ');
+  else prog.textContent='Concluído: '+codes.length+' filme'+(codes.length!==1?'s':'')+' atualizados.';
+  btn.disabled=false;
+  if(_batchSource==='busca'){renderBuscaResults();}else{_catRenderResults();}
+  setTimeout(closeBatchModal,1800);
+}
+
 function renderBuscaResults(){
   var re=document.getElementById('busca-results'),be=document.getElementById('buscaEmpty');
   document.getElementById('buscaLoading').style.display='none';
@@ -10109,7 +10369,7 @@ function renderBuscaResults(){
   be.style.display='none';re.style.display='grid';
   filteredFilmes=filtered;
 
-  re.innerHTML=filtered.map(function(f,idx){
+  re.innerHTML=(_batchCanEdit()?'<div class="batch-toolbar" id="buscaBatchToolbar"><button class="batch-toolbar-btn" onclick="_buscaSelectAll()">Sel. todos</button><button class="batch-toolbar-btn" onclick="_buscaClearSel()">Limpar</button><span id="buscaBatchCount" style="font-size:12px;color:var(--text-muted);">0 selecionados</span><button class="batch-toolbar-btn primary" id="buscaBatchEditBtn" style="display:none" onclick="openBatchModal(\'busca\')">Editar selecionados</button></div>':'')+filtered.map(function(f,idx){
     var col=eventColors[f.evento]||null;
     var cpl=clean(f.cpl),obs=clean(f.obs),vf=clean(f.vf),leg=clean(f.legenda);
     var kdm=(f.kdm||'').toLowerCase()==='sim';
@@ -10128,6 +10388,7 @@ function renderBuscaResults(){
     var sessRow=sess.length?'<div class="card-sessions"><span class="sessions-label">Sessões</span>'+sess.map(function(s){return'<span class="session-tag" onclick="goToFicha(\''+s.replace(/'/g,"\\'")+'\')" title="Abrir ficha: '+s.replace(/"/g,'&quot;')+'">'+s+'</span>';}).join('')+'</div>':'';
 
     return'<div class="film-card" id="bcard-'+idx+'" style="border-left-color:'+(col?col.bg:'var(--border)')+'">'+
+      (_batchCanEdit()?'<label class="batch-cb-wrap" onclick="event.stopPropagation()"><input type="checkbox" class="batch-cb" data-codigo="'+f.codigo.replace(/"/g,'&quot;')+'" onchange="_buscaToggleSel(this)"'+(_buscaBatchSel.has(f.codigo)?' checked':'')+'/></label>':'')+
       '<div>'+
         '<div class="card-main">'+
           '<div class="card-top">'+
@@ -11114,14 +11375,14 @@ async function saveProgProgramModal(){
   };
   if(!data.name){_progProgramErr('Nome obrigatório.');return;}
   var btn=document.getElementById('progProgramModalSave');btn.disabled=true;btn.textContent='Salvando…';
-  try{await window._olgaPrograms.save(id,data);_progData.programs=await window._olgaPrograms.list();closeProgProgramModal();_progRender();}
+  try{await window._olgaPrograms.save(id,data);window._logFirestoreEdit&&window._logFirestoreEdit('individual',id,data,'programacao','programs');_progData.programs=await window._olgaPrograms.list();closeProgProgramModal();_progRender();}
   catch(e){_progProgramErr('Erro: '+e.message);}
   finally{btn.disabled=false;btn.textContent='Salvar';}
 }
 function _progProgramErr(msg){var el=document.getElementById('progProgramModalErr');el.textContent=msg;el.style.display='block';}
 async function deleteProgram(id,label){
   if(!confirm('Excluir a mostra "'+label+'"?\nAs sessões vinculadas perderão o vínculo.'))return;
-  try{await window._olgaPrograms.remove(id);_progData.programs=await window._olgaPrograms.list();_progRender();}
+  try{await window._olgaPrograms.remove(id);window._logFirestoreEdit&&window._logFirestoreEdit('delete',id,{},'programacao','programs');_progData.programs=await window._olgaPrograms.list();_progRender();}
   catch(e){alert('Erro: '+e.message);}
 }
 async function duplicateProgram(id){
@@ -11514,7 +11775,7 @@ async function saveProgSessaoModal(){
       available_accessibility:ex.acessibilidades||'',
       total_audience:ex.publico||'',total_revenue:ex.renda||'',notes:ex.notes||''};
     var btn=document.getElementById('progSessaoModalSave');btn.disabled=true;btn.textContent='Salvando…';
-    try{await window._olgaSessoes.save(nome,vinData);closeProgSessaoModal();await window._olgaLoadFirestore();if(_progSessaoContextProgramId){_progView={level:'program',programId:_progSessaoContextProgramId,sessaoNome:null};}_progRender();}
+    try{await window._olgaSessoes.save(nome,vinData);window._logFirestoreEdit&&window._logFirestoreEdit('individual',nome,vinData,'programacao','sessoes');closeProgSessaoModal();await window._olgaLoadFirestore();if(_progSessaoContextProgramId){_progView={level:'program',programId:_progSessaoContextProgramId,sessaoNome:null};}_progRender();}
     catch(e){_progSessErr('Erro: '+e.message);}
     finally{btn.disabled=false;btn.textContent='Salvar';}
     return;
@@ -11548,6 +11809,7 @@ async function saveProgSessaoModal(){
   var btn=document.getElementById('progSessaoModalSave');btn.disabled=true;btn.textContent='Salvando…';
   try{
     await window._olgaSessoes.save(nome,data);
+    window._logFirestoreEdit&&window._logFirestoreEdit('individual',nome,data,'programacao','sessoes');
     closeProgSessaoModal();
     await window._olgaLoadFirestore();
     // Voltar para a view do program onde a sessão foi criada/editada
@@ -11565,6 +11827,7 @@ async function deleteProgSessao(nome){
   if(!confirm('Excluir a sessão "'+label+'"?\nEsta ação não pode ser desfeita.'))return;
   try{
     await window._olgaSessoes.remove(nome);
+    window._logFirestoreEdit&&window._logFirestoreEdit('delete',nome,{},'programacao','sessoes');
     await window._olgaLoadFirestore();
     _progRender();
   }catch(e){alert('Erro ao excluir: '+e.message);}
@@ -11760,6 +12023,19 @@ function renderEquipeTable(){
     '</table>';
   }
   var btnStyle='font-family:var(--mono);font-size:9px;font-weight:600;letter-spacing:0.07em;text-transform:uppercase;padding:4px 12px;background:transparent;border:1px solid var(--border);color:var(--text-dim);cursor:pointer;margin-bottom:12px;';
+  var isAdmin=window._olgaUser&&window._olgaUser.role==='admin';
+  var logHtml=isAdmin?(
+    '<div class="log-export-section">'+
+    '<div class="log-export-title">Exportar log de alterações</div>'+
+    '<div class="log-export-row">'+
+      '<div><label style="font-family:var(--mono);font-size:9px;color:var(--text-muted);display:block;margin-bottom:3px;">De</label><input id="logExportFrom" type="date" class="log-export-inp"></div>'+
+      '<div><label style="font-family:var(--mono);font-size:9px;color:var(--text-muted);display:block;margin-bottom:3px;">Até</label><input id="logExportTo" type="date" class="log-export-inp"></div>'+
+      '<div><label style="font-family:var(--mono);font-size:9px;color:var(--text-muted);display:block;margin-bottom:3px;">Usuário (opcional)</label><input id="logExportUser" type="text" class="log-export-inp" placeholder="email@..." style="min-width:180px;"></div>'+
+      '<button onclick="exportLogCSV()" style="'+btnStyle+'color:var(--accent);border-color:rgba(255,186,32,0.35);align-self:flex-end;margin-bottom:0;">Exportar CSV</button>'+
+    '</div>'+
+    '<div id="logExportMsg" style="font-family:var(--mono);font-size:10px;color:var(--text-muted);margin-top:8px;"></div>'+
+    '</div>'
+  ):'';
   el.innerHTML=
     secHdr('Usuários')+
     '<div style="text-align:right;margin-bottom:8px;"><button onclick="openEquipeNewUser()" style="'+btnStyle+'color:var(--accent);border-color:rgba(255,186,32,0.35);">+ Novo usuário</button></div>'+
@@ -11767,9 +12043,37 @@ function renderEquipeTable(){
     '<div style="margin-top:32px;">'+secHdr('Templates de papel')+
     '<div style="text-align:right;margin-bottom:8px;"><button onclick="openTemplateEdit(null)" style="'+btnStyle+'color:var(--accent);border-color:rgba(255,186,32,0.35);">+ Novo template</button></div>'+
     tplHtml+'</div>'+
-    '<div style="margin-top:32px;">'+secHdr('Eventos')+evHtml+'</div>';
+    '<div style="margin-top:32px;">'+secHdr('Eventos')+evHtml+'</div>'+
+    logHtml;
 }
 
+async function exportLogCSV(){
+  var msg=document.getElementById('logExportMsg');
+  if(msg)msg.textContent='Carregando…';
+  var from=(document.getElementById('logExportFrom')||{}).value||'';
+  var to=(document.getElementById('logExportTo')||{}).value||'';
+  var user=(document.getElementById('logExportUser')||{}).value.trim()||'';
+  try{
+    if(!window._queryLogs){if(msg)msg.textContent='API não disponível.';return;}
+    var rows=await window._queryLogs({dateFrom:from||undefined,dateTo:to||undefined,user:user||undefined});
+    if(!rows.length){if(msg)msg.textContent='Nenhum registro encontrado.';return;}
+    function csvEsc(v){var s=String(v===null||v===undefined?'':v);return s.includes(',')||s.includes('"')||s.includes('\n')?'"'+s.replace(/"/g,'""')+'"':s;}
+    function fmtTs(ts){if(!ts)return'';if(ts.toDate){var d=ts.toDate();return d.toISOString().replace('T',' ').slice(0,19);}return String(ts);}
+    var header=['timestamp','usuario','tipo','modulo','entidade','id_alterado','campos_alterados'];
+    var lines=[header.join(',')].concat(rows.map(function(r){
+      var campos='';try{campos=JSON.stringify(r.campos_alterados||{});}catch(e){}
+      return[fmtTs(r.timestamp),r.user||'',r.tipo||'',r.modulo||'',r.entidade||'',r.id_alterado||'',campos].map(csvEsc).join(',');
+    }));
+    var csv=lines.join('\r\n');
+    var blob=new Blob(['﻿'+csv],{type:'text/csv;charset=utf-8;'});
+    var url=URL.createObjectURL(blob);
+    var a=document.createElement('a');
+    a.href=url;a.download='olga-logs-'+(from||'all')+'.csv';
+    document.body.appendChild(a);a.click();document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    if(msg)msg.textContent=rows.length+' registro'+(rows.length!==1?'s':'')+' exportado'+(rows.length!==1?'s':'')+'.';
+  }catch(e){if(msg)msg.textContent='Erro: '+e.message;}
+}
 function _equipeTh(){return 'font-family:var(--mono);font-size:9px;font-weight:600;letter-spacing:0.15em;text-transform:uppercase;color:var(--accent);padding:9px 12px;text-align:left;white-space:nowrap;';}
 function _equipeBtn(t){
   var base='font-family:var(--mono);font-size:9px;font-weight:600;letter-spacing:0.07em;text-transform:uppercase;padding:3px 9px;border:1px solid;border-radius:2px;background:transparent;cursor:pointer;';
@@ -11821,6 +12125,7 @@ async function saveEvento(){
   if(saveBtn){saveBtn.disabled=true;saveBtn.textContent='Salvando…';}
   try{
     await window._olgaEventos.save(id,data);
+    window._logFirestoreEdit&&window._logFirestoreEdit('individual',id,data,'eventos','eventos');
     closeEventoModal();
     renderEquipe();
   }catch(e){
@@ -11832,7 +12137,7 @@ async function saveEvento(){
 }
 async function deleteEvento(id,label){
   if(!confirm('Excluir o evento "'+label+'"?\n\nOs filmes que já carregam esse código de evento na planilha continuarão exibindo-o.'))return;
-  try{await window._olgaEventos.remove(id);renderEquipe();}
+  try{await window._olgaEventos.remove(id);window._logFirestoreEdit&&window._logFirestoreEdit('delete',id,{},'eventos','eventos');renderEquipe();}
   catch(e){alert('Erro ao excluir: '+e.message);}
 }
 async function importarEventosExistentes(){
@@ -12071,6 +12376,7 @@ window.saveTemplate=async function(){
   btn.disabled=true;btn.textContent='Salvando…';
   try{
     await window._olgaTemplates.save(slug,data);
+    window._logFirestoreEdit&&window._logFirestoreEdit('individual',slug,data,'equipe','templates');
     document.getElementById('tplModal').style.display='none';
     renderEquipe();
   }catch(e){errEl.textContent='Erro: '+e.message;errEl.style.display='block';}
@@ -12109,7 +12415,7 @@ function openTemplateDup(id){
 
 function openTemplateDelete(id){
   if(!confirm('Excluir template "'+id+'"? Usuários que usam este template manterão seus dados mas ficarão como "personalizado".'))return;
-  window._olgaTemplates.remove(id).then(renderEquipe).catch(function(e){alert('Erro: '+e.message);});
+  window._olgaTemplates.remove(id).then(function(){window._logFirestoreEdit&&window._logFirestoreEdit('delete',id,{},'equipe','templates');renderEquipe();}).catch(function(e){alert('Erro: '+e.message);});
 }
 
 /* ── Quick-assign template ─────────────────────────────────────── */
@@ -12217,6 +12523,7 @@ window.saveEquipeUser=async function(){
   btn.disabled=true;btn.textContent='Salvando…';
   try{
     await window._olgaUsuarios.save(email,data);
+    window._logFirestoreEdit&&window._logFirestoreEdit('individual',email,data,'equipe','usuarios');
     closeEquipeModal();
     renderEquipe();
   }catch(e){errEl.textContent='Erro ao salvar: '+e.message;errEl.style.display='block';}
@@ -12233,6 +12540,7 @@ window.confirmEquipeDelete=async function(){
   btn.disabled=true;btn.textContent='Excluindo…';
   try{
     await window._olgaUsuarios.remove(_equipeDeleteId);
+    window._logFirestoreEdit&&window._logFirestoreEdit('delete',_equipeDeleteId,{},'equipe','usuarios');
     document.getElementById('equipeDeleteModal').style.display='none';
     renderEquipe();
   }catch(e){alert('Erro ao excluir: '+e.message);}
@@ -12389,7 +12697,9 @@ function _catBuildCards(films){
     var kdmSpan=f.kdm&&f.kdm.toString().toUpperCase()==='SIM'?'<span class="cat-item-kdm">KDM</span>':'<span></span>';
     var selSpan=meta.selecao?'<span class="cat-item-status '+(selCls[meta.selecao]||'')+'" style="text-transform:uppercase;letter-spacing:0.05em;">'+meta.selecao+'</span>':'<span></span>';
     var statusSpan=f.status?'<span class="cat-item-status '+sCls+'">'+f.status+'</span>':'<span></span>';
-    html+='<button class="cat-item'+(hasMeta?' has-meta':'')+'" data-cod="'+f.codigo.replace(/"/g,'&quot;')+'" onclick="openCatDetail(this.dataset.cod)">'
+    html+=(_batchCanEdit()?'<div class="cat-item-wrap">':'')
+      +(_batchCanEdit()?'<label class="batch-cb-wrap" onclick="event.stopPropagation()"><input type="checkbox" class="batch-cb" data-codigo="'+f.codigo.replace(/"/g,'&quot;')+'" onchange="_catToggleSel(this)"'+(_catBatchSel.has(f.codigo)?' checked':'')+'/></label>':'')
+      +'<button class="cat-item'+(hasMeta?' has-meta':'')+'" data-cod="'+f.codigo.replace(/"/g,'&quot;')+'" onclick="openCatDetail(this.dataset.cod)">'
       +'<span class="cat-item-code">'+f.codigo+'</span>'
       +evSpan
       +'<span class="cat-item-title">'+(title||'')+'</span>'
@@ -12398,7 +12708,8 @@ function _catBuildCards(films){
       +kdmSpan
       +selSpan
       +statusSpan
-    +'</button>';
+    +'</button>'
+    +(_batchCanEdit()?'</div>':'');
   });
   return html+'</div>';
 }
@@ -12496,7 +12807,7 @@ function _catRenderResults(){
   }
   results.sort(function(a,b){var ma=catalogoFilmesMap[a.codigo]||{},mb=catalogoFilmesMap[b.codigo]||{};return(ma.title||a.titulo||a.codigo).localeCompare((mb.title||b.titulo||b.codigo),'pt-BR',{sensitivity:'base'});});
   var rc=document.getElementById('catResultCount');if(rc)rc.textContent=results.length+' título'+(results.length!==1?'s':'');
-  resEl.innerHTML='<div class="cat-res-hdr"><span class="cat-res-count">'+results.length+' título'+(results.length!==1?'s':'')+'</span></div>'+_catBuildCards(results);
+  resEl.innerHTML='<div class="cat-res-hdr"><span class="cat-res-count">'+results.length+' título'+(results.length!==1?'s':'')+'</span></div>'+(_batchCanEdit()?'<div class="batch-toolbar" id="catBatchToolbar"><button class="batch-toolbar-btn" onclick="_catSelectAll()">Sel. todos</button><button class="batch-toolbar-btn" onclick="_catClearSel()">Limpar</button><span id="catBatchCount" style="font-size:12px;color:var(--text-muted);">0 selecionados</span><button class="batch-toolbar-btn primary" id="catBatchEditBtn" style="display:none" onclick="openBatchModal(\'catalogo\')">Editar selecionados</button></div>':'')+_catBuildCards(results);
   // Eventos sem filmes (apenas em catShowAll)
   if(_catShowAll){
     var evComFilmes=new Set(results.map(function(f){return f.evento||'';}));
@@ -12811,6 +13122,7 @@ async function doSaveCat(){
             cast:catGetTags('crew_cast')}
     };
     await window._olgaCatalogo.save(_catCode,data);
+    window._logFirestoreEdit&&window._logFirestoreEdit('individual',_catCode,data,'catalogo','filmes');
     catalogoFilmesMap[_catCode]=data;_catEditing=false;
     if(msg){msg.className='cat-msg ok';msg.textContent='Salvo ✓';}
     setTimeout(function(){renderCatDetail();},700);
@@ -12833,6 +13145,7 @@ async function deleteCatFilm(codigo){
   if(!confirm('Excluir o filme "'+codigo+'" do Catálogo e do Acervo Técnico?\n\nEsta ação não pode ser desfeita.'))return;
   try{
     await window._olgaCatalogo.remove(codigo);
+    window._logFirestoreEdit&&window._logFirestoreEdit('delete',codigo,{},'catalogo','filmes');
     if(window._olgaCopias&&filmesMap[codigo])await window._olgaCopias.remove(codigo);
     delete catalogoFilmesMap[codigo];
     _catView='search';_catCode=null;_catEditing=false;
@@ -13175,6 +13488,7 @@ async function doSaveAcervoEdit(){
   };
   try{
     await window._olgaCopias.save(f.codigo,data);
+    window._logFirestoreEdit&&window._logFirestoreEdit('individual',f.codigo,data,'acervo','copias');
     // Atualizar memória
     var m=filmesMap[f.codigo];
     if(m){

@@ -4451,38 +4451,36 @@ html[data-theme]:not([data-theme="win98"]){--mono:var(--sans);}
   <button class="print-btn" onclick="openAcervoRelatorio()" style="margin-left:6px;">⎙ Relatório</button>
 </div>
 <div id="filterPanel">
-  <div class="fp-header">
-    <div>
-      <span class="fp-title">Filtros avançados</span>
-      <div class="fp-hint">1 clique = incluir · 2 cliques = excluir · 3 cliques = limpar</div>
-    </div>
-    <button class="fp-clear" id="fpClearBtn" onclick="clearAllBuscaFilters()">✕ Limpar todos</button>
-  </div>
-  <div class="fp-sections">
-    <div class="fp-section">
+  <div class="fp-sections" style="flex-direction:column; gap:0;">
+  <!-- PRIMEIRA LINHA -->
+  <div style="display:flex; flex-wrap:nowrap; gap:0; width:100%;">
+    <div class="fp-section" style="flex:1; min-width:0;">
       <div class="fp-section-title">Por valor</div>
       <div class="fp-groups" id="fpNormalGroups"></div>
     </div>
-    <div class="fp-section">
+    <div class="fp-section" style="flex:1; min-width:0;">
       <div class="fp-section-title">Preenchimento</div>
       <div class="fp-groups" id="fpBinaryGroups"></div>
     </div>
-    <div class="fp-section">
-    <div class="fp-section-title">Intervalo</div>
-    <div id="fpRangeGroups"></div>
-  </div>
-    <div class="fp-section" style="margin-top:16px;">
-    <div class="fp-section-title">Mostra</div>
-    <div id="fpMostraGroup"></div>
-  </div>
-  <div class="fp-section">
-    <div class="fp-section-title">Submostra</div>
-    <div id="fpSubmostraGroup"></div>
+    <div class="fp-section" style="flex:1; min-width:0; border-right:none;">
+      <div class="fp-section-title">Intervalo</div>
+      <div id="fpRangeGroups"></div>
     </div>
-  <div class="fp-section">
-    <div class="fp-section-title">Sessão</div>
-    <div id="fpSessaoGroup"></div>
   </div>
+  <!-- SEGUNDA LINHA -->
+  <div style="display:flex; flex-wrap:nowrap; gap:0; width:100%; margin-top:16px;">
+    <div class="fp-section" style="flex:1; min-width:0;">
+      <div class="fp-section-title">Sessão</div>
+      <div id="fpSessaoGroup"></div>
+    </div>
+    <div class="fp-section" style="flex:1; min-width:0;">
+      <div class="fp-section-title">Mostra</div>
+      <div id="fpMostraGroup"></div>
+    </div>
+    <div class="fp-section" style="flex:1; min-width:0; border-right:none;">
+      <div class="fp-section-title">Submostra</div>
+      <div id="fpSubmostraGroup"></div>
+    </div>
   </div>
 </div>
 <div class="mode-bar hidden" id="barIngest">

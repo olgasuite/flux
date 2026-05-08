@@ -4459,29 +4459,31 @@ html[data-theme]:not([data-theme="win98"]){--mono:var(--sans);}
     <button class="fp-clear" id="fpClearBtn" onclick="clearAllBuscaFilters()">✕ Limpar todos</button>
   </div>
   <div class="fp-sections">
-    <div class="fp-section">
-      <div class="fp-section-title">Por valor</div>
-      <div class="fp-groups" id="fpNormalGroups"></div>
-    </div>
-    <div class="fp-section">
-      <div class="fp-section-title">Preenchimento</div>
-      <div class="fp-groups" id="fpBinaryGroups"></div>
-    </div>
-    <div class="fp-section">
-      <div class="fp-section-title">Sessão</div>
-      <div id="fpSessaoGroup"></div>
-    </div>
-    <div class="fp-section">
-      <div class="fp-section-title">Mostra</div>
-      <div id="fpMostraGroup"></div>
-    </div>
-    <div class="fp-section">
-      <div class="fp-section-title">Submostra</div>
-      <div id="fpSubmostraGroup"></div>
-    </div>
-    <div class="fp-section">
-      <div class="fp-section-title">Intervalo</div>
-      <div id="fpRangeGroups"></div>
+    <!-- PRIMEIRA LINHA -->
+  <div class="fp-section">
+    <div class="fp-section-title">Por valor</div>
+    <div class="fp-groups" id="fpNormalGroups"></div>
+  </div>
+  <div class="fp-section">
+    <div class="fp-section-title">Preenchimento</div>
+    <div class="fp-groups" id="fpBinaryGroups"></div>
+  </div>
+  <div class="fp-section">
+    <div class="fp-section-title">Intervalo</div>
+    <div id="fpRangeGroups"></div>
+  </div>
+  <!-- SEGUNDA LINHA (quebra visual com margin-top) -->
+  <div class="fp-section" style="margin-top:16px;">
+    <div class="fp-section-title">Sessão</div>
+    <div id="fpSessaoGroup"></div>
+  </div>
+  <div class="fp-section">
+    <div class="fp-section-title">Mostra</div>
+    <div id="fpMostraGroup"></div>
+  </div>
+  <div class="fp-section">
+    <div class="fp-section-title">Submostra</div>
+    <div id="fpSubmostraGroup"></div>
     </div>
   </div>
 </div>

@@ -1387,9 +1387,10 @@ mark{background:rgba(255,186,32,0.28);color:var(--accent);border-radius:2px;padd
 .fp-clear{font-family:var(--mono);font-size:9px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;padding:3px 11px;border:1px solid rgba(232,80,32,0.35);background:transparent;color:#ff8060;cursor:pointer;transition:background 0.12s;display:none;}
 .fp-clear:hover{background:rgba(232,80,32,0.1);}
 .fp-clear.visible{display:inline-block;}
-.fp-sections{display:flex;gap:0;flex-wrap:wrap;}
-.fp-section{flex:1;min-width:260px;padding-right:28px;margin-right:28px;border-right:1px solid var(--border);}
-.fp-section:last-child{border-right:none;padding-right:0;margin-right:0;}
+.fp-sections{display:grid;grid-template-columns:1fr 1fr 1fr;grid-template-rows:auto auto;gap:0 1px;background:var(--border);}
+.fp-section{background:var(--surface);padding:12px 20px;border:none;min-width:0;}
+.fp-section:last-child{border-right:none;padding-right:20px;margin-right:0;}
+.fp-section:nth-child(4),.fp-section:nth-child(5),.fp-section:nth-child(6){border-top:1px solid var(--border);}
 .fp-section-title{font-family:var(--mono);font-size:8px;font-weight:600;letter-spacing:0.2em;text-transform:uppercase;color:var(--accent);margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid var(--border);}
 .fp-groups{display:flex;flex-direction:column;gap:2px;}
 .fp-group{display:flex;flex-direction:column;gap:0;}
@@ -4468,8 +4469,8 @@ html[data-theme]:not([data-theme="win98"]){--mono:var(--sans);}
       <div class="fp-groups" id="fpBinaryGroups"></div>
     </div>
     <div class="fp-section">
-      <div class="fp-section-title">Sessão</div>
-      <div id="fpSessaoGroup"></div>
+      <div class="fp-section-title">Intervalo</div>
+      <div id="fpRangeGroups"></div>
     </div>
     <div class="fp-section">
       <div class="fp-section-title">Mostra</div>
@@ -4480,8 +4481,8 @@ html[data-theme]:not([data-theme="win98"]){--mono:var(--sans);}
       <div id="fpSubmostraGroup"></div>
     </div>
     <div class="fp-section">
-      <div class="fp-section-title">Intervalo</div>
-      <div id="fpRangeGroups"></div>
+      <div class="fp-section-title">Sessão</div>
+      <div id="fpSessaoGroup"></div>
     </div>
   </div>
 </div>

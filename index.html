@@ -10239,6 +10239,10 @@ function _buildBatchForm(){
   function ta(id,label){
     return'<div class="batch-fld batch-full"><div class="batch-fld-label">'+label+'</div><textarea class="batch-fld-inp batch-fld-ta" id="bf_'+id+'" placeholder="deixe vazio para não alterar"></textarea></div>';
   }
+  function sel(id,label,opts){
+    var o=opts.map(function(v){return'<option value="'+v+'">'+v+'</option>';}).join('');
+    return'<div class="batch-fld"><div class="batch-fld-label">'+label+'</div><select class="batch-fld-inp" id="bf_'+id+'"><option value="">— não alterar</option>'+o+'</select></div>';
+  }
   return inp('title_pt','Título PT','deixe vazio para não alterar')
     +inp('original_title','Título Original','deixe vazio para não alterar')
     +inp('english_title','Título EN','deixe vazio para não alterar')
@@ -10248,6 +10252,7 @@ function _buildBatchForm(){
     +tagInp('countries','País')
     +inp('film_type','Metragem','curta / média / longa')
     +inp('content_rating','Classificação etária','deixe vazio para não alterar')
+    +sel('selecao','Seleção',['FEST','NÃO FEST','SUPLENTE','CONVIDADO','VISIONAMENTO'])
     +ta('synopsis','Sinopse')
     +tagInp('production_company','Produtora',true)
     +tagInp('distribution_company','Distribuidora',true)
@@ -10277,7 +10282,7 @@ async function executeBatchSave(){
   var allChanged={};
 
   // Ler campos simples
-  var simples=['title_pt','original_title','english_title','year','film_type','content_rating','screener','contact_email','synopsis'];
+  var simples=['title_pt','original_title','english_title','year','film_type','content_rating','selecao','screener','contact_email','synopsis'];
   var arrays=['director','genre','countries','production_company','distribution_company','awards','director_filmography','keywords'];
 
   for(var i=0;i<codes.length;i++){

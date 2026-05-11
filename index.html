@@ -11249,7 +11249,7 @@ function renderDash(){
   html+=colBlock('controle','Controle de filmes',ctrlBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 11/05/2026 às 12:30';
+  var sysUpdate='última atualização do sistema · 11/05/2026 às 16:30';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -13377,7 +13377,7 @@ function renderCatDetail(){
   html+='<button class="cat-back" onclick="'+(_catEditing?'_catConfirmLeave(cancelCatEdit)':'renderCatalogo()')+'">← Catálogo</button>';
   var acervoBtn='<button class="cat-card-btn" style="margin-left:0;" onclick="goToBuscaCod(\''+_catCode.replace(/'/g,"\\'")+'\')">Ver no Acervo Técnico</button>';
   if(canEdit&&!_catEditing)
-    html+='<div class="cat-actions">'+acervoBtn+'<button class="cat-edit-btn" onclick="duplicateCatFilm(\''+_catCode.replace(/\'/g,"\\\'")+'\')">⧉ Duplicar</button><button class="cat-edit-btn" onclick="startCatEdit()">✎ Editar</button><button class="cat-edit-btn" style="color:var(--warn);border-color:var(--warn);" onclick="deleteCatFilm(\''+_catCode.replace(/\'/g,"\\\'")+'\')">× Excluir</button></div>';
+    html+='<div class="cat-actions">'+acervoBtn+'<button class="cat-edit-btn" onclick="importFromTMDB(\''+_catCode.replace(/'/g,"\\'")+'\',this)">↓ TMDB</button><button class="cat-edit-btn" onclick="duplicateCatFilm(\''+_catCode.replace(/\'/g,"\\\'")+'\')">⧉ Duplicar</button><button class="cat-edit-btn" onclick="startCatEdit()">✎ Editar</button><button class="cat-edit-btn" style="color:var(--warn);border-color:var(--warn);" onclick="deleteCatFilm(\''+_catCode.replace(/\'/g,"\\\'")+'\')">× Excluir</button></div>';
   else if(_catEditing)
     html+='<div class="cat-actions"><span class="cat-msg" id="catSaveMsg"></span><button class="cat-cancel-btn" onclick="_catConfirmLeave(cancelCatEdit)">Cancelar</button><button class="cat-save-btn" onclick="doSaveCat()">Salvar</button></div>';
   else
@@ -13617,6 +13617,7 @@ function renderCatCreate(){
       +'<div style="font-family:var(--mono);font-size:9px;color:var(--text-muted);margin-top:3px;">Após a criação do filme esse código não pode ser alterado.</div>'
     )
     +catFld('Nome no sistema *','<input class="cat-input" id="catf_system_name" placeholder="Atribua um nome para circulação interna — esse campo não pode ser alterado">')
+    +catFld('ID no TMDB <span style="font-weight:400;opacity:0.6;">(opcional)</span>','<input class="cat-input" id="catf_tmdb_id" placeholder="Ex: 155 · preenche títulos, direção, sinopse, gênero e país automaticamente">')
   );
   // Campos de copias (acervo técnico) — só na criação
   html+=catBlock('Acervo Técnico',
@@ -13761,6 +13762,22 @@ async function doCreateFilm(){
       cast:catGetTags('crew_cast')
     }
   };
+  var tmdbIdVal=(document.getElementById('catf_tmdb_id')||{value:''}).value.trim();
+  if(tmdbIdVal){
+    if(msg){msg.className='cat-msg';msg.textContent='Buscando dados no TMDB…';}
+    try{
+      var td=await fetchTMDBMovie(tmdbIdVal);
+      if(td.title_pt&&!catalogData.title_pt)catalogData.title_pt=td.title_pt;
+      if(td.original_title&&!catalogData.original_title)catalogData.original_title=td.original_title;
+      if(td.english_title&&!catalogData.english_title)catalogData.english_title=td.english_title;
+      if(td.director&&td.director.length&&!catalogData.director.length)catalogData.director=td.director;
+      if(td.year&&!catalogData.year)catalogData.year=td.year;
+      if(td.countries&&td.countries.length&&!catalogData.countries.length)catalogData.countries=td.countries;
+      if(td.genre&&td.genre.length&&!catalogData.genre.length)catalogData.genre=td.genre;
+      if(td.synopsis&&!catalogData.synopsis)catalogData.synopsis=td.synopsis;
+    }catch(tmdbErr){console.warn('TMDB:',tmdbErr);}
+    if(msg){msg.className='cat-msg';msg.textContent='Salvando…';}
+  }
   var copiasData={
     festival_code:code,event_name:ev,title:titlePt,
     original_language:gv('original_language'),
@@ -13787,6 +13804,59 @@ async function doCreateFilm(){
   }catch(e){if(msg){msg.className='cat-msg err';msg.textContent='Erro: '+e.message;}}
 }
 
+
+async function fetchTMDBMovie(tmdbId){
+  var KEY='06567bcb467a70e4cdae54a19c4b72bf';
+  var ptResp=await fetch('https://api.themoviedb.org/3/movie/'+tmdbId+'?api_key='+KEY+'&language=pt-BR&append_to_response=credits');
+  if(!ptResp.ok)throw new Error('TMDB '+ptResp.status+': '+ptResp.statusText);
+  var d=await ptResp.json();
+  var enTitle=d.original_title||'';
+  try{
+    var enResp=await fetch('https://api.themoviedb.org/3/movie/'+tmdbId+'?api_key='+KEY+'&language=en-US');
+    if(enResp.ok){var ed=await enResp.json();enTitle=ed.title||enTitle;}
+  }catch(e){}
+  var directors=(d.credits&&d.credits.crew?d.credits.crew:[])
+    .filter(function(p){return p.job==='Director';})
+    .map(function(p){return p.name;});
+  return{
+    title_pt:d.title||'',
+    original_title:d.original_title||'',
+    english_title:enTitle,
+    director:directors,
+    year:d.release_date?new Date(d.release_date).getFullYear():null,
+    countries:(d.production_countries||[]).map(function(c){return c.name;}),
+    genre:(d.genres||[]).map(function(g){return g.name;}),
+    synopsis:d.overview||''
+  };
+}
+
+async function importFromTMDB(codigo,btn){
+  if(!window._olgaCanEdit||!window._olgaCanEdit('catalogo')){alert('Sem permissão para editar o catálogo.');return;}
+  var tmdbId=(prompt('ID do filme no TMDB (ex: 155 para "O Cavaleiro das Trevas"):')||'').trim();
+  if(!tmdbId)return;
+  var origText=btn?btn.textContent:'';
+  if(btn){btn.disabled=true;btn.textContent='Importando…';}
+  try{
+    var td=await fetchTMDBMovie(tmdbId);
+    var merged=Object.assign({},catalogoFilmesMap[codigo]||{},{festival_code:codigo});
+    if(td.title_pt)merged.title_pt=td.title_pt;
+    if(td.original_title)merged.original_title=td.original_title;
+    if(td.english_title)merged.english_title=td.english_title;
+    if(td.director&&td.director.length)merged.director=td.director;
+    if(td.year)merged.year=td.year;
+    if(td.countries&&td.countries.length)merged.countries=td.countries;
+    if(td.genre&&td.genre.length)merged.genre=td.genre;
+    if(td.synopsis)merged.synopsis=td.synopsis;
+    await window._olgaCatalogo.save(codigo,merged);
+    window._logFirestoreEdit&&window._logFirestoreEdit('individual',codigo,merged,'catalogo','filmes');
+    catalogoFilmesMap[codigo]=merged;
+    if(btn){btn.disabled=false;btn.textContent=origText;}
+    renderCatDetail();
+  }catch(e){
+    alert('Erro ao importar do TMDB: '+e.message);
+    if(btn){btn.disabled=false;btn.textContent=origText;}
+  }
+}
 
 async function importCopiasToCatalog(){
   if(!window._olgaCatalogo){alert('API do catálogo não disponível.');return;}
@@ -14729,7 +14799,7 @@ window.addEventListener('popstate',function(e){
 <script>
   if(typeof lucide !== 'undefined') lucide.createIcons();
 </script>
-<div id="page-footer"><span>última atualização · 11/05/2026 às 12:30</span></div>
+<div id="page-footer"><span>última atualização · 11/05/2026 às 16:30</span></div>
 
 </div>
 

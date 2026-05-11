@@ -9657,7 +9657,7 @@ function filmMatchesSnapshot(f,snap){
   if(snap.duracao_min!==null||snap.duracao_max!==null){var dm=parseDurMinutes(f.duracao);if(dm===null)return false;if(snap.duracao_min!==null&&dm<snap.duracao_min)return false;if(snap.duracao_max!==null&&dm>snap.duracao_max)return false;}
   if(snap.gb_min!==null||snap.gb_max!==null){var gv=parseGB(f.gb);if(gv===null)return false;if(snap.gb_min!==null&&gv<snap.gb_min)return false;if(snap.gb_max!==null&&gv>snap.gb_max)return false;}
   if(snap.sessao.size>0){var fs=buscaReverseSessoes[f.codigo]||[];if(!fs.some(function(s){return snap.sessao.has(s);}))return false;}
-  if(snap.query){var q2=snap.query.toLowerCase();var _t=function(v){return String(v||'').toLowerCase();};var _sn=(catalogoFilmesMap&&catalogoFilmesMap[f.codigo]&&catalogoFilmesMap[f.codigo].system_name)||'';if(!_t(f.titulo).includes(q2)&&!_t(f.codigo).includes(q2)&&!_t(f.cpl).includes(q2)&&!_t(f.idioma).includes(q2)&&!_t(f.obs).includes(q2)&&!_t(f.status).includes(q2)&&!_t(f.cplOV).includes(q2)&&!_t(_sn).includes(q2))return false;}
+  if(snap.query){var q2=snap.query.toLowerCase();var _t=function(v){return String(v||'').toLowerCase();};var _cm2=catalogoFilmesMap&&catalogoFilmesMap[f.codigo]||{};var _sn=_cm2.system_name||'';var _tp=_cm2.title_pt||'';var _to=_cm2.original_title||'';var _te=_cm2.english_title||'';if(!_t(f.titulo).includes(q2)&&!_t(f.codigo).includes(q2)&&!_t(f.cpl).includes(q2)&&!_t(f.idioma).includes(q2)&&!_t(f.obs).includes(q2)&&!_t(f.status).includes(q2)&&!_t(f.cplOV).includes(q2)&&!_t(_sn).includes(q2)&&!_t(_tp).includes(q2)&&!_t(_to).includes(q2)&&!_t(_te).includes(q2))return false;}
   return true;
 }
 function addBuscaSlot(){
@@ -10541,7 +10541,7 @@ function renderBuscaResults(){
       if(!applyBuscaFilters(f))return false;
       if(!q)return true;
       var _s=function(v){return String(v||'').toLowerCase();};
-      var _sn2=(catalogoFilmesMap&&catalogoFilmesMap[f.codigo]&&catalogoFilmesMap[f.codigo].system_name)||'';return _s(f.titulo).includes(q)||_s(f.codigo).includes(q)||_s(f.cpl).includes(q)||_s(f.idioma).includes(q)||_s(f.obs).includes(q)||_s(f.status).includes(q)||_s(f.cplOV).includes(q)||_s(_sn2).includes(q);
+      var _cm3=catalogoFilmesMap&&catalogoFilmesMap[f.codigo]||{};var _sn2=_cm3.system_name||'';var _tp2=_cm3.title_pt||'';var _to2=_cm3.original_title||'';var _te2=_cm3.english_title||'';return _s(f.titulo).includes(q)||_s(f.codigo).includes(q)||_s(f.cpl).includes(q)||_s(f.idioma).includes(q)||_s(f.obs).includes(q)||_s(f.status).includes(q)||_s(f.cplOV).includes(q)||_s(_sn2).includes(q)||_s(_tp2).includes(q)||_s(_to2).includes(q)||_s(_te2).includes(q);
     });
   }else{
     filtered=[];
@@ -11249,7 +11249,7 @@ function renderDash(){
   html+=colBlock('controle','Controle de filmes',ctrlBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 11/05/2026 às 18:30';
+  var sysUpdate='última atualização do sistema · 11/05/2026 às 19:00';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -13572,7 +13572,7 @@ async function deleteCatFilm(codigo){
   try{
     await window._olgaCatalogo.remove(codigo);
     window._logFirestoreEdit&&window._logFirestoreEdit('delete',codigo,{},'catalogo','filmes');
-    if(window._olgaCopias&&filmesMap[codigo])await window._olgaCopias.remove(codigo);
+    if(window._olgaCopias){try{await window._olgaCopias.remove(codigo);}catch(_){}}
     delete catalogoFilmesMap[codigo];
     _catView='search';_catCode=null;_catEditing=false;
     await window._olgaLoadFirestore();
@@ -13763,6 +13763,7 @@ async function doCreateFilm(){
     }
   };
   var tmdbIdVal=(document.getElementById('catf_tmdb_id')||{value:''}).value.trim();
+  if(tmdbIdVal&&!confirm(_TMDB_DISCLAIMER))tmdbIdVal='';
   if(tmdbIdVal){
     if(msg){msg.className='cat-msg';msg.textContent='Buscando dados no TMDB…';}
     try{
@@ -13775,6 +13776,8 @@ async function doCreateFilm(){
       if(td.countries&&td.countries.length&&!catalogData.countries.length)catalogData.countries=td.countries;
       if(td.genre&&td.genre.length&&!catalogData.genre.length)catalogData.genre=td.genre;
       if(td.synopsis&&!catalogData.synopsis)catalogData.synopsis=td.synopsis;
+      if(td.original_language&&!catalogData.original_language)catalogData.original_language=td.original_language;
+      if(td.production_company&&td.production_company.length&&!catalogData.production_company.length)catalogData.production_company=td.production_company;
       if(td.crew){
         var cc=catalogData.crew||{cinematography:[],screenplay:[],editing:[],sound:[],art_direction:[],costume_design:[],cast:[]};
         ['cinematography','screenplay','editing','sound','art_direction','costume_design'].forEach(function(k){if(td.crew[k]&&td.crew[k].length&&!(cc[k]&&cc[k].length))cc[k]=td.crew[k];});
@@ -13810,6 +13813,79 @@ async function doCreateFilm(){
 }
 
 
+var _tmdbLangPt={
+  'af':'Africâner','ak':'Akan','am':'Amárico','ar':'Árabe','az':'Azerbaijano',
+  'be':'Bielorrusso','bg':'Búlgaro','bm':'Bambara','bn':'Bengali','bo':'Tibetano',
+  'bs':'Bósnio','ca':'Catalão','cs':'Tcheco','cy':'Galês','da':'Dinamarquês',
+  'de':'Alemão','el':'Grego','en':'Inglês','eo':'Esperanto','es':'Espanhol',
+  'et':'Estoniano','eu':'Basco','fa':'Persa','ff':'Fula','fi':'Finlandês',
+  'fr':'Francês','fy':'Frísio','ga':'Irlandês','gl':'Galego','gu':'Gujarati',
+  'ha':'Hauçá','he':'Hebraico','hi':'Hindi','hr':'Croata','hu':'Húngaro',
+  'hy':'Armênio','id':'Indonésio','ig':'Igbo','is':'Islandês','it':'Italiano',
+  'iu':'Inuktitut','ja':'Japonês','ka':'Georgiano','kk':'Cazaque','km':'Khmer',
+  'kn':'Canarês','ko':'Coreano','ku':'Curdo','ky':'Quirguiz','la':'Latim',
+  'lb':'Luxemburguês','lo':'Laosiano','lt':'Lituano','lv':'Letão','mg':'Malgaxe',
+  'mi':'Maori','mk':'Macedônio','ml':'Malaiala','mn':'Mongol','mr':'Marata',
+  'ms':'Malaio','mt':'Maltês','my':'Birmanês','nb':'Norueguês (Bokmål)',
+  'ne':'Nepali','nl':'Holandês','no':'Norueguês','ny':'Nianja','or':'Oriá',
+  'pa':'Punjabi','pl':'Polonês','ps':'Pashto','pt':'Português','qu':'Quíchua',
+  'rm':'Romanche','rn':'Kirundi','ro':'Romeno','ru':'Russo','rw':'Kinyarwanda',
+  'sa':'Sânscrito','sd':'Sindi','se':'Sami do Norte','si':'Cingalês','sk':'Eslovaco',
+  'sl':'Esloveno','sm':'Samoano','sn':'Shona','so':'Somali','sq':'Albanês',
+  'sr':'Sérvio','ss':'Suázi','st':'Soto do Sul','su':'Sundanês','sv':'Sueco',
+  'sw':'Suaíli','ta':'Tâmil','te':'Télugo','tg':'Tajique','th':'Tailandês',
+  'ti':'Tigrínia','tk':'Turcomeno','tl':'Filipino','tn':'Tswana','to':'Tonganês',
+  'tr':'Turco','ts':'Tsonga','tt':'Tártaro','tw':'Twi','ug':'Uigur',
+  'uk':'Ucraniano','ur':'Urdu','uz':'Uzbeque','ve':'Venda','vi':'Vietnamita',
+  'vo':'Volapuque','wa':'Valão','wo':'Uolof','xh':'Xhosa','yi':'Iídiche',
+  'yo':'Iorubá','za':'Zhuang','zh':'Chinês','zu':'Zulu',
+  'cn':'Cantonês','xx':'Sem diálogo'
+};
+var _tmdbCountryPt={
+  'AF':'Afeganistão','AL':'Albânia','DZ':'Argélia','AD':'Andorra','AO':'Angola',
+  'AG':'Antígua e Barbuda','AR':'Argentina','AM':'Armênia','AU':'Austrália','AT':'Áustria',
+  'AZ':'Azerbaijão','BS':'Bahamas','BH':'Barein','BD':'Bangladesh','BB':'Barbados',
+  'BY':'Bielorrússia','BE':'Bélgica','BZ':'Belize','BJ':'Benin','BT':'Butão',
+  'BO':'Bolívia','BA':'Bósnia e Herzegovina','BW':'Botsuana','BR':'Brasil','BN':'Brunei',
+  'BG':'Bulgária','BF':'Burkina Faso','BI':'Burundi','CV':'Cabo Verde','KH':'Camboja',
+  'CM':'Camarões','CA':'Canadá','CF':'República Centro-Africana','TD':'Chade',
+  'CL':'Chile','CN':'China','CO':'Colômbia','KM':'Comores','CG':'Congo',
+  'CD':'República Democrática do Congo','CR':'Costa Rica','CI':'Costa do Marfim',
+  'HR':'Croácia','CU':'Cuba','CY':'Chipre','CZ':'República Tcheca','DK':'Dinamarca',
+  'DJ':'Djibuti','DM':'Dominica','DO':'República Dominicana','EC':'Equador','EG':'Egito',
+  'SV':'El Salvador','GQ':'Guiné Equatorial','ER':'Eritreia','EE':'Estônia',
+  'SZ':'Essuatíni','ET':'Etiópia','FJ':'Fiji','FI':'Finlândia','FR':'França',
+  'GA':'Gabão','GM':'Gâmbia','GE':'Geórgia','DE':'Alemanha','GH':'Gana',
+  'GR':'Grécia','GD':'Granada','GT':'Guatemala','GN':'Guiné','GW':'Guiné-Bissau',
+  'GY':'Guiana','HT':'Haiti','HN':'Honduras','HK':'Hong Kong','HU':'Hungria',
+  'IS':'Islândia','IN':'Índia','ID':'Indonésia','IR':'Irã','IQ':'Iraque',
+  'IE':'Irlanda','IL':'Israel','IT':'Itália','JM':'Jamaica','JP':'Japão',
+  'JO':'Jordânia','KZ':'Cazaquistão','KE':'Quênia','KI':'Quiribati',
+  'KP':'Coreia do Norte','KR':'Coreia do Sul','KW':'Kuwait','KG':'Quirguistão',
+  'LA':'Laos','LV':'Letônia','LB':'Líbano','LS':'Lesoto','LR':'Libéria',
+  'LY':'Líbia','LI':'Liechtenstein','LT':'Lituânia','LU':'Luxemburgo',
+  'MG':'Madagáscar','MW':'Malauí','MY':'Malásia','MV':'Maldivas','ML':'Mali',
+  'MT':'Malta','MR':'Mauritânia','MU':'Maurício','MX':'México','MD':'Moldávia',
+  'MC':'Mônaco','MN':'Mongólia','ME':'Montenegro','MA':'Marrocos','MZ':'Moçambique',
+  'MM':'Mianmar','NA':'Namíbia','NP':'Nepal','NL':'Países Baixos','NZ':'Nova Zelândia',
+  'NI':'Nicarágua','NE':'Níger','NG':'Nigéria','MK':'Macedônia do Norte',
+  'NO':'Noruega','OM':'Omã','PK':'Paquistão','PW':'Palau','PA':'Panamá',
+  'PG':'Papua Nova Guiné','PY':'Paraguai','PE':'Peru','PH':'Filipinas',
+  'PL':'Polônia','PT':'Portugal','QA':'Catar','RO':'Romênia','RU':'Rússia',
+  'RW':'Ruanda','KN':'São Cristóvão e Nevis','LC':'Santa Lúcia',
+  'VC':'São Vicente e Granadinas','WS':'Samoa','SM':'San Marino',
+  'ST':'São Tomé e Príncipe','SA':'Arábia Saudita','SN':'Senegal','RS':'Sérvia',
+  'SC':'Seicheles','SL':'Serra Leoa','SG':'Cingapura','SK':'Eslováquia',
+  'SI':'Eslovênia','SB':'Ilhas Salomão','SO':'Somália','ZA':'África do Sul',
+  'SS':'Sudão do Sul','ES':'Espanha','LK':'Sri Lanka','SD':'Sudão','SR':'Suriname',
+  'SE':'Suécia','CH':'Suíça','SY':'Síria','TW':'Taiwan','TJ':'Tadjiquistão',
+  'TZ':'Tanzânia','TH':'Tailândia','TL':'Timor-Leste','TG':'Togo','TO':'Tonga',
+  'TT':'Trinidad e Tobago','TN':'Tunísia','TR':'Turquia','TM':'Turcomenistão',
+  'TV':'Tuvalu','UG':'Uganda','UA':'Ucrânia','AE':'Emirados Árabes Unidos',
+  'GB':'Reino Unido','US':'Estados Unidos','UY':'Uruguai','UZ':'Uzbequistão',
+  'VU':'Vanuatu','VE':'Venezuela','VN':'Vietnã','YE':'Iêmen','ZM':'Zâmbia',
+  'ZW':'Zimbábue','PS':'Palestina','XK':'Kosovo'
+};
 async function fetchTMDBMovie(tmdbId){
   var KEY='06567bcb467a70e4cdae54a19c4b72bf';
   var ptResp=await fetch('https://api.themoviedb.org/3/movie/'+tmdbId+'?api_key='+KEY+'&language=pt-BR&append_to_response=credits');
@@ -13829,9 +13905,11 @@ async function fetchTMDBMovie(tmdbId){
     english_title:enTitle,
     director:directors,
     year:d.release_date?new Date(d.release_date).getFullYear():null,
-    countries:(d.production_countries||[]).map(function(c){return c.name;}),
+    countries:(d.production_countries||[]).map(function(c){return _tmdbCountryPt[c.iso_3166_1]||c.name;}),
     genre:(d.genres||[]).map(function(g){return g.name;}),
     synopsis:d.overview||'',
+    original_language:_tmdbLangPt[d.original_language]||d.original_language||'',
+    production_company:(d.production_companies||[]).map(function(c){return c.name;}),
     crew:{
       cinematography:crewByJobs(['Director of Photography','Cinematography']),
       screenplay:crewByJobs(['Writer','Screenplay','Screenwriter']),
@@ -13843,8 +13921,10 @@ async function fetchTMDBMovie(tmdbId){
   };
 }
 
+var _TMDB_DISCLAIMER='Esse produto usa a API do TMDB mas não é endossado ou certificado pelo TMDB. Recomendamos a revisão de todos os dados preenchidos automaticamente.';
 async function importFromTMDB(codigo,btn){
   if(!window._olgaCanEdit||!window._olgaCanEdit('catalogo')){alert('Sem permissão para editar o catálogo.');return;}
+  if(!confirm(_TMDB_DISCLAIMER))return;
   var tmdbId=(prompt('ID do filme no TMDB (ex: 155 para "O Cavaleiro das Trevas"):')||'').trim();
   if(!tmdbId)return;
   var origText=btn?btn.textContent:'';
@@ -13860,6 +13940,8 @@ async function importFromTMDB(codigo,btn){
     if(td.countries&&td.countries.length)merged.countries=td.countries;
     if(td.genre&&td.genre.length)merged.genre=td.genre;
     if(td.synopsis)merged.synopsis=td.synopsis;
+    if(td.original_language)merged.original_language=td.original_language;
+    if(td.production_company&&td.production_company.length)merged.production_company=td.production_company;
     if(td.crew){
       var mc=Object.assign({cinematography:[],screenplay:[],editing:[],sound:[],art_direction:[],costume_design:[],cast:[]},merged.crew||{});
       ['cinematography','screenplay','editing','sound','art_direction','costume_design'].forEach(function(k){if(td.crew[k]&&td.crew[k].length)mc[k]=td.crew[k];});
@@ -14817,7 +14899,7 @@ window.addEventListener('popstate',function(e){
 <script>
   if(typeof lucide !== 'undefined') lucide.createIcons();
 </script>
-<div id="page-footer"><span>última atualização · 11/05/2026 às 18:30</span></div>
+<div id="page-footer"><span>última atualização · 11/05/2026 às 19:00</span></div>
 
 </div>
 

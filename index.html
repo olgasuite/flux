@@ -4389,6 +4389,13 @@ html[data-theme]:not([data-theme="win98"]){--mono:var(--sans);}
     if (opts.user) rows = rows.filter(function(r) { return r.user === opts.user; });
     return rows;
   };
+
+  window._olgaExportCollection = async function(colName) {
+    var snap = await getDocs(collection(db, colName));
+    var docs = [];
+    snap.forEach(function(d) { docs.push(Object.assign({ _id: d.id }, d.data())); });
+    return docs;
+  };
 </script>
 </head>
 <body>
@@ -11242,7 +11249,7 @@ function renderDash(){
   html+=colBlock('controle','Controle de filmes',ctrlBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 11/05/2026 às 12:00';
+  var sysUpdate='última atualização do sistema · 11/05/2026 às 12:30';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -12195,7 +12202,8 @@ var _EQUIPE_RESTRICOES=[
   {k:'eventos.locked',label:'Eventos · Bloquear seleção de eventos (usuário vê, não altera)'},
   {k:'vinhetas.templates',label:'Vinhetas · Ocultar atalho de templates de vinheta'},
   {k:'sessoes.somente_vinhetas',label:'Sessões · Edição restrita a vinhetas (sem criar, duplicar, deletar)'},
-  {k:'acervo.sem_catalogo',label:'Acervo Técnico · Ocultar botão "Ver no Catálogo"'}
+  {k:'acervo.sem_catalogo',label:'Acervo Técnico · Ocultar botão "Ver no Catálogo"'},
+  {k:'catalogo.importar_acervo',label:'Catálogo · Ocultar botão "Importar do Acervo"'}
 ];
 
 function renderEquipe(){
@@ -12359,6 +12367,25 @@ function renderEquipeTable(){
   }
   var btnStyle='font-family:var(--mono);font-size:9px;font-weight:600;letter-spacing:0.07em;text-transform:uppercase;padding:4px 12px;background:transparent;border:1px solid var(--border);color:var(--text-dim);cursor:pointer;margin-bottom:12px;';
   var isAdmin=window._olgaUser&&window._olgaUser.role==='admin';
+  var _exportCols=[
+    {id:'copias',label:'Acervo Técnico (copias)'},
+    {id:'filmes',label:'Catálogo (filmes)'},
+    {id:'sessoes',label:'Sessões'},
+    {id:'programs',label:'Mostras (programs)'},
+    {id:'subprograms',label:'Submostras (subprograms)'},
+    {id:'cinemas',label:'Cinemas'},
+    {id:'eventos',label:'Eventos'},
+    {id:'vinhetas',label:'Vinhetas'},
+    {id:'vin_templates',label:'Templates de vinheta'},
+    {id:'guests',label:'Convidados (guests)'},
+    {id:'hotels',label:'Hotéis'},
+    {id:'hotel_bookings',label:'Reservas de hotel'},
+    {id:'flights',label:'Voos (flights)'},
+    {id:'transfers',label:'Transfers'},
+    {id:'usuarios',label:'Usuários'},
+    {id:'roles_templates',label:'Templates de papel'},
+    {id:'logs',label:'Log de alterações (logs)'},
+  ];
   var logHtml=isAdmin?(
     '<div class="log-export-section">'+
     '<div class="log-export-title">Exportar log de alterações</div>'+
@@ -12369,6 +12396,18 @@ function renderEquipeTable(){
       '<button onclick="exportLogCSV()" style="'+btnStyle+'color:var(--accent);border-color:rgba(255,186,32,0.35);align-self:flex-end;margin-bottom:0;">Exportar CSV</button>'+
     '</div>'+
     '<div id="logExportMsg" style="font-family:var(--mono);font-size:10px;color:var(--text-muted);margin-top:8px;"></div>'+
+    '</div>'+
+    '<div class="log-export-section">'+
+    '<div class="log-export-title">Exportar coleção do Firestore</div>'+
+    '<div class="log-export-row">'+
+      '<div><label style="font-family:var(--mono);font-size:9px;color:var(--text-muted);display:block;margin-bottom:3px;">Coleção</label>'+
+      '<select id="colExportSelect" class="log-export-inp" style="min-width:240px;cursor:pointer;">'+
+      '<option value="">— selecione —</option>'+
+      _exportCols.map(function(c){return'<option value="'+c.id+'">'+c.label+'</option>';}).join('')+
+      '</select></div>'+
+      '<button onclick="exportColCSV()" style="'+btnStyle+'color:var(--accent);border-color:rgba(255,186,32,0.35);align-self:flex-end;margin-bottom:0;">Exportar CSV</button>'+
+    '</div>'+
+    '<div id="colExportMsg" style="font-family:var(--mono);font-size:10px;color:var(--text-muted);margin-top:8px;"></div>'+
     '</div>'
   ):'';
   el.innerHTML=
@@ -12407,6 +12446,37 @@ async function exportLogCSV(){
     document.body.appendChild(a);a.click();document.body.removeChild(a);
     URL.revokeObjectURL(url);
     if(msg)msg.textContent=rows.length+' registro'+(rows.length!==1?'s':'')+' exportado'+(rows.length!==1?'s':'')+'.';
+  }catch(e){if(msg)msg.textContent='Erro: '+e.message;}
+}
+async function exportColCSV(){
+  var col=(document.getElementById('colExportSelect')||{}).value||'';
+  var msg=document.getElementById('colExportMsg');
+  if(!col){if(msg)msg.textContent='Selecione uma coleção.';return;}
+  if(msg)msg.textContent='Carregando…';
+  try{
+    if(!window._olgaExportCollection){if(msg)msg.textContent='API não disponível.';return;}
+    var docs=await window._olgaExportCollection(col);
+    if(!docs.length){if(msg)msg.textContent='Coleção vazia.';return;}
+    var keysSet=new Set(['_id']);
+    docs.forEach(function(d){Object.keys(d).forEach(function(k){keysSet.add(k);});});
+    var keys=Array.from(keysSet);
+    function csvEsc(v){
+      var s;
+      if(v===null||v===undefined){s='';}
+      else if(v&&typeof v.toDate==='function'){s=v.toDate().toISOString().replace('T',' ').slice(0,19);}
+      else if(typeof v==='object'){try{s=JSON.stringify(v);}catch(e){s=String(v);}}
+      else{s=String(v);}
+      return s.includes(',')||s.includes('"')||s.includes('\n')?'"'+s.replace(/"/g,'""')+'"':s;
+    }
+    var lines=[keys.join(',')].concat(docs.map(function(d){return keys.map(function(k){return csvEsc(d[k]);}).join(',');}));
+    var csv=lines.join('\r\n');
+    var blob=new Blob(['﻿'+csv],{type:'text/csv;charset=utf-8;'});
+    var url=URL.createObjectURL(blob);
+    var a=document.createElement('a');
+    a.href=url;a.download='olga-'+col+'-'+new Date().toISOString().slice(0,10)+'.csv';
+    document.body.appendChild(a);a.click();document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    if(msg)msg.textContent=docs.length+' documento'+(docs.length!==1?'s':'')+' exportado'+(docs.length!==1?'s':'')+'.';
   }catch(e){if(msg)msg.textContent='Erro: '+e.message;}
 }
 function _equipeTh(){return 'font-family:var(--mono);font-size:9px;font-weight:600;letter-spacing:0.15em;text-transform:uppercase;color:var(--accent);padding:9px 12px;text-align:left;white-space:nowrap;';}
@@ -13257,7 +13327,7 @@ function renderCatalogo(){
   html+='<button class="cat-all-btn" onclick="catShowAll()">Mostrar todos</button>';
   var _catCanEdit=window._olgaUser&&window._olgaCanEdit('catalogo');
   if(_catCanEdit)html+='<button class="cat-edit-btn" style="margin-left:auto;" onclick="openCatCreate()">+ Novo filme</button>';
-  if(_catCanEdit)html+='<button class="cat-edit-btn" onclick="importCopiasToCatalog()">↓ Importar do Acervo</button>';
+  if(_catCanEdit&&!window._olgaHasRestricao('catalogo.importar_acervo'))html+='<button class="cat-edit-btn" onclick="importCopiasToCatalog()">↓ Importar do Acervo</button>';
   html+='</div>';
   // slots bar
   html+='<div class="cat-slots-bar" id="cat-slots-bar" style="display:'+((_catSlots.length)?'flex':'none')+'">';
@@ -14659,7 +14729,7 @@ window.addEventListener('popstate',function(e){
 <script>
   if(typeof lucide !== 'undefined') lucide.createIcons();
 </script>
-<div id="page-footer"><span>última atualização · 11/05/2026 às 12:00</span></div>
+<div id="page-footer"><span>última atualização · 11/05/2026 às 12:30</span></div>
 
 </div>
 

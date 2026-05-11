@@ -3877,7 +3877,7 @@ html[data-theme]:not([data-theme="win98"]){--mono:var(--sans);}
           map[cod] = {
             festival_code:cod, system_name:fss(r.system_name), title:fss(r.title), title_pt:fss(r.title_pt),
             original_title:fss(r.original_title), english_title:fss(r.english_title),
-            year:r.year?parseInt(r.year):null, director:fss(r.director),
+            year:r.year?parseInt(r.year):null, director:fsa(r.director),
             countries:fsa(r.countries), production_company:fss(r.production_company),
             distribution_company:fss(r.distribution_company), synopsis:fss(r.synopsis),
             genre:fsa(r.genre), film_type:fss(r.film_type), content_rating:fss(r.content_rating),
@@ -11249,7 +11249,7 @@ function renderDash(){
   html+=colBlock('controle','Controle de filmes',ctrlBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 11/05/2026 às 19:00';
+  var sysUpdate='última atualização do sistema · 11/05/2026 às 19:30';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -13414,7 +13414,7 @@ function renderCatDetail(){
   html+=catBlock('Técnico',
     '<div class="cat-grid">'+catFld('Idioma original',copia.idioma||'\u2014')+catFld('Legendas',legDisplay)+'</div>'
     +'<div class="cat-grid">'+catFld('Metragem',_catEditing?catInp('film_type',meta.film_type||''):(meta.film_type||'\u2014'))+catFld('Classificação etária',_catEditing?'<select class="cat-input" id="catf_content_rating"><option value="">—</option>'+['L','10','12','14','16','18'].map(function(r){return'<option value="'+r+'"'+(meta.content_rating===r?' selected':'')+'>'+r+'</option>';}).join('')+'</select>':_catRatingBadge(meta.content_rating))+'</div>'
-    +'<div class="cat-grid">'+catFld('Duração DCP',dur||copia.duracao||'\u2014')+catFld('Acessibilidade',copia.acessibilidade||'\u2014')+'</div>'
+    +'<div class="cat-grid">'+catFld('Duração',dur||copia.duracao||'\u2014')+catFld('Acessibilidade',copia.acessibilidade||'\u2014')+'</div>'
   );
   var crewViewPairs=[
     ['F',crewArr(crew.cinematography)],['R',crewArr(crew.screenplay)],
@@ -13441,6 +13441,7 @@ function renderCatDetail(){
     '<div class="cat-grid">'+catFld('Gênero',_catEditing?catTagInp('genre',meta.genre||[]):catTags(meta.genre||[]))+catFld('País(es)',_catEditing?catTagInp('countries',meta.countries||[]):catTags(meta.countries||[]))+'</div>'
     +'<div class="cat-grid">'+catFld('Empresa(s) Produtora(s)',_catEditing?catTagInp('production_company',toArr(meta.production_company)):catTags(toArr(meta.production_company)))+catFld('Distribuidora(s)',_catEditing?catTagInp('distribution_company',toArr(meta.distribution_company)):catTags(toArr(meta.distribution_company)))+'</div>'
     +'<div class="cat-grid">'+catFld('Ano',_catEditing?catInp('year',meta.year||'','number'):(meta.year?String(meta.year):'\u2014'))+catFld('Email de contato',_catEditing?catInp('contact_email',meta.contact_email||''):(meta.contact_email||'\u2014'))+'</div>'
+    +catFld('Idioma original',_catEditing?catInp('original_language',meta.original_language||''):(meta.original_language||'\u2014'))
     +catFld('Palavras-chave',_catEditing?catTagInp('keywords',meta.keywords||[]):catTags(meta.keywords||[]))
     +'<div class="cat-grid">'+catFld('Seleção',_catEditing
       ?'<select class="cat-input" id="catf_selecao"><option value="">\u2014</option>'+selOpts.map(function(o){return'<option value="'+o+'"'+(meta.selecao===o?' selected':'')+'>'+o+'</option>';}).join('')+'</select>'
@@ -13532,6 +13533,7 @@ async function doSaveCat(){
       title_pt:gv('title_pt'),
       original_title:gv('original_title'),english_title:gv('english_title'),
       film_type:gv('film_type'),content_rating:(function(){var s=document.getElementById('catf_content_rating');return s?s.value:gv('content_rating');})(),
+      original_language:gv('original_language'),
       contact_email:gv('contact_email'),year:parseInt(gv('year'))||null,
       copy_arrival_forecast:gv('copy_arrival_forecast'),copy_notes:gv('copy_notes'),
       screener:gv('screener'),selecao:selEl?selEl.value:'',
@@ -13783,6 +13785,7 @@ async function doCreateFilm(){
         ['cinematography','screenplay','editing','sound','art_direction','costume_design'].forEach(function(k){if(td.crew[k]&&td.crew[k].length&&!(cc[k]&&cc[k].length))cc[k]=td.crew[k];});
         catalogData.crew=cc;
       }
+      if(td.runtime&&!durHMMSS){durHMMSS=_catMinToHMMSS(td.runtime);var _durInp=document.getElementById('catf_dcp_duration_min');if(_durInp)_durInp.value=td.runtime;}
     }catch(tmdbErr){console.warn('TMDB:',tmdbErr);}
     if(msg){msg.className='cat-msg';msg.textContent='Salvando…';}
   }
@@ -13909,6 +13912,7 @@ async function fetchTMDBMovie(tmdbId){
     genre:(d.genres||[]).map(function(g){return g.name;}),
     synopsis:d.overview||'',
     original_language:_tmdbLangPt[d.original_language]||d.original_language||'',
+    runtime:d.runtime||null,
     production_company:(d.production_companies||[]).map(function(c){return c.name;}),
     crew:{
       cinematography:crewByJobs(['Director of Photography','Cinematography']),
@@ -14899,7 +14903,7 @@ window.addEventListener('popstate',function(e){
 <script>
   if(typeof lucide !== 'undefined') lucide.createIcons();
 </script>
-<div id="page-footer"><span>última atualização · 11/05/2026 às 19:00</span></div>
+<div id="page-footer"><span>última atualização · 11/05/2026 às 19:30</span></div>
 
 </div>
 

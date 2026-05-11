@@ -1632,7 +1632,11 @@ mark{background:rgba(255,186,32,0.28);color:var(--accent);border-radius:2px;padd
 .dash-sel-total{font-family:var(--mono);font-size:11px;color:var(--text-dim);margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid var(--border);}
 .dash-sel-total strong{color:var(--text);font-weight:700;}
 .dash-sel-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:1px;background:var(--border);}
-.dash-sel-card{background:var(--surface);padding:14px 16px;}
+.dash-sel-card{background:var(--surface);padding:14px 16px;border:none;cursor:pointer;text-align:left;transition:background 0.15s;width:100%;}
+.dash-sel-card:hover{background:var(--surface2);}
+.dash-sel-card.active{background:var(--accent-dim);}
+.dash-sel-card.active .dash-sel-count{color:var(--accent);}
+.dash-sel-card.dash-sel-fest.active .dash-sel-count{color:var(--accent);}
 .dash-sel-count{font-family:var(--mono);font-size:28px;font-weight:600;color:var(--text);line-height:1;letter-spacing:-0.02em;}
 .dash-sel-label{font-family:var(--mono);font-size:9px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:var(--text-muted);margin-top:4px;}
 .dash-sel-card.dash-sel-fest .dash-sel-count{color:var(--accent);}
@@ -4944,6 +4948,7 @@ var vinhetasCinemaFilter='',vinhetasDayFilter='';
 var dashCinemaFilter='',dashDayFilter=new Set(),dashStatusSelected=null,dashStatSelected=null;
 var _dashBlocksOpen={global:false,days:false,selecao:false,programacao:false,controle:false};
 var _dashGlobalEvFilter='';
+var _dashSelEvFilter='';
 var dashBlockOpen={nums:true,days:true,control:true};
 var _dashBlockOpen={numeros:true,dias:true,controle:true};
 window._dashYearsOpen=null;
@@ -10921,6 +10926,85 @@ function renderDash(){
           (filmTitles?'<span class="dsd-extra" style="font-family:var(--sans);">'+filmTitles+'</span>':'')+
         '</div>';
       });
+    }else if(scope==='sel'){
+      var selFilms=[];
+      if(catalogoFilmesMap){
+        Object.keys(catalogoFilmesMap).forEach(function(cod){
+          var ev=filmesMap[cod]?(filmesMap[cod].evento||''):'';
+          if(ev&&!activeEventsDash.has(ev))return;
+          if(_dashSelEvFilter&&ev!==_dashSelEvFilter)return;
+          var sv=(catalogoFilmesMap[cod].selecao||'').trim();
+          if(sv===key)selFilms.push(cod);
+        });
+      }
+      selFilms.sort();
+      title=(key||'sem categoria')+' ('+selFilms.length+')';
+      bodyHtml='';
+      selFilms.forEach(function(cod){
+        var cm=catalogoFilmesMap[cod]||{};
+        var f=filmesMap[cod]||{};
+        var titulo=cm.title_pt||cm.titulo||f.titulo||cod;
+        var ev=f.evento||'';
+        var col=ev&&eventColors[ev]?eventColors[ev]:null;
+        var evBadge=col?'<span class="card-evento" style="background:'+col.bg+';color:'+col.text+'">'+ev+'</span>':(ev?'<span class="card-evento" style="background:var(--surface2);color:var(--text-dim)">'+ev+'</span>':'');
+        bodyHtml+='<div class="dsd-film-row"><span class="dsd-film-title">'+clean(titulo)+'</span><span class="dsd-film-code">'+cod+'</span>'+evBadge+'</div>';
+      });
+    }else if(scope==='prog'){
+      if(key==='p_mostras'){
+        var sortedM=Array.from(_pMostras).map(function(pid){
+          var p=_progData.programs.find(function(x){return x.id===pid;});
+          var name=p&&p.data&&p.data.name?p.data.name:pid;
+          var cnt=_progSessoes.filter(function(s){return s.program_id===pid;}).length;
+          return{name:name,cnt:cnt};
+        }).sort(function(a,b){return a.name.localeCompare(b.name,'pt-BR');});
+        title='Mostras ('+sortedM.length+')';
+        bodyHtml='';
+        sortedM.forEach(function(m){bodyHtml+='<div class="dsd-film-row"><span class="dsd-film-title">'+esc(m.name)+'</span><span class="dsd-film-sess">'+m.cnt+' sess'+(m.cnt===1?'ão':'ões')+'</span></div>';});
+      }else if(key==='p_sub'){
+        var sortedSB=Array.from(_pSubs).map(function(sid){
+          var sub=_progData.subprograms.find(function(x){return x.id===sid;});
+          var name=sub&&sub.data&&sub.data.name?sub.data.name:sid;
+          var cnt=_progSessoes.filter(function(s){return s.subprogram_id===sid;}).length;
+          return{name:name,cnt:cnt};
+        }).sort(function(a,b){return a.name.localeCompare(b.name,'pt-BR');});
+        title='Submostras ('+sortedSB.length+')';
+        bodyHtml='';
+        sortedSB.forEach(function(m){bodyHtml+='<div class="dsd-film-row"><span class="dsd-film-title">'+esc(m.name)+'</span><span class="dsd-film-sess">'+m.cnt+' sess'+(m.cnt===1?'ão':'ões')+'</span></div>';});
+      }else if(key==='p_sessoes'){
+        var sortedPS=_progSessoes.slice().sort(function(a,b){return a.date&&b.date?a.date-b.date||(a.time&&b.time?a.time.h*60+a.time.m-(b.time.h*60+b.time.m):0):0;});
+        title='Sessões ('+sortedPS.length+')';
+        bodyHtml='';
+        sortedPS.forEach(function(s){
+          var safe=s.nome.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+          var filmTitles=s.filmes.map(function(c){var f=filmesMap[c];return f&&f.titulo?clean(f.titulo):c;}).filter(Boolean).join(' · ');
+          bodyHtml+='<div class="dsd-sess-row" style="cursor:pointer" onclick="goToFicha(\''+safe+'\')">'+
+            '<span class="dsd-date">'+s.dia+'</span><span class="dsd-time">'+s.hora+'</span>'+
+            '<span class="dsd-name">'+s.nome+'</span><span class="dsd-cinema">'+s.cinema+'</span>'+
+            (filmTitles?'<span class="dsd-extra" style="font-family:var(--sans);width:100%;">'+filmTitles+'</span>':'')+
+          '</div>';
+        });
+      }else if(key==='p_salas'){
+        var sortedSL=Array.from(_pSalas).sort(function(a,b){return a.localeCompare(b,'pt-BR',{sensitivity:'base'});});
+        title='Salas ('+sortedSL.length+')';
+        bodyHtml='';
+        sortedSL.forEach(function(sala){
+          var cnt=_progSessoes.filter(function(s){return s.cinema===sala;}).length;
+          var safeSala=sala.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+          bodyHtml+='<div class="dsd-sala-row"><span class="dsd-sala-name" onclick="goToCinemaFromDash(\''+safeSala+'\')">'+sala+'</span><span class="dsd-sala-meta">'+cnt+' sess'+(cnt===1?'ão':'ões')+'</span></div>';
+        });
+      }else if(key==='p_acess'){
+        var paArr=_progSessoes.filter(function(s){return s.acessibilidades&&s.acessibilidades.toString().trim();}).sort(function(a,b){return a.date&&b.date?a.date-b.date:0;});
+        title='Sessões acessíveis ('+paArr.length+')';
+        bodyHtml='';
+        paArr.forEach(function(s){
+          var safe=s.nome.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+          bodyHtml+='<div class="dsd-sess-row" style="cursor:pointer" onclick="goToFicha(\''+safe+'\')">'+
+            '<span class="dsd-date">'+s.dia+'</span><span class="dsd-time">'+s.hora+'</span>'+
+            '<span class="dsd-name">'+s.nome+'</span><span class="dsd-cinema">'+s.cinema+'</span>'+
+            '<span class="dsd-extra"><svg width="14" height="14" viewBox="0 0 24 24" style="stroke:currentColor;stroke-width:1.75;fill:none;stroke-linecap:round;stroke-linejoin:round;" xmlns="http://www.w3.org/2000/svg"><circle cx="11" cy="4" r="1"/><path d="m11 9 2 7h5l-1.5 3"/><path d="M9 9H7l1 7"/><path d="M13.5 19a4.5 4.5 0 1 1-9 0 4.5 4.5 0 0 1 9 0z"/></svg> '+s.acessibilidades+'</span>'+
+          '</div>';
+        });
+      }
     }
 
     return'<div class="dash-stat-detail">'+
@@ -11002,25 +11086,42 @@ function renderDash(){
   }
 
   // ── BLOCO: Seleção ──────────────────────────────────────────────
+  if(_dashSelEvFilter&&!activeEventsDash.has(_dashSelEvFilter))_dashSelEvFilter='';
+  var selBody='';
+  if(activeEventsDash.size>1){
+    var selEvOpts='<option value="">Todos os eventos</option>';
+    Array.from(activeEventsDash).forEach(function(ev){
+      selEvOpts+='<option value="'+ev+'"'+(ev===_dashSelEvFilter?' selected':'')+'>'+ev+'</option>';
+    });
+    selBody+='<div class="dash-ctrl-filter" style="margin-bottom:12px;"><span class="dash-ctrl-filter-label">Evento</span><select style="min-width:160px;" onchange="_dashSelEvFilter=this.value;renderDash();">'+selEvOpts+'</select></div>';
+  }
   var _selOpts=['FEST','NÃO FEST','SUPLENTE','CONVIDADO','VISIONAMENTO'];
   var _selCounts={};_selOpts.forEach(function(o){_selCounts[o]=0;});
   var _selTotal=0,_selSem=0;
   if(catalogoFilmesMap){
     Object.keys(catalogoFilmesMap).forEach(function(cod){
+      var ev=filmesMap[cod]?(filmesMap[cod].evento||''):'';
+      if(ev&&!activeEventsDash.has(ev))return;
+      if(_dashSelEvFilter&&ev!==_dashSelEvFilter)return;
       _selTotal++;
       var sv=(catalogoFilmesMap[cod].selecao||'').trim();
       if(_selCounts[sv]!==undefined)_selCounts[sv]++;
       else _selSem++;
     });
   }
-  var selBody='<div class="dash-sel-total"><strong>'+_selTotal+'</strong> título'+(_selTotal!==1?'s':'')+' cadastrado'+(_selTotal!==1?'s':'')+' no catálogo</div>';
+  selBody+='<div class="dash-sel-total"><strong>'+_selTotal+'</strong> título'+(_selTotal!==1?'s':'')+' cadastrado'+(_selTotal!==1?'s':'')+' no catálogo</div>';
   selBody+='<div class="dash-sel-grid">';
   _selOpts.forEach(function(opt){
-    var isFestOpt=opt==='FEST';
-    selBody+='<div class="dash-sel-card'+(isFestOpt?' dash-sel-fest':'')+'"><div class="dash-sel-count">'+_selCounts[opt]+'</div><div class="dash-sel-label">'+opt+'</div></div>';
+    var isSelActive=dashStatSelected&&dashStatSelected.key===opt&&dashStatSelected.scope==='sel';
+    var safeOpt=opt.replace(/'/g,"\\'");
+    selBody+='<button class="dash-sel-card'+(opt==='FEST'?' dash-sel-fest':'')+(isSelActive?' active':'')+'" onclick="selectDashStat(\''+safeOpt+'\',\'sel\')"><div class="dash-sel-count">'+_selCounts[opt]+'</div><div class="dash-sel-label">'+opt+'</div></button>';
   });
-  if(_selSem>0)selBody+='<div class="dash-sel-card"><div class="dash-sel-count">'+_selSem+'</div><div class="dash-sel-label">sem categoria</div></div>';
+  if(_selSem>0){
+    var isSelSemActive=dashStatSelected&&dashStatSelected.key===''&&dashStatSelected.scope==='sel';
+    selBody+='<button class="dash-sel-card'+(isSelSemActive?' active':'')+'" onclick="selectDashStat(\'\',\'sel\')"><div class="dash-sel-count">'+_selSem+'</div><div class="dash-sel-label">sem categoria</div></button>';
+  }
   selBody+='</div>';
+  if(dashStatSelected&&dashStatSelected.scope==='sel'){selBody+=renderStatDetail(dashStatSelected.key,'sel',[],{});}
   html+=colBlock('selecao','Seleção',selBody);
 
   // ── BLOCO: Programação ──────────────────────────────────────────
@@ -11036,12 +11137,13 @@ function renderDash(){
   });
   var progLabel='Programação'+(dashDayFilter.size>0?' <span class="dash-days-badge">dias selecionados</span>':'');
   var progBody='<div class="dash-stats-grid">';
-  progBody+=staticTile('<svg width="20" height="20" viewBox="0 0 24 24" style="stroke:currentColor;stroke-width:1.5;fill:none;stroke-linecap:round;stroke-linejoin:round;" xmlns="http://www.w3.org/2000/svg"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>',statsNum(_pMostras.size),'mostras','programas de exibição');
-  progBody+=staticTile('<svg width="20" height="20" viewBox="0 0 24 24" style="stroke:currentColor;stroke-width:1.5;fill:none;stroke-linecap:round;stroke-linejoin:round;" xmlns="http://www.w3.org/2000/svg"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>',statsNum(_pSubs.size),'submostras','seções da programação');
-  progBody+=staticTile('<svg width="20" height="20" viewBox="0 0 24 24" style="stroke:currentColor;stroke-width:1.5;fill:none;stroke-linecap:round;stroke-linejoin:round;" xmlns="http://www.w3.org/2000/svg"><path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z"/><path d="M13 5v2"/><path d="M13 17v2"/><path d="M13 11v2"/></svg>',statsNum(_progSessoes.length),'sessões','no período filtrado');
-  progBody+=staticTile('<svg width="20" height="20" viewBox="0 0 24 24" style="stroke:currentColor;stroke-width:1.5;fill:none;stroke-linecap:round;stroke-linejoin:round;" xmlns="http://www.w3.org/2000/svg"><path d="M20.2 6 3 11l-.9-2.4c-.3-1.1.3-2.2 1.3-2.5l13.5-4c1-.3 2.1.3 2.4 1.3Z"/><path d="m6.2 5.3 3.1 3.9"/><path d="m12.4 3.4 3.1 3.9"/><path d="M3 11h18v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z"/></svg>',statsNum(_pSalas.size),'salas','com sessões programadas');
-  progBody+=staticTile('<svg width="14" height="14" viewBox="0 0 24 24" style="stroke:currentColor;stroke-width:1.75;fill:none;stroke-linecap:round;stroke-linejoin:round;" xmlns="http://www.w3.org/2000/svg"><circle cx="11" cy="4" r="1"/><path d="m11 9 2 7h5l-1.5 3"/><path d="M9 9H7l1 7"/><path d="M13.5 19a4.5 4.5 0 1 1-9 0 4.5 4.5 0 0 1 9 0z"/></svg>',statsNum(_pAcess),'sessões acessíveis','com recurso de acessibilidade');
+  progBody+=statTile('p_mostras','prog','<svg width="20" height="20" viewBox="0 0 24 24" style="stroke:currentColor;stroke-width:1.5;fill:none;stroke-linecap:round;stroke-linejoin:round;" xmlns="http://www.w3.org/2000/svg"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>',statsNum(_pMostras.size),'mostras','programas de exibição');
+  progBody+=statTile('p_sub','prog','<svg width="20" height="20" viewBox="0 0 24 24" style="stroke:currentColor;stroke-width:1.5;fill:none;stroke-linecap:round;stroke-linejoin:round;" xmlns="http://www.w3.org/2000/svg"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>',statsNum(_pSubs.size),'submostras','seções da programação');
+  progBody+=statTile('p_sessoes','prog','<svg width="20" height="20" viewBox="0 0 24 24" style="stroke:currentColor;stroke-width:1.5;fill:none;stroke-linecap:round;stroke-linejoin:round;" xmlns="http://www.w3.org/2000/svg"><path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z"/><path d="M13 5v2"/><path d="M13 17v2"/><path d="M13 11v2"/></svg>',statsNum(_progSessoes.length),'sessões','no período filtrado');
+  progBody+=statTile('p_salas','prog','<svg width="20" height="20" viewBox="0 0 24 24" style="stroke:currentColor;stroke-width:1.5;fill:none;stroke-linecap:round;stroke-linejoin:round;" xmlns="http://www.w3.org/2000/svg"><path d="M20.2 6 3 11l-.9-2.4c-.3-1.1.3-2.2 1.3-2.5l13.5-4c1-.3 2.1.3 2.4 1.3Z"/><path d="m6.2 5.3 3.1 3.9"/><path d="m12.4 3.4 3.1 3.9"/><path d="M3 11h18v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z"/></svg>',statsNum(_pSalas.size),'salas','com sessões programadas');
+  progBody+=statTile('p_acess','prog','<svg width="14" height="14" viewBox="0 0 24 24" style="stroke:currentColor;stroke-width:1.75;fill:none;stroke-linecap:round;stroke-linejoin:round;" xmlns="http://www.w3.org/2000/svg"><circle cx="11" cy="4" r="1"/><path d="m11 9 2 7h5l-1.5 3"/><path d="M9 9H7l1 7"/><path d="M13.5 19a4.5 4.5 0 1 1-9 0 4.5 4.5 0 0 1 9 0z"/></svg>',statsNum(_pAcess),'sessões acessíveis','com recurso de acessibilidade');
   progBody+='</div>';
+  if(dashStatSelected&&dashStatSelected.scope==='prog'){progBody+=renderStatDetail(dashStatSelected.key,'prog',_progSessoes,{});}
   html+=colBlock('programacao',progLabel,progBody);
 
   // ── BLOCO: Controle de filmes ────────────────────────────────────
@@ -11140,7 +11242,7 @@ function renderDash(){
   html+=colBlock('controle','Controle de filmes',ctrlBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 11/05/2026 às 11:00';
+  var sysUpdate='última atualização do sistema · 11/05/2026 às 12:00';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -14557,7 +14659,7 @@ window.addEventListener('popstate',function(e){
 <script>
   if(typeof lucide !== 'undefined') lucide.createIcons();
 </script>
-<div id="page-footer"><span>última atualização · 11/05/2026 às 11:00</span></div>
+<div id="page-footer"><span>última atualização · 11/05/2026 às 12:00</span></div>
 
 </div>
 

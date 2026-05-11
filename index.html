@@ -3875,7 +3875,7 @@ html[data-theme]:not([data-theme="win98"]){--mono:var(--sans);}
           function fss(v){return(v===null||v===undefined)?'':(typeof v==='string'?v.trim():String(v));}
           function fsa(v){if(!v)return[];if(Array.isArray(v))return v.map(fss);return[];}
           map[cod] = {
-            festival_code:cod, title:fss(r.title), title_pt:fss(r.title_pt),
+            festival_code:cod, system_name:fss(r.system_name), title:fss(r.title), title_pt:fss(r.title_pt),
             original_title:fss(r.original_title), english_title:fss(r.english_title),
             year:r.year?parseInt(r.year):null, director:fss(r.director),
             countries:fsa(r.countries), production_company:fss(r.production_company),
@@ -3887,9 +3887,9 @@ html[data-theme]:not([data-theme="win98"]){--mono:var(--sans);}
             copy_arrival_forecast:fss(r.copy_arrival_forecast), copy_notes:fss(r.copy_notes),
             selecao:fss(r.selecao), screener:fss(r.screener),
             crew:r.crew?{
-              cinematography:fss(r.crew.cinematography), screenplay:fss(r.crew.screenplay),
-              editing:fss(r.crew.editing), sound:fss(r.crew.sound),
-              art_direction:fss(r.crew.art_direction), costume_design:fss(r.crew.costume_design),
+              cinematography:fsa(r.crew.cinematography), screenplay:fsa(r.crew.screenplay),
+              editing:fsa(r.crew.editing), sound:fsa(r.crew.sound),
+              art_direction:fsa(r.crew.art_direction), costume_design:fsa(r.crew.costume_design),
               cast:fsa(r.crew.cast)
             }:{}
           };
@@ -3900,14 +3900,14 @@ html[data-theme]:not([data-theme="win98"]){--mono:var(--sans);}
     save: async function(codigo, data) {
       function fsStr(v){return{stringValue:v||''};}
       function fsInt(v){return{integerValue:String(parseInt(v)||0)};}
-      function fsArr(a){return{arrayValue:{values:(a||[]).map(function(x){return fsStr(String(x));})}};}
+      function fsArr(a){var arr=Array.isArray(a)?a:(a&&typeof a==='string'?a.split(',').map(function(s){return s.trim();}).filter(Boolean):[]);return{arrayValue:{values:arr.map(function(x){return fsStr(String(x));})}};}
       var crewF={};
       if(data.crew){
         ['cinematography','screenplay','editing','sound','art_direction','costume_design'].forEach(function(k){if(data.crew[k]!==undefined)crewF[k]=fsArr(data.crew[k]||[]);});
         crewF.cast=fsArr(data.crew.cast||[]);
       }
       var fields={
-        festival_code:fsStr(codigo),title_pt:fsStr(data.title_pt),
+        festival_code:fsStr(codigo),system_name:fsStr(data.system_name||''),title_pt:fsStr(data.title_pt),
         original_title:fsStr(data.original_title),english_title:fsStr(data.english_title),
         synopsis:fsStr(data.synopsis),film_type:fsStr(data.film_type),
         content_rating:fsStr(data.content_rating),original_language:fsStr(data.original_language),
@@ -13488,7 +13488,7 @@ function catTagInp(id,arr){
     +catTagHtml(tags,id)
     +'<input class="cat-tag-input" placeholder="Escreva e Enter" onkeydown="catAddTag(event,&quot;'+id+'&quot;)"></div>';
 }
-function catHasCrew(c){return!!(c&&(c.cinematography||c.screenplay||c.editing||c.sound||c.art_direction||c.costume_design||(c.cast&&c.cast.length)));}
+function catHasCrew(c){function _h(v){return Array.isArray(v)?v.length>0:!!v;}return!!(c&&(_h(c.cinematography)||_h(c.screenplay)||_h(c.editing)||_h(c.sound)||_h(c.art_direction)||_h(c.costume_design)||_h(c.cast)));}
 function catGetTags(id){var el=document.getElementById('catf_'+id);if(!el)return[];try{return JSON.parse(el.getAttribute('data-tags')||'[]');}catch(e){return[];}}
 function catSetTags(id,tags){
   var el=document.getElementById('catf_'+id);if(!el)return;

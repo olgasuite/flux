@@ -11249,7 +11249,7 @@ function renderDash(){
   html+=colBlock('controle','Controle de filmes',ctrlBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 11/05/2026 às 21:20';
+  var sysUpdate='última atualização do sistema · 11/05/2026 às 22:00';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -14090,7 +14090,7 @@ async function openAcervoEdit(idx){
   document.getElementById('acervoEditMsg').textContent='';
   document.getElementById('acervoEditModal').style.display='flex';
   var _aeIdioma=f.idioma||(catalogoFilmesMap[f.codigo]&&catalogoFilmesMap[f.codigo].original_language)||'';
-  _langTagWidget('lw_ae_idioma','cldr',_aeIdioma);
+  _langTagWidget('lw_ae_idioma','cldr',_aeIdioma?[_aeIdioma]:[]);
 }
 
 async function doSaveAcervoEdit(){
@@ -14132,9 +14132,14 @@ async function doSaveAcervoEdit(){
       Object.assign(filteredFilmes[_acervoEditIdx],m);
     }
     closeAcervoEditModal();
-    // Forçar re-render do card expandido
+    // Atualizar header e expand do card
     var card=document.getElementById('bcard-'+_acervoEditIdx);
-    if(card){var ex=card.querySelector('.card-expand');if(ex){ex.dataset.lazy='1';if(card.classList.contains('expanded')){card.classList.remove('expanded');toggleExpand(_acervoEditIdx);}}}
+    if(card){
+      var titleEl=card.querySelector('.card-titulo');
+      if(titleEl)titleEl.textContent=data.title||f.codigo;
+      var ex=card.querySelector('.card-expand');
+      if(ex){ex.dataset.lazy='1';if(card.classList.contains('expanded')){card.classList.remove('expanded');toggleExpand(_acervoEditIdx);}}
+    }
   }catch(e){if(msg){msg.className='cat-msg err';msg.textContent='Erro: '+e.message;}}
 }
 
@@ -14933,7 +14938,7 @@ window.addEventListener('popstate',function(e){
 <script>
   if(typeof lucide !== 'undefined') lucide.createIcons();
 </script>
-<div id="page-footer"><span>última atualização · 11/05/2026 às 21:20</span></div>
+<div id="page-footer"><span>última atualização · 11/05/2026 às 22:00</span></div>
 
 </div>
 

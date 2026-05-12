@@ -10595,6 +10595,9 @@ function renderBuscaResults(){
       });
     });
   }
+  var _buscaVisCodes=new Set(filtered.map(function(f){return f.codigo;}));
+  _buscaBatchSel.forEach(function(cod){if(!_buscaVisCodes.has(cod))_buscaBatchSel.delete(cod);});
+  _updateBuscaBatchToolbar();
   renderAdditiveSlots();
   var slotSuffix=buscaAdditiveSlots.length?' ('+(buscaAdditiveSlots.length+1)+' conj.)':'';
   document.getElementById('resultCount').textContent=filtered.length+' filme'+(filtered.length!==1?'s':'')+slotSuffix;
@@ -13453,6 +13456,9 @@ function _catRenderResults(){
     results=allSlots.length?base.filter(function(f){return allSlots.every(function(s){return _catMatch(f,s);});}):[];
   }
   _catDoSort(results);
+  var _catVisCodes=new Set(results.map(function(f){return f.codigo;}));
+  _catBatchSel.forEach(function(cod){if(!_catVisCodes.has(cod))_catBatchSel.delete(cod);});
+  _updateCatBatchToolbar();
   var rc=document.getElementById('catResultCount');if(rc)rc.textContent=results.length+' título'+(results.length!==1?'s':'');
   resEl.innerHTML='<div class="cat-res-hdr"><span class="cat-res-count">'+results.length+' título'+(results.length!==1?'s':'')+'</span></div>'+(_batchCanEdit()?'<div class="batch-toolbar" id="catBatchToolbar"><button class="batch-toolbar-btn" onclick="_catSelectAll()">Sel. todos</button><button class="batch-toolbar-btn" onclick="_catClearSel()">Limpar</button><span id="catBatchCount" style="font-size:12px;color:var(--text-muted);">0 selecionados</span><button class="batch-toolbar-btn primary" id="catBatchEditBtn" style="display:none" onclick="openBatchModal(\'catalogo\')">Editar selecionados</button></div>':'')+_catSortHeader()+_catBuildCards(results);
   // Eventos sem filmes (apenas em catShowAll)

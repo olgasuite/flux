@@ -11249,7 +11249,7 @@ function renderDash(){
   html+=colBlock('controle','Controle de filmes',ctrlBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 11/05/2026 às 21:00';
+  var sysUpdate='última atualização do sistema · 11/05/2026 às 21:20';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -13800,7 +13800,7 @@ async function doCreateFilm(){
   }
   var copiasData={
     festival_code:code,event_name:ev,title:systemName||titlePt,
-    original_language:gv('original_language'),
+    original_language:catalogData.original_language||gv('original_language'),
     dcp_subtitle_code:cldrToDcnc(gv('dcp_subtitle_code'))||gv('dcp_subtitle_code'),
     vf_subtitle_code:cldrToDcnc(gv('vf_subtitle_code'))||gv('vf_subtitle_code'),
     projection_lens:gv('projection_lens'),audio_format:gv('audio_format'),
@@ -13942,7 +13942,7 @@ async function fetchTMDBMovie(tmdbId){
       cinematography:crewByJobs(['Director of Photography','Cinematography']),
       screenplay:crewByJobs(['Writer','Screenplay','Screenwriter']),
       editing:crewByJobs(['Editor']),
-      sound:crewByJobs(['Sound Designer','Sound Design']),
+      sound:crewByJobs(['Sound Designer','Sound Design','Sound Editor','Sound']),
       art_direction:crewByJobs(['Production Design','Art Direction']),
       costume_design:crewByJobs(['Costume Design','Costume Designer']),
       cast:(d.credits&&d.credits.cast?d.credits.cast.slice(0,5):[]).map(function(p){return p.name;})
@@ -14101,7 +14101,7 @@ async function doSaveAcervoEdit(){
   function aeVal(id){var el=document.getElementById('ae_'+id);return el?(el.value||'').trim():'';}
   var data={
     festival_code:f.codigo,event_name:f.evento||'',
-    title:aeVal('titulo'),original_language:aeVal('idioma'),
+    title:aeVal('titulo'),original_language:aeVal('idioma')||(catalogoFilmesMap[f.codigo]&&catalogoFilmesMap[f.codigo].original_language)||'',
     dcp_subtitle_code:aeVal('legenda'),vf_subtitle_code:aeVal('vf'),
     projection_lens:aeVal('lente'),audio_format:aeVal('som'),
     status:aeVal('status'),notes:aeVal('obs'),
@@ -14933,7 +14933,7 @@ window.addEventListener('popstate',function(e){
 <script>
   if(typeof lucide !== 'undefined') lucide.createIcons();
 </script>
-<div id="page-footer"><span>última atualização · 11/05/2026 às 21:00</span></div>
+<div id="page-footer"><span>última atualização · 11/05/2026 às 21:20</span></div>
 
 </div>
 

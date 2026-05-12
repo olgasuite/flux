@@ -10625,6 +10625,21 @@ function dashStatusClass(v){
 }
 
 function dashGetFilmes(){
+  if(dashCinemaFilter==='__todos__'){
+    var result=[];
+    filmesArr.forEach(function(f){
+      if(f.evento&&!activeEventsDash.has(f.evento))return;
+      var cat=catalogoFilmesMap[f.codigo];
+      if(!cat||(cat.selecao||'').trim()!=='FEST')return;
+      var sessions=[];
+      sessoesArr.forEach(function(s){
+        if(s.evento&&!activeEventsDash.has(s.evento))return;
+        if(s.filmes.indexOf(f.codigo)!==-1)sessions.push({nome:s.nome,cinema:s.cinema,dia:s.dia,hora:s.hora});
+      });
+      result.push({f:f,sessions:sessions});
+    });
+    return result;
+  }
   // Collect film codes from sessions matching current filters
   var codeSessions={};// code → [{nome, cinema, dia, hora}]
   sessoesArr.forEach(function(s){
@@ -10656,10 +10671,10 @@ function rebuildDashCinemaSelect(){
   });
   var sel=document.getElementById('dashCinemaSelect');
   if(!sel)return;
-  var prev=sel.value;
-  sel.innerHTML='<option value="">Todos os cinemas</option>';
+  var prev=dashCinemaFilter;
+  sel.innerHTML='<option value="__todos__">Todos os filmes</option><option value="">Todos os cinemas</option>';
   Array.from(cs).sort().forEach(function(c){var o=document.createElement('option');o.value=c;o.textContent=c;sel.appendChild(o);});
-  if(prev&&cs.has(prev))sel.value=prev;
+  if(prev==='__todos__'||prev===''||cs.has(prev))sel.value=prev;
   else{sel.value='';dashCinemaFilter='';}
 }
 
@@ -10669,7 +10684,7 @@ function renderDashDayTabs(){
     return sessoesArr.some(function(s){
       return s.date&&s.date.toISOString().slice(0,10)===d.key&&
              (!s.evento||activeEventsDash.has(s.evento))&&
-             (!dashCinemaFilter||s.cinema===dashCinemaFilter);
+             (!dashCinemaFilter||dashCinemaFilter==='__todos__'||s.cinema===dashCinemaFilter);
     });
   });
   var validKeys=activeDays.map(function(d){return d.key;});
@@ -11247,10 +11262,10 @@ function renderDash(){
     });
     ctrlBody+='</div></div>';
   }
-  html+=colBlock('controle','Controle de filmes',ctrlBody);
+  html+=colBlock('controle','Controle de cópias',ctrlBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 12/05/2026 às 10:00';
+  var sysUpdate='última atualização do sistema · 12/05/2026 às 11:00';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -14942,7 +14957,7 @@ window.addEventListener('popstate',function(e){
 <script>
   if(typeof lucide !== 'undefined') lucide.createIcons();
 </script>
-<div id="page-footer"><span>última atualização · 12/05/2026 às 10:00</span></div>
+<div id="page-footer"><span>última atualização · 12/05/2026 às 11:00</span></div>
 
 </div>
 

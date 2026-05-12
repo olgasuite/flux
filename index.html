@@ -1536,12 +1536,9 @@ mark{background:rgba(255,186,32,0.28);color:var(--accent);border-radius:2px;padd
 .dash-sess-link:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-dim);}
 .dash-sess-cinema{font-size:8px;color:var(--text-muted);opacity:0.75;}
 
-.dash-cp-fields{display:flex;flex-wrap:wrap;gap:5px;}
-.dash-cp-field{font-family:var(--mono);font-size:9px;padding:2px 6px;background:var(--surface2);border:1px solid var(--border);border-radius:2px;color:var(--text-dim);white-space:nowrap;}
-.dash-cp-lbl{color:var(--text-muted);margin-right:4px;letter-spacing:0.06em;text-transform:uppercase;font-size:8px;}
-.dash-cp-kdm{border-color:var(--warn);color:var(--warn);}
-.dash-cp-rooms{display:flex;flex-wrap:wrap;gap:4px;}
-.dash-cp-room{font-family:var(--mono);font-size:9px;padding:1px 6px;border:1px solid var(--accent);color:var(--accent);border-radius:2px;opacity:0.8;}
+.dash-cp-filmlist{display:flex;flex-direction:column;}
+.dash-cp-row{display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--border);flex-wrap:wrap;}
+.dash-cp-row:last-child{border-bottom:none;}
 .dash-salas-section{margin-bottom:22px;}
 .dash-salas-label{font-family:var(--mono);font-size:8px;font-weight:600;letter-spacing:0.16em;text-transform:uppercase;color:var(--text-muted);margin-bottom:8px;}
 .dash-salas-chips{display:flex;flex-wrap:wrap;gap:6px;}
@@ -11160,95 +11157,57 @@ function renderDash(){
   html+=colBlock('programacao',progLabel,progBody);
 
   // ── BLOCO: Controle de cópias ────────────────────────────────────
-  // Filmes FEST do evento, filtráveis por sala ou programação
-  var _cpEvFilter=_dashGlobalEvFilter;
-  var _cpFestFilmes=filmesArr.filter(function(f){
+  var _cpAllFest=filmesArr.filter(function(f){
     if(f.evento&&!activeEventsDash.has(f.evento))return false;
-    if(_cpEvFilter&&f.evento!==_cpEvFilter)return false;
+    if(_dashGlobalEvFilter&&f.evento!==_dashGlobalEvFilter)return false;
     return _isFest(f.codigo);
   });
-  var _cpSessoes=sessoesArr.filter(function(s){
-    if(s.evento&&!activeEventsDash.has(s.evento))return false;
-    if(_cpEvFilter&&s.evento!==_cpEvFilter)return false;
-    return true;
+  var _cpGroupLabels={'st-ok':'DCP OK','st-error':'Erro / Aguardando','st-cancel':'Cancelado','st-accent':'Outro'};
+  var _cpGroupOrder=['st-ok','st-error','st-cancel','st-accent'];
+  var _cpGroups={};
+  _cpAllFest.forEach(function(f){
+    var sc=dashStatusClass((f.status||'').toString().trim());
+    if(!_cpGroups[sc])_cpGroups[sc]=[];
+    _cpGroups[sc].push(f);
   });
-  var _cpCodeSess={};
-  _cpSessoes.forEach(function(s){
-    s.filmes.forEach(function(c){
-      if(!_cpCodeSess[c])_cpCodeSess[c]=[];
-      _cpCodeSess[c].push({nome:s.nome,cinema:s.cinema||'',dia:s.dia||''});
-    });
-  });
-  var _cpRooms=[...new Set(_cpSessoes.map(function(s){return s.cinema;}).filter(Boolean))].sort();
-
-  // aplicar filtro de seleção
-  var _cpDisplay;
-  if(!_dashCopiasFilter){
-    _cpDisplay=_cpFestFilmes;
-  }else if(_dashCopiasFilter==='__programados__'){
-    _cpDisplay=_cpFestFilmes.filter(function(f){return(_cpCodeSess[f.codigo]||[]).some(function(s){return s.cinema;});});
-  }else{
-    _cpDisplay=_cpFestFilmes.filter(function(f){return(_cpCodeSess[f.codigo]||[]).some(function(s){return s.cinema===_dashCopiasFilter;});});
-  }
 
   var cpBody='';
-  // dropdown de filtro
-  var _cpDropOpts='<option value=""'+((!_dashCopiasFilter)?' selected':'')+'>Todos os filmes</option>';
-  _cpDropOpts+='<option value="__programados__"'+(_dashCopiasFilter==='__programados__'?' selected':'')+'>Todos os filmes programados em salas</option>';
-  _cpRooms.forEach(function(sala){
-    var safe=sala.replace(/"/g,'&quot;');
-    _cpDropOpts+='<option value="'+safe+'"'+(_dashCopiasFilter===sala?' selected':'')+'>'+sala+'</option>';
-  });
-  cpBody+='<div class="dash-ctrl-filter" style="margin-bottom:16px;">'
-    +'<span class="dash-ctrl-filter-label">Exibir</span>'
-    +'<select onchange="_dashCopiasFilter=this.value;renderDash();">'+_cpDropOpts+'</select>'
-    +'<span style="font-family:var(--mono);font-size:10px;color:var(--text-muted);margin-left:10px;">'+_cpDisplay.length+' filme'+(_cpDisplay.length!==1?'s':'')+' FEST</span>'
+  cpBody+='<div style="font-family:var(--mono);font-size:10px;color:var(--text-muted);margin-bottom:14px;">'+_cpAllFest.length+' filme'+(_cpAllFest.length!==1?'s':'')+' FEST</div>';
+  cpBody+='<div class="dash-tiles">';
+  _cpGroupOrder.forEach(function(sc){
+    var films=_cpGroups[sc]||[];
+    if(!films.length)return;
+    var isActive=_dashCopiasFilter===sc;
+    cpBody+='<div class="dash-tile '+sc+(isActive?' active':'')+'" onclick="_dashCopiasFilter=(\''+sc+'\'===_dashCopiasFilter?\'\':\''+(sc)+'\');renderDash();">'
+      +'<div class="dash-tile-count">'+films.length+'</div>'
+      +'<div class="dash-tile-status">'+_cpGroupLabels[sc]+'</div>'
     +'</div>';
+  });
+  cpBody+='</div>';
 
-  // cards de cópia
-  if(_cpDisplay.length){
-    cpBody+='<div class="dash-film-list">';
-    _cpDisplay.forEach(function(f){
-      var col=f.evento&&eventColors[f.evento]?eventColors[f.evento]:null;
+  if(_dashCopiasFilter&&_cpGroups[_dashCopiasFilter]){
+    var _cpFiltered=_cpGroups[_dashCopiasFilter];
+    cpBody+='<div class="dash-detail"><div class="dash-cp-filmlist">';
+    _cpFiltered.forEach(function(f){
       var titulo=clean(f.titulo)||f.codigo;
       var st=(f.status||'').toString().trim();
       var stCls=dashStatusClass(st);
-      var sessions=_cpCodeSess[f.codigo]||[];
-      var rooms=[...new Set(sessions.map(function(s){return s.cinema;}).filter(Boolean))];
-      // campos de cópia
-      function cpF(label,val){
-        var v=(val||'').toString().trim();
-        if(!v||v==='-')return'';
-        return'<span class="dash-cp-field"><span class="dash-cp-lbl">'+label+'</span>'+v+'</span>';
-      }
-      var cpFields=[
-        cpF('Dur',f.duracao),
-        cpF('Leg',f.legenda),
-        cpF('Lente',f.lente),
-        cpF('Som',f.som),
-        cpF('HD',f.hd),
-        cpF('Res',f.resolucao),
-        (f.kdm&&f.kdm.toLowerCase()==='sim'?'<span class="dash-cp-field dash-cp-kdm">⚠ KDM</span>':'')
-      ].filter(Boolean).join('');
-      var roomsHtml=rooms.length?'<div class="dash-cp-rooms">'+rooms.map(function(r){return'<span class="dash-cp-room">'+r+'</span>';}).join('')+'</div>':'';
-      cpBody+='<div class="dash-film-card" style="border-left-color:'+(col?col.bg:'var(--border2)')+';">'
-        +'<div class="dash-film-top">'
-          +'<span class="dash-film-title">'+titulo+'</span>'
-          +'<span class="dash-film-code">'+f.codigo+'</span>'
-          +(st?'<span class="dash-tile '+stCls+'">'+st+'</span>':'')
-        +'</div>'
-        +(cpFields?'<div class="dash-cp-fields">'+cpFields+'</div>':'')
-        +roomsHtml
+      var stColor=stCls==='st-ok'?'var(--ok)':'var(--warn)';
+      cpBody+='<div class="dash-cp-row">'
+        +'<span class="dash-film-title">'+titulo+'</span>'
+        +'<span class="dash-film-code">'+f.codigo+'</span>'
+        +(st
+          ?'<span style="font-family:var(--mono);font-size:9px;font-weight:600;color:'+stColor+';">'+st+'</span>'
+          :'<span style="font-family:var(--mono);font-size:9px;color:var(--text-muted);">sem status</span>')
       +'</div>';
     });
-    cpBody+='</div>';
-  }else{
-    cpBody+='<div style="text-align:center;padding:24px;font-family:var(--mono);font-size:11px;color:var(--text-muted);">Nenhum filme FEST no filtro selecionado.</div>';
+    cpBody+='</div></div>';
   }
+
   html+=colBlock('controle','Controle de cópias',cpBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 12/05/2026 às 00:20';
+  var sysUpdate='última atualização do sistema · 12/05/2026 às 00:30';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -14938,7 +14897,7 @@ window.addEventListener('popstate',function(e){
 <script>
   if(typeof lucide !== 'undefined') lucide.createIcons();
 </script>
-<div id="page-footer"><span>última atualização · 12/05/2026 às 00:20</span></div>
+<div id="page-footer"><span>última atualização · 12/05/2026 às 00:30</span></div>
 
 </div>
 

@@ -4207,7 +4207,8 @@ html[data-theme]:not([data-theme="win98"]){--mono:var(--sans);}
           cert_serial_dec: fs(r['cert_serial_dec']),
           cert_thumbprint: fs(r['cert_thumbprint']),
           cert_filename:   fs(r['cert_filename']),
-          cert_imported_at:r['cert_imported_at']&&r['cert_imported_at'].toDate?r['cert_imported_at'].toDate():null
+          cert_imported_at:r['cert_imported_at']&&r['cert_imported_at'].toDate?r['cert_imported_at'].toDate():null,
+          utc_offset:      fs(r['utc_offset'])
         });
       });
 
@@ -5433,7 +5434,11 @@ function renderFicha(nome,s){
       '<div class="ficha-vinhetas-obs">* em caso de mais de uma opção da vinheta indicada escolher a opção que facilite a menor troca de lentes na sessão</div>';
   }
 
-  document.getElementById('fichaWrap').innerHTML='<div class="ficha"><div class="ficha-header"><div class="ficha-header-main"><div class="ficha-session-wrap"><div class="ficha-session-name">'+nome+'</div>'+(s.name?'<div class="prog-sess-display-name-ficha">'+esc(s.name)+'</div>':'')+eventoBadge+(fichaRatingBadge?fichaRatingBadge:'')+'</div><div class="ficha-meta"><div class="meta-item"><div class="meta-label">Cinema</div><div class="meta-value">'+(s.cinema||'—')+'</div></div><div class="meta-item"><div class="meta-label">Data</div><div class="meta-value">'+s.dia+'</div></div><div class="meta-item"><div class="meta-label">Hora</div><div class="meta-value">'+s.hora+'</div></div><div class="meta-item"><div class="meta-label">Filmes</div><div class="meta-value highlight">'+films.length+'</div></div></div></div>'+extraHtml+'</div>'+vinhetasHtml+'<div class="film-table-wrap"><table><thead><tr><th>#</th><th>Filme</th><th class="center">Lente</th><th class="center">Som</th><th>Legenda</th><th class="center">Idioma</th><th class="center">KDM</th><th>CPL</th><th>Duração</th><th>OBS</th><th class="center">Res</th><th class="center">FPS · GB</th><th class="center" title="Acessibilidade"><svg width="13" height="13" viewBox="0 0 24 24" style="stroke:currentColor;stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round;vertical-align:middle;"><circle cx="11" cy="4" r="1"/><path d="m11 9 2 7h5l-1.5 3"/><path d="M9 9H7l1 7"/><path d="M13.5 19a4.5 4.5 0 1 1-9 0 4.5 4.5 0 0 1 9 0z"/></svg></th></tr></thead><tbody>'+(rows||'<tr><td colspan="13" style="text-align:center;color:var(--text-muted);padding:24px">Nenhum filme encontrado para esta sessão.</td></tr>')+'</tbody></table></div><div class="ficha-footer"><div class="footer-total">Duração total dos filmes: <strong>'+totalDur+'</strong>'+(totalVinSecs>0?' &nbsp;·&nbsp; Vinhetas: <strong>'+_secsToHMS(totalVinSecs)+'</strong>':'')+' &nbsp;·&nbsp; Tamanho: <strong>'+totalGBStr+'</strong></div><div class="footer-stamp">OLGA · '+new Date().toLocaleString('pt-BR')+'</div></div></div>';
+  var _fpAllC=getAllCinemas();var _fpCi=_fpAllC.map[s.cinema]||{};
+  var _fpUtcTag=_fpCi.utc_offset?'<span style="font-family:var(--mono);font-size:9px;color:var(--text-muted);margin-left:5px;opacity:0.75;">('+_fpCi.utc_offset+')</span>':'';
+  var _fpUtcStr=_sessUtcStr(s,_fpCi);
+  var _fpUtcMeta=_fpUtcStr?'<div class="meta-item"><div class="meta-label">Hora UTC</div><div class="meta-value" style="font-size:11px;color:var(--text-muted);">'+_fpUtcStr+'</div></div>':'';
+  document.getElementById('fichaWrap').innerHTML='<div class="ficha"><div class="ficha-header"><div class="ficha-header-main"><div class="ficha-session-wrap"><div class="ficha-session-name">'+nome+'</div>'+(s.name?'<div class="prog-sess-display-name-ficha">'+esc(s.name)+'</div>':'')+eventoBadge+(fichaRatingBadge?fichaRatingBadge:'')+'</div><div class="ficha-meta"><div class="meta-item"><div class="meta-label">Cinema</div><div class="meta-value">'+(s.cinema||'—')+_fpUtcTag+'</div></div><div class="meta-item"><div class="meta-label">Data</div><div class="meta-value">'+s.dia+'</div></div><div class="meta-item"><div class="meta-label">Hora</div><div class="meta-value">'+s.hora+'</div></div>'+_fpUtcMeta+'<div class="meta-item"><div class="meta-label">Filmes</div><div class="meta-value highlight">'+films.length+'</div></div></div></div>'+extraHtml+'</div>'+vinhetasHtml+'<div class="film-table-wrap"><table><thead><tr><th>#</th><th>Filme</th><th class="center">Lente</th><th class="center">Som</th><th>Legenda</th><th class="center">Idioma</th><th class="center">KDM</th><th>CPL</th><th>Duração</th><th>OBS</th><th class="center">Res</th><th class="center">FPS · GB</th><th class="center" title="Acessibilidade"><svg width="13" height="13" viewBox="0 0 24 24" style="stroke:currentColor;stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round;vertical-align:middle;"><circle cx="11" cy="4" r="1"/><path d="m11 9 2 7h5l-1.5 3"/><path d="M9 9H7l1 7"/><path d="M13.5 19a4.5 4.5 0 1 1-9 0 4.5 4.5 0 0 1 9 0z"/></svg></th></tr></thead><tbody>'+(rows||'<tr><td colspan="13" style="text-align:center;color:var(--text-muted);padding:24px">Nenhum filme encontrado para esta sessão.</td></tr>')+'</tbody></table></div><div class="ficha-footer"><div class="footer-total">Duração total dos filmes: <strong>'+totalDur+'</strong>'+(totalVinSecs>0?' &nbsp;·&nbsp; Vinhetas: <strong>'+_secsToHMS(totalVinSecs)+'</strong>':'')+' &nbsp;·&nbsp; Tamanho: <strong>'+totalGBStr+'</strong></div><div class="footer-stamp">OLGA · '+new Date().toLocaleString('pt-BR')+'</div></div></div>';
 }
 
 /* GRADE */
@@ -6530,6 +6535,7 @@ function openCinemaDetail(sala){
   specsHtml+=ds('Assentos',c.assentos);
   specsHtml+=ds('Proporção',c.proporcao);
   specsHtml+=ds('Som',c.som);
+  if(c.utc_offset)specsHtml+=ds('UTC',c.utc_offset);
   if(c.cineassista){specsHtml+='<div class="cinema-detail-spec"><div class="cinema-detail-spec-label">Cineassista</div><div class="cinema-detail-spec-val '+(c.cineassista.toString().toUpperCase()==='SIM'?'cinema-cineassista-sim':'')+'">'+c.cineassista+'</div></div>';}
 
   var sessoes=sessoesByCinema(sala);
@@ -6684,6 +6690,10 @@ function _equipFields(c){
       _cemField('cemCineassista','Cineassista',c.cineassista,'Sim / Não'),
       _cemField('cemStorageGB','Armazenamento (GB)',c.storage_gb,'Ex: 2048')
     )+
+    _cemRow(
+      _cemField('cemUtcOffset','Deslocamento UTC',c.utc_offset||'','-03:00 · +00:00'),
+      ''
+    )+
     _cemFull(_cemField('cemObs','Observações',c.obs,''));
 }
 
@@ -6820,9 +6830,9 @@ async function saveCinemaEdit(){
           var salaNome=g('cemSalaNome');
           if(!salaNome){status.className='cem-status err';status.textContent='Nome da sala é obrigatório quando "Cadastrar uma sala agora" está marcado.';btn.disabled=false;return;}
           var evento=g('cemEvento');
-          var sFields={venue_name:salaNome,complex_name:complexo,state:estado,address:endereco,kdm_email:g('cemEmailKdm'),mgmt_email:g('cemEmailGer'),event_name:evento,server_model:g('cemServidor'),server_serial:g('cemSerial'),projector_model:g('cemProjetor'),sound_system:g('cemSom'),screen_aspect_ratio:g('cemProporcao'),seat_count:g('cemAssentos'),cineassist_system:g('cemCineassista'),notes:g('cemObs'),screen_height:g('cemTelaH'),screen_width:g('cemTelaW')};
+          var sFields={venue_name:salaNome,complex_name:complexo,state:estado,address:endereco,kdm_email:g('cemEmailKdm'),mgmt_email:g('cemEmailGer'),event_name:evento,server_model:g('cemServidor'),server_serial:g('cemSerial'),projector_model:g('cemProjetor'),sound_system:g('cemSom'),screen_aspect_ratio:g('cemProporcao'),seat_count:g('cemAssentos'),cineassist_system:g('cemCineassista'),notes:g('cemObs'),screen_height:g('cemTelaH'),screen_width:g('cemTelaW'),utc_offset:g('cemUtcOffset')};
           var newId=await window._olgaCinemas.createSala(sFields);
-          cinemasArr.push({docId:newId,sala:salaNome,complexo:complexo,estado:estado,endereco:endereco,email_kdm:g('cemEmailKdm'),email_ger:g('cemEmailGer'),evento:evento,servidor:g('cemServidor'),serial:g('cemSerial'),projetor:g('cemProjetor'),som:g('cemSom'),proporcao:g('cemProporcao'),assentos:g('cemAssentos'),tela_h:telaH2,tela_w:telaW2,cineassista:g('cemCineassista'),obs:'',cert_serial_hex:'',cert_serial_dec:'',cert_issuer:'',cert_subject:'',cert_thumbprint:'',cert_filename:'',cert_imported_at:null});
+          cinemasArr.push({docId:newId,sala:salaNome,complexo:complexo,estado:estado,endereco:endereco,email_kdm:g('cemEmailKdm'),email_ger:g('cemEmailGer'),evento:evento,servidor:g('cemServidor'),serial:g('cemSerial'),projetor:g('cemProjetor'),som:g('cemSom'),proporcao:g('cemProporcao'),assentos:g('cemAssentos'),tela_h:telaH2,tela_w:telaW2,cineassista:g('cemCineassista'),obs:'',utc_offset:g('cemUtcOffset'),cert_serial_hex:'',cert_serial_dec:'',cert_issuer:'',cert_subject:'',cert_thumbprint:'',cert_filename:'',cert_imported_at:null});
           status.className='cem-status ok';status.textContent='Complexo e sala criados ✓';
           setTimeout(function(){closeCinemaEdit();renderCinemas();openCinemaDetail(salaNome);},700);
         }else{
@@ -6845,6 +6855,7 @@ async function saveCinemaEdit(){
       var assentos=g('cemAssentos');
       var cineassista=g('cemCineassista');
       var obs=g('cemObs');
+      var utcOffset=g('cemUtcOffset');
 
       if(_cemMode==='sala'){
         if(!_cemSala)throw new Error('Nome da sala ausente.');
@@ -6854,10 +6865,10 @@ async function saveCinemaEdit(){
         var telaH=g('cemTelaH');var telaW=g('cemTelaW');
         var storageGB=g('cemStorageGB');
         if(!salaNome){status.className='cem-status err';status.textContent='Nome da sala é obrigatório.';btn.disabled=false;return;}
-        var salaFields={venue_name:salaNome,event_name:evento,server_model:servidor,server_serial:serial,projector_model:projetor,sound_system:som,screen_aspect_ratio:proporcao,seat_count:assentos,cineassist_system:cineassista,notes:obs,screen_height:telaH,screen_width:telaW,storage_gb:storageGB};
+        var salaFields={venue_name:salaNome,event_name:evento,server_model:servidor,server_serial:serial,projector_model:projetor,sound_system:som,screen_aspect_ratio:proporcao,seat_count:assentos,cineassist_system:cineassista,notes:obs,screen_height:telaH,screen_width:telaW,storage_gb:storageGB,utc_offset:utcOffset};
         await window._olgaCinemas.saveSala(c2.docId,salaFields);
         window._logFirestoreEdit&&window._logFirestoreEdit('individual',c2.docId,salaFields,'cinemas','cinemas');
-        Object.assign(c2,{sala:salaNome,evento:evento,servidor:servidor,serial:serial,projetor:projetor,som:som,proporcao:proporcao,assentos:assentos,cineassista:cineassista,obs:obs,tela_h:telaH,tela_w:telaW,storage_gb:storageGB});
+        Object.assign(c2,{sala:salaNome,evento:evento,servidor:servidor,serial:serial,projetor:projetor,som:som,proporcao:proporcao,assentos:assentos,cineassista:cineassista,obs:obs,tela_h:telaH,tela_w:telaW,storage_gb:storageGB,utc_offset:utcOffset});
         status.className='cem-status ok';status.textContent='Salvo ✓';
         setTimeout(function(){closeCinemaEdit();renderCinemas();openCinemaDetail(salaNome);},700);
       }else{
@@ -6866,10 +6877,10 @@ async function saveCinemaEdit(){
         var endereco=g('cemEndereco');
         if(!salaNome){status.className='cem-status err';status.textContent='Nome da sala é obrigatório.';btn.disabled=false;return;}
         var telaH2=g('cemTelaH');var telaW2=g('cemTelaW');
-        var fields={venue_name:salaNome,complex_name:complexo,state:estado,address:endereco,kdm_email:g('cemEmailKdm'),mgmt_email:g('cemEmailGer'),event_name:evento,server_model:servidor,server_serial:serial,projector_model:projetor,sound_system:som,screen_aspect_ratio:proporcao,seat_count:assentos,cineassist_system:cineassista,notes:obs,screen_height:telaH2,screen_width:telaW2};
+        var fields={venue_name:salaNome,complex_name:complexo,state:estado,address:endereco,kdm_email:g('cemEmailKdm'),mgmt_email:g('cemEmailGer'),event_name:evento,server_model:servidor,server_serial:serial,projector_model:projetor,sound_system:som,screen_aspect_ratio:proporcao,seat_count:assentos,cineassist_system:cineassista,notes:obs,screen_height:telaH2,screen_width:telaW2,utc_offset:utcOffset};
         var newId=await window._olgaCinemas.createSala(fields);
         window._logFirestoreEdit&&window._logFirestoreEdit('individual',newId,fields,'cinemas','cinemas');
-        cinemasArr.push({docId:newId,sala:salaNome,complexo:complexo,estado:estado,endereco:endereco,evento:evento,servidor:servidor,serial:serial,projetor:projetor,som:som,proporcao:proporcao,assentos:assentos,cineassista:cineassista,obs:'',cert_serial_hex:'',cert_serial_dec:'',cert_issuer:'',cert_subject:'',cert_thumbprint:'',cert_filename:'',cert_imported_at:null});
+        cinemasArr.push({docId:newId,sala:salaNome,complexo:complexo,estado:estado,endereco:endereco,evento:evento,servidor:servidor,serial:serial,projetor:projetor,som:som,proporcao:proporcao,assentos:assentos,cineassista:cineassista,obs:'',utc_offset:utcOffset,cert_serial_hex:'',cert_serial_dec:'',cert_issuer:'',cert_subject:'',cert_thumbprint:'',cert_filename:'',cert_imported_at:null});
         status.className='cem-status ok';status.textContent='Sala criada ✓';
         setTimeout(function(){closeCinemaEdit();renderCinemas();openCinemaDetail(salaNome);},700);
       }
@@ -8549,6 +8560,21 @@ async function saveSessaoBordero(){
 
 /* ========== KDM MODULE ========== */
 
+function _parseCinemaOffsetMs(cinema){
+  var str=(cinema&&cinema.utc_offset)||'-03:00';
+  var m=str.match(/^([+-]?)(\d{1,2}):(\d{2})$/);
+  if(!m)return -10800000;
+  var sign=m[1]==='-'?-1:1;
+  return sign*(parseInt(m[2],10)*60+parseInt(m[3],10))*60000;
+}
+function _sessUtcStr(s,cinema){
+  if(!s||!s.date||!s.time)return null;
+  var offMs=_parseCinemaOffsetMs(cinema);
+  var localMs=Date.UTC(s.date.getFullYear(),s.date.getMonth(),s.date.getDate(),s.time.h,s.time.m,0);
+  var d=new Date(localMs-offMs);
+  return String(d.getUTCHours()).padStart(2,'0')+':'+String(d.getUTCMinutes()).padStart(2,'0');
+}
+
 var _kdmResults={};
 var _kdmPendingFilename='';
 // Restore KDM results from previous session
@@ -9021,11 +9047,16 @@ function _processKDMTest(sessaoNome,xml){
   if(notBefore&&notAfter&&s.date){
     try{
       var nbMs=new Date(notBefore).getTime(),naMs=new Date(notAfter).getTime();
-      var sessMs=Date.UTC(s.date.getFullYear(),s.date.getMonth(),s.date.getDate(),s.time?s.time.h:0,s.time?s.time.m:0,0);
+      var _kdmAllC=getAllCinemas();var _kdmCi=_kdmAllC.map[s.cinema]||{};
+      var _kdmOffMs=_parseCinemaOffsetMs(_kdmCi);
+      var sessLocalMs=Date.UTC(s.date.getFullYear(),s.date.getMonth(),s.date.getDate(),s.time?s.time.h:0,s.time?s.time.m:0,0);
+      var sessMs=sessLocalMs-_kdmOffMs;
       var inWindow=sessMs>=nbMs&&sessMs<=naMs;
       var fmt=function(iso){try{var d=new Date(iso);return d.toISOString().replace('T',' ').slice(0,16)+' UTC';}catch(e){return iso;}};
-      if(inWindow){lines.push({ok:true,warn:false,text:'Janela: dentro ('+fmt(notBefore)+' → '+fmt(notAfter)+')'});}
-      else{lines.push({ok:false,warn:true,text:'Janela: fora ('+fmt(notBefore)+' → '+fmt(notAfter)+')'});overallOk=false;windowFail=true;}
+      var _sessUtcD=new Date(sessMs);
+      var _sessUtcLabel=String(_sessUtcD.getUTCHours()).padStart(2,'0')+':'+String(_sessUtcD.getUTCMinutes()).padStart(2,'0')+' UTC';
+      if(inWindow){lines.push({ok:true,warn:false,text:'Janela: dentro ('+fmt(notBefore)+' → '+fmt(notAfter)+') · Sessão: '+_sessUtcLabel});}
+      else{lines.push({ok:false,warn:true,text:'Janela: fora ('+fmt(notBefore)+' → '+fmt(notAfter)+') · Sessão: '+_sessUtcLabel});overallOk=false;windowFail=true;}
     }catch(e){lines.push({ok:false,warn:true,text:'Janela: não foi possível validar'});}
   }else{
     lines.push({ok:false,warn:true,text:'Janela de validade ausente no KDM'});
@@ -11397,7 +11428,7 @@ function renderDash(){
   html+=colBlock('kdm','KDM',kdmBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 12/05/2026 às 15:00';
+  var sysUpdate='última atualização do sistema · 12/05/2026 às 15:30';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -11812,7 +11843,11 @@ function _progRenderSessao(sessaoNome){
     html+='</div>';
   }
   html+='</div>';
-  html+='<div class="ficha-meta"><div class="meta-item"><div class="meta-label">Cinema</div><div class="meta-value">'+(s.cinema||'—')+'</div></div><div class="meta-item"><div class="meta-label">Data</div><div class="meta-value">'+s.dia+'</div></div><div class="meta-item"><div class="meta-label">Hora</div><div class="meta-value">'+s.hora+'</div></div><div class="meta-item"><div class="meta-label">Filmes</div><div class="meta-value highlight">'+films.length+'</div></div></div>';
+  var _ppAllC=getAllCinemas();var _ppCi=_ppAllC.map[s.cinema]||{};
+  var _ppUtcTag=_ppCi.utc_offset?'<span style="font-family:var(--mono);font-size:9px;color:var(--text-muted);margin-left:5px;opacity:0.75;">('+_ppCi.utc_offset+')</span>':'';
+  var _ppUtcStr=_sessUtcStr(s,_ppCi);
+  var _ppUtcMeta=_ppUtcStr?'<div class="meta-item"><div class="meta-label">Hora UTC</div><div class="meta-value" style="font-size:11px;color:var(--text-muted);">'+_ppUtcStr+'</div></div>':'';
+  html+='<div class="ficha-meta"><div class="meta-item"><div class="meta-label">Cinema</div><div class="meta-value">'+(s.cinema||'—')+_ppUtcTag+'</div></div><div class="meta-item"><div class="meta-label">Data</div><div class="meta-value">'+s.dia+'</div></div><div class="meta-item"><div class="meta-label">Hora</div><div class="meta-value">'+s.hora+'</div></div>'+_ppUtcMeta+'<div class="meta-item"><div class="meta-label">Filmes</div><div class="meta-value highlight">'+films.length+'</div></div></div>';
   html+='</div>'+extraHtml+'</div>';
   html+=vinhetasHtml;
   if(s.session_description)html+='<div class="prog-sess-desc-block">'+esc(s.session_description)+'</div>';
@@ -11908,9 +11943,9 @@ async function _loadVinTemplates(eventId){
   return t;
 }
 
-function openProgVinTemplatesModal(eventId){
+async function openProgVinTemplatesModal(eventId){
   _progVinTmplEventId=eventId;
-  var loaded=_vinTemplatesCache[eventId]||[];
+  var loaded=await _loadVinTemplates(eventId);
   _progVinTmplList=JSON.parse(JSON.stringify(loaded));
   document.getElementById('progVinTemplatesModalTitle').textContent='Templates de vinhetas · '+eventId;
   document.getElementById('progVinTemplatesModalErr').style.display='none';
@@ -15097,7 +15132,7 @@ window.addEventListener('popstate',function(e){
 <script>
   if(typeof lucide !== 'undefined') lucide.createIcons();
 </script>
-<div id="page-footer"><span>última atualização · 12/05/2026 às 15:00</span></div>
+<div id="page-footer"><span>última atualização · 12/05/2026 às 15:30</span></div>
 
 </div>
 

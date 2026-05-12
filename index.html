@@ -5436,9 +5436,7 @@ function renderFicha(nome,s){
 
   var _fpAllC=getAllCinemas();var _fpCi=_fpAllC.map[s.cinema]||{};
   var _fpUtcTag=_fpCi.utc_offset?'<span style="font-family:var(--mono);font-size:9px;color:var(--text-muted);margin-left:5px;opacity:0.75;">('+_fpCi.utc_offset+')</span>':'';
-  var _fpUtcStr=_sessUtcStr(s,_fpCi);
-  var _fpUtcMeta=_fpUtcStr?'<div class="meta-item"><div class="meta-label">Hora UTC</div><div class="meta-value" style="font-size:11px;color:var(--text-muted);">'+_fpUtcStr+'</div></div>':'';
-  document.getElementById('fichaWrap').innerHTML='<div class="ficha"><div class="ficha-header"><div class="ficha-header-main"><div class="ficha-session-wrap"><div class="ficha-session-name">'+nome+'</div>'+(s.name?'<div class="prog-sess-display-name-ficha">'+esc(s.name)+'</div>':'')+eventoBadge+(fichaRatingBadge?fichaRatingBadge:'')+'</div><div class="ficha-meta"><div class="meta-item"><div class="meta-label">Cinema</div><div class="meta-value">'+(s.cinema||'—')+_fpUtcTag+'</div></div><div class="meta-item"><div class="meta-label">Data</div><div class="meta-value">'+s.dia+'</div></div><div class="meta-item"><div class="meta-label">Hora</div><div class="meta-value">'+s.hora+'</div></div>'+_fpUtcMeta+'<div class="meta-item"><div class="meta-label">Filmes</div><div class="meta-value highlight">'+films.length+'</div></div></div></div>'+extraHtml+'</div>'+vinhetasHtml+'<div class="film-table-wrap"><table><thead><tr><th>#</th><th>Filme</th><th class="center">Lente</th><th class="center">Som</th><th>Legenda</th><th class="center">Idioma</th><th class="center">KDM</th><th>CPL</th><th>Duração</th><th>OBS</th><th class="center">Res</th><th class="center">FPS · GB</th><th class="center" title="Acessibilidade"><svg width="13" height="13" viewBox="0 0 24 24" style="stroke:currentColor;stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round;vertical-align:middle;"><circle cx="11" cy="4" r="1"/><path d="m11 9 2 7h5l-1.5 3"/><path d="M9 9H7l1 7"/><path d="M13.5 19a4.5 4.5 0 1 1-9 0 4.5 4.5 0 0 1 9 0z"/></svg></th></tr></thead><tbody>'+(rows||'<tr><td colspan="13" style="text-align:center;color:var(--text-muted);padding:24px">Nenhum filme encontrado para esta sessão.</td></tr>')+'</tbody></table></div><div class="ficha-footer"><div class="footer-total">Duração total dos filmes: <strong>'+totalDur+'</strong>'+(totalVinSecs>0?' &nbsp;·&nbsp; Vinhetas: <strong>'+_secsToHMS(totalVinSecs)+'</strong>':'')+' &nbsp;·&nbsp; Tamanho: <strong>'+totalGBStr+'</strong></div><div class="footer-stamp">OLGA · '+new Date().toLocaleString('pt-BR')+'</div></div></div>';
+  document.getElementById('fichaWrap').innerHTML='<div class="ficha"><div class="ficha-header"><div class="ficha-header-main"><div class="ficha-session-wrap"><div class="ficha-session-name">'+nome+'</div>'+(s.name?'<div class="prog-sess-display-name-ficha">'+esc(s.name)+'</div>':'')+eventoBadge+(fichaRatingBadge?fichaRatingBadge:'')+'</div><div class="ficha-meta"><div class="meta-item"><div class="meta-label">Cinema</div><div class="meta-value">'+(s.cinema||'—')+_fpUtcTag+'</div></div><div class="meta-item"><div class="meta-label">Data</div><div class="meta-value">'+s.dia+'</div></div><div class="meta-item"><div class="meta-label">Hora</div><div class="meta-value">'+s.hora+'</div></div><div class="meta-item"><div class="meta-label">Filmes</div><div class="meta-value highlight">'+films.length+'</div></div></div></div>'+extraHtml+'</div>'+vinhetasHtml+'<div class="film-table-wrap"><table><thead><tr><th>#</th><th>Filme</th><th class="center">Lente</th><th class="center">Som</th><th>Legenda</th><th class="center">Idioma</th><th class="center">KDM</th><th>CPL</th><th>Duração</th><th>OBS</th><th class="center">Res</th><th class="center">FPS · GB</th><th class="center" title="Acessibilidade"><svg width="13" height="13" viewBox="0 0 24 24" style="stroke:currentColor;stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round;vertical-align:middle;"><circle cx="11" cy="4" r="1"/><path d="m11 9 2 7h5l-1.5 3"/><path d="M9 9H7l1 7"/><path d="M13.5 19a4.5 4.5 0 1 1-9 0 4.5 4.5 0 0 1 9 0z"/></svg></th></tr></thead><tbody>'+(rows||'<tr><td colspan="13" style="text-align:center;color:var(--text-muted);padding:24px">Nenhum filme encontrado para esta sessão.</td></tr>')+'</tbody></table></div><div class="ficha-footer"><div class="footer-total">Duração total dos filmes: <strong>'+totalDur+'</strong>'+(totalVinSecs>0?' &nbsp;·&nbsp; Vinhetas: <strong>'+_secsToHMS(totalVinSecs)+'</strong>':'')+' &nbsp;·&nbsp; Tamanho: <strong>'+totalGBStr+'</strong></div><div class="footer-stamp">OLGA · '+new Date().toLocaleString('pt-BR')+'</div></div></div>';
 }
 
 /* GRADE */
@@ -11428,7 +11426,7 @@ function renderDash(){
   html+=colBlock('kdm','KDM',kdmBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 12/05/2026 às 15:30';
+  var sysUpdate='última atualização do sistema · 12/05/2026 às 16:00';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -11845,9 +11843,7 @@ function _progRenderSessao(sessaoNome){
   html+='</div>';
   var _ppAllC=getAllCinemas();var _ppCi=_ppAllC.map[s.cinema]||{};
   var _ppUtcTag=_ppCi.utc_offset?'<span style="font-family:var(--mono);font-size:9px;color:var(--text-muted);margin-left:5px;opacity:0.75;">('+_ppCi.utc_offset+')</span>':'';
-  var _ppUtcStr=_sessUtcStr(s,_ppCi);
-  var _ppUtcMeta=_ppUtcStr?'<div class="meta-item"><div class="meta-label">Hora UTC</div><div class="meta-value" style="font-size:11px;color:var(--text-muted);">'+_ppUtcStr+'</div></div>':'';
-  html+='<div class="ficha-meta"><div class="meta-item"><div class="meta-label">Cinema</div><div class="meta-value">'+(s.cinema||'—')+_ppUtcTag+'</div></div><div class="meta-item"><div class="meta-label">Data</div><div class="meta-value">'+s.dia+'</div></div><div class="meta-item"><div class="meta-label">Hora</div><div class="meta-value">'+s.hora+'</div></div>'+_ppUtcMeta+'<div class="meta-item"><div class="meta-label">Filmes</div><div class="meta-value highlight">'+films.length+'</div></div></div>';
+  html+='<div class="ficha-meta"><div class="meta-item"><div class="meta-label">Cinema</div><div class="meta-value">'+(s.cinema||'—')+_ppUtcTag+'</div></div><div class="meta-item"><div class="meta-label">Data</div><div class="meta-value">'+s.dia+'</div></div><div class="meta-item"><div class="meta-label">Hora</div><div class="meta-value">'+s.hora+'</div></div><div class="meta-item"><div class="meta-label">Filmes</div><div class="meta-value highlight">'+films.length+'</div></div></div>';
   html+='</div>'+extraHtml+'</div>';
   html+=vinhetasHtml;
   if(s.session_description)html+='<div class="prog-sess-desc-block">'+esc(s.session_description)+'</div>';
@@ -13150,6 +13146,7 @@ window.confirmEquipeDelete=async function(){
 var _catView='search',_catCode=null,_catEditing=false,catQuery='';
 var _catSearch={texto:'',texto_neg:false,director:'',director_neg:false,selecao:'',selecao_neg:false,ftype:'',ftype_neg:false,kdm:'',kdm_neg:false,stat:'',stat_neg:false,idioma:'',idioma_neg:false,genre:'',genre_neg:false,pais:'',pais_neg:false,prod:'',prod_neg:false,dist:'',dist_neg:false,syn:'',syn_neg:false,scr:'',scr_neg:false,email:'',email_neg:false,program_id:'',program_id_neg:false,subprogram_id:'',subprogram_id_neg:false,sessao_cat:'',sessao_cat_neg:false};
 var _catSlots=[],_catShowAll=false,_catRan=false;
+var _catSortKey='title',_catSortDir='asc';
 
 function fmtDurMin(str){
   if(!str)return'';
@@ -13283,6 +13280,49 @@ function _catMatch(f,s){
   return true;
 }
 
+/* ── sort ── */
+function _catSetSort(key){
+  if(_catSortKey===key)_catSortDir=_catSortDir==='asc'?'desc':'asc';
+  else{_catSortKey=key;_catSortDir='asc';}
+  _catRenderResults();
+}
+function _catDoSort(results){
+  var key=_catSortKey,dir=_catSortDir;
+  results.sort(function(a,b){
+    var ma=catalogoFilmesMap[a.codigo]||{},mb=catalogoFilmesMap[b.codigo]||{};
+    var va,vb,n;
+    if(key==='code'){va=a.codigo;vb=b.codigo;}
+    else if(key==='evento'){va=a.evento||'';vb=b.evento||'';}
+    else if(key==='title'){va=ma.system_name||ma.title||a.titulo||a.codigo;vb=mb.system_name||mb.title||b.titulo||b.codigo;}
+    else if(key==='dir'){va=Array.isArray(ma.director)?ma.director[0]||'':ma.director||'';vb=Array.isArray(mb.director)?mb.director[0]||'':mb.director||'';}
+    else if(key==='dur'){n=((_parseDurSecs(a.duracao)||0)-((_parseDurSecs(b.duracao)||0)));return dir==='asc'?n:-n;}
+    else if(key==='kdm'){va=a.kdm&&a.kdm.toString().toUpperCase()==='SIM'?'0':'1';vb=b.kdm&&b.kdm.toString().toUpperCase()==='SIM'?'0':'1';}
+    else if(key==='selecao'){va=ma.selecao||'';vb=mb.selecao||'';}
+    else if(key==='status'){va=a.status||'';vb=b.status||'';}
+    else{va=ma.system_name||ma.title||a.titulo||a.codigo;vb=mb.system_name||mb.title||b.titulo||b.codigo;}
+    var c=va.localeCompare(vb,'pt-BR',{sensitivity:'base'});return dir==='asc'?c:-c;
+  });
+}
+function _catSortHeader(){
+  var batchOff=_batchCanEdit()?30:0;
+  var pl=(14+batchOff)+'px';
+  function sh(label,key,align){
+    var act=_catSortKey===key;
+    var arr=act?(_catSortDir==='asc'?' ↑':' ↓'):'';
+    return'<button onclick="_catSetSort(\''+key+'\')" style="background:none;border:none;padding:0;width:100%;cursor:pointer;user-select:none;font-family:var(--mono);font-size:8px;font-weight:600;letter-spacing:0.12em;text-transform:uppercase;color:'+(act?'var(--accent)':'var(--text-muted)')+';text-align:'+(align||'left')+';white-space:nowrap;">'+label+arr+'</button>';
+  }
+  return'<div style="display:grid;grid-template-columns:76px 80px 1fr 140px 40px 50px 80px 84px;align-items:center;gap:12px;padding:5px 14px 5px '+pl+';background:var(--surface2);border-bottom:2px solid var(--border);border-top:1px solid var(--border);position:sticky;top:44px;z-index:10;">'
+    +sh('Código','code')
+    +sh('Evento','evento','center')
+    +sh('Título','title')
+    +sh('Direção','dir')
+    +sh('Dur','dur','center')
+    +sh('KDM','kdm','center')
+    +sh('Seleção','selecao','center')
+    +sh('Status','status','center')
+    +'</div>';
+}
+
 /* ── card builder (shared between search results + show all) ── */
 function _catBuildCards(films){
   if(!films.length)return'<div class="cat-no-results">Nenhum resultado.</div>';
@@ -13408,9 +13448,9 @@ function _catRenderResults(){
     if(_catRan&&_catHasCriteria(_catSearch))allSlots.push(_catSearch);
     results=allSlots.length?base.filter(function(f){return allSlots.some(function(s){return _catMatch(f,s);});}):[];
   }
-  results.sort(function(a,b){var ma=catalogoFilmesMap[a.codigo]||{},mb=catalogoFilmesMap[b.codigo]||{};return(ma.title||a.titulo||a.codigo).localeCompare((mb.title||b.titulo||b.codigo),'pt-BR',{sensitivity:'base'});});
+  _catDoSort(results);
   var rc=document.getElementById('catResultCount');if(rc)rc.textContent=results.length+' título'+(results.length!==1?'s':'');
-  resEl.innerHTML='<div class="cat-res-hdr"><span class="cat-res-count">'+results.length+' título'+(results.length!==1?'s':'')+'</span></div>'+(_batchCanEdit()?'<div class="batch-toolbar" id="catBatchToolbar"><button class="batch-toolbar-btn" onclick="_catSelectAll()">Sel. todos</button><button class="batch-toolbar-btn" onclick="_catClearSel()">Limpar</button><span id="catBatchCount" style="font-size:12px;color:var(--text-muted);">0 selecionados</span><button class="batch-toolbar-btn primary" id="catBatchEditBtn" style="display:none" onclick="openBatchModal(\'catalogo\')">Editar selecionados</button></div>':'')+_catBuildCards(results);
+  resEl.innerHTML='<div class="cat-res-hdr"><span class="cat-res-count">'+results.length+' título'+(results.length!==1?'s':'')+'</span></div>'+(_batchCanEdit()?'<div class="batch-toolbar" id="catBatchToolbar"><button class="batch-toolbar-btn" onclick="_catSelectAll()">Sel. todos</button><button class="batch-toolbar-btn" onclick="_catClearSel()">Limpar</button><span id="catBatchCount" style="font-size:12px;color:var(--text-muted);">0 selecionados</span><button class="batch-toolbar-btn primary" id="catBatchEditBtn" style="display:none" onclick="openBatchModal(\'catalogo\')">Editar selecionados</button></div>':'')+_catSortHeader()+_catBuildCards(results);
   // Eventos sem filmes (apenas em catShowAll)
   if(_catShowAll){
     var evComFilmes=new Set(results.map(function(f){return f.evento||'';}));
@@ -15132,7 +15172,7 @@ window.addEventListener('popstate',function(e){
 <script>
   if(typeof lucide !== 'undefined') lucide.createIcons();
 </script>
-<div id="page-footer"><span>última atualização · 12/05/2026 às 15:30</span></div>
+<div id="page-footer"><span>última atualização · 12/05/2026 às 16:00</span></div>
 
 </div>
 

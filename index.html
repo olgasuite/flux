@@ -5354,7 +5354,8 @@ function renderFicha(nome,s){
     if(vf)legParts.push('<span class="leg-text leg-vf-entry"><span class="leg-vf-label">VF</span> <span class="leg-dcnc">'+_fmtDcncCode(vf)+'</span></span>');
     else if(legenda)legParts.push('<span class="leg-text leg-dcnc">'+_fmtDcncCode(legenda)+'</span>');
     var legCell=legParts.length?'<div class="leg-stack">'+legParts.join('')+'</div>':'<span style="color:var(--text-muted)">—</span>';
-    var idiomaCell=clean(f.idioma)?'<span class="idioma-text">'+f.idioma+'</span>':'<span style="color:var(--text-muted)">—</span>';
+    var _idiomaVal=clean(f.idioma)||((catalogoFilmesMap&&catalogoFilmesMap[f.codigo]&&catalogoFilmesMap[f.codigo].original_language)||'');
+    var idiomaCell=_idiomaVal?'<span class="idioma-text">'+_idiomaVal+'</span>':'<span style="color:var(--text-muted)">—</span>';
     var fpsgb='<div class="fps-gb"><span class="fps-val">'+(fps||'—')+'</span>'+(gb?'<span class="gb-val">'+gb+' GB</span>':'')+'</div>';
     var acessCell=acessF?'<div style="font-family:var(--mono);font-size:9px;color:#5ddc8a;line-height:1.4;max-width:140px;">'+acessF+'</div>':'<span style="color:var(--text-muted)">—</span>';
     var acessCell=acessF?'<div title="'+acessF+'" style="font-size:9px;line-height:1.4;color:var(--text-dim);max-width:90px;overflow:hidden;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;cursor:default;">'+acessF+'</div>':'<span style="color:var(--text-muted)">—</span>';
@@ -8805,7 +8806,7 @@ function renderKDM(){
 
   function sessStatus(s){
     var r=_kdmResults[s.nome];
-    if(!r){var ci=allC.map[s.cinema];if(!ci||!ci.cert_serial_hex)return{cls:'kdm-status-nocert',label:'Cert ausente'};return{cls:'kdm-status-none',label:'Sem KDM'};}
+    if(!r){var ci=allC.map[s.cinema];if(!ci||!ci.cert_serial_hex)return{cls:'kdm-status-nocert',label:'Cert ausente'};return{cls:'kdm-status-none',label:'Aguardando KDM'};}
     if(r.status==='ok')return{cls:'kdm-status-ok',label:'Válido'};
     if(r.status==='window')return{cls:'kdm-status-window',label:'Fora da janela'};
     return{cls:'kdm-status-fail',label:'Inválido'};
@@ -10641,7 +10642,7 @@ function dashGetKDMData(){
     if(!kdmFilms.length)return;
     var r=_kdmResults[s.nome];
     var st;
-    if(!r){var ci=allC.map[s.cinema];st=(!ci||!ci.cert_serial_hex)?{cls:'kdm-status-nocert',label:'Cert ausente',pri:2}:{cls:'kdm-status-none',label:'Sem KDM',pri:3};}
+    if(!r){var ci=allC.map[s.cinema];st=(!ci||!ci.cert_serial_hex)?{cls:'kdm-status-nocert',label:'Cert ausente',pri:2}:{cls:'kdm-status-none',label:'Aguardando KDM',pri:3};}
     else if(r.status==='ok'){st={cls:'kdm-status-ok',label:'Válido',pri:1};}
     else if(r.status==='window'){st={cls:'kdm-status-window',label:'Fora da janela',pri:4};}
     else{st={cls:'kdm-status-fail',label:'Inválido',pri:5};}
@@ -10658,7 +10659,7 @@ function dashGetKDMData(){
     if(!byStatus[lbl]){byStatus[lbl]=[];statusOrder.push(lbl);}
     byStatus[lbl].push(item);
   });
-  var priMap={'Inválido':5,'Fora da janela':4,'Sem KDM':3,'Cert ausente':2,'Válido':1};
+  var priMap={'Inválido':5,'Fora da janela':4,'Aguardando KDM':3,'Cert ausente':2,'Válido':1};
   statusOrder.sort(function(a,b){return(priMap[b]||0)-(priMap[a]||0);});
   return{items:items,byStatus:byStatus,statusOrder:statusOrder};
 }
@@ -11721,7 +11722,7 @@ function _progRenderSessao(sessaoNome){
   var films=s.filmes.map(function(cd){
     var cm=(catalogoFilmesMap&&catalogoFilmesMap[cd])||{};
     var f=Object.assign({codigo:cd},filmesMap[cd]||{});
-    return{codigo:cd,titulo_pt:cm.title_pt||f.titulo||cd,titulo:f.titulo||cd,duracao:f.duracao||'',idioma:f.idioma||'',legenda:f.legenda||'',vf:f.vf||'',acessibilidade:f.acessibilidade||'',countries:cm.countries||[]};
+    return{codigo:cd,titulo_pt:cm.title_pt||f.titulo||cd,titulo:f.titulo||cd,duracao:f.duracao||'',idioma:f.idioma||cm.original_language||'',legenda:f.legenda||'',vf:f.vf||'',acessibilidade:f.acessibilidade||'',countries:cm.countries||[]};
   }).filter(function(f){return f.titulo_pt||f.codigo;});
   var totalMins=0;
   films.forEach(function(f){var d=f.duracao||'';if(/^\d{1,2}:\d{2}/.test(d)){var p=d.split(':').map(Number);totalMins+=p[0]*60+p[1];}});

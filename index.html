@@ -4069,7 +4069,7 @@ html[data-theme]:not([data-theme="win98"]){--mono:var(--sans);}
       ]);
       // Catálogo (filmes) — carregado em paralelo, não bloqueia
       if(window._olgaCatalogo){
-        window._olgaCatalogo.load().then(function(map){catalogoFilmesMap=map||{};}).catch(function(){});
+        window._olgaCatalogo.load().then(function(map){catalogoFilmesMap=map||{};if(typeof buildBuscaFilterPanel==='function')buildBuscaFilterPanel();}).catch(function(){});
       }
 
       // filmes
@@ -9664,7 +9664,7 @@ function rebuildPillsForMode(m){
   else if(m==='vinhetas')buildVinhetasFilters();
   else if(m==='ingest')buildIngestFilters();
   else if(m==='ficha')buildFichaFilters();else if(m==='cinemas')buildCinemasFilters();
-  else if(m==='busca')buildBuscaFilters();else if(m==='dash')buildDashFilters();
+  else if(m==='busca'){buildBuscaFilters();buildBuscaFilterPanel();}else if(m==='dash')buildDashFilters();
   else if(m==='catalogo')buildCatalogoFilters();
   else if(m==='programacao')buildProgramacaoFilters();
   else if(m==='kdm')buildKDMFilters();
@@ -11433,7 +11433,7 @@ function renderDash(){
   html+=colBlock('kdm','KDM',kdmBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 12/05/2026 às 17:00';
+  var sysUpdate='última atualização do sistema · 12/05/2026 às 19:18';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -15182,7 +15182,7 @@ window.addEventListener('popstate',function(e){
 <script>
   if(typeof lucide !== 'undefined') lucide.createIcons();
 </script>
-<div id="page-footer"><span>última atualização · 12/05/2026 às 17:00</span></div>
+<div id="page-footer"><span>última atualização · 12/05/2026 às 19:18</span></div>
 
 </div>
 

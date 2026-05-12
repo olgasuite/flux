@@ -3999,6 +3999,7 @@ html[data-theme]:not([data-theme="win98"]){--mono:var(--sans);}
   //   vinhetas.sessoes        → contador de sessões no card de vinheta
   //   vinhetas.cinemas        → contador de cinemas no card de vinheta
   //   vinhetas.publico        → contador de público no card de vinheta
+  //   catalogo.tmdb           → oculta importação do TMDB (botão no detalhe e campo na criação)
   window._olgaHasRestricao = function(chave) {
     var r = window._olgaUser && window._olgaUser.restricoes;
     return r && r.indexOf(chave) !== -1;
@@ -11249,7 +11250,7 @@ function renderDash(){
   html+=colBlock('controle','Controle de filmes',ctrlBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 11/05/2026 às 22:00';
+  var sysUpdate='última atualização do sistema · 12/05/2026 às 10:00';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -12203,7 +12204,8 @@ var _EQUIPE_RESTRICOES=[
   {k:'vinhetas.templates',label:'Vinhetas · Ocultar atalho de templates de vinheta'},
   {k:'sessoes.somente_vinhetas',label:'Sessões · Edição restrita a vinhetas (sem criar, duplicar, deletar)'},
   {k:'acervo.sem_catalogo',label:'Acervo Técnico · Ocultar botão "Ver no Catálogo"'},
-  {k:'catalogo.importar_acervo',label:'Catálogo · Ocultar botão "Importar do Acervo"'}
+  {k:'catalogo.importar_acervo',label:'Catálogo · Ocultar botão "Importar do Acervo"'},
+  {k:'catalogo.tmdb',label:'Catálogo · Ocultar importação do TMDB'}
 ];
 
 function renderEquipe(){
@@ -13376,8 +13378,10 @@ function renderCatDetail(){
   var html='<div class="cat-detail">';
   html+='<button class="cat-back" onclick="'+(_catEditing?'_catConfirmLeave(cancelCatEdit)':'renderCatalogo()')+'">← Catálogo</button>';
   var acervoBtn='<button class="cat-card-btn" style="margin-left:0;" onclick="goToBuscaCod(\''+_catCode.replace(/'/g,"\\'")+'\')">Ver no Acervo Técnico</button>';
-  if(canEdit&&!_catEditing)
-    html+='<div class="cat-actions">'+acervoBtn+'<button class="cat-edit-btn" onclick="importFromTMDB(\''+_catCode.replace(/'/g,"\\'")+'\',this)">↓ TMDB</button><button class="cat-edit-btn" onclick="duplicateCatFilm(\''+_catCode.replace(/\'/g,"\\\'")+'\')">⧉ Duplicar</button><button class="cat-edit-btn" onclick="startCatEdit()">✎ Editar</button><button class="cat-edit-btn" style="color:var(--warn);border-color:var(--warn);" onclick="deleteCatFilm(\''+_catCode.replace(/\'/g,"\\\'")+'\')">× Excluir</button></div>';
+  if(canEdit&&!_catEditing){
+    var _tmdbDetailBtn=(!window._olgaHasRestricao||!window._olgaHasRestricao('catalogo.tmdb'))?'<button class="cat-edit-btn" onclick="importFromTMDB(\''+_catCode.replace(/'/g,"\\'")+'\',this)">↓ TMDB</button>':'';
+    html+='<div class="cat-actions">'+acervoBtn+_tmdbDetailBtn+'<button class="cat-edit-btn" onclick="duplicateCatFilm(\''+_catCode.replace(/\'/g,"\\\'")+'\')">⧉ Duplicar</button><button class="cat-edit-btn" onclick="startCatEdit()">✎ Editar</button><button class="cat-edit-btn" style="color:var(--warn);border-color:var(--warn);" onclick="deleteCatFilm(\''+_catCode.replace(/\'/g,"\\\'")+'\')">× Excluir</button></div>';
+  }
   else if(_catEditing)
     html+='<div class="cat-actions"><span class="cat-msg" id="catSaveMsg"></span><button class="cat-cancel-btn" onclick="_catConfirmLeave(cancelCatEdit)">Cancelar</button><button class="cat-save-btn" onclick="doSaveCat()">Salvar</button></div>';
   else
@@ -13626,7 +13630,7 @@ function renderCatCreate(){
       +'<div style="font-family:var(--mono);font-size:9px;color:var(--text-muted);margin-top:3px;">Após a criação do filme esse código não pode ser alterado.</div>'
     )
     +catFld('Nome no sistema *','<input class="cat-input" id="catf_system_name" placeholder="Atribua um nome para circulação interna — esse campo não pode ser alterado">')
-    +catFld('ID no TMDB <span style="font-weight:400;opacity:0.6;">(opcional)</span>','<input class="cat-input" id="catf_tmdb_id" placeholder="Ex: 155 · preenche títulos, direção, sinopse, gênero e país automaticamente">')
+    +(!window._olgaHasRestricao('catalogo.tmdb')?catFld('ID no TMDB <span style="font-weight:400;opacity:0.6;">(opcional)</span>','<input class="cat-input" id="catf_tmdb_id" placeholder="Ex: 155 · preenche títulos, direção, sinopse, gênero e país automaticamente">'):'')
   );
   // Campos de copias (acervo técnico) — só na criação
   html+=catBlock('Acervo Técnico',
@@ -14938,7 +14942,7 @@ window.addEventListener('popstate',function(e){
 <script>
   if(typeof lucide !== 'undefined') lucide.createIcons();
 </script>
-<div id="page-footer"><span>última atualização · 11/05/2026 às 22:00</span></div>
+<div id="page-footer"><span>última atualização · 12/05/2026 às 10:00</span></div>
 
 </div>
 

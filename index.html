@@ -1327,6 +1327,15 @@ td.cpl-cell{background:var(--cpl-bg);border-left:3px solid var(--cpl-border);pad
   body.print-grade-table #gradePrintArea{display:block!important;position:static!important;background:white!important;padding:10mm!important;}
   body.print-grade-table #gradePrintArea table{width:100%!important;}
 }
+/* Ficha de programação print */
+@media print{
+  body.print-prog-ficha>*:not(#olga-app){display:none!important;}
+  body.print-prog-ficha #olga-app>*:not(#programacao-panel){display:none!important;}
+  body.print-prog-ficha #programacao-panel>*:not(#programacao-container){display:none!important;}
+  body.print-prog-ficha #programacao-container .prog-view-header{display:none!important;}
+  body.print-prog-ficha #programacao-container{display:block!important;position:static!important;background:white!important;}
+  body.print-prog-ficha .prog-module-wrap{padding:8mm!important;}
+}
 #gradePrintArea{padding:0;display:none;}
 #gradePrintArea .gpt-table{border-collapse:collapse;width:100%;table-layout:fixed;}
 #gradePrintArea .gpt-table th{font-family:monospace;font-size:7px;font-weight:700;background:#e8e8e8;color:#000;padding:4px 6px;border:1px solid #aaa;word-break:break-word;}
@@ -6675,9 +6684,7 @@ function _equipFields(c){
       _cemField('cemCineassista','Cineassista',c.cineassista,'Sim / Não'),
       _cemField('cemStorageGB','Armazenamento (GB)',c.storage_gb,'Ex: 2048')
     )+
-    _cemRow(
-      _cemField('cemObs','Observações',c.obs,'')
-    );
+    _cemFull(_cemField('cemObs','Observações',c.obs,''));
 }
 
 function openCinemaEdit(sala, complexoCtx){
@@ -6846,12 +6853,13 @@ async function saveCinemaEdit(){
         // sala edit: only sala-specific fields, preserve complexo data
         var telaH=g('cemTelaH');var telaW=g('cemTelaW');
         var storageGB=g('cemStorageGB');
-        var salaFields={venue_name:_cemSala,event_name:evento,server_model:servidor,server_serial:serial,projector_model:projetor,sound_system:som,screen_aspect_ratio:proporcao,seat_count:assentos,cineassist_system:cineassista,notes:obs,screen_height:telaH,screen_width:telaW,storage_gb:storageGB};
+        if(!salaNome){status.className='cem-status err';status.textContent='Nome da sala é obrigatório.';btn.disabled=false;return;}
+        var salaFields={venue_name:salaNome,event_name:evento,server_model:servidor,server_serial:serial,projector_model:projetor,sound_system:som,screen_aspect_ratio:proporcao,seat_count:assentos,cineassist_system:cineassista,notes:obs,screen_height:telaH,screen_width:telaW,storage_gb:storageGB};
         await window._olgaCinemas.saveSala(c2.docId,salaFields);
         window._logFirestoreEdit&&window._logFirestoreEdit('individual',c2.docId,salaFields,'cinemas','cinemas');
-        Object.assign(c2,{evento:evento,servidor:servidor,serial:serial,projetor:projetor,som:som,proporcao:proporcao,assentos:assentos,cineassista:cineassista,obs:obs,tela_h:telaH,tela_w:telaW,storage_gb:storageGB});
+        Object.assign(c2,{sala:salaNome,evento:evento,servidor:servidor,serial:serial,projetor:projetor,som:som,proporcao:proporcao,assentos:assentos,cineassista:cineassista,obs:obs,tela_h:telaH,tela_w:telaW,storage_gb:storageGB});
         status.className='cem-status ok';status.textContent='Salvo ✓';
-        setTimeout(function(){closeCinemaEdit();openCinemaDetail(_cemSala);},700);
+        setTimeout(function(){closeCinemaEdit();renderCinemas();openCinemaDetail(salaNome);},700);
       }else{
         var complexo=g('cemComplexo');
         var estado=g('cemEstado').toUpperCase();
@@ -11789,6 +11797,7 @@ function _progRenderSessao(sessaoNome){
   html+='<div class="prog-view-header">';
   if(prog)html+='<span class="prog-breadcrumb">'+esc(prog.data.name||prog.id)+'</span>';
   if(canEdit||vinOnly)html+='<button class="prog-btn-sm" style="margin-left:auto;" onclick="openProgSessaoModal(\''+safeNome+'\',\''+safePid+'\',null)">'+(vinOnly?'✎ editar vinhetas':'✎ editar sessão')+'</button>';
+  html+='<button class="prog-btn-sm"'+((canEdit||vinOnly)?'':' style="margin-left:auto;"')+' onclick="printProgFicha()">⎙ imprimir</button>';
   html+='</div>';
   html+='<div class="ficha"><div class="ficha-header"><div class="ficha-header-main">';
   html+='<div class="ficha-session-wrap">';
@@ -11810,6 +11819,12 @@ function _progRenderSessao(sessaoNome){
   html+='<div class="film-table-wrap"><table><thead><tr><th>#</th><th>Título PT</th><th>Duração</th><th class="center">Idioma</th><th>Legendas</th><th class="center">KDM</th><th class="center" title="Acessibilidade"><svg width="13" height="13" viewBox="0 0 24 24" style="stroke:currentColor;stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round;vertical-align:middle;"><circle cx="11" cy="4" r="1"/><path d="m11 9 2 7h5l-1.5 3"/><path d="M9 9H7l1 7"/><path d="M13.5 19a4.5 4.5 0 1 1-9 0 4.5 4.5 0 0 1 9 0z"/></svg></th><th>País</th></tr></thead><tbody>'+(rows||'<tr><td colspan="8" style="text-align:center;color:var(--text-muted);padding:24px">Nenhum filme encontrado para esta sessão.</td></tr>')+'</tbody></table></div>';
   html+='<div class="ficha-footer"><div class="footer-total">Duração total dos filmes: <strong>'+totalDur+'</strong>'+(totalVinSecs>0?' &nbsp;·&nbsp; Vinhetas: <strong>'+Math.floor(totalVinSecs/3600)+'h'+String(Math.floor((totalVinSecs%3600)/60)).padStart(2,'0')+'</strong>':'')+'</div><div class="footer-stamp">OLGA · '+new Date().toLocaleString('pt-BR')+'</div></div></div>';
   c.innerHTML=html+'</div>';
+}
+
+function printProgFicha(){
+  document.body.classList.add('print-prog-ficha');
+  window.print();
+  document.body.classList.remove('print-prog-ficha');
 }
 
 /* ── CRUD Programs ── */

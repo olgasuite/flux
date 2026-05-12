@@ -5389,21 +5389,23 @@ function renderFicha(nome,s){
   var hasExtra=s.convidados||s.apresentacao||s.ingressos||s.leg_eletronica||s.col_ag||s.acessibilidades;
   var extraHtml='';
   if(hasExtra){
-    var checkFields=(s.apresentacao||s.leg_eletronica||s.col_ag)?'<div class="fe-checks">'+feCheck('Apresentação',s.apresentacao)+feCheck('Leg. elet.',s.leg_eletronica)+feCheck('Debate',s.col_ag)+'</div>':'';
+    var checkFields=(s.apresentacao||s.leg_eletronica||s.col_ag||s.acessibilidades)?'<div class="fe-checks">'+feCheck('Apresentação',s.apresentacao)+feCheck('Leg. elet.',s.leg_eletronica)+feCheck('Debate',s.col_ag)+feCheck('Acessibilidade',s.acessibilidades)+'</div>':'';
     var acessSet=[];
-    films.forEach(function(f){
-      if(f.acessibilidade){
-        f.acessibilidade.split(/[,;\/\n]+/).forEach(function(a){
-          var t=a.trim();if(t&&acessSet.indexOf(t)<0)acessSet.push(t);
-        });
-      }
-    });
+    if((s.acessibilidades||'').toLowerCase()==='sim'){
+      films.forEach(function(f){
+        if(f.acessibilidade){
+          f.acessibilidade.split(/[,;\/\n]+/).forEach(function(a){
+            var t=a.trim();if(t&&acessSet.indexOf(t)<0)acessSet.push(t);
+          });
+        }
+      });
+    }
     var acessLabel=acessSet.length?acessSet.join(' · '):'';
     extraHtml='<div class="ficha-extra">'+
       (s.convidados?feRow('Convidados',s.convidados):'')+
       (s.ingressos?feRow('Ing. reservados',s.ingressos):'')+
       checkFields+
-      (acessLabel?feRow('Acessib.',acessLabel):'')+
+      (acessLabel?feRow('Recursos acessib.',acessLabel):'')+
     '</div>';
   }
 
@@ -11433,7 +11435,7 @@ function renderDash(){
   html+=colBlock('kdm','KDM',kdmBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 12/05/2026 às 20:08';
+  var sysUpdate='última atualização do sistema · 12/05/2026 às 20:10';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -11790,9 +11792,12 @@ function _progRenderSessao(sessaoNome){
   var hasExtra=s.convidados||s.apresentacao||s.ingressos||s.leg_eletronica||s.col_ag||s.acessibilidades;
   var extraHtml='';
   if(hasExtra){
-    var checkFields=(s.apresentacao||s.leg_eletronica||s.col_ag)?'<div class="fe-checks">'+feCheck('Apresentação',s.apresentacao)+feCheck('Leg. elet.',s.leg_eletronica)+feCheck('Debate',s.col_ag)+'</div>':'';
-    var acessSet2=[];films.forEach(function(f){if(f.acessibilidade){f.acessibilidade.split(/[,;\/\n]+/).forEach(function(a){var t=a.trim();if(t&&acessSet2.indexOf(t)<0)acessSet2.push(t);});}});
-    extraHtml='<div class="ficha-extra">'+(s.convidados?feRow('Convidados',s.convidados):'')+(s.ingressos?feRow('Ing. reservados',s.ingressos):'')+checkFields+(acessSet2.length?feRow('Acessib.',acessSet2.join(' · ')):'')+'</div>';
+    var checkFields=(s.apresentacao||s.leg_eletronica||s.col_ag||s.acessibilidades)?'<div class="fe-checks">'+feCheck('Apresentação',s.apresentacao)+feCheck('Leg. elet.',s.leg_eletronica)+feCheck('Debate',s.col_ag)+feCheck('Acessibilidade',s.acessibilidades)+'</div>':'';
+    var acessSet2=[];
+    if((s.acessibilidades||'').toLowerCase()==='sim'){
+      films.forEach(function(f){if(f.acessibilidade){f.acessibilidade.split(/[,;\/\n]+/).forEach(function(a){var t=a.trim();if(t&&acessSet2.indexOf(t)<0)acessSet2.push(t);});}});
+    }
+    extraHtml='<div class="ficha-extra">'+(s.convidados?feRow('Convidados',s.convidados):'')+(s.ingressos?feRow('Ing. reservados',s.ingressos):'')+checkFields+(acessSet2.length?feRow('Recursos acessib.',acessSet2.join(' · ')):'')+'</div>';
   }
   var vinhetasHtml='';
   var totalVinSecs=0;
@@ -12140,7 +12145,7 @@ function openProgSessaoModal(sessaoNome,programId,subprogramId){
   document.getElementById('progSessaoApresentacao').checked=s&&(s.apresentacao||'').toLowerCase()==='sim';
   document.getElementById('progSessaoLegEletronica').checked=s&&(s.leg_eletronica||'').toLowerCase()==='sim';
   document.getElementById('progSessaoDebate').checked=s&&(s.col_ag||'').toLowerCase()==='sim';
-  document.getElementById('progSessaoAcessibilidade').value=s?s.acessibilidades||'':'';
+  document.getElementById('progSessaoAcessibilidade').checked=s&&(s.acessibilidades||'').toLowerCase()==='sim';
   var tmplSel=document.getElementById('progVinTemplateApply');
   if(tmplSel){
     tmplSel.innerHTML='<option value="">— aplicar template de vinhetas —</option>'+tmplOpts;
@@ -12337,7 +12342,7 @@ async function saveProgSessaoModal(){
     has_debate:document.getElementById('progSessaoDebate').checked?'Sim':'Não',
     has_electronic_subtitles:document.getElementById('progSessaoLegEletronica').checked?'Sim':'Não',
     reserved_tickets:(document.getElementById('progSessaoIngressos').value||'').trim(),
-    available_accessibility:(document.getElementById('progSessaoAcessibilidade').value||'').trim(),
+    available_accessibility:document.getElementById('progSessaoAcessibilidade').checked?'Sim':'Não',
     total_audience:(sessoesMap[nome]&&sessoesMap[nome].publico)||'',
     total_revenue:(sessoesMap[nome]&&sessoesMap[nome].renda)||'',
     notes:(sessoesMap[nome]&&sessoesMap[nome].notes)||''
@@ -15001,14 +15006,11 @@ window.addEventListener('popstate',function(e){
           <label class="prog-modal-label">Ingressos reservados</label>
           <input id="progSessaoIngressos" type="number" min="0" step="1" class="prog-modal-input">
         </div>
-        <div class="prog-modal-field">
-          <label class="prog-modal-label">Acessibilidade disponível</label>
-          <input id="progSessaoAcessibilidade" type="text" class="prog-modal-input" placeholder="">
-        </div>
         <div style="display:flex;gap:20px;flex-wrap:wrap;">
           <label class="prog-modal-check-row"><input type="checkbox" id="progSessaoApresentacao"> Apresentação</label>
           <label class="prog-modal-check-row"><input type="checkbox" id="progSessaoLegEletronica"> Leg. eletrônica</label>
           <label class="prog-modal-check-row"><input type="checkbox" id="progSessaoDebate"> Debate</label>
+          <label class="prog-modal-check-row"><input type="checkbox" id="progSessaoAcessibilidade"> Acessibilidade</label>
         </div>
       </div>
     </div>
@@ -15182,7 +15184,7 @@ window.addEventListener('popstate',function(e){
 <script>
   if(typeof lucide !== 'undefined') lucide.createIcons();
 </script>
-<div id="page-footer"><span>última atualização · 12/05/2026 às 20:08</span></div>
+<div id="page-footer"><span>última atualização · 12/05/2026 às 20:10</span></div>
 
 </div>
 

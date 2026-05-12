@@ -1536,9 +1536,6 @@ mark{background:rgba(255,186,32,0.28);color:var(--accent);border-radius:2px;padd
 .dash-sess-link:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-dim);}
 .dash-sess-cinema{font-size:8px;color:var(--text-muted);opacity:0.75;}
 
-.dash-cp-filmlist{display:flex;flex-direction:column;}
-.dash-cp-row{display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--border);flex-wrap:wrap;}
-.dash-cp-row:last-child{border-bottom:none;}
 .dash-salas-section{margin-bottom:22px;}
 .dash-salas-label{font-family:var(--mono);font-size:8px;font-weight:600;letter-spacing:0.16em;text-transform:uppercase;color:var(--text-muted);margin-bottom:8px;}
 .dash-salas-chips{display:flex;flex-wrap:wrap;gap:6px;}
@@ -4955,7 +4952,7 @@ var ingestDays=[],currentIngestDay=null,ingestCinemaFilter='',ingestHdFilter='',
 var grade2Days=[],grade2CurrentDay=null,grade2CinemaFilter='';
 var sessoesCinemaFilter='',_sessoesHidePast=true;
 var vinhetasCinemaFilter='',vinhetasDayFilter='';
-var dashCinemaFilter='',dashDayFilter=new Set(),dashStatusSelected=null,dashStatSelected=null,_dashCopiasFilter='';
+var dashCinemaFilter='',dashDayFilter=new Set(),dashStatusSelected=null,dashStatSelected=null;
 var _dashBlocksOpen={global:false,days:false,selecao:false,programacao:false,controle:false};
 var _dashGlobalEvFilter='';
 var _dashSelEvFilter='';
@@ -11066,7 +11063,7 @@ function renderDash(){
   if(dashStatSelected&&dashStatSelected.scope==='global'){
     globalBody+=renderStatDetail(dashStatSelected.key,'global',allEvSessoes,gs);
   }
-  var html=colBlock('global','Números do evento (filmes programados)',globalBody);
+  var html=colBlock('global','Números do evento',globalBody);
 
   // ── BLOCO: Dados dos dias selecionados ───────────────────────────
   if(dashDayFilter.size>0){
@@ -11156,58 +11153,103 @@ function renderDash(){
   if(dashStatSelected&&dashStatSelected.scope==='prog'){progBody+=renderStatDetail(dashStatSelected.key,'prog',_progSessoes,{});}
   html+=colBlock('programacao',progLabel,progBody);
 
-  // ── BLOCO: Controle de cópias ────────────────────────────────────
-  var _cpAllFest=filmesArr.filter(function(f){
-    if(f.evento&&!activeEventsDash.has(f.evento))return false;
-    if(_dashGlobalEvFilter&&f.evento!==_dashGlobalEvFilter)return false;
-    return _isFest(f.codigo);
+  // ── BLOCO: Controle de filmes ────────────────────────────────────
+  // salas ativas: cinemas with sessions this week (today → +6 days) matching event filter
+  var today=new Date();today.setHours(0,0,0,0);
+  var weekEnd=new Date(today);weekEnd.setDate(weekEnd.getDate()+6);
+  var salaData={};
+  sessoesArr.forEach(function(s){
+    if(s.evento&&!activeEventsDash.has(s.evento))return;
+    if(!s.date||s.date<today||s.date>weekEnd)return;
+    if(!salaData[s.cinema])salaData[s.cinema]={filmes:new Set(),sessoes:0};
+    s.filmes.forEach(function(c){salaData[s.cinema].filmes.add(c);});
+    salaData[s.cinema].sessoes++;
   });
-  var _cpGroupLabels={'st-ok':'DCP OK','st-error':'Erro / Aguardando','st-cancel':'Cancelado','st-accent':'Outro'};
-  var _cpGroupOrder=['st-ok','st-error','st-cancel','st-accent'];
-  var _cpGroups={};
-  _cpAllFest.forEach(function(f){
-    var sc=dashStatusClass((f.status||'').toString().trim());
-    if(!_cpGroups[sc])_cpGroups[sc]=[];
-    _cpGroups[sc].push(f);
-  });
+  var salasWeek=Object.keys(salaData).sort();
 
-  var cpBody='';
-  cpBody+='<div style="font-family:var(--mono);font-size:10px;color:var(--text-muted);margin-bottom:14px;">'+_cpAllFest.length+' filme'+(_cpAllFest.length!==1?'s':'')+' FEST</div>';
-  cpBody+='<div class="dash-tiles">';
-  _cpGroupOrder.forEach(function(sc){
-    var films=_cpGroups[sc]||[];
-    if(!films.length)return;
-    var isActive=_dashCopiasFilter===sc;
-    cpBody+='<div class="dash-tile '+sc+(isActive?' active':'')+'" onclick="_dashCopiasFilter=(\''+sc+'\'===_dashCopiasFilter?\'\':\''+(sc)+'\');renderDash();">'
-      +'<div class="dash-tile-count">'+films.length+'</div>'
-      +'<div class="dash-tile-status">'+_cpGroupLabels[sc]+'</div>'
+  var ctrlBody='';
+  // cinema filter
+  ctrlBody+='<div class="dash-ctrl-filter">'
+    +'<span class="dash-ctrl-filter-label">Cinema</span>'
+    +'<select id="dashCinemaSelect" onchange="dashCinemaFilter=this.value;renderDash();">'
+    +'<option value="">Todos os cinemas</option>'
+    +'</select>'
     +'</div>';
-  });
-  cpBody+='</div>';
-
-  if(_dashCopiasFilter&&_cpGroups[_dashCopiasFilter]){
-    var _cpFiltered=_cpGroups[_dashCopiasFilter];
-    cpBody+='<div class="dash-detail"><div class="dash-cp-filmlist">';
-    _cpFiltered.forEach(function(f){
-      var titulo=clean(f.titulo)||f.codigo;
-      var st=(f.status||'').toString().trim();
-      var stCls=dashStatusClass(st);
-      var stColor=stCls==='st-ok'?'var(--ok)':'var(--warn)';
-      cpBody+='<div class="dash-cp-row">'
-        +'<span class="dash-film-title">'+titulo+'</span>'
-        +'<span class="dash-film-code">'+f.codigo+'</span>'
-        +(st
-          ?'<span style="font-family:var(--mono);font-size:9px;font-weight:600;color:'+stColor+';">'+st+'</span>'
-          :'<span style="font-family:var(--mono);font-size:9px;color:var(--text-muted);">sem status</span>')
-      +'</div>';
+  // total bar
+  ctrlBody+='<div class="dash-total-bar" style="margin-bottom:16px;">Filmes únicos no filtro: <strong>'+totalFilmes+'</strong></div>';
+  // salas ativas esta semana
+  if(salasWeek.length){
+    ctrlBody+='<div class="dash-salas-section"><div class="dash-salas-label">Salas ativas esta semana</div><div class="dash-salas-chips">';
+    salasWeek.forEach(function(sala){
+      var d=salaData[sala];
+      var nf=d.filmes.size,ns=d.sessoes;
+      var hasError=false,hasNonOk=false;
+      d.filmes.forEach(function(c){
+        var f=filmesMap[c];
+        if(!f){hasError=true;return;}
+        var st=(f.status||'').toString().trim();
+        var u=st.toUpperCase();
+        if(!st||st==='-'||u.includes('ERRO')){hasError=true;}
+        else if(!u.includes('OK')&&!u.includes('LG')){hasNonOk=true;}
+      });
+      var chipCls=hasError?' sala-st-error':hasNonOk?' sala-st-warn':'';
+      var safeSala=sala.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+      ctrlBody+='<button class="dash-sala-chip'+chipCls+'" onclick="goToCinemaFromDash(\''+safeSala+'\')">'+
+        sala+'<span class="dash-sala-count">'+nf+' filme'+(nf!==1?'s':'')+' · '+ns+(ns===1?' sessão':' sessões')+'</span>'+
+      '</button>';
     });
-    cpBody+='</div></div>';
+    ctrlBody+='</div></div>';
   }
-
-  html+=colBlock('controle','Controle de cópias',cpBody);
+  // tiles
+  ctrlBody+='<div class="dash-tiles">';
+  statusOrder.forEach(function(st){
+    var count=byStatus[st].length;
+    var cls=dashStatusClass(st);
+    var isActive=dashStatusSelected===st;
+    ctrlBody+='<button class="dash-tile '+cls+(isActive?' active':'')+'" onclick="selectDashStatus(\''+st.replace(/\\/g,'\\\\').replace(/'/g,"\\'")+'\')">'+
+      '<div class="dash-tile-count">'+count+'</div>'+
+      '<div class="dash-tile-status">'+(st||'sem status')+'</div>'+
+    '</button>';
+  });
+  ctrlBody+='</div>';
+  // detail panel
+  if(dashStatusSelected!==null&&byStatus[dashStatusSelected]!==undefined){
+    var detItems=byStatus[dashStatusSelected];
+    var stLabel=dashStatusSelected||'sem status';
+    var stCls=dashStatusClass(dashStatusSelected);
+    ctrlBody+='<div class="dash-detail">';
+    ctrlBody+='<div class="dash-detail-hdr">'+
+      '<span class="dash-detail-title">Status</span>'+
+      '<span class="dash-detail-status '+stCls+'" style="color:'+(stCls==='st-ok'?'var(--ok)':(stCls==='st-cancel'||stCls==='st-error')?'var(--warn)':'var(--accent)')+'">'+stLabel+'</span>'+
+      '<span class="dash-detail-count">'+detItems.length+' filme'+(detItems.length!==1?'s':'')+'</span>'+
+      '<button class="dash-detail-close" onclick="selectDashStatus(null)">✕ Fechar</button>'+
+    '</div>';
+    ctrlBody+='<div class="dash-film-list">';
+    detItems.forEach(function(item){
+      var f=item.f;
+      var col=f.evento&&eventColors[f.evento]?eventColors[f.evento]:null;
+      var evBadge=f.evento&&col?'<span class="card-evento" style="background:'+col.bg+';color:'+col.text+'">'+f.evento+'</span>':'';
+      var titulo=clean(f.titulo)||f.codigo;
+      var sessLinks=item.sessions.map(function(s){
+        var safe=s.nome.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+        return'<button class="dash-sess-link" onclick="goToFicha(\''+safe+'\')">'+
+          '<span class="dash-sess-cinema">'+s.cinema+'</span>'+s.nome+'</button>';
+      }).join('');
+      ctrlBody+='<div class="dash-film-card" style="border-left-color:'+(col?col.bg:'var(--border2)')+'">'+
+        '<div class="dash-film-top">'+
+          '<span class="dash-film-title">'+titulo+'</span>'+
+          '<span class="dash-film-code">'+f.codigo+'</span>'+
+          evBadge+
+        '</div>'+
+        (sessLinks?'<div class="dash-sess-list"><span class="dash-sess-label">Sessões</span>'+sessLinks+'</div>':'')+
+      '</div>';
+    });
+    ctrlBody+='</div></div>';
+  }
+  html+=colBlock('controle','Controle de filmes',ctrlBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 12/05/2026 às 00:30';
+  var sysUpdate='última atualização do sistema · 11/05/2026 às 22:00';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -12161,8 +12203,7 @@ var _EQUIPE_RESTRICOES=[
   {k:'vinhetas.templates',label:'Vinhetas · Ocultar atalho de templates de vinheta'},
   {k:'sessoes.somente_vinhetas',label:'Sessões · Edição restrita a vinhetas (sem criar, duplicar, deletar)'},
   {k:'acervo.sem_catalogo',label:'Acervo Técnico · Ocultar botão "Ver no Catálogo"'},
-  {k:'catalogo.importar_acervo',label:'Catálogo · Ocultar botão "Importar do Acervo"'},
-  {k:'catalogo.tmdb',label:'Catálogo · Ocultar sincronização com TMDB'}
+  {k:'catalogo.importar_acervo',label:'Catálogo · Ocultar botão "Importar do Acervo"'}
 ];
 
 function renderEquipe(){
@@ -13336,7 +13377,7 @@ function renderCatDetail(){
   html+='<button class="cat-back" onclick="'+(_catEditing?'_catConfirmLeave(cancelCatEdit)':'renderCatalogo()')+'">← Catálogo</button>';
   var acervoBtn='<button class="cat-card-btn" style="margin-left:0;" onclick="goToBuscaCod(\''+_catCode.replace(/'/g,"\\'")+'\')">Ver no Acervo Técnico</button>';
   if(canEdit&&!_catEditing)
-    html+='<div class="cat-actions">'+acervoBtn+(!window._olgaHasRestricao('catalogo.tmdb')?'<button class="cat-edit-btn" onclick="importFromTMDB(\''+_catCode.replace(/'/g,"\\'")+'\',this)">↓ TMDB</button>':'')+'<button class="cat-edit-btn" onclick="duplicateCatFilm(\''+_catCode.replace(/\'/g,"\\\'")+'\')">⧉ Duplicar</button><button class="cat-edit-btn" onclick="startCatEdit()">✎ Editar</button><button class="cat-edit-btn" style="color:var(--warn);border-color:var(--warn);" onclick="deleteCatFilm(\''+_catCode.replace(/\'/g,"\\\'")+'\')">× Excluir</button></div>';
+    html+='<div class="cat-actions">'+acervoBtn+'<button class="cat-edit-btn" onclick="importFromTMDB(\''+_catCode.replace(/'/g,"\\'")+'\',this)">↓ TMDB</button><button class="cat-edit-btn" onclick="duplicateCatFilm(\''+_catCode.replace(/\'/g,"\\\'")+'\')">⧉ Duplicar</button><button class="cat-edit-btn" onclick="startCatEdit()">✎ Editar</button><button class="cat-edit-btn" style="color:var(--warn);border-color:var(--warn);" onclick="deleteCatFilm(\''+_catCode.replace(/\'/g,"\\\'")+'\')">× Excluir</button></div>';
   else if(_catEditing)
     html+='<div class="cat-actions"><span class="cat-msg" id="catSaveMsg"></span><button class="cat-cancel-btn" onclick="_catConfirmLeave(cancelCatEdit)">Cancelar</button><button class="cat-save-btn" onclick="doSaveCat()">Salvar</button></div>';
   else
@@ -13585,7 +13626,7 @@ function renderCatCreate(){
       +'<div style="font-family:var(--mono);font-size:9px;color:var(--text-muted);margin-top:3px;">Após a criação do filme esse código não pode ser alterado.</div>'
     )
     +catFld('Nome no sistema *','<input class="cat-input" id="catf_system_name" placeholder="Atribua um nome para circulação interna — esse campo não pode ser alterado">')
-    +(!window._olgaHasRestricao('catalogo.tmdb')?catFld('ID no TMDB <span style="font-weight:400;opacity:0.6;">(opcional)</span>','<input class="cat-input" id="catf_tmdb_id" placeholder="Ex: 155 · preenche títulos, direção, sinopse, gênero e país automaticamente">'):'')
+    +catFld('ID no TMDB <span style="font-weight:400;opacity:0.6;">(opcional)</span>','<input class="cat-input" id="catf_tmdb_id" placeholder="Ex: 155 · preenche títulos, direção, sinopse, gênero e país automaticamente">')
   );
   // Campos de copias (acervo técnico) — só na criação
   html+=catBlock('Acervo Técnico',
@@ -14897,7 +14938,7 @@ window.addEventListener('popstate',function(e){
 <script>
   if(typeof lucide !== 'undefined') lucide.createIcons();
 </script>
-<div id="page-footer"><span>última atualização · 12/05/2026 às 00:30</span></div>
+<div id="page-footer"><span>última atualização · 11/05/2026 às 22:00</span></div>
 
 </div>
 

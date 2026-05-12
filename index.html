@@ -3878,8 +3878,8 @@ html[data-theme]:not([data-theme="win98"]){--mono:var(--sans);}
             festival_code:cod, system_name:fss(r.system_name), title:fss(r.title), title_pt:fss(r.title_pt),
             original_title:fss(r.original_title), english_title:fss(r.english_title),
             year:r.year?parseInt(r.year):null, director:fsa(r.director),
-            countries:fsa(r.countries), production_company:fss(r.production_company),
-            distribution_company:fss(r.distribution_company), synopsis:fss(r.synopsis),
+            countries:fsa(r.countries), production_company:fsa(r.production_company),
+            distribution_company:fsa(r.distribution_company), synopsis:fss(r.synopsis),
             genre:fsa(r.genre), film_type:fss(r.film_type), content_rating:fss(r.content_rating),
             original_language:fss(r.original_language), subtitles:fsa(r.subtitles),
             contact_email:fss(r.contact_email), awards:fsa(r.awards),
@@ -4954,7 +4954,8 @@ var grade2Days=[],grade2CurrentDay=null,grade2CinemaFilter='';
 var sessoesCinemaFilter='',_sessoesHidePast=true;
 var vinhetasCinemaFilter='',vinhetasDayFilter='';
 var dashCinemaFilter='',dashDayFilter=new Set(),dashStatusSelected=null,dashStatSelected=null;
-var _dashBlocksOpen={global:false,days:false,selecao:false,programacao:false,controle:false};
+var dashKdmCinemaFilter='',dashKdmStatusSelected=null;
+var _dashBlocksOpen={global:false,days:false,selecao:false,programacao:false,controle:false,kdm:false};
 var _dashGlobalEvFilter='';
 var _dashSelEvFilter='';
 var dashBlockOpen={nums:true,days:true,control:true};
@@ -10624,6 +10625,66 @@ function dashStatusClass(v){
   return'st-accent';
 }
 
+function dashKdmStatusClass(label){
+  if(label==='Válido')return'st-ok';
+  if(label==='Fora da janela')return'st-accent';
+  return'st-error';
+}
+
+function dashGetKDMData(){
+  var allC=getAllCinemas();
+  var filmMap={};
+  sessoesArr.forEach(function(s){
+    if(s.evento&&!activeEventsDash.has(s.evento))return;
+    if(dashKdmCinemaFilter&&s.cinema!==dashKdmCinemaFilter)return;
+    var kdmFilms=s.filmes.filter(function(c){var f=filmesMap[c];return f&&f.kdm&&f.kdm.toString().toUpperCase()==='SIM';});
+    if(!kdmFilms.length)return;
+    var r=_kdmResults[s.nome];
+    var st;
+    if(!r){var ci=allC.map[s.cinema];st=(!ci||!ci.cert_serial_hex)?{cls:'kdm-status-nocert',label:'Cert ausente',pri:2}:{cls:'kdm-status-none',label:'Sem KDM',pri:3};}
+    else if(r.status==='ok'){st={cls:'kdm-status-ok',label:'Válido',pri:1};}
+    else if(r.status==='window'){st={cls:'kdm-status-window',label:'Fora da janela',pri:4};}
+    else{st={cls:'kdm-status-fail',label:'Inválido',pri:5};}
+    kdmFilms.forEach(function(code){
+      if(!filmMap[code]){var f=filmesMap[code];if(!f)return;filmMap[code]={f:f,sessions:[],worstPriority:0,status:null};}
+      filmMap[code].sessions.push({nome:s.nome,cinema:s.cinema,st:st});
+      if(st.pri>filmMap[code].worstPriority){filmMap[code].worstPriority=st.pri;filmMap[code].status=st;}
+    });
+  });
+  var items=Object.keys(filmMap).map(function(c){return filmMap[c];});
+  var byStatus={},statusOrder=[];
+  items.forEach(function(item){
+    var lbl=item.status.label;
+    if(!byStatus[lbl]){byStatus[lbl]=[];statusOrder.push(lbl);}
+    byStatus[lbl].push(item);
+  });
+  var priMap={'Inválido':5,'Fora da janela':4,'Sem KDM':3,'Cert ausente':2,'Válido':1};
+  statusOrder.sort(function(a,b){return(priMap[b]||0)-(priMap[a]||0);});
+  return{items:items,byStatus:byStatus,statusOrder:statusOrder};
+}
+
+function rebuildDashKdmCinemaSelect(){
+  var cs=new Set();
+  sessoesArr.forEach(function(s){
+    if(s.evento&&!activeEventsDash.has(s.evento))return;
+    var hasKDM=s.filmes.some(function(c){var f=filmesMap[c];return f&&f.kdm&&f.kdm.toString().toUpperCase()==='SIM';});
+    if(!hasKDM)return;
+    if(s.cinema)cs.add(s.cinema);
+  });
+  var sel=document.getElementById('dashKdmCinemaSelect');
+  if(!sel)return;
+  var prev=dashKdmCinemaFilter;
+  sel.innerHTML='<option value="">Todos os cinemas</option>';
+  Array.from(cs).sort().forEach(function(c){var o=document.createElement('option');o.value=c;o.textContent=c;sel.appendChild(o);});
+  if(prev===''||cs.has(prev))sel.value=prev;
+  else{sel.value='';dashKdmCinemaFilter='';}
+}
+
+function selectDashKdmStatus(st){
+  dashKdmStatusSelected=(st===dashKdmStatusSelected||st===null)?null:st;
+  renderDash();
+}
+
 function dashGetFilmes(){
   if(dashCinemaFilter==='__todos__'){
     var result=[];
@@ -10713,7 +10774,7 @@ function renderDashDayTabs(){
         // select all days of this year
         yearKeys.forEach(function(k){dashDayFilter.add(k);});
       }
-      dashStatusSelected=null;dashStatSelected=null;rebuildDashCinemaSelect();renderDash();
+      dashStatusSelected=null;dashStatSelected=null;dashKdmStatusSelected=null;rebuildDashCinemaSelect();renderDash();
     });
     // separate open/close via arrow click
     var arrow=yBtn.querySelector('.year-arrow');
@@ -10732,7 +10793,7 @@ function renderDashDayTabs(){
         btn.addEventListener('click',function(){
           if(dashDayFilter.has(d.key))dashDayFilter.delete(d.key);
           else dashDayFilter.add(d.key);
-          dashStatusSelected=null;dashStatSelected=null;rebuildDashCinemaSelect();renderDash();
+          dashStatusSelected=null;dashStatSelected=null;dashKdmStatusSelected=null;rebuildDashCinemaSelect();renderDash();
         });
         container.appendChild(btn);
       });
@@ -10742,7 +10803,7 @@ function renderDashDayTabs(){
 
 function buildDashFilters(){
   buildPills(document.getElementById('dashEventFilters'),eventColors,activeEventsDash,function(){
-    dashDayFilter.clear();dashStatusSelected=null;dashStatSelected=null;window._dashYearsOpen=null;
+    dashDayFilter.clear();dashStatusSelected=null;dashStatSelected=null;dashKdmStatusSelected=null;window._dashYearsOpen=null;
     rebuildDashCinemaSelect();renderDash();
   });
   rebuildDashCinemaSelect();
@@ -11264,8 +11325,70 @@ function renderDash(){
   }
   html+=colBlock('controle','Controle de cópias',ctrlBody);
 
+  // ── BLOCO: KDM ───────────────────────────────────────────────────
+  var kdmData=dashGetKDMData();
+  var kdmBody='';
+  kdmBody+='<div class="dash-ctrl-filter">'
+    +'<span class="dash-ctrl-filter-label">Cinema</span>'
+    +'<select id="dashKdmCinemaSelect" onchange="dashKdmCinemaFilter=this.value;dashKdmStatusSelected=null;renderDash();">'
+    +'<option value="">Todos os cinemas</option>'
+    +'</select>'
+    +'</div>';
+  if(!kdmData.items.length){
+    kdmBody+='<div class="dash-total-bar" style="margin-bottom:0;">Nenhum filme com KDM nos filtros selecionados.</div>';
+  }else{
+    kdmBody+='<div class="dash-total-bar" style="margin-bottom:16px;">Filmes com KDM: <strong>'+kdmData.items.length+'</strong></div>';
+    kdmBody+='<div class="dash-tiles">';
+    kdmData.statusOrder.forEach(function(lbl){
+      var count=kdmData.byStatus[lbl].length;
+      var cls=dashKdmStatusClass(lbl);
+      var isActive=dashKdmStatusSelected===lbl;
+      kdmBody+='<button class="dash-tile '+cls+(isActive?' active':'')+'" onclick="selectDashKdmStatus(\''+lbl.replace(/\\/g,'\\\\').replace(/'/g,"\\'")+'\')">'+
+        '<div class="dash-tile-count">'+count+'</div>'+
+        '<div class="dash-tile-status">'+lbl+'</div>'+
+      '</button>';
+    });
+    kdmBody+='</div>';
+    if(dashKdmStatusSelected!==null&&kdmData.byStatus[dashKdmStatusSelected]){
+      var kdmDet=kdmData.byStatus[dashKdmStatusSelected];
+      var kdmStCls=dashKdmStatusClass(dashKdmStatusSelected);
+      var kdmStColor=kdmStCls==='st-ok'?'var(--ok)':kdmStCls==='st-accent'?'var(--accent)':'var(--warn)';
+      kdmBody+='<div class="dash-detail">';
+      kdmBody+='<div class="dash-detail-hdr">'+
+        '<span class="dash-detail-title">KDM</span>'+
+        '<span class="dash-detail-status '+kdmStCls+'" style="color:'+kdmStColor+'">'+dashKdmStatusSelected+'</span>'+
+        '<span class="dash-detail-count">'+kdmDet.length+' filme'+(kdmDet.length!==1?'s':'')+'</span>'+
+        '<button class="dash-detail-close" onclick="selectDashKdmStatus(null)">✕ Fechar</button>'+
+      '</div>';
+      kdmBody+='<div class="dash-film-list">';
+      kdmDet.forEach(function(item){
+        var f=item.f;
+        var col=f.evento&&eventColors[f.evento]?eventColors[f.evento]:null;
+        var evBadge=f.evento&&col?'<span class="card-evento" style="background:'+col.bg+';color:'+col.text+'">'+f.evento+'</span>':'';
+        var titulo=clean(f.titulo)||f.codigo;
+        var sessLinks=item.sessions.map(function(s){
+          var safe=s.nome.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+          return'<button class="dash-sess-link" onclick="goToFicha(\''+safe+'\')">'+
+            '<span class="dash-sess-cinema">'+s.cinema+'</span>'+
+            '<span class="kdm-status '+s.st.cls+'" style="font-size:8px;padding:1px 5px;margin-right:4px;">'+s.st.label+'</span>'+
+            s.nome+'</button>';
+        }).join('');
+        kdmBody+='<div class="dash-film-card" style="border-left-color:'+(col?col.bg:'var(--border2)')+'">'+
+          '<div class="dash-film-top">'+
+            '<span class="dash-film-title">'+titulo+'</span>'+
+            '<span class="dash-film-code">'+f.codigo+'</span>'+
+            evBadge+
+          '</div>'+
+          (sessLinks?'<div class="dash-sess-list"><span class="dash-sess-label">Sessões</span>'+sessLinks+'</div>':'')+
+        '</div>';
+      });
+      kdmBody+='</div></div>';
+    }
+  }
+  html+=colBlock('kdm','KDM',kdmBody);
+
   // footer
-  var sysUpdate='última atualização do sistema · 12/05/2026 às 11:00';
+  var sysUpdate='última atualização do sistema · 12/05/2026 às 13:00';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -11279,6 +11402,7 @@ function renderDash(){
 
   dc.innerHTML=html;
   rebuildDashCinemaSelect();
+  rebuildDashKdmCinemaSelect();
 }
 
 function selectDashStatus(st){
@@ -14957,7 +15081,7 @@ window.addEventListener('popstate',function(e){
 <script>
   if(typeof lucide !== 'undefined') lucide.createIcons();
 </script>
-<div id="page-footer"><span>última atualização · 12/05/2026 às 11:00</span></div>
+<div id="page-footer"><span>última atualização · 12/05/2026 às 13:00</span></div>
 
 </div>
 

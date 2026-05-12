@@ -11435,7 +11435,7 @@ function renderDash(){
   html+=colBlock('kdm','KDM',kdmBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 12/05/2026 às 20:10';
+  var sysUpdate='última atualização do sistema · 12/05/2026 às 20:30';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -14286,6 +14286,7 @@ async function duplicateCatFilm(codigo){
 
 /* ═══ ACERVO TÉCNICO — EDIÇÃO ═══ */
 var _acervoEditIdx=-1;
+var _aeAcessTags=[];
 
 async function openAcervoEdit(idx){
   _acervoEditIdx=idx;
@@ -14332,7 +14333,7 @@ async function openAcervoEdit(idx){
     +aeRow('DCP Link',aeInp('dcp_link',f.dcp_link))
     +aeRow('File Link',aeInp('file_link',f.file_link))
     +aeRow('Status Legenda',aeInp('col_n',f.col_n))
-    +aeRow('Acessibilidade',aeInp('acess',f.acessibilidade))
+    +aeRow('Acessibilidade','<div class="convidados-tag-wrap" id="ae_acess_wrap" onclick="var i=document.getElementById(\'ae_acess_inp\');if(i)i.focus()"></div><input type="hidden" id="ae_acess">')
     +aeRow('Observações','<textarea class="cat-textarea" id="ae_obs" rows="3">'+esc(f.obs||'')+'</textarea>');
   document.getElementById('acervoEditCode').textContent=f.codigo+(f.evento?' · '+f.evento:'');
   document.getElementById('acervoEditBody').innerHTML=body;
@@ -14340,7 +14341,22 @@ async function openAcervoEdit(idx){
   document.getElementById('acervoEditModal').style.display='flex';
   var _aeIdioma=f.idioma||(catalogoFilmesMap[f.codigo]&&catalogoFilmesMap[f.codigo].original_language)||'';
   _langTagWidget('lw_ae_idioma','cldr',_aeIdioma?[_aeIdioma]:[]);
+  _aeAcessTags=(f.acessibilidade||'').split(/[,;\/\n]+/).map(function(t){return t.trim();}).filter(Boolean);
+  _aeAcessRender();
 }
+function _aeAcessRender(){
+  var wrap=document.getElementById('ae_acess_wrap');if(!wrap)return;
+  var chips=_aeAcessTags.map(function(t,i){return'<span class="convidados-tag-chip">'+esc(t)+'<button type="button" class="convidados-tag-rm" onmousedown="event.preventDefault();_aeAcessRemove('+i+')">×</button></span>';}).join('');
+  wrap.innerHTML=chips+'<input id="ae_acess_inp" type="text" class="convidados-tag-input" autocomplete="off" placeholder="'+(!_aeAcessTags.length?'recurso + Enter…':'')+'" onkeydown="_aeAcessKeydown(event)">';
+  var h=document.getElementById('ae_acess');if(h)h.value=_aeAcessTags.join(', ');
+}
+function _aeAcessKeydown(e){
+  var inp=document.getElementById('ae_acess_inp');if(!inp)return;
+  var v=(inp.value||'').trim();
+  if(e.key==='Enter'){e.preventDefault();if(v&&_aeAcessTags.indexOf(v)<0)_aeAcessTags.push(v);inp.value='';_aeAcessRender();setTimeout(function(){var ni=document.getElementById('ae_acess_inp');if(ni)ni.focus();},0);}
+  else if(e.key==='Backspace'&&!v&&_aeAcessTags.length){_aeAcessTags.pop();_aeAcessRender();setTimeout(function(){var ni=document.getElementById('ae_acess_inp');if(ni)ni.focus();},0);}
+}
+function _aeAcessRemove(i){_aeAcessTags.splice(i,1);_aeAcessRender();setTimeout(function(){var ni=document.getElementById('ae_acess_inp');if(ni)ni.focus();},0);}
 
 async function doSaveAcervoEdit(){
   var f=filteredFilmes[_acervoEditIdx];
@@ -15184,7 +15200,7 @@ window.addEventListener('popstate',function(e){
 <script>
   if(typeof lucide !== 'undefined') lucide.createIcons();
 </script>
-<div id="page-footer"><span>última atualização · 12/05/2026 às 20:10</span></div>
+<div id="page-footer"><span>última atualização · 12/05/2026 às 20:30</span></div>
 
 </div>
 

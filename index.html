@@ -10852,7 +10852,6 @@ function renderDash(){
   rebuildDashCinemaSelect();
   var de=document.getElementById('dashEmpty'),dc=document.getElementById('dash-container');
   var items=dashGetFilmes();
-  if(!items.length){dc.style.display='none';de.style.display='flex';de.querySelector('p').textContent='Nenhum filme para os filtros selecionados.';return;}
   de.style.display='none';dc.style.display='block';
 
   // group by status
@@ -11290,6 +11289,10 @@ function renderDash(){
     +'<option value="">Todos os cinemas</option>'
     +'</select>'
     +'</div>';
+  if(!items.length){
+    ctrlBody+='<div style="padding:24px 0;text-align:center;color:var(--text-muted);font-family:var(--mono);font-size:11px;">Nenhum filme para o cinema selecionado.</div>';
+    html+=colBlock('controle','Controle de cópias',ctrlBody);
+  }else{
   // total bar
   ctrlBody+='<div class="dash-total-bar" style="margin-bottom:16px;">Filmes únicos no filtro: <strong>'+totalFilmes+'</strong></div>';
   // salas ativas esta semana
@@ -11362,6 +11365,7 @@ function renderDash(){
     ctrlBody+='</div></div>';
   }
   html+=colBlock('controle','Controle de cópias',ctrlBody);
+  } // end else items.length
 
   // ── BLOCO: KDM ───────────────────────────────────────────────────
   var kdmData=dashGetKDMData();
@@ -11426,7 +11430,7 @@ function renderDash(){
   html+=colBlock('kdm','KDM',kdmBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 12/05/2026 às 16:00';
+  var sysUpdate='última atualização do sistema · 12/05/2026 às 17:00';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -15172,7 +15176,7 @@ window.addEventListener('popstate',function(e){
 <script>
   if(typeof lucide !== 'undefined') lucide.createIcons();
 </script>
-<div id="page-footer"><span>última atualização · 12/05/2026 às 16:00</span></div>
+<div id="page-footer"><span>última atualização · 12/05/2026 às 17:00</span></div>
 
 </div>
 

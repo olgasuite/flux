@@ -4675,7 +4675,7 @@ html[data-theme]:not([data-theme="win98"]){--mono:var(--sans);}
       <div class="module-desc">Fichas técnicas das salas, equipamentos e Borderô</div>
     </div>
     <div class="module-card disabled" id="modCardKDM" onclick="moduleCardClick('kdm')">
-      <div class="module-icon"><i data-lucide="key"></i></div>
+      <div class="module-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div>
       <div class="module-name">KDM</div>
       <div class="module-desc">Validação de chaves e certificados dos servidores</div>
     </div>
@@ -4685,7 +4685,7 @@ html[data-theme]:not([data-theme="win98"]){--mono:var(--sans);}
       <div class="module-desc">Convidados, hotéis, vôos e transporte</div>
     </div>
     <div class="module-card disabled" id="modCardBilheteria" onclick="moduleCardClick('bilheteria')">
-      <div class="module-icon"><i data-lucide="ticket"></i></div>
+      <div class="module-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z"/></svg></div>
       <div class="module-name">Bilheteria</div>
       <div class="module-desc">Gestão de ingressos, bilheterias e controle de acesso</div>
     </div>
@@ -15306,6 +15306,8 @@ var _mobIconPaths = {
   'layout-dashboard':'<rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>',
   'monitor':'<rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/>',
   'layout-list':'<line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/>',
+  'lock':'<rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>',
+  'ticket':'<path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z"/>',
 };
 
 function _mobIcon(name,cls){
@@ -15540,7 +15542,7 @@ function olgaMobileHome(noStack){
     {mod:'projecao', icon:'projector',        label:'Projeção',    sub:'Sessões e fichas',    fn:'olgaMobileProjecao()'},
     {mod:'sessoes',  icon:'calendar-clock',   label:'Sessões',     sub:'Calendário do dia',   fn:'olgaMobileProjecao()'},
     {mod:'receptivo',icon:'monitor',          label:'Receptivo',   sub:'Gestão de convidados',fn:'olgaMobileReceptivo()'},
-    {mod:'kdm',       icon:'key',             label:'KDM',         sub:'Validação de chaves',  fn:'olgaMobileKDM()'},
+    {mod:'kdm',       icon:'lock',            label:'KDM',         sub:'Validação de chaves',  fn:'olgaMobileKDM()'},
     {mod:'bilheteria',icon:'ticket',          label:'Bilheteria',  sub:'Ingressos e acesso',   fn:'olgaMobileBilheteria()'},
     {mod:'vinhetas', icon:'film',             label:'vinhetas',    sub:'Por sessão',          fn:'olgaMobileVinhetas()'},
     {mod:'busca',    icon:'file-text',        label:'Acervo',      sub:'Busca por título',    fn:'olgaMobileAcervo()'},

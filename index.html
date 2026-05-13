@@ -4447,6 +4447,7 @@ html[data-theme]:not([data-theme="win98"]){--mono:var(--sans);}
     <button class="nav-tab" id="tabEquipe" disabled onclick="switchMode('equipe')" style="display:none"><span class="tab-icon"><i data-lucide="shield"></i></span> Administração</button>
   </nav>
   <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" title="Alternar esquema de cores">Tema</button>
+  <button class="theme-toggle" onclick="_mobIrParaMobile()" title="Ativar modo mobile" style="margin-left:4px;">Mobile</button>
   <div id="olga-userbar"></div>
   <div class="zoom-controls">
     <button class="zoom-btn" onclick="changeZoom(-1)" title="Diminuir zoom">−</button>
@@ -15280,7 +15281,7 @@ window.addEventListener('popstate',function(e){
     </div>
     <span class="mob-header-user" id="mobUserName"></span>
     <button class="mob-btn" onclick="toggleTheme()">TEMA</button>
-    <button class="mob-btn" onclick="_mobIrParaWeb()">MODO WEB</button>
+    <button class="mob-btn" onclick="_mobIrParaWeb()">MODO TABLET</button>
     <button class="mob-btn" onclick="_olgaSignOut()">sair</button>
   </div>
   <div class="mob-content" id="mobContent"></div>
@@ -15742,6 +15743,7 @@ function olgaMobileAcervo(){
 
 function _mobRenderAcervo(params,noFocus){
   _mobSetContent(
+    _mobEventFilterHtml(_mobActiveEvs)+
     '<div class="mob-ficha-search">'+
       '<input id="mobAcervoInput" type="text" placeholder="código ou título…" oninput="_mobAcervoSearch(this.value)" autocomplete="off" autocorrect="off" spellcheck="false">'+
     '</div>'+
@@ -15755,6 +15757,7 @@ window._mobAcervoSearch=function(q){
   var el=document.getElementById('mobAcervoList');if(!el)return;
   if(!q){el.innerHTML='';return;}
   var hits=(filmesArr||[]).filter(function(f){
+    if(_mobActiveEvs&&f.evento&&!_mobActiveEvs.has(f.evento))return false;
     return(f.codigo&&f.codigo.toLowerCase().indexOf(q)!==-1)||(f.titulo&&f.titulo.toLowerCase().indexOf(q)!==-1);
   }).slice(0,25);
   if(!hits.length){el.innerHTML='<div class="mob-empty">Nenhum resultado.</div>';return;}
@@ -15811,6 +15814,7 @@ function olgaMobileReceptivo(){
 }
 
 function _mobRenderReceptivo(params){
+  var _filtroEvs=_mobActiveEvs;
   var AREAS=[
     {nome:'Convidados',sec:'convidados',desc:'Cadastro e gestão de convidados, acreditações e participações nos eventos',
      icon:'<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><polyline points="16 11 18 13 22 9"/>'},
@@ -15821,7 +15825,8 @@ function _mobRenderReceptivo(params){
     {nome:'Transporte',sec:'transporte',desc:'Roteamento e agendamento de transfers, rotas e veículos',
      icon:'<path d="M8 6v6"/><path d="M15 6v6"/><path d="M2 12h19.6"/><path d="M18 18h3s.5-1.7.8-2.8c.1-.4.2-.8.2-1.2 0-.4-.1-.8-.2-1.2l-1.4-5C20.1 6.8 19.1 6 18 6H4a2 2 0 0 0-2 2v10h3"/><circle cx="7" cy="18" r="2"/><path d="M9 18h5"/><circle cx="16" cy="18" r="2"/>'},
   ];
-  var html='<div style="padding:16px;">';
+  var html=_mobEventFilterHtml(_filtroEvs);
+  html+='<div style="padding:16px;">';
   html+='<div style="font-family:var(--mono);font-size:10px;color:var(--text-muted);margin-bottom:16px;">Gestão de convidados, hospedagem, deslocamentos e logística de transporte.</div>';
   html+=AREAS.map(function(a){
     return'<div onclick="_mobReceptivoSection(\''+_mobEsc(a.sec)+'\')" style="display:flex;align-items:center;gap:14px;background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:16px;margin-bottom:10px;cursor:pointer;">'+
@@ -15954,10 +15959,11 @@ function _mobRenderBilheteria(params,back){
           '<span style="font-size:9px;color:var(--text-muted);margin-left:auto;">'+_mobEsc(s.hora||'')+'</span>'+
         '</div>'+
         '<div style="font-size:9px;color:var(--text-muted);">'+_mobEsc(s.cinema||'')+'</div>'+
-        (s.publico||renda!==null?
-          '<div style="display:flex;gap:12px;margin-top:4px;font-size:9px;">'+
-          (s.publico?'<span>público: <strong style="color:var(--text);">'+pub+'</strong></span>':'')+
-          (renda!==null?'<span>renda: <strong style="color:var(--text);">'+fmtRenda(renda)+'</strong></span>':'')+
+        (s.publico||renda!==null||s.ingressos?
+          '<div style="display:flex;gap:12px;margin-top:4px;font-size:9px;font-family:var(--mono);align-items:center;">'+
+          (s.publico?'<span style="display:flex;align-items:center;gap:3px;"><svg style="width:10px;height:10px;stroke:var(--text-muted);stroke-width:2;fill:none;" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg><strong style="color:var(--text);">'+pub+'</strong></span>':'')+
+          (s.ingressos?'<span style="display:flex;align-items:center;gap:3px;"><svg style="width:10px;height:10px;stroke:var(--text-muted);stroke-width:2;fill:none;" viewBox="0 0 24 24"><path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z"/></svg><strong style="color:var(--text);">'+_mobEsc(s.ingressos)+'</strong></span>':'')+
+          (renda!==null?'<span>'+fmtRenda(renda)+'</span>':'')+
           '</div>':'')+'</div>';
     });
     html+='<div style="padding:6px 16px;font-family:var(--mono);font-size:9px;color:var(--text-muted);background:var(--surface);border-bottom:1px solid var(--border);">'+
@@ -16022,6 +16028,7 @@ function olgaMobileCatalogo(){
 
 function _mobRenderCatalogo(params,noFocus){
   _mobSetContent(
+    _mobEventFilterHtml(_mobActiveEvs)+
     '<div class="mob-ficha-search">'+
       '<input id="mobCatInput" type="text" placeholder="título ou diretor…" oninput="_mobCatSearch(this.value)" autocomplete="off" autocorrect="off" spellcheck="false">'+
     '</div>'+
@@ -16035,6 +16042,7 @@ window._mobCatSearch=function(q){
   var el=document.getElementById('mobCatList');if(!el)return;
   if(!q){el.innerHTML='';return;}
   var hits=(filmesArr||[]).filter(function(f){
+    if(_mobActiveEvs&&f.evento&&!_mobActiveEvs.has(f.evento))return false;
     var cm=catalogoFilmesMap&&catalogoFilmesMap[f.codigo];
     var dir=cm&&cm.director?(Array.isArray(cm.director)?cm.director.join(' '):cm.director).toLowerCase():'';
     var titulo=(f.titulo||'').toLowerCase();
@@ -16170,9 +16178,12 @@ function _mobRenderIngest(params,noScroll){
       '<div class="mob-sessao-body">'+
         films.map(function(f){
           var banner=_mobStatusBanner(f);
+          var kdmIcon=f.kdm&&f.kdm.toLowerCase()==='sim'?'<svg style="width:11px;height:11px;stroke:#ff8060;stroke-width:2;fill:none;vertical-align:middle;margin-left:5px;" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>':'';
           return'<div style="border-bottom:1px solid var(--border);padding:6px 0;">'+
-            '<div class="mob-sessao-filme">'+_mobEsc(f.titulo||f.codigo)+'</div>'+
+            '<div class="mob-sessao-filme">'+_mobEsc(f.titulo||f.codigo)+kdmIcon+'</div>'+
             '<div style="font-family:var(--mono);font-size:9px;color:var(--text-muted);">'+_mobEsc(f.codigo)+(f.gb?' · '+_mobEsc(f.gb)+' GB':'')+(f.lente?' · '+_mobEsc(f.lente):'')+'</div>'+
+            (f.cpl?'<div style="font-family:var(--mono);font-size:9px;color:var(--text-dim);margin-top:2px;">CPL: '+_mobEsc(f.cpl)+'</div>':'')+
+            (f.cplOV?'<div style="font-family:var(--mono);font-size:9px;color:rgba(93,220,138,0.7);margin-top:1px;">CPL OV: '+_mobEsc(f.cplOV)+'</div>':'')+
             banner+
           '</div>';
         }).join('')+
@@ -16425,6 +16436,12 @@ function _mobRenderProgSessao(params,noScroll){
 
 function _mobEsc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
 
+window._mobIrParaMobile=function(){
+  document.getElementById('olga-mobile').style.display='flex';
+  document.getElementById('olga-app').style.display='none';
+  window._mobileActive=true;
+  olgaMobileInit();
+};
 window._mobIrParaWeb=function(){
   document.getElementById('olga-mobile').style.display='none';
   document.getElementById('olga-app').style.display='';

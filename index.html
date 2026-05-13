@@ -10927,7 +10927,7 @@ function renderDash(){
     var salaSet=new Set();sessoes.forEach(function(s){if(s.cinema)salaSet.add(s.cinema);});
     var pub=sessoes.reduce(function(acc,s){return acc+parsePubDash(s.publico);},0);
     var hasPubData=sessoes.some(function(s){return s.publico&&s.publico.toString().trim()!=='';});
-    var acessSess=sessoes.filter(function(s){return s.acessibilidades&&s.acessibilidades.toString().trim()!=='';});
+    var acessSess=sessoes.filter(function(s){var _av=(s.acessibilidades||'').toString().trim();return _av!==''&&!/^n[ãa]o$/i.test(_av);});
     var acessFilmSet=new Set();acessSess.forEach(function(s){s.filmes.forEach(function(c){acessFilmSet.add(c);});});
     var legSess=sessoes.filter(function(s){return(s.leg_eletronica||'').toString().trim().toUpperCase()==='SIM';});
     return{filmes:filmSet.size,sessoes:sessoes.length,salas:salaSet.size,pub:pub,hasPubData:hasPubData,
@@ -11137,7 +11137,7 @@ function renderDash(){
           bodyHtml+='<div class="dsd-sala-row"><span class="dsd-sala-name" onclick="goToCinemaFromDash(\''+safeSala+'\')">'+sala+'</span><span class="dsd-sala-meta">'+cnt+' sess'+(cnt===1?'ão':'ões')+'</span></div>';
         });
       }else if(key==='p_acess'){
-        var paArr=_progSessoes.filter(function(s){return s.acessibilidades&&s.acessibilidades.toString().trim();}).sort(function(a,b){return a.date&&b.date?a.date-b.date:0;});
+        var paArr=_progSessoes.filter(function(s){var _av=(s.acessibilidades||'').toString().trim();return _av!==''&&!/^n[ãa]o$/i.test(_av);}).sort(function(a,b){return a.date&&b.date?a.date-b.date:0;});
         title='Sessões acessíveis ('+paArr.length+')';
         bodyHtml='';
         paArr.forEach(function(s){
@@ -11277,7 +11277,7 @@ function renderDash(){
     if(s.program_id)_pMostras.add(s.program_id);
     if(s.subprogram_id)_pSubs.add(s.subprogram_id);
     if(s.cinema)_pSalas.add(s.cinema);
-    if(s.acessibilidades&&s.acessibilidades.toString().trim())_pAcess++;
+    var _av=(s.acessibilidades||'').toString().trim();if(_av!==''&&!/^n[ãa]o$/i.test(_av))_pAcess++;
   });
   var progLabel='Programação'+(dashDayFilter.size>0?' <span class="dash-days-badge">dias selecionados</span>':'');
   var progBody='<div class="dash-stats-grid">';
@@ -11453,7 +11453,7 @@ function renderDash(){
   html+=colBlock('kdm','KDM',kdmBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 12/05/2026 às 20:40';
+  var sysUpdate='última atualização do sistema · 13/05/2026 às 12:30';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -15218,7 +15218,7 @@ window.addEventListener('popstate',function(e){
 <script>
   if(typeof lucide !== 'undefined') lucide.createIcons();
 </script>
-<div id="page-footer"><span>última atualização · 12/05/2026 às 20:40</span></div>
+<div id="page-footer"><span>última atualização · 13/05/2026 às 12:30</span></div>
 
 </div>
 

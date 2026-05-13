@@ -11453,7 +11453,7 @@ function renderDash(){
   html+=colBlock('kdm','KDM',kdmBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 13/05/2026 às 12:34';
+  var sysUpdate='última atualização do sistema · 13/05/2026 às 12:36';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -15241,7 +15241,7 @@ window.addEventListener('popstate',function(e){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 13/05/2026 às 12:34</span></div>
+<div id="page-footer"><span>última atualização · 13/05/2026 às 12:36</span></div>
 
 </div>
 
@@ -15874,7 +15874,8 @@ window._mobReceptivoSection=function(sec){
   _mobPush({view:'receptivo-'+sec,params:{sec:sec}});
   _mobSetContent('<div class="mob-empty">Carregando…</div>');
   function _re2(s){return(s||'').toString().replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
-  function row(cols){return'<div style="display:flex;gap:6px;padding:10px 16px;border-bottom:1px solid var(--border);font-family:var(--mono);font-size:10px;color:var(--text);">'+cols.map(function(c,i){return'<span style="'+(i===0?'flex:2;font-weight:600;color:var(--text-dim)':'flex:1;color:var(--text-muted)')+';min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+c+'</span>';}).join('')+'</div>';}
+  function pill(txt,bg,color){return'<span style="font-family:var(--mono);font-size:8px;font-weight:600;padding:1px 6px;border-radius:2px;background:'+(bg||'var(--surface3)')+';color:'+(color||'var(--text-muted)')+';flex-shrink:0;white-space:nowrap;">'+txt+'</span>';}
+  function card(name,badge,lines){return'<div style="padding:10px 16px;border-bottom:1px solid var(--border);font-family:var(--mono);">'+'<div style="display:flex;align-items:center;gap:6px;margin-bottom:'+(lines.filter(Boolean).length?'4':'0')+'px;">'+'<span style="font-size:11px;font-weight:600;color:var(--text-dim);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+name+'</span>'+(badge||'')+'</div>'+lines.filter(Boolean).map(function(l){return'<div style="font-size:9px;color:var(--text-muted);line-height:1.5;">'+l+'</div>';}).join('')+'</div>';}
   var loadFns={
     convidados:function(){
       Promise.all([window._olgaGuests.list(),window._olgaHotels.list(),window._olgaBookings.list()]).then(function(r){
@@ -15885,7 +15886,13 @@ window._mobReceptivoSection=function(sec){
         var gs2=gs.filter(function(g){return!g.data.event_id||evColors[g.data.event_id];}).sort(function(a,b){return(a.data.name||'').localeCompare(b.data.name||'','pt-BR');});
         var html='<div class="mob-section-title">Convidados · '+gs2.length+'</div>';
         if(!gs2.length){html+='<div class="mob-empty">Nenhum convidado encontrado.</div>';}
-        else{html+=gs2.map(function(g){var d=g.data;var ev=d.event_id||'';var hotel=bMap[g.id]||'—';return row([_re2(d.name||'—'),_re2(ev),_re2(hotel)]);}).join('');}
+        else{html+=gs2.map(function(g){
+          var d=g.data;var ev=d.event_id||'';var hotel=bMap[g.id]||'';
+          var evCol=evColors[ev];
+          var evPill=ev?pill(_re2(ev),evCol?evCol.bg:'var(--surface3)',evCol?evCol.text:'var(--text-dim)'):'';
+          var roles=(d.roles&&d.roles.length)?d.roles.map(function(ro){return pill(_re2(ro));}).join(' '):'';
+          return card(_re2(d.name||'—'),evPill,[roles||null,hotel?'Hotel · '+_re2(hotel):null]);
+        }).join('');}
         _mobSetContent(html);
       }).catch(function(e){_mobSetContent('<div class="mob-empty">Erro: '+_re2(e.message)+'</div>');});
     },
@@ -15896,7 +15903,14 @@ window._mobReceptivoSection=function(sec){
         var hs2=hs.filter(function(h){return!h.data.event_id||evColors[h.data.event_id];}).sort(function(a,b){return(a.data.name||'').localeCompare(b.data.name||'','pt-BR');});
         var html='<div class="mob-section-title">Hotéis · '+hs2.length+'</div>';
         if(!hs2.length){html+='<div class="mob-empty">Nenhum hotel encontrado.</div>';}
-        else{html+=hs2.map(function(h){var d=h.data;var cnt=bs.filter(function(b){return b.data.hotel_id===h.id;}).length;return row([_re2(d.name||'—'),_re2(d.event_id||'—'),cnt+' reserva'+(cnt!==1?'s':'')]);}).join('');}
+        else{html+=hs2.map(function(h){
+          var d=h.data;var cnt=bs.filter(function(b){return b.data.hotel_id===h.id;}).length;
+          var ev=d.event_id||'';var evCol=evColors[ev];
+          var evPill=ev?pill(_re2(ev),evCol?evCol.bg:'var(--surface3)',evCol?evCol.text:'var(--text-dim)'):'';
+          var cntPill=pill(cnt+' reserva'+(cnt!==1?'s':''));
+          var badge='<span style="display:flex;gap:4px;flex-shrink:0;align-items:center;">'+evPill+cntPill+'</span>';
+          return card(_re2(d.name||'—'),badge,[d.address?'Endereço · '+_re2(d.address):null,d.contact?'Contato · '+_re2(d.contact):null]);
+        }).join('');}
         _mobSetContent(html);
       }).catch(function(e){_mobSetContent('<div class="mob-empty">Erro: '+_re2(e.message)+'</div>');});
     },
@@ -15908,7 +15922,14 @@ window._mobReceptivoSection=function(sec){
         var fs2=fs.filter(function(f){return!f.data.event_id||evColors[f.data.event_id];}).sort(function(a,b){return(a.data.datetime||'').localeCompare(b.data.datetime||'');});
         var html='<div class="mob-section-title">Voos · '+fs2.length+'</div>';
         if(!fs2.length){html+='<div class="mob-empty">Nenhum voo encontrado.</div>';}
-        else{html+=fs2.map(function(f){var d=f.data;var tipo=d.type==='chegada'?'↓ chegada':'↑ partida';var dt=(d.datetime||'—').replace('T',' ');return row([_re2(gMap[d.guest_id]||'—'),tipo,_re2(dt)]);}).join('');}
+        else{html+=fs2.map(function(f){
+          var d=f.data;var isCh=d.type==='chegada';
+          var tipoPill=pill(isCh?'↓ chegada':'↑ partida',isCh?'rgba(173,198,255,0.12)':'rgba(255,186,32,0.12)',isCh?'#adc6ff':'var(--accent)');
+          var route=d.origin&&d.destination?_re2(d.origin)+' → '+_re2(d.destination):d.origin?_re2(d.origin):d.destination?'→ '+_re2(d.destination):'';
+          var line1=d.flight_number&&route?_re2(d.flight_number)+' · '+route:d.flight_number?_re2(d.flight_number):route||null;
+          var line2=d.datetime?(d.datetime||'').replace('T',' '):null;
+          return card(_re2(gMap[d.guest_id]||'—'),tipoPill,[line1,line2]);
+        }).join('');}
         _mobSetContent(html);
       }).catch(function(e){_mobSetContent('<div class="mob-empty">Erro: '+_re2(e.message)+'</div>');});
     },
@@ -15920,7 +15941,14 @@ window._mobReceptivoSection=function(sec){
         var ts2=ts.filter(function(t){return!t.data.event_id||evColors[t.data.event_id];}).sort(function(a,b){return(a.data.datetime||'').localeCompare(b.data.datetime||'');});
         var html='<div class="mob-section-title">Transporte · '+ts2.length+'</div>';
         if(!ts2.length){html+='<div class="mob-empty">Nenhum transfer encontrado.</div>';}
-        else{html+=ts2.map(function(t){var d=t.data;var tipo=d.category==='chegada'?'↓ chegada':d.category==='partida'?'↑ partida':'↔ interno';var dt=(d.datetime||'—').replace('T',' ');return row([_re2(gMap[d.guest_id]||'—'),tipo,_re2(d.vehicle_type||'—')]);}).join('');}
+        else{html+=ts2.map(function(t){
+          var d=t.data;var isCh=d.category==='chegada',isPa=d.category==='partida';
+          var tipoPill=pill(isCh?'↓ chegada':isPa?'↑ partida':'↔ interno',isCh?'rgba(173,198,255,0.12)':isPa?'rgba(255,186,32,0.12)':'rgba(255,255,255,0.05)',isCh?'#adc6ff':isPa?'var(--accent)':'var(--text-muted)');
+          var route=d.origin&&d.destination?_re2(d.origin)+' → '+_re2(d.destination):d.origin?_re2(d.origin):d.destination?'→ '+_re2(d.destination):'';
+          var line1=route&&d.vehicle_type?route+' · '+_re2(d.vehicle_type):route||d.vehicle_type?_re2(d.vehicle_type):null;
+          var line2=d.datetime?(d.datetime||'').replace('T',' '):null;
+          return card(_re2(gMap[d.guest_id]||'—'),tipoPill,[line1,line2]);
+        }).join('');}
         _mobSetContent(html);
       }).catch(function(e){_mobSetContent('<div class="mob-empty">Erro: '+_re2(e.message)+'</div>');});
     }
@@ -15955,6 +15983,13 @@ function _mobRenderKDM(params,noScroll){
   var cards=sessoes.map(function(s){
     var ev=eventColors[s.evento]||{bg:'var(--border2)',text:'var(--text)'};
     var kdmFilms=s.filmes.map(function(c){return Object.assign({codigo:c},filmesMap[c]||{});}).filter(function(f){return(f.kdm||'').toLowerCase()==='sim';});
+    var kdmRes=window._kdmResults&&window._kdmResults[s.nome];
+    var kdmStatusPill='';
+    if(kdmRes){
+      if(kdmRes.status==='ok')kdmStatusPill='<span style="font-family:var(--mono);font-size:8px;font-weight:700;padding:2px 8px;border-radius:2px;border:1px solid rgba(61,186,110,0.4);color:#3dba6e;flex-shrink:0;white-space:nowrap;">Válido</span>';
+      else if(kdmRes.status==='window')kdmStatusPill='<span style="font-family:var(--mono);font-size:8px;font-weight:700;padding:2px 8px;border-radius:2px;border:1px solid rgba(255,186,32,0.4);color:var(--accent);flex-shrink:0;white-space:nowrap;">Fora da janela</span>';
+      else kdmStatusPill='<span style="font-family:var(--mono);font-size:8px;font-weight:700;padding:2px 8px;border-radius:2px;border:1px solid rgba(255,100,80,0.4);color:#ffb4ab;flex-shrink:0;white-space:nowrap;">Inválido</span>';
+    }
     return'<div class="mob-sessao-card">'+
       '<div class="mob-sessao-header">'+
         '<span class="mob-sessao-hora">'+(s.hora||'?')+'</span>'+
@@ -15962,6 +15997,7 @@ function _mobRenderKDM(params,noScroll){
           '<div style="font-family:var(--mono);font-size:11px;color:var(--text-dim);">'+_mobEsc(s.cinema)+'</div>'+
           '<span class="mob-sessao-pill" style="background:'+ev.bg+';color:'+ev.text+';">'+_mobEsc(s.evento||'')+'</span>'+
         '</div>'+
+        kdmStatusPill+
       '</div>'+
       '<div class="mob-sessao-body">'+
         kdmFilms.map(function(f){

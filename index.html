@@ -15482,30 +15482,22 @@ function _mobDayTabsHtml(dias,selDia,onclickFn){
     for(var i=0;i<dias.length;i++){if(dias[i].getTime()>=hoje.getTime()){melhor=dias[i];break;}}
     selDia=melhor.getTime();
   }
-  var years=[];
-  dias.forEach(function(d){var y=d.getFullYear();if(years.indexOf(y)===-1)years.push(y);});
-  var multiYear=years.length>1;
-  var html='<div class="mob-day-tabs">';
-  if(multiYear){
-    var byYear={};
-    dias.forEach(function(d){var y=d.getFullYear();if(!byYear[y])byYear[y]=[];byYear[y].push(d);});
-    years.forEach(function(y){
-      var open=!_mobYearsClosed.has(y);
-      html+='<button onclick="_mobToggleYear('+y+')" style="font-family:var(--mono);font-size:9px;font-weight:700;padding:3px 10px;border-radius:2px;border:1px solid var(--border2);cursor:pointer;background:var(--surface2);color:var(--text-muted);margin-right:2px;">'+y+(open?' ▲':' ▼')+'</button>';
-      if(open){byYear[y].forEach(function(d){
-        var t=d.getTime();
-        var lbl=d.toLocaleDateString('pt-BR',{weekday:'short',day:'2-digit',month:'2-digit'});
-        html+='<button class="mob-day-tab'+(t===selDia?' active':'')+'" onclick="'+onclickFn+'('+t+')">'+lbl+'</button>';
-      });}
-    });
-  }else{
-    html+=dias.map(function(d){
-      var t=d.getTime();
-      var lbl=d.toLocaleDateString('pt-BR',{weekday:'short',day:'2-digit',month:'2-digit'});
-      return'<button class="mob-day-tab'+(t===selDia?' active':'')+'" onclick="'+onclickFn+'('+t+')">'+lbl+'</button>';
-    }).join('');
-  }
-  return{html:html+'</div>',selDia:selDia};
+  var selIdx=0;
+  for(var j=0;j<dias.length;j++){if(dias[j].getTime()===selDia){selIdx=j;break;}}
+  var prevT=selIdx>0?dias[selIdx-1].getTime():0;
+  var nextT=selIdx<dias.length-1?dias[selIdx+1].getTime():0;
+  var opts=dias.map(function(d){
+    var t=d.getTime();
+    var lbl=d.toLocaleDateString('pt-BR',{weekday:'short',day:'2-digit',month:'2-digit'});
+    return'<option value="'+t+'"'+(t===selDia?' selected':'')+'>'+lbl+'</option>';
+  }).join('');
+  var bs='font-family:var(--mono);font-size:16px;font-weight:600;width:36px;height:36px;border:1px solid var(--border2);background:var(--surface2);color:var(--text-dim);cursor:pointer;border-radius:2px;flex-shrink:0;line-height:1;';
+  var html='<div style="display:flex;align-items:center;gap:8px;padding:10px 14px;">'+
+    '<button onclick="'+(prevT?onclickFn+'('+prevT+')':'return false')+'" style="'+bs+(prevT?'':'opacity:0.2;cursor:default;')+'" '+(prevT?'':'disabled')+'>‹</button>'+
+    '<select onchange="'+onclickFn+'(+this.value)" style="flex:1;font-family:var(--mono);font-size:11px;font-weight:600;padding:8px;background:var(--surface2);color:var(--text);border:1px solid var(--border2);border-radius:2px;cursor:pointer;">'+opts+'</select>'+
+    '<button onclick="'+(nextT?onclickFn+'('+nextT+')':'return false')+'" style="'+bs+(nextT?'':'opacity:0.2;cursor:default;')+'" '+(nextT?'':'disabled')+'>›</button>'+
+  '</div>';
+  return{html:html,selDia:selDia};
 }
 window._mobToggleYear=function(y){
   if(_mobYearsClosed.has(y))_mobYearsClosed.delete(y);
@@ -15663,13 +15655,14 @@ function _mobRenderSessaoFicha(params){
   if(s.ingressos)extraParts.push('Ingressos reservados: '+s.ingressos);
   if(extraParts.length)html+='<div style="font-family:var(--mono);font-size:10px;color:var(--accent);background:rgba(255,186,32,0.07);border:1px solid rgba(255,186,32,0.2);border-radius:2px;padding:7px 10px;margin-bottom:10px;">'+extraParts.map(_mobEsc).join(' · ')+'</div>';
 
-  // boxes apresentação / leg. eletrônica / debate
+  // boxes apresentação / leg. eletrônica / debate / acessibilidade
   var boxItems=[
     {label:'Apresentação', val:s.apresentacao},
     {label:'Leg. eletrônica', val:s.leg_eletronica},
     {label:'Debate', val:s.col_ag},
+    {label:'Acessibilidade', val:s.acessibilidades},
   ];
-  html+='<div style="display:flex;gap:8px;margin-bottom:14px;">';
+  html+='<div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px;">';
   boxItems.forEach(function(b){
     var checked=b.val&&b.val.toLowerCase().indexOf('sim')!==-1;
     html+='<div style="display:flex;align-items:center;gap:5px;font-family:var(--mono);font-size:9px;color:'+(checked?'var(--ok)':'var(--text-muted)')+';">'+
@@ -15678,19 +15671,29 @@ function _mobRenderSessaoFicha(params){
     '</div>';
   });
   html+='</div>';
+  // recursos de acessibilidade dos filmes (quando acessibilidade está ativa)
+  if(s.acessibilidades&&s.acessibilidades.toLowerCase().indexOf('sim')!==-1){
+    var acessSet=[];
+    s.filmes.forEach(function(c){var f=filmesMap[c];if(f&&f.acessibilidade){f.acessibilidade.split(/[,;\/\n]+/).forEach(function(a){var t=a.trim();if(t&&acessSet.indexOf(t)<0)acessSet.push(t);});}});
+    if(acessSet.length)html+='<div style="font-family:var(--mono);font-size:9px;color:var(--text-dim);margin-bottom:12px;">'+acessSet.join(' · ')+'</div>';
+  }
 
   // vinhetas
   if(s.vinhetas&&s.vinhetas.length){
     var vMap={};(vinhetasArr||[]).forEach(function(v){vMap[v.codigo]=v;});
+    var vinSecs=0;
     html+='<div style="font-family:var(--mono);font-size:9px;font-weight:600;letter-spacing:0.15em;text-transform:uppercase;color:var(--text-muted);margin-bottom:6px;">vinhetas</div>';
-    html+='<div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:14px;">';
+    html+='<div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:6px;">';
     s.vinhetas.forEach(function(cod){
       var info=vMap[cod];
       var lbl=info&&info.cpl?info.cpl:cod;
       if(lbl.length>16)lbl=lbl.slice(0,16)+'…';
+      if(info&&info.duracao){var dv=info.duracao.toString().trim();var m3=dv.match(/^(\d+):(\d{2}):(\d{2})$/);var m2=dv.match(/^(\d+):(\d{2})$/);if(m3)vinSecs+=parseInt(m3[1])*3600+parseInt(m3[2])*60+parseInt(m3[3]);else if(m2)vinSecs+=parseInt(m2[1])*60+parseInt(m2[2]);}
       html+='<span style="font-family:var(--mono);font-size:9px;padding:2px 8px;background:var(--surface2);border:1px solid var(--border);border-radius:2px;">'+_mobEsc(lbl)+'</span>';
     });
     html+='</div>';
+    if(vinSecs>0){var vh=Math.floor(vinSecs/3600),vm=Math.floor((vinSecs%3600)/60),vs=vinSecs%60;var vinDur=vh>0?(vh+'h'+String(vm).padStart(2,'0')+'\''):(vm>0?(vs>0?vm+'\''+String(vs).padStart(2,'0')+'"':vm+'\''):(vs+'"'));html+='<div style="font-family:var(--mono);font-size:9px;color:var(--text-muted);margin-bottom:12px;">total vinhetas: <span style="color:var(--text-dim);">'+vinDur+'</span></div>';}
+    else{html+='<div style="height:8px;"></div>';}
   }
 
   // filmes
@@ -15907,15 +15910,49 @@ function olgaMobileKDM(){
   _mobPush({view:'kdm',params:{},title:'KDM'});
   _mobRenderKDM({});
 }
-function _mobRenderKDM(params,back){
-  _mobSetContent(
-    '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:60px 24px;text-align:center;">'+
-    '<div style="font-size:40px;margin-bottom:16px;">🔑</div>'+
-    '<div style="font-family:var(--mono);font-size:16px;font-weight:600;color:var(--text);margin-bottom:10px;">KDM</div>'+
-    '<div style="font-family:var(--mono);font-size:10px;color:var(--text-muted);line-height:1.6;max-width:280px;">Use a versão desktop para validar KDMs e importar certificados.</div>'+
-    '</div>'
-  );
+function _mobRenderKDM(params,noScroll){
+  params=params||{};
+  if(!dataLoaded){_mobSetContent('<div class="mob-empty">Dados não carregados.</div>');return;}
+  var filtroEvs=_mobActiveEvs;
+  var diasSet=new Set();
+  sessoesArr.forEach(function(s){
+    if(filtroEvs&&!filtroEvs.has(s.evento))return;
+    if(s.date&&s.filmes.some(function(c){var f=filmesMap[c];return f&&(f.kdm||'').toLowerCase()==='sim';}))diasSet.add(s.date.getTime());
+  });
+  var dias=Array.from(diasSet).sort().map(function(t){return new Date(t);});
+  if(!dias.length){_mobSetContent(_mobEventFilterHtml(filtroEvs)+'<div class="mob-empty">Nenhuma sessão com KDM.</div>');return;}
+  var r=_mobDayTabsHtml(dias,params.dia,'_mobKDMSelDia');
+  if(!params.dia)params.dia=r.selDia;
+  var sessoes=sessoesArr.filter(function(s){
+    if(!s.date||s.date.getTime()!==params.dia)return false;
+    if(filtroEvs&&!filtroEvs.has(s.evento))return false;
+    return s.filmes.some(function(c){var f=filmesMap[c];return f&&(f.kdm||'').toLowerCase()==='sim';});
+  }).sort(function(a,b){return(a.time?a.time.h*60+a.time.m:0)-(b.time?b.time.h*60+b.time.m:0);});
+  var lockSvg='<svg style="width:11px;height:11px;stroke:#ff8060;stroke-width:2;fill:none;vertical-align:middle;margin-right:4px;" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>';
+  var cards=sessoes.map(function(s){
+    var ev=eventColors[s.evento]||{bg:'var(--border2)',text:'var(--text)'};
+    var kdmFilms=s.filmes.map(function(c){return Object.assign({codigo:c},filmesMap[c]||{});}).filter(function(f){return(f.kdm||'').toLowerCase()==='sim';});
+    return'<div class="mob-sessao-card">'+
+      '<div class="mob-sessao-header">'+
+        '<span class="mob-sessao-hora">'+(s.hora||'?')+'</span>'+
+        '<div style="flex:1;min-width:0;">'+
+          '<div style="font-family:var(--mono);font-size:11px;color:var(--text-dim);">'+_mobEsc(s.cinema)+'</div>'+
+          '<span class="mob-sessao-pill" style="background:'+ev.bg+';color:'+ev.text+';">'+_mobEsc(s.evento||'')+'</span>'+
+        '</div>'+
+      '</div>'+
+      '<div class="mob-sessao-body">'+
+        kdmFilms.map(function(f){
+          return'<div style="display:flex;align-items:center;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--border);">'+
+            '<span style="font-family:var(--mono);font-size:10px;color:var(--text-dim);">'+lockSvg+_mobEsc(f.titulo||f.codigo)+'</span>'+
+            (f.status?'<span style="font-family:var(--mono);font-size:8px;padding:1px 6px;background:var(--surface2);border:1px solid var(--border);color:var(--text-muted);">'+_mobEsc(f.status)+'</span>':'')+
+          '</div>';
+        }).join('')+
+      '</div>'+
+    '</div>';
+  }).join('');
+  _mobSetContent(_mobEventFilterHtml(filtroEvs)+r.html+'<div style="height:12px;"></div>'+(sessoes.length?cards:'<div class="mob-empty">Sem sessões com KDM neste dia.</div>'));
 }
+window._mobKDMSelDia=function(t){var cur=_mobStack[_mobStack.length-1];if(cur)cur.params.dia=t;_mobRenderKDM(cur?cur.params:{dia:t},true);};
 
 /* ── bilheteria ─────────────────────────────────────────────────── */
 function olgaMobileBilheteria(){
@@ -15944,6 +15981,10 @@ function _mobRenderBilheteria(params,back){
   dayOrder.sort();
   dayOrder.forEach(function(k){byDay[k].sort(function(a,b){return(a.time?a.time.h*60+a.time.m:0)-(b.time?b.time.h*60+b.time.m:0);});});
   var html=_mobEventFilterHtml(_mobActiveEvs);
+  html+='<div style="display:flex;gap:16px;padding:8px 14px;font-family:var(--mono);font-size:9px;color:var(--text-muted);border-bottom:1px solid var(--border);">'+
+    '<span style="display:flex;align-items:center;gap:4px;"><svg style="width:11px;height:11px;stroke:currentColor;stroke-width:2;fill:none;" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg> Público total</span>'+
+    '<span style="display:flex;align-items:center;gap:4px;"><svg style="width:11px;height:11px;stroke:currentColor;stroke-width:2;fill:none;" viewBox="0 0 24 24"><path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z"/></svg> Ingressos reservados</span>'+
+  '</div>';
   dayOrder.forEach(function(k){
     var ss=byDay[k];
     var d=k!=='0000-00-00'?new Date(k+'T12:00'):null;
@@ -16238,10 +16279,11 @@ function _mobRenderGrade(params,noScroll){
     var rows=porSala[sala].map(function(s){
       var filmes=s.filmes.map(function(cod){var f=filmesMap[cod];return f?f.titulo||cod:cod;}).filter(Boolean).join(' + ');
       var temErro=_mobSessaoTemErro(s);
-      return'<div style="display:flex;align-items:baseline;gap:10px;padding:6px 0;border-bottom:1px solid var(--border);">'+
+      return'<div onclick="_mobGradeAbrirProgSessao(\''+_mobEsc(s.nome)+'\')" style="display:flex;align-items:baseline;gap:10px;padding:6px 0;border-bottom:1px solid var(--border);cursor:pointer;">'+
         '<span style="font-family:var(--mono);font-size:13px;font-weight:700;color:var(--accent);flex-shrink:0;min-width:40px;">'+(s.hora||'?')+'</span>'+
         '<span style="font-family:var(--sans);font-size:12px;color:var(--text-dim);flex:1;">'+_mobEsc(filmes||s.nome)+'</span>'+
         (temErro?'<span style="font-family:var(--mono);font-size:8px;color:var(--warn);">⚠</span>':'')+
+        '<svg style="width:12px;height:12px;stroke:var(--text-muted);stroke-width:2;fill:none;flex-shrink:0;" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>'+
       '</div>';
     }).join('');
     return'<div style="background:var(--surface);border:1px solid var(--border);border-radius:4px;margin:0 12px 10px;overflow:hidden;">'+
@@ -16256,6 +16298,7 @@ function _mobRenderGrade(params,noScroll){
   _mobSetContent(_mobEventFilterHtml(filtroEvs)+r.html+'<div style="height:12px;"></div>'+(sessoes.length?gradeHtml:'<div class="mob-empty">Sem sessões neste dia.</div>'));
 }
 window._mobGradeSelDia=function(t){var cur=_mobStack[_mobStack.length-1];if(cur)cur.params.dia=t;_mobRenderGrade(cur?cur.params:{dia:t},true);};
+window._mobGradeAbrirProgSessao=function(nome){_mobPush({view:'programacao-sessao',params:{nome:nome},title:nome});_mobRenderProgSessao({nome:nome});};
 
 /* ── PROGRAMAÇÃO (read-only) ─────────────────────────────────────── */
 function olgaMobileProgramacao(){
@@ -16401,8 +16444,8 @@ function _mobRenderProgSessao(params,noScroll){
   if(s.convidados)extraParts.push('Convidados: '+s.convidados);
   if(s.ingressos)extraParts.push('Ingressos reservados: '+s.ingressos);
   if(extraParts.length)html+='<div style="font-family:var(--mono);font-size:10px;color:var(--accent);background:rgba(255,186,32,0.07);border:1px solid rgba(255,186,32,0.2);border-radius:2px;padding:7px 10px;margin-bottom:10px;">'+extraParts.map(_mobEsc).join(' · ')+'</div>';
-  var boxItems=[{label:'Apresentação',val:s.apresentacao},{label:'Leg. eletrônica',val:s.leg_eletronica},{label:'Debate',val:s.col_ag}];
-  html+='<div style="display:flex;gap:8px;margin-bottom:14px;">';
+  var boxItems=[{label:'Apresentação',val:s.apresentacao},{label:'Leg. eletrônica',val:s.leg_eletronica},{label:'Debate',val:s.col_ag},{label:'Acessibilidade',val:s.acessibilidades}];
+  html+='<div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px;">';
   boxItems.forEach(function(b){
     var checked=b.val&&b.val.toLowerCase().indexOf('sim')!==-1;
     html+='<div style="display:flex;align-items:center;gap:5px;font-family:var(--mono);font-size:9px;color:'+(checked?'var(--ok)':'var(--text-muted)')+';">'+
@@ -16410,13 +16453,21 @@ function _mobRenderProgSessao(params,noScroll){
       _mobEsc(b.label)+'</div>';
   });
   html+='</div>';
+  if(s.acessibilidades&&s.acessibilidades.toLowerCase().indexOf('sim')!==-1){
+    var acessSet2=[];
+    s.filmes.forEach(function(c){var f=filmesMap[c];if(f&&f.acessibilidade){f.acessibilidade.split(/[,;\/\n]+/).forEach(function(a){var t=a.trim();if(t&&acessSet2.indexOf(t)<0)acessSet2.push(t);});}});
+    if(acessSet2.length)html+='<div style="font-family:var(--mono);font-size:9px;color:var(--text-dim);margin-bottom:12px;">'+acessSet2.join(' · ')+'</div>';
+  }
   // vinhetas
   if(s.vinhetas&&s.vinhetas.length){
     var vMap={};(vinhetasArr||[]).forEach(function(v){vMap[v.codigo]=v;});
+    var vinSecs2=0;
     html+='<div style="font-family:var(--mono);font-size:9px;font-weight:600;letter-spacing:0.15em;text-transform:uppercase;color:var(--text-muted);margin-bottom:6px;">vinhetas</div>';
-    html+='<div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:14px;">';
-    s.vinhetas.forEach(function(cod){var info=vMap[cod];var lbl=info&&info.cpl?info.cpl:cod;if(lbl.length>16)lbl=lbl.slice(0,16)+'…';html+='<span style="font-family:var(--mono);font-size:9px;padding:2px 8px;background:var(--surface2);border:1px solid var(--border);border-radius:2px;">'+_mobEsc(lbl)+'</span>';});
+    html+='<div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:6px;">';
+    s.vinhetas.forEach(function(cod){var info=vMap[cod];var lbl=info&&info.cpl?info.cpl:cod;if(lbl.length>16)lbl=lbl.slice(0,16)+'…';if(info&&info.duracao){var dv=info.duracao.toString().trim();var m3=dv.match(/^(\d+):(\d{2}):(\d{2})$/);var m2=dv.match(/^(\d+):(\d{2})$/);if(m3)vinSecs2+=parseInt(m3[1])*3600+parseInt(m3[2])*60+parseInt(m3[3]);else if(m2)vinSecs2+=parseInt(m2[1])*60+parseInt(m2[2]);}html+='<span style="font-family:var(--mono);font-size:9px;padding:2px 8px;background:var(--surface2);border:1px solid var(--border);border-radius:2px;">'+_mobEsc(lbl)+'</span>';});
     html+='</div>';
+    if(vinSecs2>0){var vh2=Math.floor(vinSecs2/3600),vm2=Math.floor((vinSecs2%3600)/60),vs2=vinSecs2%60;var vinDur2=vh2>0?(vh2+'h'+String(vm2).padStart(2,'0')+'\''):(vm2>0?(vs2>0?vm2+'\''+String(vs2).padStart(2,'0')+'"':vm2+'\''):(vs2+'"'));html+='<div style="font-family:var(--mono);font-size:9px;color:var(--text-muted);margin-bottom:12px;">total vinhetas: <span style="color:var(--text-dim);">'+vinDur2+'</span></div>';}
+    else{html+='<div style="height:8px;"></div>';}
   }
   // filmes
   html+='<div style="font-family:var(--mono);font-size:9px;font-weight:600;letter-spacing:0.15em;text-transform:uppercase;color:var(--accent);margin-bottom:8px;">Filmes</div>';

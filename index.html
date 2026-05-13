@@ -4768,7 +4768,7 @@ html[data-theme]:not([data-theme="win98"]){--mono:var(--sans);}
     <div id="cinemaDetailWrap" style="display:none;"></div>
   </div>
   <!-- Cinema Edit Modal -->
-  <div id="cinemaEditOverlay" style="display:none;" onclick="if(event.target===this)closeCinemaEdit()">
+  <div id="cinemaEditOverlay" style="display:none;">
     <div id="cinemaEditModal">
       <div class="cem-header">
         <span class="cem-title" id="cemTitle">Nova sala</span>
@@ -11453,7 +11453,7 @@ function renderDash(){
   html+=colBlock('kdm','KDM',kdmBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 13/05/2026 às 12:32';
+  var sysUpdate='última atualização do sistema · 13/05/2026 às 12:34';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -14820,7 +14820,7 @@ window.addEventListener('popstate',function(e){
 });
 </script>
 <!-- ═══ MODAIS PROGRAMAÇÃO ═══ -->
-<div id="progProgramModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:500;align-items:center;justify-content:center;overflow-y:auto;padding:20px;" onclick="if(event.target===this)closeProgProgramModal()">
+<div id="progProgramModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:500;align-items:center;justify-content:center;overflow-y:auto;padding:20px;">
   <div style="background:var(--surface);border:1px solid var(--border);width:100%;max-width:520px;margin:auto;display:flex;flex-direction:column;max-height:90vh;">
     <div style="padding:14px 22px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;">
       <span id="progProgramModalTitle" style="font-family:var(--mono);font-size:11px;font-weight:600;letter-spacing:0.18em;text-transform:uppercase;color:var(--accent);"></span>
@@ -14856,7 +14856,7 @@ window.addEventListener('popstate',function(e){
   </div>
 </div>
 
-<div id="progSubprogramModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:500;align-items:center;justify-content:center;" onclick="if(event.target===this)closeProgSubprogramModal()">
+<div id="progSubprogramModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:500;align-items:center;justify-content:center;">
   <div style="background:var(--surface);border:1px solid var(--border);width:100%;max-width:440px;margin:auto;display:flex;flex-direction:column;max-height:85vh;">
     <div style="padding:14px 22px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;">
       <span id="progSubprogramModalTitle" style="font-family:var(--mono);font-size:11px;font-weight:600;letter-spacing:0.18em;text-transform:uppercase;color:var(--accent);"></span>
@@ -14884,7 +14884,7 @@ window.addEventListener('popstate',function(e){
   </div>
 </div>
 
-<div id="acervoRelModal" onclick="if(event.target===this)closeAcervoRelatorio()">
+<div id="acervoRelModal">
   <div class="acervo-rel-wrap">
     <div class="acervo-rel-header">
       <span class="acervo-rel-title">Relatório · Acervo Técnico</span>
@@ -14904,7 +14904,7 @@ window.addEventListener('popstate',function(e){
     </div>
   </div>
 </div>
-<div id="bilhRelModal" onclick="if(event.target===this)closeBilhRelatorio()">
+<div id="bilhRelModal">
   <div class="bilh-rel-wrap">
     <div class="bilh-rel-header">
       <span class="bilh-rel-title">Relatório de Bilheteria</span>
@@ -14932,7 +14932,7 @@ window.addEventListener('popstate',function(e){
   </div>
 </div>
 
-<div id="sessaoBorderoModal" onclick="if(event.target===this)closeSessaoBordero()">
+<div id="sessaoBorderoModal">
   <div class="sb-wrap">
     <div class="sb-header">
       <span class="sb-title">Público e Renda</span>
@@ -14966,7 +14966,7 @@ window.addEventListener('popstate',function(e){
   </div>
 </div>
 
-<div id="progSessaoModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:500;overflow-y:auto;padding:20px;" onclick="if(event.target===this)closeProgSessaoModal()">
+<div id="progSessaoModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:500;overflow-y:auto;padding:20px;">
   <div style="background:var(--surface);border:1px solid var(--border);width:100%;max-width:600px;margin:auto;display:flex;flex-direction:column;">
     <div style="padding:14px 22px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;">
       <span id="progSessaoModalTitle" style="font-family:var(--mono);font-size:11px;font-weight:600;letter-spacing:0.18em;text-transform:uppercase;color:var(--accent);"></span>
@@ -15056,7 +15056,7 @@ window.addEventListener('popstate',function(e){
   </div>
 </div>
 
-<div id="progVinTemplatesModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:510;overflow-y:auto;padding:20px;" onclick="if(event.target===this)closeProgVinTemplatesModal()">
+<div id="progVinTemplatesModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:510;overflow-y:auto;padding:20px;">
   <div style="background:var(--surface);border:1px solid var(--border);width:100%;max-width:560px;margin:auto;display:flex;flex-direction:column;">
     <div style="padding:14px 22px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;">
       <span id="progVinTemplatesModalTitle" style="font-family:var(--mono);font-size:11px;font-weight:600;letter-spacing:0.18em;text-transform:uppercase;color:var(--accent);"></span>
@@ -15100,7 +15100,7 @@ window.addEventListener('popstate',function(e){
   </div>
 </div>
 
-<div id="vinhetaModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:500;align-items:center;justify-content:center;" onclick="if(event.target===this)closeVinhetaModal()">
+<div id="vinhetaModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:500;align-items:center;justify-content:center;">
   <div style="background:var(--surface);border:1px solid var(--border);width:100%;max-width:480px;margin:auto;display:flex;flex-direction:column;max-height:90vh;">
     <div style="padding:14px 22px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;">
       <span id="vinhetaModalTitle" style="font-family:var(--mono);font-size:11px;font-weight:600;letter-spacing:0.18em;text-transform:uppercase;color:var(--accent);"></span>
@@ -15115,7 +15115,7 @@ window.addEventListener('popstate',function(e){
   </div>
 </div>
 
-<div id="acervoEditModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:500;overflow-y:auto;padding:20px;" onclick="if(event.target===this)closeAcervoEditModal()">
+<div id="acervoEditModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:500;overflow-y:auto;padding:20px;">
   <div style="background:var(--surface);border:1px solid var(--border);width:100%;max-width:640px;margin:auto;display:flex;flex-direction:column;">
     <div style="padding:14px 22px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;gap:12px;">
       <span style="font-family:var(--mono);font-size:11px;font-weight:600;letter-spacing:0.18em;text-transform:uppercase;color:var(--accent);">Acervo Técnico · <span id="acervoEditCode"></span></span>
@@ -15136,7 +15136,7 @@ window.addEventListener('popstate',function(e){
   </div>
 </div>
 
-<div id="eventoModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:500;align-items:center;justify-content:center;" onclick="if(event.target===this)closeEventoModal()">
+<div id="eventoModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:500;align-items:center;justify-content:center;">
   <div style="background:var(--surface);border:1px solid var(--border);width:100%;max-width:440px;margin:0 auto;display:flex;flex-direction:column;max-height:90vh;">
     <div style="padding:14px 22px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;">
       <span id="eventoModalTitle" style="font-family:var(--mono);font-size:11px;font-weight:600;letter-spacing:0.18em;text-transform:uppercase;color:var(--accent);"></span>
@@ -15174,7 +15174,7 @@ window.addEventListener('popstate',function(e){
     </div>
   </div>
 </div>
-<div id="equipeModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:500;overflow-y:auto;padding:40px 20px;" onclick="if(event.target===this)closeEquipeModal()">
+<div id="equipeModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:500;overflow-y:auto;padding:40px 20px;">
   <div style="background:var(--surface);border:1px solid var(--border);width:100%;max-width:580px;margin:0 auto;display:flex;flex-direction:column;">
     <div style="padding:16px 22px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;">
       <span id="equipeModalTitle" style="font-family:var(--mono);font-size:11px;font-weight:600;letter-spacing:0.18em;text-transform:uppercase;color:var(--accent);"></span>
@@ -15188,7 +15188,7 @@ window.addEventListener('popstate',function(e){
     </div>
   </div>
 </div>
-<div id="tplModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:501;align-items:center;justify-content:center;" onclick="if(event.target===this)this.style.display='none'">
+<div id="tplModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:501;align-items:center;justify-content:center;">
   <div style="background:var(--surface);border:1px solid var(--border);width:100%;max-width:640px;margin:20px auto;display:flex;flex-direction:column;max-height:90vh;">
     <div style="padding:14px 22px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;">
       <span id="tplModalTitle" style="font-family:var(--mono);font-size:11px;font-weight:600;letter-spacing:0.18em;text-transform:uppercase;color:var(--accent);"></span>
@@ -15212,13 +15212,36 @@ window.addEventListener('popstate',function(e){
     </div>
   </div>
 </div>
-<div id="borderoModal" onclick="if(event.target===this)closeBordero()">
+<div id="borderoModal">
   <div id="borderoContent"></div>
 </div>
 <script>
   if(typeof lucide !== 'undefined') lucide.createIcons();
+  document.addEventListener('keydown',function(e){
+    if(e.key!=='Escape')return;
+    var modals=[
+      {id:'progVinTemplatesModal', fn:function(){if(typeof closeProgVinTemplatesModal==='function')closeProgVinTemplatesModal();}},
+      {id:'tplModal',              fn:function(){var m=document.getElementById('tplModal');if(m)m.style.display='none';}},
+      {id:'progSessaoModal',       fn:function(){if(typeof closeProgSessaoModal==='function')closeProgSessaoModal();}},
+      {id:'progProgramModal',      fn:function(){if(typeof closeProgProgramModal==='function')closeProgProgramModal();}},
+      {id:'progSubprogramModal',   fn:function(){if(typeof closeProgSubprogramModal==='function')closeProgSubprogramModal();}},
+      {id:'acervoEditModal',       fn:function(){if(typeof closeAcervoEditModal==='function')closeAcervoEditModal();}},
+      {id:'vinhetaModal',          fn:function(){if(typeof closeVinhetaModal==='function')closeVinhetaModal();}},
+      {id:'eventoModal',           fn:function(){if(typeof closeEventoModal==='function')closeEventoModal();}},
+      {id:'equipeModal',           fn:function(){if(typeof closeEquipeModal==='function')closeEquipeModal();}},
+      {id:'cinemaEditOverlay',     fn:function(){if(typeof closeCinemaEdit==='function')closeCinemaEdit();}},
+      {id:'acervoRelModal',        fn:function(){if(typeof closeAcervoRelatorio==='function')closeAcervoRelatorio();}},
+      {id:'bilhRelModal',          fn:function(){if(typeof closeBilhRelatorio==='function')closeBilhRelatorio();}},
+      {id:'sessaoBorderoModal',    fn:function(){if(typeof closeSessaoBordero==='function')closeSessaoBordero();}},
+      {id:'borderoModal',          fn:function(){if(typeof closeBordero==='function')closeBordero();}},
+    ];
+    for(var i=0;i<modals.length;i++){
+      var el=document.getElementById(modals[i].id);
+      if(el&&el.style.display!=='none'&&el.style.display!==''){modals[i].fn();e.preventDefault();return;}
+    }
+  });
 </script>
-<div id="page-footer"><span>última atualização · 13/05/2026 às 12:32</span></div>
+<div id="page-footer"><span>última atualização · 13/05/2026 às 12:34</span></div>
 
 </div>
 

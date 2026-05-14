@@ -4075,15 +4075,16 @@ html[data-theme]:not([data-theme="win98"]){--mono:var(--sans);}
         getDocs(collection(db, 'eventos')),
         getDoc(doc(db, 'kdm_results', 'global')).catch(function(){return null;}),
       ]);
-      // Merge KDM results from Firebase into _kdmResults (Firebase overrides localStorage)
-      if (kdmDoc && kdmDoc.exists()) {
-        try {
-          var fbKdm = kdmDoc.data();
-          var fbRes = fbKdm.r ? JSON.parse(fbKdm.r) : {};
-          Object.assign(window._kdmResults, fbRes);
-          try { localStorage.setItem('olga-kdm-results', JSON.stringify(window._kdmResults)); } catch(e2) {}
-        } catch(e) {}
-      }
+      // Sync KDM results: merge localStorage + Firebase, push back se houver dados só no local
+      try {
+        var fbRes = (kdmDoc && kdmDoc.exists()) ? (function(){try{var d=kdmDoc.data();return d.r?JSON.parse(d.r):{};} catch(ex){return {};}}()) : {};
+        // Firebase wins para mesma sessão (mais recente entre dispositivos)
+        Object.assign(window._kdmResults, fbRes);
+        try { localStorage.setItem('olga-kdm-results', JSON.stringify(window._kdmResults)); } catch(e2) {}
+        // Se há resultados só no localStorage que o Firebase não tem, sincroniza agora
+        var localOnly=Object.keys(window._kdmResults).some(function(k){return !fbRes[k];});
+        if(localOnly && window._olgaKDMResults) window._olgaKDMResults.save(window._kdmResults).catch(function(){});
+      } catch(e) {}
       // Catálogo (filmes) — carregado em paralelo, não bloqueia
       if(window._olgaCatalogo){
         window._olgaCatalogo.load().then(function(map){catalogoFilmesMap=map||{};if(typeof buildBuscaFilterPanel==='function')buildBuscaFilterPanel();}).catch(function(){});
@@ -11471,7 +11472,7 @@ function renderDash(){
   html+=colBlock('kdm','KDM',kdmBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 13/05/2026 às 12:38';
+  var sysUpdate='última atualização do sistema · 14/05/2026 às 10:22';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -15259,7 +15260,7 @@ window.addEventListener('popstate',function(e){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 13/05/2026 às 12:38</span></div>
+<div id="page-footer"><span>última atualização · 14/05/2026 às 10:22</span></div>
 
 </div>
 

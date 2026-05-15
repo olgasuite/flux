@@ -3697,6 +3697,26 @@ html[data-theme]:not([data-theme="win98"]){--mono:var(--sans);}
 [data-theme="win98"] table th{background:#c8c4bc!important;color:#000!important;}
 [data-theme="win98"] table td{background:#fff!important;color:#000!important;}
 [data-theme="win98"] tbody tr:hover td{background:#dbe8f8!important;color:#000!important;}
+
+/* ── Header: compressão responsiva em janelas menores ── */
+@media (max-width:1440px){
+  .nav-tab{padding:0 10px;}
+}
+@media (max-width:1280px){
+  .nav-tab{padding:0 7px;font-size:9px;}
+}
+@media (max-width:1100px){
+  header{padding:0 var(--sp-sm);}
+  .logo{font-size:9px;letter-spacing:0.14em;padding-right:8px;}
+  .nav-tab{padding:0 5px;font-size:8.5px;letter-spacing:0.02em;}
+  .theme-toggle{padding:0 8px;font-size:9px;}
+  .zoom-controls{display:none;}
+}
+@media (max-width:900px){
+  .nav-tab{padding:0 3px;font-size:8px;letter-spacing:0;}
+  .theme-toggle{padding:0 5px;}
+  .userbar-name{padding:0 8px;font-size:9px;}
+}
 </style>
 <script type="module">
   import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
@@ -11472,7 +11492,7 @@ function renderDash(){
   html+=colBlock('kdm','KDM',kdmBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 14/05/2026 às 10:22';
+  var sysUpdate='última atualização do sistema · 15/05/2026 às 10:24';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -15260,7 +15280,7 @@ window.addEventListener('popstate',function(e){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 14/05/2026 às 10:22</span></div>
+<div id="page-footer"><span>última atualização · 15/05/2026 às 10:24</span></div>
 
 </div>
 
@@ -15323,7 +15343,7 @@ window.addEventListener('popstate',function(e){
     </div>
     <span class="mob-header-user" id="mobUserName"></span>
     <button class="mob-btn" onclick="toggleTheme()">TEMA</button>
-    <button class="mob-btn" onclick="_mobIrParaWeb()">MODO TABLET</button>
+    <button class="mob-btn" onclick="_mobIrParaWeb()">MODO WEB</button>
     <button class="mob-btn" onclick="_olgaSignOut()">sair</button>
   </div>
   <div class="mob-content" id="mobContent"></div>

@@ -1092,20 +1092,16 @@ select:disabled{opacity:0.35;cursor:not-allowed;}
 /* LANDING LOGO + BG */
 #landing{position:relative;overflow:hidden;}
 .landing-bg{position:absolute;inset:0;z-index:0;pointer-events:none;overflow:hidden;}
-.landing-bg svg{position:absolute;right:-5%;top:50%;transform:translateY(-50%);width:85%;height:auto;}
+.landing-bg canvas{display:block;width:100%;height:100%;}
 #landing>*:not(.landing-bg){position:relative;z-index:1;}
 .landing-logo{display:flex;flex-direction:column;align-items:center;line-height:1;margin-top:16px;margin-bottom:20px;}
 .landing-logo-olga{font-family:var(--mono);font-size:72px;font-weight:700;color:var(--text);letter-spacing:0.1em;line-height:1;}
 .landing-logo-flux{font-family:var(--sans);font-size:36px;font-weight:300;color:#a78bfa;letter-spacing:0.2em;margin-top:4px;}
-[data-theme="light"] .landing-bg{opacity:0.07;filter:saturate(0.5);}
 [data-theme="light"] .landing-logo-flux{color:#7c3aed;}
-[data-theme="gray"] .landing-bg{opacity:0.13;filter:grayscale(0.5);}
 [data-theme="gray"] .landing-logo-flux{color:#888;}
-[data-theme="terminal"] .landing-bg svg{filter:hue-rotate(225deg) saturate(2);}
 [data-theme="terminal"] .landing-logo-flux{color:var(--accent);}
 [data-theme="win98"] .landing-bg{display:none;}
 [data-theme="win98"] .landing-logo-flux{color:#800080;}
-[data-theme="doremi"] .landing-bg{filter:hue-rotate(-25deg);}
 [data-theme="doremi"] .landing-logo-flux{color:#8bb8e8;}
 /* PROGRAMAÇÃO */
 .prog-landing{padding:28px 32px 60px;}
@@ -4681,7 +4677,7 @@ html[data-theme]:not([data-theme="win98"]){--mono:var(--sans);}
 </div>
 
 <div id="landing">
-  <div class="landing-bg" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1080 2400" preserveAspectRatio="xMaxYMid slice"><defs><linearGradient id="lb-glow" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" stop-color="#7B5CFF" stop-opacity="0"/><stop offset="50%" stop-color="#9B6FFF" stop-opacity="0.45"/><stop offset="100%" stop-color="#C07AFF" stop-opacity="0"/></linearGradient></defs><g transform="translate(830 1200)" stroke="url(#lb-glow)" stroke-width="1.5" fill="none" opacity="1"><path d="M-50 -1000 C-600 -900 -650 900 -50 1000"/><path d="M0 -1050 C-650 -950 -700 950 0 1050"/><path d="M50 -1100 C-700 -1000 -750 1000 50 1100"/><path d="M100 -1150 C-750 -1050 -800 1050 100 1150"/><path d="M150 -1200 C-800 -1100 -850 1100 150 1200"/><path d="M200 -1250 C-850 -1150 -900 1150 200 1250"/><path d="M250 -1300 C-900 -1200 -950 1200 250 1300"/><path d="M300 -1350 C-950 -1250 -1000 1250 300 1350"/><path d="M350 -1400 C-1000 -1300 -1050 1300 350 1400"/><path d="M400 -1450 C-1050 -1350 -1100 1350 400 1450"/></g></svg></div>
+  <div class="landing-bg" aria-hidden="true"><canvas id="landingCanvas"></canvas></div>
   <div class="landing-logo">
     <div class="landing-logo-olga">OLGA</div>
     <div class="landing-logo-flux">Flux</div>
@@ -11518,7 +11514,7 @@ function renderDash(){
   html+=colBlock('kdm','KDM',kdmBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 16/05/2026 às 10:42';
+  var sysUpdate='última atualização do sistema · 16/05/2026 às 10:44';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -14809,6 +14805,34 @@ function toggleTheme(){
   applyTheme(next);
   try{localStorage.setItem('olga-theme',next);}catch(e){}
 }
+window._drawLandingWaves=function(){
+  var cvs=document.getElementById('landingCanvas');
+  if(!cvs)return;
+  var W=cvs.offsetWidth,H=cvs.offsetHeight;
+  if(!W||!H)return;
+  cvs.width=W;cvs.height=H;
+  var ctx=cvs.getContext('2d');
+  ctx.clearRect(0,0,W,H);
+  var theme=document.documentElement.getAttribute('data-theme')||'dark';
+  if(theme==='win98')return;
+  var rgb=theme==='terminal'?'0,200,70':theme==='doremi'?'80,150,210':theme==='light'?'110,50,220':theme==='gray'?'90,90,90':'130,85,255';
+  var baseOp=theme==='light'?0.13:theme==='gray'?0.16:0.22;
+  var n=9;
+  for(var i=0;i<n;i++){
+    var ox=i*42;
+    var cpX=W*0.05-i*12;
+    var y0=-H*0.45-i*18;
+    var y3=H*1.45+i*18;
+    var cp1y=y0+(y3-y0)*0.3;
+    var cp2y=y0+(y3-y0)*0.7;
+    ctx.beginPath();
+    ctx.moveTo(W+ox,y0);
+    ctx.bezierCurveTo(cpX,cp1y,cpX,cp2y,W+ox,y3);
+    ctx.strokeStyle='rgba('+rgb+','+Math.max(0.04,baseOp-i*0.018)+')';
+    ctx.lineWidth=1.5;
+    ctx.stroke();
+  }
+};
 function applyTheme(theme){
   var html=document.documentElement;
   if(theme==='light'){
@@ -14827,6 +14851,7 @@ function applyTheme(theme){
   // re-render grades so block colors follow the new theme
   if(typeof renderGrade==='function'&&document.getElementById('gradeWrap')&&dataLoaded)renderGrade();
   if(typeof renderGrade2==='function'&&document.getElementById('grade2Wrap')&&dataLoaded)renderGrade2();
+  window._drawLandingWaves();
 }
 (function(){
   try{
@@ -15309,6 +15334,7 @@ window.addEventListener('popstate',function(e){
 </div>
 <script>
   if(typeof lucide !== 'undefined') lucide.createIcons();
+  if(window._drawLandingWaves)window._drawLandingWaves();
   document.addEventListener('keydown',function(e){
     if(e.key!=='Escape')return;
     var modals=[
@@ -15333,7 +15359,7 @@ window.addEventListener('popstate',function(e){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 16/05/2026 às 10:42</span></div>
+<div id="page-footer"><span>última atualização · 16/05/2026 às 10:44</span></div>
 
 </div>
 
@@ -15344,6 +15370,7 @@ window.addEventListener('popstate',function(e){
 #olga-mobile{display:none;flex-direction:column;position:fixed;inset:0;background:var(--bg);z-index:9000;overflow:hidden;}
 .mob-header{display:flex;align-items:center;justify-content:space-between;padding:0 16px;height:52px;background:var(--surface);border-bottom:1px solid var(--border);flex-shrink:0;}
 .mob-header-logo{font-family:var(--mono);font-size:13px;font-weight:700;letter-spacing:0.18em;color:var(--accent);}
+.mob-logo-flux{font-family:var(--sans);font-size:11px;font-weight:300;color:#a78bfa;letter-spacing:0.1em;margin-left:2px;}
 .mob-header-user{font-family:var(--mono);font-size:10px;color:var(--text-muted);max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .mob-btn{font-family:var(--mono);font-size:9px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;padding:5px 10px;border:1px solid var(--border);background:transparent;color:var(--text-dim);cursor:pointer;border-radius:2px;}
 .mob-back{font-family:var(--mono);font-size:10px;font-weight:600;letter-spacing:0.1em;color:var(--accent);background:none;border:none;cursor:pointer;padding:0;display:flex;align-items:center;gap:5px;}
@@ -15392,7 +15419,7 @@ window.addEventListener('popstate',function(e){
         <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
         voltar
       </button>
-      <span class="mob-header-logo" id="mobLogo">OLGA</span>
+      <span class="mob-header-logo" id="mobLogo">OLGA <span class="mob-logo-flux">Flux</span></span>
     </div>
     <span class="mob-header-user" id="mobUserName"></span>
     <button class="mob-btn" onclick="toggleTheme()">TEMA</button>

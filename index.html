@@ -1089,6 +1089,24 @@ select:disabled{opacity:0.35;cursor:not-allowed;}
 [data-theme="terminal"] .module-icon{color:var(--accent);opacity:0.85;}
 .module-name{font-family:var(--mono);font-size:10px;font-weight:600;letter-spacing:0.12em;text-transform:uppercase;color:var(--text-dim);}
 .module-desc{font-family:var(--sans);font-size:11px;color:var(--text-muted);line-height:1.5;}
+/* LANDING LOGO + BG */
+#landing{position:relative;overflow:hidden;}
+.landing-bg{position:absolute;inset:0;z-index:0;pointer-events:none;overflow:hidden;}
+.landing-bg svg{position:absolute;right:-5%;top:50%;transform:translateY(-50%);width:65%;height:auto;}
+#landing>*:not(.landing-bg){position:relative;z-index:1;}
+.landing-logo{display:flex;flex-direction:column;align-items:center;line-height:1;margin-top:16px;margin-bottom:20px;}
+.landing-logo-olga{font-family:var(--mono);font-size:72px;font-weight:700;color:var(--text);letter-spacing:0.1em;line-height:1;}
+.landing-logo-flux{font-family:var(--sans);font-size:26px;font-weight:300;color:#a78bfa;letter-spacing:0.2em;margin-top:4px;}
+[data-theme="light"] .landing-bg{opacity:0.07;filter:saturate(0.5);}
+[data-theme="light"] .landing-logo-flux{color:#7c3aed;}
+[data-theme="gray"] .landing-bg{opacity:0.13;filter:grayscale(0.5);}
+[data-theme="gray"] .landing-logo-flux{color:#888;}
+[data-theme="terminal"] .landing-bg svg{filter:hue-rotate(225deg) saturate(2);}
+[data-theme="terminal"] .landing-logo-flux{color:var(--accent);}
+[data-theme="win98"] .landing-bg{display:none;}
+[data-theme="win98"] .landing-logo-flux{color:#800080;}
+[data-theme="doremi"] .landing-bg{filter:hue-rotate(-25deg);}
+[data-theme="doremi"] .landing-logo-flux{color:#8bb8e8;}
 /* PROGRAMAÇÃO */
 .prog-landing{padding:28px 32px 60px;}
 .prog-event-block{margin-bottom:40px;}
@@ -1288,7 +1306,7 @@ td.cpl-cell{background:var(--cpl-bg);border-left:3px solid var(--cpl-border);pad
 .block-display-name{font-family:var(--sans);font-size:11px;font-weight:600;color:rgba(0,0,0,0.85);line-height:1.2;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;}
 .block-films{font-family:var(--mono);font-size:9px;color:rgba(0,0,0,0.5);margin-top:3px;}
 .block-event{font-family:var(--mono);font-size:8px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:rgba(0,0,0,0.45);margin-top:2px;}
-.block-mostra{font-family:var(--mono);font-size:7px;color:rgba(0,0,0,0.38);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-style:italic;}
+.block-mostra{font-family:var(--mono);font-size:9px;color:rgba(0,0,0,0.38);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-style:italic;}
 .block-hint{font-family:var(--mono);font-size:8px;color:rgba(0,0,0,0.3);margin-top:4px;opacity:0;transition:opacity 0.15s;}
 .session-block:hover .block-hint{opacity:1;}
 .block-acess{font-size:9px;color:rgba(0,0,0,0.55);margin-top:2px;line-height:1;}
@@ -4663,8 +4681,12 @@ html[data-theme]:not([data-theme="win98"]){--mono:var(--sans);}
 </div>
 
 <div id="landing">
+  <div class="landing-bg" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1080 2400" preserveAspectRatio="xMaxYMid slice"><defs><linearGradient id="lb-glow" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" stop-color="#7B5CFF" stop-opacity="0"/><stop offset="50%" stop-color="#7B5CFF" stop-opacity="0.18"/><stop offset="100%" stop-color="#B56CFF" stop-opacity="0"/></linearGradient><filter id="lb-blur"><feGaussianBlur stdDeviation="1"/></filter></defs><g transform="translate(830 1200)" stroke="url(#lb-glow)" fill="none" opacity="0.8" filter="url(#lb-blur)"><path d="M-50 -1000 C-600 -900 -650 900 -50 1000"/><path d="M0 -1050 C-650 -950 -700 950 0 1050"/><path d="M50 -1100 C-700 -1000 -750 1000 50 1100"/><path d="M100 -1150 C-750 -1050 -800 1050 100 1150"/><path d="M150 -1200 C-800 -1100 -850 1100 150 1200"/><path d="M200 -1250 C-850 -1150 -900 1150 200 1250"/><path d="M250 -1300 C-900 -1200 -950 1200 250 1300"/><path d="M300 -1350 C-950 -1250 -1000 1250 300 1350"/><path d="M350 -1400 C-1000 -1300 -1050 1300 350 1400"/><path d="M400 -1450 C-1050 -1350 -1100 1350 400 1450"/></g></svg></div>
+  <div class="landing-logo">
+    <div class="landing-logo-olga">OLGA</div>
+    <div class="landing-logo-flux">Flux</div>
+  </div>
   <div class="landing-badge">sistema de gestão de festivais de cinema</div>
-  <div class="landing-title">OLGA Flux</div>
   <p class="landing-sub">Carregue o arquivo de programação para acessar os módulos abaixo.</p>
   <div class="landing-drop" id="landingDrop">
     <div class="drop-icon">📂</div>
@@ -11496,7 +11518,7 @@ function renderDash(){
   html+=colBlock('kdm','KDM',kdmBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 16/05/2026 às 10:36';
+  var sysUpdate='última atualização do sistema · 16/05/2026 às 10:40';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -15311,7 +15333,7 @@ window.addEventListener('popstate',function(e){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 16/05/2026 às 10:36</span></div>
+<div id="page-footer"><span>última atualização · 16/05/2026 às 10:40</span></div>
 
 </div>
 

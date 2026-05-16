@@ -1097,12 +1097,7 @@ select:disabled{opacity:0.35;cursor:not-allowed;}
 .landing-logo{display:flex;flex-direction:column;align-items:center;line-height:1;margin-top:16px;margin-bottom:20px;}
 .landing-logo-olga{font-family:var(--mono);font-size:72px;font-weight:700;color:var(--text);letter-spacing:0.1em;line-height:1;}
 .landing-logo-flux{font-family:var(--sans);font-size:36px;font-weight:300;color:#a78bfa;letter-spacing:0.2em;margin-top:4px;}
-[data-theme="light"] .landing-logo-flux{color:#7c3aed;}
-[data-theme="gray"] .landing-logo-flux{color:#888;}
-[data-theme="terminal"] .landing-logo-flux{color:var(--accent);}
 [data-theme="win98"] .landing-bg{display:none;}
-[data-theme="win98"] .landing-logo-flux{color:#800080;}
-[data-theme="doremi"] .landing-logo-flux{color:#8bb8e8;}
 /* PROGRAMAÇÃO */
 .prog-landing{padding:28px 32px 60px;}
 .prog-event-block{margin-bottom:40px;}
@@ -11514,7 +11509,7 @@ function renderDash(){
   html+=colBlock('kdm','KDM',kdmBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 16/05/2026 às 10:46';
+  var sysUpdate='última atualização do sistema · 16/05/2026 às 10:48';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -15359,7 +15354,7 @@ window.addEventListener('popstate',function(e){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 16/05/2026 às 10:46</span></div>
+<div id="page-footer"><span>última atualização · 16/05/2026 às 10:48</span></div>
 
 </div>
 

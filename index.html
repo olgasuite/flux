@@ -1092,11 +1092,11 @@ select:disabled{opacity:0.35;cursor:not-allowed;}
 /* LANDING LOGO + BG */
 #landing{position:relative;overflow:hidden;}
 .landing-bg{position:absolute;inset:0;z-index:0;pointer-events:none;overflow:hidden;}
-.landing-bg svg{position:absolute;right:-5%;top:50%;transform:translateY(-50%);width:65%;height:auto;}
+.landing-bg svg{position:absolute;right:-5%;top:50%;transform:translateY(-50%);width:85%;height:auto;}
 #landing>*:not(.landing-bg){position:relative;z-index:1;}
 .landing-logo{display:flex;flex-direction:column;align-items:center;line-height:1;margin-top:16px;margin-bottom:20px;}
 .landing-logo-olga{font-family:var(--mono);font-size:72px;font-weight:700;color:var(--text);letter-spacing:0.1em;line-height:1;}
-.landing-logo-flux{font-family:var(--sans);font-size:26px;font-weight:300;color:#a78bfa;letter-spacing:0.2em;margin-top:4px;}
+.landing-logo-flux{font-family:var(--sans);font-size:36px;font-weight:300;color:#a78bfa;letter-spacing:0.2em;margin-top:4px;}
 [data-theme="light"] .landing-bg{opacity:0.07;filter:saturate(0.5);}
 [data-theme="light"] .landing-logo-flux{color:#7c3aed;}
 [data-theme="gray"] .landing-bg{opacity:0.13;filter:grayscale(0.5);}
@@ -4681,7 +4681,7 @@ html[data-theme]:not([data-theme="win98"]){--mono:var(--sans);}
 </div>
 
 <div id="landing">
-  <div class="landing-bg" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1080 2400" preserveAspectRatio="xMaxYMid slice"><defs><linearGradient id="lb-glow" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" stop-color="#7B5CFF" stop-opacity="0"/><stop offset="50%" stop-color="#7B5CFF" stop-opacity="0.18"/><stop offset="100%" stop-color="#B56CFF" stop-opacity="0"/></linearGradient><filter id="lb-blur"><feGaussianBlur stdDeviation="1"/></filter></defs><g transform="translate(830 1200)" stroke="url(#lb-glow)" fill="none" opacity="0.8" filter="url(#lb-blur)"><path d="M-50 -1000 C-600 -900 -650 900 -50 1000"/><path d="M0 -1050 C-650 -950 -700 950 0 1050"/><path d="M50 -1100 C-700 -1000 -750 1000 50 1100"/><path d="M100 -1150 C-750 -1050 -800 1050 100 1150"/><path d="M150 -1200 C-800 -1100 -850 1100 150 1200"/><path d="M200 -1250 C-850 -1150 -900 1150 200 1250"/><path d="M250 -1300 C-900 -1200 -950 1200 250 1300"/><path d="M300 -1350 C-950 -1250 -1000 1250 300 1350"/><path d="M350 -1400 C-1000 -1300 -1050 1300 350 1400"/><path d="M400 -1450 C-1050 -1350 -1100 1350 400 1450"/></g></svg></div>
+  <div class="landing-bg" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1080 2400" preserveAspectRatio="xMaxYMid slice"><defs><linearGradient id="lb-glow" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" stop-color="#7B5CFF" stop-opacity="0"/><stop offset="50%" stop-color="#9B6FFF" stop-opacity="0.45"/><stop offset="100%" stop-color="#C07AFF" stop-opacity="0"/></linearGradient></defs><g transform="translate(830 1200)" stroke="url(#lb-glow)" stroke-width="1.5" fill="none" opacity="1"><path d="M-50 -1000 C-600 -900 -650 900 -50 1000"/><path d="M0 -1050 C-650 -950 -700 950 0 1050"/><path d="M50 -1100 C-700 -1000 -750 1000 50 1100"/><path d="M100 -1150 C-750 -1050 -800 1050 100 1150"/><path d="M150 -1200 C-800 -1100 -850 1100 150 1200"/><path d="M200 -1250 C-850 -1150 -900 1150 200 1250"/><path d="M250 -1300 C-900 -1200 -950 1200 250 1300"/><path d="M300 -1350 C-950 -1250 -1000 1250 300 1350"/><path d="M350 -1400 C-1000 -1300 -1050 1300 350 1400"/><path d="M400 -1450 C-1050 -1350 -1100 1350 400 1450"/></g></svg></div>
   <div class="landing-logo">
     <div class="landing-logo-olga">OLGA</div>
     <div class="landing-logo-flux">Flux</div>
@@ -11518,7 +11518,7 @@ function renderDash(){
   html+=colBlock('kdm','KDM',kdmBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 16/05/2026 às 10:40';
+  var sysUpdate='última atualização do sistema · 16/05/2026 às 10:42';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -15333,7 +15333,7 @@ window.addEventListener('popstate',function(e){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 16/05/2026 às 10:40</span></div>
+<div id="page-footer"><span>última atualização · 16/05/2026 às 10:42</span></div>
 
 </div>
 

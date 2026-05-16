@@ -11492,7 +11492,7 @@ function renderDash(){
   html+=colBlock('kdm','KDM',kdmBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 15/05/2026 às 10:24';
+  var sysUpdate='última atualização do sistema · 15/05/2026 às 10:26';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -12608,6 +12608,7 @@ function renderEquipeTable(){
         '<td style="padding:9px 12px;text-align:right;white-space:nowrap;">'+
           '<button onclick="openTemplateEdit(&quot;'+esc(t.id)+'&quot;)" style="'+_equipeBtn()+'">editar</button> '+
           '<button onclick="openTemplateDup(&quot;'+esc(t.id)+'&quot;)" style="'+_equipeBtn('dup')+'">duplicar</button> '+
+          '<button onclick="equipeRefreshAllByTemplate(&quot;'+esc(t.id)+'&quot;)" style="'+_equipeBtn()+'">↻ atualizar todos</button> '+
           '<button onclick="openTemplateDelete(&quot;'+esc(t.id)+'&quot;)" style="'+_equipeBtn('del')+'">excluir</button>'+
         '</td>'+
       '</tr>';
@@ -13127,6 +13128,32 @@ window.equipeRefreshTemplate=async function(userId){
     await window._olgaUsuarios.save(userId,newData);
     renderEquipe();
   }catch(e){alert('Erro ao sincronizar: '+e.message);}
+};
+
+window.equipeRefreshAllByTemplate=async function(slug){
+  var t=_equipeTemplates.find(function(x){return x.id===slug;});
+  if(!t){alert('Template "'+slug+'" não encontrado.');return;}
+  var targets=_equipeUsers.filter(function(u){return u.data.role_template===slug;});
+  if(!targets.length){alert('Nenhum usuário está usando o template "'+slug+'".');return;}
+  if(!confirm('Sincronizar '+targets.length+' usuário'+(targets.length!==1?'s':'')+' com o template "'+slug+'"?\n\nMódulos, eventos, complexos e restrições de todos serão atualizados com os valores atuais do template.'))return;
+  var d=t.data;
+  var erros=[];
+  for(var i=0;i<targets.length;i++){
+    var u=targets[i];
+    var newData=Object.assign({},u.data,{
+      role:d.role||u.data.role,
+      modulos:d.modulos||[],
+      modulos_edicao:d.modulos_edicao||[],
+      complexos:d.complexos||[],
+      eventos:d.eventos||[],
+      restricoes:d.restricoes||[],
+      role_template:slug
+    });
+    try{await window._olgaUsuarios.save(u.id,newData);}
+    catch(e){erros.push(u.id+': '+e.message);}
+  }
+  if(erros.length)alert('Concluído com erros:\n'+erros.join('\n'));
+  renderEquipe();
 };
 
 function _eqRoleChange(role){
@@ -15280,7 +15307,7 @@ window.addEventListener('popstate',function(e){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 15/05/2026 às 10:24</span></div>
+<div id="page-footer"><span>última atualização · 15/05/2026 às 10:26</span></div>
 
 </div>
 

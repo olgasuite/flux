@@ -5,7 +5,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<title>OLGA Suite</title>
+<title>OLGA Flux</title>
 <link rel="icon" type="image/x-icon" href="favicon.ico">
 <link rel="shortcut icon" type="image/x-icon" href="favicon.ico">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
@@ -4451,7 +4451,7 @@ html[data-theme]:not([data-theme="win98"]){--mono:var(--sans);}
 
 <div id="olga-login" style="display:flex;position:fixed;inset:0;z-index:99999;background:var(--bg);flex-direction:column;align-items:center;justify-content:center;gap:32px;font-family:var(--sans);">
   <div style="text-align:center;">
-    <div style="font-size:24px;font-weight:600;letter-spacing:-0.02em;color:var(--text);font-family:var(--sans);">OLGA · Suite</div>
+    <div style="font-size:24px;font-weight:600;letter-spacing:-0.02em;color:var(--text);font-family:var(--sans);">OLGA · Flux</div>
     <div style="font-size:10px;font-weight:700;color:var(--text-muted);letter-spacing:0.18em;margin-top:6px;text-transform:uppercase;font-family:var(--sans);">Sistema de Gestão de Festivais de Cinema</div>
   </div>
   <button onclick="_olgaSignIn()" style="display:flex;align-items:center;gap:12px;background:var(--surface2);border:1px solid var(--border);border-radius:0.25rem;color:var(--text);padding:12px 24px;cursor:pointer;font-family:var(--sans);font-size:12px;font-weight:600;letter-spacing:0.04em;transition:border-color 0.15s,background 0.15s;" onmouseover="this.style.borderColor=getComputedStyle(document.documentElement).getPropertyValue('--border2');this.style.background=getComputedStyle(document.documentElement).getPropertyValue('--surface3')" onmouseout="this.style.borderColor=getComputedStyle(document.documentElement).getPropertyValue('--border');this.style.background=getComputedStyle(document.documentElement).getPropertyValue('--surface2')">
@@ -4459,17 +4459,18 @@ html[data-theme]:not([data-theme="win98"]){--mono:var(--sans);}
     Entrar com Google
   </button>
   <div id="auth-error" style="font-size:10px;font-family:var(--mono);color:var(--warn);letter-spacing:0.04em;max-width:320px;text-align:center;min-height:16px;"></div>
-  <div style="font-size:9px;font-family:var(--mono);font-weight:500;color:var(--text-muted);letter-spacing:0.1em;position:absolute;bottom:20px;">OLGA · Projeção Digital · olga-suite</div>
+  <div style="font-size:9px;font-family:var(--mono);font-weight:500;color:var(--text-muted);letter-spacing:0.1em;position:absolute;bottom:20px;">OLGA · Flux · olga-suite</div>
 </div>
 
 <div id="olga-app" style="display:none;">
 <header>
-  <button class="logo" onclick="goHome()" title="Página inicial">OLGA · Suite</button>
+  <button class="logo" onclick="goHome()" title="Página inicial">OLGA · Flux</button>
   <input type="file" id="fileInput" accept=".xlsx,.xls" style="display:none">
   <nav class="nav-tabs">
     <button class="nav-tab" id="tabDash" disabled onclick="switchMode('dash')"><span class="tab-icon"><i data-lucide="bar-chart-2"></i></span> Dashboard</button>
     <button class="nav-tab" id="tabCatalogo" disabled onclick="switchMode('catalogo')"><span class="tab-icon"><i data-lucide="library"></i></span> Catálogo</button>
     <button class="nav-tab" id="tabProgramacao" disabled onclick="switchMode('programacao')"><span class="tab-icon"><i data-lucide="layout-list"></i></span> Programação</button>
+    <button class="nav-tab" id="tabVinhetas" disabled onclick="switchMode('vinhetas')"><span class="tab-icon"><i data-lucide="film"></i></span> Vinhetas</button>
     <button class="nav-tab" id="tabGrade" disabled onclick="switchMode('grade')"><span class="tab-icon"><i data-lucide="layout-dashboard"></i></span> Grade</button>
     <button class="nav-tab" id="tabGrade2" disabled onclick="switchMode('grade2')" style="display:none"></button>
     <button class="nav-tab" id="tabSessoes" disabled onclick="switchMode('sessoes')"><span class="tab-icon"><i data-lucide="calendar-clock"></i></span> Sessões</button>
@@ -4479,7 +4480,6 @@ html[data-theme]:not([data-theme="win98"]){--mono:var(--sans);}
     <button class="nav-tab" id="tabKDM" disabled onclick="switchMode('kdm')"><span class="tab-icon"><i data-lucide="key"></i></span> KDM</button>
     <button class="nav-tab" id="tabCinemas" disabled onclick="switchMode('cinemas')"><span class="tab-icon"><i data-lucide="clapperboard"></i></span> Cinemas</button>
     <button class="nav-tab" id="tabBilheteria" disabled onclick="switchMode('bilheteria')"><span class="tab-icon"><i data-lucide="ticket"></i></span> Bilheteria</button>
-    <button class="nav-tab" id="tabVinhetas" disabled onclick="switchMode('vinhetas')"><span class="tab-icon"><i data-lucide="film"></i></span> Vinhetas</button>
     <button class="nav-tab" id="tabBusca" onclick="switchMode('busca')" style="display:none"><span class="tab-icon"><i data-lucide="search"></i></span> Acervo</button>
     <button class="nav-tab" id="tabReceptivo" disabled onclick="switchMode('receptivo')"><span class="tab-icon"><i data-lucide="users"></i></span> Receptivo</button>
     <button class="nav-tab" id="tabEquipe" disabled onclick="switchMode('equipe')" style="display:none"><span class="tab-icon"><i data-lucide="shield"></i></span> Administração</button>
@@ -4664,7 +4664,7 @@ html[data-theme]:not([data-theme="win98"]){--mono:var(--sans);}
 
 <div id="landing">
   <div class="landing-badge">sistema de gestão de festivais de cinema</div>
-  <div class="landing-title">OLGA Suite</div>
+  <div class="landing-title">OLGA Flux</div>
   <p class="landing-sub">Carregue o arquivo de programação para acessar os módulos abaixo.</p>
   <div class="landing-drop" id="landingDrop">
     <div class="drop-icon">📂</div>
@@ -4686,6 +4686,11 @@ html[data-theme]:not([data-theme="win98"]){--mono:var(--sans);}
       <div class="module-icon"><i data-lucide="layout-list"></i></div>
       <div class="module-name">Programação</div>
       <div class="module-desc">Mostras, submostras e estrutura curatorial das sessões</div>
+    </div>
+    <div class="module-card disabled" id="modCardVinhetas" onclick="moduleCardClick('vinhetas')">
+      <div class="module-icon"><i data-lucide="film"></i></div>
+      <div class="module-name">Vinhetas</div>
+      <div class="module-desc">Propaganda e divulgação por sessão e cinema</div>
     </div>
     <div class="module-card disabled" id="modCardGrade" onclick="moduleCardClick('grade')">
       <div class="module-icon"><i data-lucide="layout-dashboard"></i></div>
@@ -4716,11 +4721,6 @@ html[data-theme]:not([data-theme="win98"]){--mono:var(--sans);}
       <div class="module-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z"/></svg></div>
       <div class="module-name">Bilheteria</div>
       <div class="module-desc">Gestão de ingressos, bilheterias e controle de acesso</div>
-    </div>
-    <div class="module-card disabled" id="modCardVinhetas" onclick="moduleCardClick('vinhetas')">
-      <div class="module-icon"><i data-lucide="film"></i></div>
-      <div class="module-name">Vinhetas</div>
-      <div class="module-desc">Propaganda e divulgação por sessão e cinema</div>
     </div>
     <div class="module-card disabled" id="modCardReceptivo" onclick="moduleCardClick('receptivo')">
       <div class="module-icon"><i data-lucide="users"></i></div>
@@ -11496,7 +11496,7 @@ function renderDash(){
   html+=colBlock('kdm','KDM',kdmBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 15/05/2026 às 10:30';
+  var sysUpdate='última atualização do sistema · 16/05/2026 às 10:34';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -15311,7 +15311,7 @@ window.addEventListener('popstate',function(e){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 15/05/2026 às 10:30</span></div>
+<div id="page-footer"><span>última atualização · 16/05/2026 às 10:34</span></div>
 
 </div>
 

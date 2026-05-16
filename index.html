@@ -11084,13 +11084,15 @@ function renderDash(){
       sorted3.forEach(function(s){
         var safe=s.nome.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
         var filmTitles=s.filmes.map(function(c){var f=filmesMap[c];return f&&f.titulo?clean(f.titulo):c;}).filter(Boolean).join(' · ');
+        var acessSet=[];s.filmes.forEach(function(c){var f=filmesMap[c];if(f&&f.acessibilidade){f.acessibilidade.split(/[,;\/\n]+/).forEach(function(a){var t=a.trim();if(t&&acessSet.indexOf(t)<0)acessSet.push(t);});}});
+        var acessLabel=acessSet.length?acessSet.join(' · '):s.acessibilidades;
         bodyHtml+='<div class="dsd-sess-row" style="cursor:pointer" onclick="goToFicha(\''+safe+'\')">'+
           '<span class="dsd-date">'+s.dia+'</span>'+
           '<span class="dsd-time">'+s.hora+'</span>'+
           '<span class="dsd-name">'+s.nome+'</span>'+
           '<span class="dsd-cinema">'+s.cinema+'</span>'+
           (filmTitles?'<span class="dsd-extra" style="font-family:var(--sans);">'+filmTitles+'</span>':'')+
-          '<span class="dsd-extra"><svg width="14" height="14" viewBox="0 0 24 24" style="stroke:currentColor;stroke-width:1.75;fill:none;stroke-linecap:round;stroke-linejoin:round;" xmlns="http://www.w3.org/2000/svg"><circle cx="11" cy="4" r="1"/><path d="m11 9 2 7h5l-1.5 3"/><path d="M9 9H7l1 7"/><path d="M13.5 19a4.5 4.5 0 1 1-9 0 4.5 4.5 0 0 1 9 0z"/></svg> '+s.acessibilidades+'</span>'+
+          '<span class="dsd-extra"><svg width="14" height="14" viewBox="0 0 24 24" style="stroke:currentColor;stroke-width:1.75;fill:none;stroke-linecap:round;stroke-linejoin:round;" xmlns="http://www.w3.org/2000/svg"><circle cx="11" cy="4" r="1"/><path d="m11 9 2 7h5l-1.5 3"/><path d="M9 9H7l1 7"/><path d="M13.5 19a4.5 4.5 0 1 1-9 0 4.5 4.5 0 0 1 9 0z"/></svg> '+acessLabel+'</span>'+
         '</div>';
       });
 
@@ -11181,10 +11183,12 @@ function renderDash(){
         bodyHtml='';
         paArr.forEach(function(s){
           var safe=s.nome.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+          var acessSet=[];s.filmes.forEach(function(c){var f=filmesMap[c];if(f&&f.acessibilidade){f.acessibilidade.split(/[,;\/\n]+/).forEach(function(a){var t=a.trim();if(t&&acessSet.indexOf(t)<0)acessSet.push(t);});}});
+          var acessLabel=acessSet.length?acessSet.join(' · '):s.acessibilidades;
           bodyHtml+='<div class="dsd-sess-row" style="cursor:pointer" onclick="goToFicha(\''+safe+'\')">'+
             '<span class="dsd-date">'+s.dia+'</span><span class="dsd-time">'+s.hora+'</span>'+
             '<span class="dsd-name">'+s.nome+'</span><span class="dsd-cinema">'+s.cinema+'</span>'+
-            '<span class="dsd-extra"><svg width="14" height="14" viewBox="0 0 24 24" style="stroke:currentColor;stroke-width:1.75;fill:none;stroke-linecap:round;stroke-linejoin:round;" xmlns="http://www.w3.org/2000/svg"><circle cx="11" cy="4" r="1"/><path d="m11 9 2 7h5l-1.5 3"/><path d="M9 9H7l1 7"/><path d="M13.5 19a4.5 4.5 0 1 1-9 0 4.5 4.5 0 0 1 9 0z"/></svg> '+s.acessibilidades+'</span>'+
+            '<span class="dsd-extra"><svg width="14" height="14" viewBox="0 0 24 24" style="stroke:currentColor;stroke-width:1.75;fill:none;stroke-linecap:round;stroke-linejoin:round;" xmlns="http://www.w3.org/2000/svg"><circle cx="11" cy="4" r="1"/><path d="m11 9 2 7h5l-1.5 3"/><path d="M9 9H7l1 7"/><path d="M13.5 19a4.5 4.5 0 1 1-9 0 4.5 4.5 0 0 1 9 0z"/></svg> '+acessLabel+'</span>'+
           '</div>';
         });
       }
@@ -11492,7 +11496,7 @@ function renderDash(){
   html+=colBlock('kdm','KDM',kdmBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 15/05/2026 às 10:28';
+  var sysUpdate='última atualização do sistema · 15/05/2026 às 10:30';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -15307,7 +15311,7 @@ window.addEventListener('popstate',function(e){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 15/05/2026 às 10:28</span></div>
+<div id="page-footer"><span>última atualização · 15/05/2026 às 10:30</span></div>
 
 </div>
 

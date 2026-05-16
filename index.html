@@ -11496,7 +11496,7 @@ function renderDash(){
   html+=colBlock('kdm','KDM',kdmBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 16/05/2026 às 10:34';
+  var sysUpdate='última atualização do sistema · 16/05/2026 às 10:36';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -15311,7 +15311,7 @@ window.addEventListener('popstate',function(e){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 16/05/2026 às 10:34</span></div>
+<div id="page-footer"><span>última atualização · 16/05/2026 às 10:36</span></div>
 
 </div>
 
@@ -16139,7 +16139,7 @@ function _mobRenderBilheteria(params,back){
           '</div>':'')+'</div>';
     });
     html+='<div style="padding:6px 16px;font-family:var(--mono);font-size:9px;color:var(--text-muted);background:var(--surface);border-bottom:1px solid var(--border);">'+
-      ss.length+' sessão'+(ss.length!==1?'ões':'')+
+      ss.length+' '+(ss.length===1?'sessão':'sessões')+
       (totPub?' · público: '+totPub:'')+
       (hasRenda?' · renda: '+fmtRenda(totRenda):'')+
     '</div>';
@@ -16470,7 +16470,7 @@ function _mobRenderProgramacao(params,noScroll){
       html+='<svg style="width:14px;height:14px;stroke:var(--text-muted);stroke-width:2;fill:none;flex-shrink:0;" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>';
       html+='</div>';
       if(p.data.program_description)html+='<div style="font-family:var(--mono);font-size:10px;color:var(--text-muted);margin-top:3px;">'+_mobEsc(p.data.program_description.slice(0,80))+(p.data.program_description.length>80?'…':'')+'</div>';
-      html+='<div style="font-family:var(--mono);font-size:9px;color:var(--text-muted);margin-top:4px;">'+subCount+' submostra'+(subCount!==1?'s':'')+' · '+sessCount+' sessão'+(sessCount!==1?'ões':'')+'</div>';
+      html+='<div style="font-family:var(--mono);font-size:9px;color:var(--text-muted);margin-top:4px;">'+subCount+' submostra'+(subCount!==1?'s':'')+' · '+sessCount+' '+(sessCount===1?'sessão':'sessões')+'</div>';
       html+='</div>';
     });
     if(sessOrfas.length){
@@ -16479,7 +16479,7 @@ function _mobRenderProgramacao(params,noScroll){
       html+='<span style="font-family:var(--sans);font-size:13px;color:var(--text-muted);">Sessões sem mostra</span>';
       html+='<svg style="width:14px;height:14px;stroke:var(--text-muted);stroke-width:2;fill:none;flex-shrink:0;" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>';
       html+='</div>';
-      html+='<div style="font-family:var(--mono);font-size:9px;color:var(--text-muted);margin-top:4px;">'+sessOrfas.length+' sessão'+(sessOrfas.length!==1?'ões':'')+'</div>';
+      html+='<div style="font-family:var(--mono);font-size:9px;color:var(--text-muted);margin-top:4px;">'+sessOrfas.length+' '+(sessOrfas.length===1?'sessão':'sessões')+'</div>';
       html+='</div>';
     }
   });

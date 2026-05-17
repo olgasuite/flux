@@ -1974,6 +1974,26 @@ mark{background:rgba(255,186,32,0.28);color:var(--accent);border-radius:2px;padd
 #page-footer{position:fixed;bottom:0;left:0;right:0;z-index:100;height:22px;background:var(--surface);border-top:1px solid var(--border);display:flex;align-items:center;justify-content:flex-end;padding:0 16px;pointer-events:none;}
 #page-footer span{font-family:var(--mono);font-size:9px;color:var(--text-muted);letter-spacing:0.08em;}
 @media print{#page-footer{display:none!important;}}
+/* ── REVISTA ─────────────────────────────────────────────────── */
+#revista-container{background:var(--bg);min-height:calc(100vh - 100px);padding:32px 24px 60px;display:flex;flex-direction:column;align-items:center;gap:0;}
+.revista-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;color:var(--text-muted);padding:80px 40px;min-height:50vh;}
+.revista-empty p{font-size:12px;text-align:center;line-height:1.9;font-family:var(--mono);}
+.rev-page{width:760px;min-height:520px;background:#f8f7f4;color:#111;padding:52px 60px 56px;position:relative;border:1px solid #d6d2ca;margin-bottom:-1px;flex-shrink:0;}
+.rev-page:first-child{border-top:3px solid #111;}
+.rev-page:last-child{margin-bottom:0;border-bottom:3px solid #111;}
+.rev-page-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:40px;}
+.rev-evento-pill{font-family:'IBM Plex Mono',monospace;font-size:8px;font-weight:600;letter-spacing:0.28em;text-transform:uppercase;padding:5px 12px;background:#111;color:#f8f7f4;display:inline-block;}
+.rev-page-num{font-family:'IBM Plex Mono',monospace;font-size:9px;color:#999;letter-spacing:0.12em;margin-top:4px;}
+.rev-mostra-label{font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:600;letter-spacing:0.22em;text-transform:uppercase;color:#777;margin-bottom:10px;}
+.rev-mostra-rule{border:none;border-top:1px solid #333;margin:0 0 22px 0;}
+.rev-mostra-name{font-family:'IBM Plex Sans',sans-serif;font-size:38px;font-weight:700;line-height:1.08;color:#111;margin-bottom:28px;max-width:560px;}
+.rev-mostra-curador{font-family:'IBM Plex Sans',sans-serif;font-size:12px;font-weight:400;color:#555;margin-bottom:28px;letter-spacing:0.01em;}
+.rev-curadorial-text{font-family:'IBM Plex Sans',sans-serif;font-size:13px;font-weight:300;line-height:1.85;color:#222;column-count:2;column-gap:40px;column-rule:1px solid #ddd;}
+.rev-curadorial-text p{margin-bottom:1em;}
+.rev-curadorial-text p:first-child::first-letter{font-size:3em;font-weight:700;float:left;line-height:0.75;margin:4px 6px 0 0;color:#111;}
+.rev-sem-texto{font-family:'IBM Plex Mono',monospace;font-size:11px;color:#aaa;font-style:italic;padding:20px 0;}
+.rev-page-divider{width:760px;height:28px;background:var(--bg);flex-shrink:0;}
+@media print{.rev-page{page-break-after:always;border:none!important;}#revista-container{background:#fff;padding:0;}.rev-page{box-shadow:none;margin-bottom:0;}}
 
 /* LIGHT THEME */
 [data-theme="light"]{
@@ -4096,13 +4116,14 @@ html[data-theme]:not([data-theme="win98"]){--mono:var(--sans);}
     }
 
     try {
-      const [filmesSnap, sessoesSnap, cinemasSnap, vinhetasSnap, eventosSnap, kdmDoc] = await Promise.all([
+      const [filmesSnap, sessoesSnap, cinemasSnap, vinhetasSnap, eventosSnap, kdmDoc, mostrasSnap] = await Promise.all([
         getDocs(collection(db, 'copias')),
         getDocs(collection(db, 'sessoes')),
         getDocs(collection(db, 'cinemas')),
         getDocs(collection(db, 'vinhetas')),
         getDocs(collection(db, 'eventos')),
         getDoc(doc(db, 'kdm_results', 'global')).catch(function(){return null;}),
+        getDocs(collection(db, 'mostras')).catch(function(){return{forEach:function(){}};})
       ]);
       // Sync KDM results: merge localStorage + Firebase, push back se houver dados só no local
       try {
@@ -4285,6 +4306,22 @@ html[data-theme]:not([data-theme="win98"]){--mono:var(--sans);}
         });
       });
 
+      // mostras
+      var mostrasArr2 = [];
+      mostrasSnap.forEach(function(doc) {
+        var r = doc.data();
+        var evNome = (r['event_name'] || '').toString().trim();
+        if (!evNome || !allowedEvento(evNome)) return;
+        mostrasArr2.push({
+          evento:  evNome,
+          nome:    (r['name']            || '').toString().trim(),
+          texto:   (r['curatorial_text'] || '').toString().trim(),
+          curador: (r['curator']         || '').toString().trim(),
+          ordem:   Number(r['order'])    || 999
+        });
+      });
+      mostrasArr2.sort(function(a,b){return a.ordem-b.ordem||a.nome.localeCompare(b.nome,'pt-BR');});
+
       // events set (só eventos permitidos)
       var evSet = new Set();
       filmesArr2.forEach(function(f)  { if (f.evento) evSet.add(f.evento); });
@@ -4293,6 +4330,7 @@ html[data-theme]:not([data-theme="win98"]){--mono:var(--sans);}
         if (c.evento) c.evento.split(';').forEach(function(e){ var t=e.trim(); if(t&&allowedEvento(t)) evSet.add(t); });
       });
       vinhetasArr2.forEach(function(v){ if (v.evento) evSet.add(v.evento); });
+      mostrasArr2.forEach(function(m){ if (m.evento) evSet.add(m.evento); });
 
       var now = new Date();
       var label = 'Firestore · ' + now.toLocaleDateString('pt-BR') + ' ' +
@@ -4316,6 +4354,7 @@ html[data-theme]:not([data-theme="win98"]){--mono:var(--sans);}
           buscaReverseSessoes: buscaRev2,
           cinemasArr: cinemasArr2,
           vinhetasArr: vinhetasArr2, vinhetaReverseSessoes: vinhetaRev2,
+          mostrasArr: mostrasArr2,
           events: Array.from(evSet),
           eventosFirestore: eventosFirestore2
         }, label);
@@ -4492,6 +4531,7 @@ html[data-theme]:not([data-theme="win98"]){--mono:var(--sans);}
     <button class="nav-tab" id="tabBilheteria" disabled onclick="switchMode('bilheteria')"><span class="tab-icon"><i data-lucide="ticket"></i></span> Bilheteria</button>
     <button class="nav-tab" id="tabBusca" onclick="switchMode('busca')" style="display:none"><span class="tab-icon"><i data-lucide="search"></i></span> Acervo</button>
     <button class="nav-tab" id="tabReceptivo" disabled onclick="switchMode('receptivo')"><span class="tab-icon"><i data-lucide="users"></i></span> Receptivo</button>
+    <button class="nav-tab" id="tabRevista" disabled onclick="switchMode('revista')"><span class="tab-icon"><i data-lucide="book-open"></i></span> Revista</button>
     <button class="nav-tab" id="tabEquipe" disabled onclick="switchMode('equipe')" style="display:none"><span class="tab-icon"><i data-lucide="shield"></i></span> Administração</button>
   </nav>
   <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" title="Alternar esquema de cores">Tema</button>
@@ -4642,6 +4682,12 @@ html[data-theme]:not([data-theme="win98"]){--mono:var(--sans);}
   <span class="result-count" id="catResultCount"></span>
 </div>
 <div class="mode-bar hidden" id="barReceptivo"></div>
+<div class="mode-bar hidden" id="barRevista">
+  <select id="revistaEventSelect" style="min-width:320px;" onchange="revistaSelectedEvent=this.value;renderRevista();">
+    <option value="" disabled selected>— selecionar evento —</option>
+  </select>
+  <span style="font-family:var(--mono);font-size:10px;color:var(--text-muted);margin-left:8px;" id="revistaEventoLabel"></span>
+</div>
 <div class="mode-bar hidden" id="barBilheteria" style="flex-wrap:wrap;row-gap:4px;">
   <div class="event-filters" id="bilheteriaEventFilters"></div>
   <select id="bilheteriaComplexoSelect" style="min-width:160px;margin-left:8px;" onchange="bilheteriaComplexoFilter=this.value;rebuildBilheteriaCinemaSelect();renderBilheteria();">
@@ -4746,6 +4792,11 @@ html[data-theme]:not([data-theme="win98"]){--mono:var(--sans);}
       <div class="module-icon"><i data-lucide="users"></i></div>
       <div class="module-name">Receptivo</div>
       <div class="module-desc">Convidados, hotéis, vôos e transporte</div>
+    </div>
+    <div class="module-card disabled" id="modCardRevista" onclick="moduleCardClick('revista')">
+      <div class="module-icon"><i data-lucide="book-open"></i></div>
+      <div class="module-name">Revista</div>
+      <div class="module-desc">Publicação editorial com mostras e programação do evento</div>
     </div>
   </div>
 </div>
@@ -4860,6 +4911,13 @@ html[data-theme]:not([data-theme="win98"]){--mono:var(--sans);}
   </div>
   <div class="mode-panel" id="receptivo-panel">
     <div id="receptivo-container"></div>
+  </div>
+  <div class="mode-panel" id="revista-panel">
+    <div id="revista-container">
+      <div class="revista-empty" id="revistaEmpty">
+        <p>Selecione um evento acima para gerar a revista.</p>
+      </div>
+    </div>
   </div>
   <div class="mode-panel" id="bilheteria-panel">
     <div id="bilheteria-container"></div>
@@ -5007,6 +5065,7 @@ self.onmessage=function(e){
 <script>
 var filmesMap={},filmesArr=[],sessoesArr=[],sessoesMap={};
 var buscaReverseSessoes={},eventColors={};
+var mostrasArr=[],revistaSelectedEvent='';
 var vinhetasArr=[],vinhetaReverseSessoes={},currentVinhetaDetail=null;
 var activeEventsGrade=new Set(),activeEventsBusca=new Set(),activeEventsIngest=new Set(),activeEventsFicha=new Set(),activeEventsCinemas=new Set(),activeEventsDash=new Set(),activeEventsGrade2=new Set(),activeEventsSessoes=new Set(),activeEventsProjecao=new Set(),activeEventsVinhetas=new Set();
 var activeEventsCatalogo=new Set(),activeEventsProgramacao=new Set(),activeEventsKDM=new Set(),activeEventsBilheteria=new Set(),activeEventsReceptivo=new Set();
@@ -5100,6 +5159,7 @@ function applyParsedData(d,filename){
   if(d.cinemasArr)cinemasArr=d.cinemasArr;
   if(d.vinhetasArr)vinhetasArr=d.vinhetasArr;
   if(d.vinhetaReverseSessoes)vinhetaReverseSessoes=d.vinhetaReverseSessoes;
+  if(d.mostrasArr)mostrasArr=d.mostrasArr;
   var events=d.events;
   eventColors={};
   // sort events by earliest future session date; events with no sessions go last
@@ -5140,10 +5200,10 @@ function applyParsedData(d,filename){
     });
   }
   dataLoaded=true;
-  ['tabProjecao','tabFicha','tabGrade','tabGrade2','tabSessoes','tabVinhetas','tabIngest','tabCinemas','tabKDM','tabDash','tabReceptivo','tabBilheteria','tabCatalogo','tabProgramacao'].forEach(function(id){document.getElementById(id).disabled=false;});
+  ['tabProjecao','tabFicha','tabGrade','tabGrade2','tabSessoes','tabVinhetas','tabIngest','tabCinemas','tabKDM','tabDash','tabReceptivo','tabBilheteria','tabCatalogo','tabProgramacao','tabRevista'].forEach(function(id){document.getElementById(id).disabled=false;});
   if(window._olgaUser&&window._olgaUser.role==='admin'){document.getElementById('tabEquipe').disabled=false;}
-  ['modCardProjecao','modCardGrade','modCardSessoes','modCardVinhetas','modCardCinemas','modCardKDM','modCardDash','modCardReceptivo','modCardBilheteria','modCardCatalogo','modCardProgramacao'].forEach(function(id){document.getElementById(id).classList.remove('disabled');});
-  buildGradeDays();window._gradeYearsOpen=null;window._grade2YearsOpen=null;window._dashYearsOpen=null;buildFichaFilters();buildGradeFilters();buildGrade2Filters();buildSessoesFilters();buildProjecaoFilters();buildVinhetasFilters();buildBuscaFilters();buildIngestDays();buildIngestFilters();buildBuscaFilterPanel();buildCinemasFilters();buildDashFilters();buildCatalogoFilters();buildBilheteriaFilters();
+  ['modCardProjecao','modCardGrade','modCardSessoes','modCardVinhetas','modCardCinemas','modCardKDM','modCardDash','modCardReceptivo','modCardBilheteria','modCardCatalogo','modCardProgramacao','modCardRevista'].forEach(function(id){document.getElementById(id).classList.remove('disabled');});
+  buildGradeDays();window._gradeYearsOpen=null;window._grade2YearsOpen=null;window._dashYearsOpen=null;buildFichaFilters();buildGradeFilters();buildGrade2Filters();buildSessoesFilters();buildProjecaoFilters();buildVinhetasFilters();buildBuscaFilters();buildIngestDays();buildIngestFilters();buildBuscaFilterPanel();buildCinemasFilters();buildDashFilters();buildCatalogoFilters();buildBilheteriaFilters();buildRevistaEventSelect();
   if(fileNameEl){fileNameEl.textContent=filename||'arquivo carregado';fileNameEl.classList.add('loaded');}
   window._olgaDataLabel=filename||null;
   landingDrop.classList.add('loaded');
@@ -5208,14 +5268,26 @@ function parseWorkbook(data,filename){
   vinhetaReverseSessoes={};
   sessoesArr.forEach(function(s){(s.vinhetas||[]).forEach(function(c){if(!vinhetaReverseSessoes[c])vinhetaReverseSessoes[c]=[];vinhetaReverseSessoes[c].push(s.nome);});});
   vinhetasArr.forEach(function(v){if(v.evento)evSet.add(v.evento);});
+  mostrasArr=[];
+  var wsM=wb.Sheets['Mostras']||wb.Sheets['mostras'];
+  if(wsM){
+    var rowsM=XLSX.utils.sheet_to_json(wsM,{raw:false});
+    for(var i=0;i<rowsM.length;i++){
+      var r=rowsM[i];var evNome=(r['event_name']||'').toString().trim();
+      if(!evNome)continue;
+      mostrasArr.push({evento:evNome,nome:(r['name']||'').toString().trim(),texto:(r['curatorial_text']||'').toString().trim(),curador:(r['curator']||'').toString().trim(),ordem:Number(r['order'])||999});
+    }
+    mostrasArr.sort(function(a,b){return a.ordem-b.ordem||a.nome.localeCompare(b.nome,'pt-BR');});
+  }
+  mostrasArr.forEach(function(m){if(m.evento)evSet.add(m.evento);});
   var events=Array.from(evSet);
-  applyParsedData({filmesMap:filmesMap,filmesArr:filmesArr,sessoesArr:sessoesArr,sessoesMap:sessoesMap,buscaReverseSessoes:buscaReverseSessoes,cinemasArr:cinemasArr,vinhetasArr:vinhetasArr,vinhetaReverseSessoes:vinhetaReverseSessoes,events:events},filename);
+  applyParsedData({filmesMap:filmesMap,filmesArr:filmesArr,sessoesArr:sessoesArr,sessoesMap:sessoesMap,buscaReverseSessoes:buscaReverseSessoes,cinemasArr:cinemasArr,vinhetasArr:vinhetasArr,vinhetaReverseSessoes:vinhetaReverseSessoes,mostrasArr:mostrasArr,events:events},filename);
 }
 
 function goHome(){
   if(currentMode){
     currentMode=null;
-    ['projecao','ficha','grade','grade2','sessoes','busca','vinhetas','ingest','cinemas','kdm','dash','receptivo','bilheteria','equipe','catalogo','programacao'].forEach(function(m){
+    ['projecao','ficha','grade','grade2','sessoes','busca','vinhetas','ingest','cinemas','kdm','dash','receptivo','bilheteria','equipe','catalogo','programacao','revista'].forEach(function(m){
       var cap=m==='grade2'?'Grade2':m==='projecao'?'Projecao':m==='sessoes'?'Sessoes':m==='vinhetas'?'Vinhetas':m==='programacao'?'Programacao':m==='kdm'?'KDM':m.charAt(0).toUpperCase()+m.slice(1);
       document.getElementById('tab'+cap).classList.remove('active');
       document.getElementById('bar'+cap).classList.add('hidden');
@@ -5243,7 +5315,7 @@ function switchMode(mode,noPush){
   if(currentMode==='catalogo'&&mode!=='catalogo'&&!_browserNav){_catResetState();}
   document.getElementById('landing').style.display='none';
   document.getElementById('app').style.display='block';
-  ['projecao','ficha','grade','grade2','sessoes','busca','vinhetas','ingest','cinemas','kdm','dash','receptivo','bilheteria','equipe','catalogo','programacao'].forEach(function(m){
+  ['projecao','ficha','grade','grade2','sessoes','busca','vinhetas','ingest','cinemas','kdm','dash','receptivo','bilheteria','equipe','catalogo','programacao','revista'].forEach(function(m){
     var cap=m==='grade2'?'Grade2':m==='projecao'?'Projecao':m==='sessoes'?'Sessoes':m==='vinhetas'?'Vinhetas':m==='programacao'?'Programacao':m==='kdm'?'KDM':m.charAt(0).toUpperCase()+m.slice(1);
     document.getElementById('tab'+cap).classList.toggle('active',m===mode);
     document.getElementById('bar'+cap).classList.toggle('hidden',m!==mode);
@@ -5260,6 +5332,7 @@ function switchMode(mode,noPush){
   if(mode==='kdm')renderKDM();
   if(mode==='dash')renderDash();
   if(mode==='receptivo')renderReceptivo();
+  if(mode==='revista')renderRevista();
   if(mode==='bilheteria')renderBilheteria();
   if(mode==='equipe')renderEquipe();
   if(mode==='programacao')renderProgramacao();
@@ -9181,6 +9254,79 @@ function _processKDMTest(sessaoNome,xml){
   else if(rowEl){var wrap=document.createElement('div');wrap.className='kdm-result-wrap';wrap.id='kdmresult-'+enc;wrap.innerHTML=_kdmResultHtml(sessaoNome);rowEl.parentNode.insertBefore(wrap,rowEl.nextSibling);}
 }
 
+/* ── REVISTA ────────────────────────────────────────────────── */
+function buildRevistaEventSelect(){
+  var sel=document.getElementById('revistaEventSelect');
+  if(!sel)return;
+  var today=new Date();today.setHours(0,0,0,0);
+  var activeEvs=new Set();
+  sessoesArr.forEach(function(s){
+    if(!s.evento)return;
+    var d=s.date?new Date(s.date):null;
+    if(d&&d>=today)activeEvs.add(s.evento);
+  });
+  var opts=Array.from(activeEvs).sort(function(a,b){return a.localeCompare(b,'pt-BR');});
+  sel.innerHTML='<option value="" disabled selected>— selecionar evento —</option>';
+  opts.forEach(function(ev){
+    var o=document.createElement('option');
+    o.value=ev;o.textContent=ev;
+    sel.appendChild(o);
+  });
+  if(revistaSelectedEvent&&activeEvs.has(revistaSelectedEvent)){
+    sel.value=revistaSelectedEvent;
+  } else {
+    revistaSelectedEvent='';
+    sel.value='';
+  }
+}
+
+function renderRevista(){
+  var container=document.getElementById('revista-container');
+  var empty=document.getElementById('revistaEmpty');
+  if(!container)return;
+  Array.from(container.querySelectorAll('.rev-page,.rev-page-divider')).forEach(function(el){el.remove();});
+  if(!revistaSelectedEvent){
+    if(empty)empty.style.display='flex';
+    return;
+  }
+  if(empty)empty.style.display='none';
+  var evName=revistaSelectedEvent;
+  var color=eventColors[evName]||'#111';
+  var mostras=mostrasArr.filter(function(m){return m.evento===evName;});
+  mostras.forEach(function(m,idx){
+    if(idx>0){
+      var div=document.createElement('div');
+      div.className='rev-page-divider';
+      container.appendChild(div);
+    }
+    var page=document.createElement('div');
+    page.className='rev-page';
+    var hdr='<div class="rev-page-header">'+
+      '<div class="rev-evento-pill" style="background:'+color+'">'+_revEsc(evName)+'</div>'+
+      '<div class="rev-page-num">'+(idx+1)+'</div>'+
+    '</div>';
+    var label='<div class="rev-mostra-label">mostra</div><hr class="rev-mostra-rule">';
+    var name='<div class="rev-mostra-name">'+_revEsc(m.nome)+'</div>';
+    var curador=m.curador?'<div class="rev-mostra-curador">Curadoria: '+_revEsc(m.curador)+'</div>':'';
+    var textoHtml='';
+    if(m.texto){
+      var paras=m.texto.split(/\n\n+/);
+      if(paras.length===1)paras=m.texto.split(/\n/);
+      textoHtml='<div class="rev-curadorial-text">'+
+        paras.filter(function(p){return p.trim();}).map(function(p){return'<p>'+_revEsc(p.trim())+'</p>';}).join('')+
+      '</div>';
+    } else {
+      textoHtml='<div class="rev-sem-texto">Texto curatorial não disponível.</div>';
+    }
+    page.innerHTML=hdr+label+name+curador+textoHtml;
+    container.appendChild(page);
+  });
+}
+
+function _revEsc(s){
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
 function buildProjecaoFilters(){
   buildPills(document.getElementById('projecaoEventFilters'),eventColors,activeEventsProjecao,function(){
     renderProjecao();
@@ -11559,7 +11705,7 @@ function renderDash(){
   html+=colBlock('kdm','KDM',kdmBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 16/05/2026 às 10:54';
+  var sysUpdate='última atualização do sistema · 17/05/2026 às 15:02';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -11601,7 +11747,7 @@ function goToCinemaFromDash(sala){
   currentMode='cinemas';
   document.getElementById('landing').style.display='none';
   document.getElementById('app').style.display='block';
-  ['projecao','ficha','grade','grade2','sessoes','busca','vinhetas','ingest','cinemas','dash','receptivo'].forEach(function(m){
+  ['projecao','ficha','grade','grade2','sessoes','busca','vinhetas','ingest','cinemas','dash','receptivo','revista'].forEach(function(m){
     var cap=m==='grade2'?'Grade2':m==='projecao'?'Projecao':m==='sessoes'?'Sessoes':m==='vinhetas'?'Vinhetas':m==='programacao'?'Programacao':m.charAt(0).toUpperCase()+m.slice(1);
     document.getElementById('tab'+cap).classList.toggle('active',m==='cinemas');
     document.getElementById('bar'+cap).classList.toggle('hidden',m!=='cinemas');
@@ -14923,7 +15069,7 @@ window.addEventListener('popstate',function(e){
       // ensure we're in cinemas mode first, then open detail
       if(currentMode!=='cinemas'){
         currentMode='cinemas';
-        ['projecao','ficha','grade','grade2','sessoes','busca','vinhetas','ingest','cinemas','dash','receptivo','equipe'].forEach(function(m){
+        ['projecao','ficha','grade','grade2','sessoes','busca','vinhetas','ingest','cinemas','dash','receptivo','equipe','revista'].forEach(function(m){
           var cap=m==='grade2'?'Grade2':m==='projecao'?'Projecao':m==='sessoes'?'Sessoes':m==='vinhetas'?'Vinhetas':m==='programacao'?'Programacao':m.charAt(0).toUpperCase()+m.slice(1);
           document.getElementById('tab'+cap).classList.toggle('active',m==='cinemas');
           document.getElementById('bar'+cap).classList.toggle('hidden',m!=='cinemas');
@@ -15403,7 +15549,7 @@ window.addEventListener('popstate',function(e){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 16/05/2026 às 10:54</span></div>
+<div id="page-footer"><span>última atualização · 17/05/2026 às 15:02</span></div>
 
 </div>
 

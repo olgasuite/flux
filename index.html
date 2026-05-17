@@ -1096,7 +1096,7 @@ select:disabled{opacity:0.35;cursor:not-allowed;}
 #landing>*:not(.landing-bg){position:relative;z-index:1;}
 .landing-logo{display:flex;flex-direction:column;align-items:center;line-height:1;margin-top:16px;margin-bottom:20px;}
 .landing-logo-olga{font-family:var(--mono);font-size:72px;font-weight:700;color:var(--text);letter-spacing:0.1em;line-height:1;}
-.landing-logo-flux{font-family:var(--sans);font-size:54px;font-weight:300;color:#a78bfa;letter-spacing:0.2em;margin-top:4px;}
+.landing-logo-flux{font-family:var(--sans);font-size:42px;font-weight:300;color:#a78bfa;letter-spacing:0.2em;margin-top:4px;}
 [data-theme="win98"] .landing-bg{display:none;}
 /* PROGRAMAÇÃO */
 .prog-landing{padding:28px 32px 60px;}
@@ -4520,6 +4520,9 @@ html[data-theme]:not([data-theme="win98"]){--mono:var(--sans);}
 <div class="mode-bar hidden" id="barGrade">
   <div class="day-tabs" id="dayTabs"></div>
   <div class="event-filters" id="gradeEventFilters"></div>
+  <select id="gradeComplexoSelect" style="min-width:160px;margin-left:4px;" onchange="gradeCinemaComplexoFilter=this.value;gradeCinemaFilter='';rebuildGradeCinemaSelect();renderGrade();">
+    <option value="">Todos os complexos</option>
+  </select>
   <select id="gradeCinemaSelect" style="min-width:160px;margin-left:4px;" onchange="gradeCinemaFilter=this.value;renderGrade();">
     <option value="">Todas as salas</option>
   </select>
@@ -4528,6 +4531,9 @@ html[data-theme]:not([data-theme="win98"]){--mono:var(--sans);}
 <div class="mode-bar hidden" id="barGrade2">
   <div class="day-tabs" id="grade2DayTabs"></div>
   <div class="event-filters" id="grade2EventFilters"></div>
+  <select id="grade2ComplexoSelect" style="min-width:160px;margin-left:4px;" onchange="grade2CinemaComplexoFilter=this.value;grade2CinemaFilter='';rebuildGrade2CinemaSelect();renderGrade2();">
+    <option value="">Todos os complexos</option>
+  </select>
   <select id="grade2CinemaSelect" style="min-width:160px;margin-left:4px;" onchange="grade2CinemaFilter=this.value;renderGrade2();">
     <option value="">Todas as salas</option>
   </select>
@@ -5012,8 +5018,8 @@ var cinemasArr=[];
 var cinemasComplexoFilter='',cinemasEstadoFilter='',cinemasEventoFilter='',currentCinemaDetail=null;
 var bilheteriaCinemaFilter='',bilheteriaDistribuidoraFilter='',bilheteriaFilmeFilter='',bilheteriaComplexoFilter='';
 var kdmComplexoFilter='',kdmSalaFilter='';
-var ingestDays=[],currentIngestDay=null,ingestCinemaFilter='',ingestHdFilter='',gradeCinemaFilter='';
-var grade2Days=[],grade2CurrentDay=null,grade2CinemaFilter='';
+var ingestDays=[],currentIngestDay=null,ingestCinemaFilter='',ingestHdFilter='',gradeCinemaFilter='',gradeCinemaComplexoFilter='';
+var grade2Days=[],grade2CurrentDay=null,grade2CinemaFilter='',grade2CinemaComplexoFilter='';
 var sessoesCinemaFilter='',_sessoesHidePast=true;
 var vinhetasCinemaFilter='',vinhetasDayFilter='';
 var dashCinemaFilter='__todos__',dashDayFilter=new Set(),dashStatusSelected=null,dashStatSelected=null;
@@ -5987,13 +5993,33 @@ function buildFichaFilters(){
   document.getElementById('searchInput').disabled=false;
 }
 
+function _getSalaComplexo(sala){
+  var c=cinemasArr.find(function(x){return x.sala===sala;});
+  return c?(c.complexo||sala):sala;
+}
+
+function rebuildGradeComplexoSelect(){
+  var active=sessoesGrade();
+  var as=allowedSalas();
+  var cxs=new Set();
+  active.forEach(function(s){if(s.cinema&&(!as||as.has(s.cinema)))cxs.add(_getSalaComplexo(s.cinema));});
+  var sel=document.getElementById('gradeComplexoSelect');
+  var prev=sel.value;
+  sel.innerHTML='<option value="">Todos os complexos</option>';
+  Array.from(cxs).sort().forEach(function(c){var o=document.createElement('option');o.value=c;o.textContent=c;sel.appendChild(o);});
+  if(prev&&cxs.has(prev))sel.value=prev;
+  else{sel.value='';gradeCinemaComplexoFilter='';}
+}
+
 function rebuildGradeCinemaSelect(){
   var active=sessoesGrade();
   var as=allowedSalas();
-  var cs=new Set();active.forEach(function(s){if(s.cinema&&(!as||as.has(s.cinema)))cs.add(s.cinema);});
+  var cs=new Set();active.forEach(function(s){
+    if(s.cinema&&(!as||as.has(s.cinema))&&(!gradeCinemaComplexoFilter||_getSalaComplexo(s.cinema)===gradeCinemaComplexoFilter))cs.add(s.cinema);
+  });
   var sel=document.getElementById('gradeCinemaSelect');
   var prev=sel.value;
-  sel.innerHTML='<option value="">Todas as salas'+(as?' do complexo':'')+'</option>';
+  sel.innerHTML='<option value="">Todas as salas'+(gradeCinemaComplexoFilter?' do complexo':as?' do complexo':'')+'</option>';
   Array.from(cs).sort().forEach(function(c){var o=document.createElement('option');o.value=c;o.textContent=c;sel.appendChild(o);});
   if(prev&&cs.has(prev))sel.value=prev;
   else{sel.value='';gradeCinemaFilter='';}
@@ -6001,23 +6027,40 @@ function rebuildGradeCinemaSelect(){
 
 function buildGradeFilters(){
   buildPills(document.getElementById('gradeEventFilters'),eventColors,activeEventsGrade,function(){
+    rebuildGradeComplexoSelect();
     rebuildGradeCinemaSelect();
     window._gradeYearsOpen=null;
     renderGrade();
   });
+  rebuildGradeComplexoSelect();
   rebuildGradeCinemaSelect();
 }
 
 /* GRADE 2 */
 function sessoesGrade2(){var as=allowedSalas();return sessoesArr.filter(function(s){if(s.evento&&!activeEventsGrade2.has(s.evento))return false;if(as&&s.cinema&&!as.has(s.cinema))return false;return true;});}
 
+function rebuildGrade2ComplexoSelect(){
+  var active=sessoesGrade2();
+  var as=allowedSalas();
+  var cxs=new Set();
+  active.forEach(function(s){if(s.cinema&&(!as||as.has(s.cinema)))cxs.add(_getSalaComplexo(s.cinema));});
+  var sel=document.getElementById('grade2ComplexoSelect');
+  var prev=sel.value;
+  sel.innerHTML='<option value="">Todos os complexos</option>';
+  Array.from(cxs).sort().forEach(function(c){var o=document.createElement('option');o.value=c;o.textContent=c;sel.appendChild(o);});
+  if(prev&&cxs.has(prev))sel.value=prev;
+  else{sel.value='';grade2CinemaComplexoFilter='';}
+}
+
 function rebuildGrade2CinemaSelect(){
   var active=sessoesGrade2();
   var as=allowedSalas();
-  var cs=new Set();active.forEach(function(s){if(s.cinema&&(!as||as.has(s.cinema)))cs.add(s.cinema);});
+  var cs=new Set();active.forEach(function(s){
+    if(s.cinema&&(!as||as.has(s.cinema))&&(!grade2CinemaComplexoFilter||_getSalaComplexo(s.cinema)===grade2CinemaComplexoFilter))cs.add(s.cinema);
+  });
   var sel=document.getElementById('grade2CinemaSelect');
   var prev=sel.value;
-  sel.innerHTML='<option value="">Todas as salas'+(as?' do complexo':'')+'</option>';
+  sel.innerHTML='<option value="">Todas as salas'+(grade2CinemaComplexoFilter?' do complexo':as?' do complexo':'')+'</option>';
   Array.from(cs).sort().forEach(function(c){var o=document.createElement('option');o.value=c;o.textContent=c;sel.appendChild(o);});
   if(prev&&cs.has(prev))sel.value=prev;
   else{sel.value='';grade2CinemaFilter='';}
@@ -6025,10 +6068,12 @@ function rebuildGrade2CinemaSelect(){
 
 function buildGrade2Filters(){
   buildPills(document.getElementById('grade2EventFilters'),eventColors,activeEventsGrade2,function(){
+    rebuildGrade2ComplexoSelect();
     rebuildGrade2CinemaSelect();
     window._grade2YearsOpen=null;
     renderGrade2();
   });
+  rebuildGrade2ComplexoSelect();
   rebuildGrade2CinemaSelect();
 }
 
@@ -6163,7 +6208,8 @@ function renderGrade2DayTabs(){
     return sessoesArr.some(function(s){
       return s.date&&s.date.toISOString().slice(0,10)===d.key&&
              (!s.evento||activeEventsGrade2.has(s.evento))&&
-             (!grade2CinemaFilter||s.cinema===grade2CinemaFilter);
+             (!grade2CinemaFilter||s.cinema===grade2CinemaFilter)&&
+             (!grade2CinemaComplexoFilter||_getSalaComplexo(s.cinema)===grade2CinemaComplexoFilter);
     });
   });
   var validKeys=activeDays.map(function(d){return d.key;});
@@ -6257,6 +6303,7 @@ function renderGrade2(){
     return s.date&&s.date.toISOString().slice(0,10)===grade2CurrentDay&&
            (!s.evento||activeEventsGrade2.has(s.evento))&&
            (!grade2CinemaFilter||s.cinema===grade2CinemaFilter)&&
+           (!grade2CinemaComplexoFilter||_getSalaComplexo(s.cinema)===grade2CinemaComplexoFilter)&&
            (!_as2||!s.cinema||_as2.has(s.cinema));
   });
   if(!ds.length){gw.style.display='none';ge.style.display='flex';return;}
@@ -7484,7 +7531,8 @@ function renderDayTabs(){
     return sessoesArr.some(function(s){
       return s.date&&s.date.toISOString().slice(0,10)===d.key&&
              (!s.evento||activeEventsGrade.has(s.evento))&&
-             (!gradeCinemaFilter||s.cinema===gradeCinemaFilter);
+             (!gradeCinemaFilter||s.cinema===gradeCinemaFilter)&&
+             (!gradeCinemaComplexoFilter||_getSalaComplexo(s.cinema)===gradeCinemaComplexoFilter);
     });
   });
   // if currentDay is no longer valid (or was never set), pick best available day
@@ -9552,6 +9600,7 @@ function renderGrade(){
     return s.date&&s.date.toISOString().slice(0,10)===currentDay&&
            (!s.evento||activeEventsGrade.has(s.evento))&&
            (!gradeCinemaFilter||s.cinema===gradeCinemaFilter)&&
+           (!gradeCinemaComplexoFilter||_getSalaComplexo(s.cinema)===gradeCinemaComplexoFilter)&&
            (!_as||!s.cinema||_as.has(s.cinema));
   });
   if(!ds.length){gw.style.display='none';ge.style.display='flex';return;}

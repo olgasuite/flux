@@ -1990,7 +1990,7 @@ mark{background:rgba(255,186,32,0.28);color:var(--accent);border-radius:2px;padd
 .rev-mostra-curador{font-family:'IBM Plex Sans',sans-serif;font-size:12px;font-weight:400;color:#555;margin-bottom:28px;letter-spacing:0.01em;}
 .rev-curadorial-text{font-family:'IBM Plex Sans',sans-serif;font-size:13px;font-weight:300;line-height:1.85;color:#222;column-count:2;column-gap:40px;column-rule:1px solid #ddd;}
 .rev-curadorial-text p{margin-bottom:1em;}
-.rev-curadorial-text p:first-child::first-letter{font-size:3em;font-weight:700;float:left;line-height:0.75;margin:4px 6px 0 0;color:#111;}
+.rev-curadorial-text p:first-child::first-letter{font-size:3em;font-weight:700;float:left;line-height:1;margin:0 0.07em 0 0;color:#111;}
 .rev-sem-texto{font-family:'IBM Plex Mono',monospace;font-size:11px;color:#aaa;font-style:italic;padding:20px 0;}
 .rev-page-divider{width:760px;height:28px;background:var(--bg);flex-shrink:0;}
 @media print{.rev-page{page-break-after:always;border:none!important;}#revista-container{background:#fff;padding:0;}.rev-page{box-shadow:none;margin-bottom:0;}}
@@ -4664,10 +4664,10 @@ html[data-theme]:not([data-theme="win98"]){--mono:var(--sans);}
 </div>
 <div class="mode-bar hidden" id="barReceptivo"></div>
 <div class="mode-bar hidden" id="barRevista">
-  <select id="revistaEventSelect" style="min-width:320px;" onchange="revistaSelectedEvent=this.value;renderRevista();">
+  <div class="event-filters" id="revistaEventFilters"></div>
+  <select id="revistaEventSelect" style="min-width:260px;margin-left:8px;" onchange="revistaSelectedEvent=this.value;renderRevista();">
     <option value="" disabled selected>— selecionar evento —</option>
   </select>
-  <span style="font-family:var(--mono);font-size:10px;color:var(--text-muted);margin-left:8px;" id="revistaEventoLabel"></span>
 </div>
 <div class="mode-bar hidden" id="barBilheteria" style="flex-wrap:wrap;row-gap:4px;">
   <div class="event-filters" id="bilheteriaEventFilters"></div>
@@ -5049,7 +5049,7 @@ var buscaReverseSessoes={},eventColors={};
 var revistaSelectedEvent='';
 var vinhetasArr=[],vinhetaReverseSessoes={},currentVinhetaDetail=null;
 var activeEventsGrade=new Set(),activeEventsBusca=new Set(),activeEventsIngest=new Set(),activeEventsFicha=new Set(),activeEventsCinemas=new Set(),activeEventsDash=new Set(),activeEventsGrade2=new Set(),activeEventsSessoes=new Set(),activeEventsProjecao=new Set(),activeEventsVinhetas=new Set();
-var activeEventsCatalogo=new Set(),activeEventsProgramacao=new Set(),activeEventsKDM=new Set(),activeEventsBilheteria=new Set(),activeEventsReceptivo=new Set();
+var activeEventsCatalogo=new Set(),activeEventsProgramacao=new Set(),activeEventsKDM=new Set(),activeEventsBilheteria=new Set(),activeEventsReceptivo=new Set(),activeEventsRevista=new Set();
 var catalogoFilmesMap={};
 var days=[],currentDay=null,buscaQuery='',dataLoaded=false,currentMode=null;
 var _browserNav=false;
@@ -5166,10 +5166,10 @@ function applyParsedData(d,filename){
   var initEvs=currentEvs.size>0?currentEvs:new Set(events);
   // Só inicializar os sets na primeira carga. Nas recargas (dataLoaded já true), preservar estado atual.
   if(!dataLoaded){
-    activeEventsGrade=new Set(initEvs);activeEventsBusca=new Set(initEvs);activeEventsIngest=new Set(initEvs);activeEventsFicha=new Set(initEvs);activeEventsCinemas=new Set(initEvs);activeEventsDash=new Set(initEvs);activeEventsGrade2=new Set(initEvs);activeEventsSessoes=new Set(initEvs);activeEventsProjecao=new Set(initEvs);activeEventsVinhetas=new Set(initEvs);activeEventsCatalogo=new Set(initEvs);activeEventsProgramacao=new Set(initEvs);activeEventsKDM=new Set(initEvs);activeEventsBilheteria=new Set(initEvs);activeEventsReceptivo=new Set(initEvs);
+    activeEventsGrade=new Set(initEvs);activeEventsBusca=new Set(initEvs);activeEventsIngest=new Set(initEvs);activeEventsFicha=new Set(initEvs);activeEventsCinemas=new Set(initEvs);activeEventsDash=new Set(initEvs);activeEventsGrade2=new Set(initEvs);activeEventsSessoes=new Set(initEvs);activeEventsProjecao=new Set(initEvs);activeEventsVinhetas=new Set(initEvs);activeEventsCatalogo=new Set(initEvs);activeEventsProgramacao=new Set(initEvs);activeEventsKDM=new Set(initEvs);activeEventsBilheteria=new Set(initEvs);activeEventsReceptivo=new Set(initEvs);activeEventsRevista=new Set(initEvs);
   } else {
     var evSet=new Set(events);
-    var allSets=[activeEventsGrade,activeEventsBusca,activeEventsIngest,activeEventsFicha,activeEventsCinemas,activeEventsDash,activeEventsGrade2,activeEventsSessoes,activeEventsProjecao,activeEventsVinhetas,activeEventsCatalogo,activeEventsProgramacao,activeEventsKDM,activeEventsBilheteria,activeEventsReceptivo];
+    var allSets=[activeEventsGrade,activeEventsBusca,activeEventsIngest,activeEventsFicha,activeEventsCinemas,activeEventsDash,activeEventsGrade2,activeEventsSessoes,activeEventsProjecao,activeEventsVinhetas,activeEventsCatalogo,activeEventsProgramacao,activeEventsKDM,activeEventsBilheteria,activeEventsReceptivo,activeEventsRevista];
     // Remover eventos que não existem mais no banco
     allSets.forEach(function(st){st.forEach(function(ev){if(!evSet.has(ev))st.delete(ev);});});
     // Adicionar eventos novos que ainda não estão em nenhum set
@@ -5183,7 +5183,7 @@ function applyParsedData(d,filename){
   ['tabProjecao','tabFicha','tabGrade','tabGrade2','tabSessoes','tabVinhetas','tabIngest','tabCinemas','tabKDM','tabDash','tabReceptivo','tabBilheteria','tabCatalogo','tabProgramacao','tabRevista'].forEach(function(id){document.getElementById(id).disabled=false;});
   if(window._olgaUser&&window._olgaUser.role==='admin'){document.getElementById('tabEquipe').disabled=false;}
   ['modCardProjecao','modCardGrade','modCardSessoes','modCardVinhetas','modCardCinemas','modCardKDM','modCardDash','modCardReceptivo','modCardBilheteria','modCardCatalogo','modCardProgramacao','modCardRevista'].forEach(function(id){document.getElementById(id).classList.remove('disabled');});
-  buildGradeDays();window._gradeYearsOpen=null;window._grade2YearsOpen=null;window._dashYearsOpen=null;buildFichaFilters();buildGradeFilters();buildGrade2Filters();buildSessoesFilters();buildProjecaoFilters();buildVinhetasFilters();buildBuscaFilters();buildIngestDays();buildIngestFilters();buildBuscaFilterPanel();buildCinemasFilters();buildDashFilters();buildCatalogoFilters();buildBilheteriaFilters();buildRevistaEventSelect();
+  buildGradeDays();window._gradeYearsOpen=null;window._grade2YearsOpen=null;window._dashYearsOpen=null;buildFichaFilters();buildGradeFilters();buildGrade2Filters();buildSessoesFilters();buildProjecaoFilters();buildVinhetasFilters();buildBuscaFilters();buildIngestDays();buildIngestFilters();buildBuscaFilterPanel();buildCinemasFilters();buildDashFilters();buildCatalogoFilters();buildBilheteriaFilters();buildRevistaFilters();
   if(fileNameEl){fileNameEl.textContent=filename||'arquivo carregado';fileNameEl.classList.add('loaded');}
   window._olgaDataLabel=filename||null;
   landingDrop.classList.add('loaded');
@@ -9223,21 +9223,45 @@ function _processKDMTest(sessaoNome,xml){
 }
 
 /* ── REVISTA ────────────────────────────────────────────────── */
+function _revEventoLabel(eventId){
+  // Tenta nome_exibicao do módulo equipe, depois nome do receptivo, fallback para o código
+  if(window._adminEventos&&window._adminEventos.length){
+    var e=window._adminEventos.find(function(x){return x.id===eventId;});
+    if(e&&e.data.nome_exibicao)return e.data.nome_exibicao;
+  }
+  if(window._recepEvList&&window._recepEvList.length){
+    var e2=window._recepEvList.find(function(x){return x.id===eventId;});
+    if(e2&&(e2.data.nome_exibicao||e2.data.nome))return e2.data.nome_exibicao||e2.data.nome;
+  }
+  return eventId;
+}
+
+function buildRevistaFilters(){
+  buildPills(document.getElementById('revistaEventFilters'),eventColors,activeEventsRevista,function(){
+    buildRevistaEventSelect();
+    renderRevista();
+  });
+  buildRevistaEventSelect();
+}
+
 function buildRevistaEventSelect(){
   var sel=document.getElementById('revistaEventSelect');
   if(!sel)return;
   var today=new Date();today.setHours(0,0,0,0);
+  // só eventos ativos (sessão futura) E dentro dos pills selecionados
   var activeEvs=new Set();
   sessoesArr.forEach(function(s){
-    if(!s.evento)return;
+    if(!s.evento||!activeEventsRevista.has(s.evento))return;
     var d=s.date?new Date(s.date):null;
     if(d&&d>=today)activeEvs.add(s.evento);
   });
-  var opts=Array.from(activeEvs).sort(function(a,b){return a.localeCompare(b,'pt-BR');});
+  var opts=Array.from(activeEvs).sort(function(a,b){
+    return _revEventoLabel(a).localeCompare(_revEventoLabel(b),'pt-BR');
+  });
   sel.innerHTML='<option value="" disabled selected>— selecionar evento —</option>';
   opts.forEach(function(ev){
     var o=document.createElement('option');
-    o.value=ev;o.textContent=ev;
+    o.value=ev;o.textContent=_revEventoLabel(ev);
     sel.appendChild(o);
   });
   if(revistaSelectedEvent&&activeEvs.has(revistaSelectedEvent)){
@@ -9286,7 +9310,7 @@ function renderRevista(){
     var page=document.createElement('div');
     page.className='rev-page';
     var hdr='<div class="rev-page-header">'+
-      '<div class="rev-evento-pill" style="background:'+color+'">'+_revEsc(evName)+'</div>'+
+      '<div class="rev-evento-pill" style="background:'+color+'">'+_revEsc(_revEventoLabel(evName))+'</div>'+
       '<div class="rev-page-num">'+(idx+1)+'</div>'+
     '</div>';
     var label='<div class="rev-mostra-label">mostra</div><hr class="rev-mostra-rule">';
@@ -9883,14 +9907,14 @@ function efv(v){return(!v||v==='-'||v==='0')?'—':v;}// expand field value
 /* EVENT FILTER SYNC */
 function syncEventFiltersFrom(src){
   var evs=Array.from(src);
-  [activeEventsGrade,activeEventsBusca,activeEventsIngest,activeEventsFicha,activeEventsCinemas,activeEventsDash,activeEventsGrade2,activeEventsSessoes,activeEventsProjecao,activeEventsVinhetas,activeEventsProgramacao,activeEventsKDM,activeEventsCatalogo].forEach(function(s){s.clear();evs.forEach(function(e){s.add(e);});});
+  [activeEventsGrade,activeEventsBusca,activeEventsIngest,activeEventsFicha,activeEventsCinemas,activeEventsDash,activeEventsGrade2,activeEventsSessoes,activeEventsProjecao,activeEventsVinhetas,activeEventsProgramacao,activeEventsKDM,activeEventsCatalogo,activeEventsRevista].forEach(function(s){s.clear();evs.forEach(function(e){s.add(e);});});
 }
 function activeEventsForMode(m){
   if(m==='grade')return activeEventsGrade;if(m==='busca')return activeEventsBusca;
   if(m==='ingest')return activeEventsIngest;if(m==='ficha')return activeEventsFicha;
   if(m==='cinemas')return activeEventsCinemas;if(m==='dash')return activeEventsDash;
   if(m==='grade2')return activeEventsGrade2;if(m==='sessoes')return activeEventsSessoes;
-  if(m==='projecao')return activeEventsProjecao;if(m==='vinhetas')return activeEventsVinhetas;if(m==='catalogo')return activeEventsCatalogo;if(m==='programacao')return activeEventsProgramacao;if(m==='kdm')return activeEventsKDM;if(m==='bilheteria')return activeEventsBilheteria;return null;
+  if(m==='projecao')return activeEventsProjecao;if(m==='vinhetas')return activeEventsVinhetas;if(m==='catalogo')return activeEventsCatalogo;if(m==='programacao')return activeEventsProgramacao;if(m==='kdm')return activeEventsKDM;if(m==='bilheteria')return activeEventsBilheteria;if(m==='revista')return activeEventsRevista;return null;
 }
 function rebuildPillsForMode(m){
   if(m==='grade')buildGradeFilters();else if(m==='grade2')buildGrade2Filters();
@@ -9904,6 +9928,7 @@ function rebuildPillsForMode(m){
   else if(m==='programacao')buildProgramacaoFilters();
   else if(m==='kdm')buildKDMFilters();
   else if(m==='bilheteria')buildBilheteriaFilters();
+  else if(m==='revista')buildRevistaFilters();
 }
 
 /* BUSCA ADITIVA */

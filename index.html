@@ -4116,14 +4116,13 @@ html[data-theme]:not([data-theme="win98"]){--mono:var(--sans);}
     }
 
     try {
-      const [filmesSnap, sessoesSnap, cinemasSnap, vinhetasSnap, eventosSnap, kdmDoc, mostrasSnap] = await Promise.all([
+      const [filmesSnap, sessoesSnap, cinemasSnap, vinhetasSnap, eventosSnap, kdmDoc] = await Promise.all([
         getDocs(collection(db, 'copias')),
         getDocs(collection(db, 'sessoes')),
         getDocs(collection(db, 'cinemas')),
         getDocs(collection(db, 'vinhetas')),
         getDocs(collection(db, 'eventos')),
         getDoc(doc(db, 'kdm_results', 'global')).catch(function(){return null;}),
-        getDocs(collection(db, 'mostras')).catch(function(){return{forEach:function(){}};})
       ]);
       // Sync KDM results: merge localStorage + Firebase, push back se houver dados só no local
       try {
@@ -4306,22 +4305,6 @@ html[data-theme]:not([data-theme="win98"]){--mono:var(--sans);}
         });
       });
 
-      // mostras
-      var mostrasArr2 = [];
-      mostrasSnap.forEach(function(doc) {
-        var r = doc.data();
-        var evNome = (r['event_name'] || '').toString().trim();
-        if (!evNome || !allowedEvento(evNome)) return;
-        mostrasArr2.push({
-          evento:  evNome,
-          nome:    (r['name']            || '').toString().trim(),
-          texto:   (r['curatorial_text'] || '').toString().trim(),
-          curador: (r['curator']         || '').toString().trim(),
-          ordem:   Number(r['order'])    || 999
-        });
-      });
-      mostrasArr2.sort(function(a,b){return a.ordem-b.ordem||a.nome.localeCompare(b.nome,'pt-BR');});
-
       // events set (só eventos permitidos)
       var evSet = new Set();
       filmesArr2.forEach(function(f)  { if (f.evento) evSet.add(f.evento); });
@@ -4330,7 +4313,6 @@ html[data-theme]:not([data-theme="win98"]){--mono:var(--sans);}
         if (c.evento) c.evento.split(';').forEach(function(e){ var t=e.trim(); if(t&&allowedEvento(t)) evSet.add(t); });
       });
       vinhetasArr2.forEach(function(v){ if (v.evento) evSet.add(v.evento); });
-      mostrasArr2.forEach(function(m){ if (m.evento) evSet.add(m.evento); });
 
       var now = new Date();
       var label = 'Firestore · ' + now.toLocaleDateString('pt-BR') + ' ' +
@@ -4354,7 +4336,6 @@ html[data-theme]:not([data-theme="win98"]){--mono:var(--sans);}
           buscaReverseSessoes: buscaRev2,
           cinemasArr: cinemasArr2,
           vinhetasArr: vinhetasArr2, vinhetaReverseSessoes: vinhetaRev2,
-          mostrasArr: mostrasArr2,
           events: Array.from(evSet),
           eventosFirestore: eventosFirestore2
         }, label);
@@ -5065,7 +5046,7 @@ self.onmessage=function(e){
 <script>
 var filmesMap={},filmesArr=[],sessoesArr=[],sessoesMap={};
 var buscaReverseSessoes={},eventColors={};
-var mostrasArr=[],revistaSelectedEvent='';
+var revistaSelectedEvent='';
 var vinhetasArr=[],vinhetaReverseSessoes={},currentVinhetaDetail=null;
 var activeEventsGrade=new Set(),activeEventsBusca=new Set(),activeEventsIngest=new Set(),activeEventsFicha=new Set(),activeEventsCinemas=new Set(),activeEventsDash=new Set(),activeEventsGrade2=new Set(),activeEventsSessoes=new Set(),activeEventsProjecao=new Set(),activeEventsVinhetas=new Set();
 var activeEventsCatalogo=new Set(),activeEventsProgramacao=new Set(),activeEventsKDM=new Set(),activeEventsBilheteria=new Set(),activeEventsReceptivo=new Set();
@@ -5159,7 +5140,6 @@ function applyParsedData(d,filename){
   if(d.cinemasArr)cinemasArr=d.cinemasArr;
   if(d.vinhetasArr)vinhetasArr=d.vinhetasArr;
   if(d.vinhetaReverseSessoes)vinhetaReverseSessoes=d.vinhetaReverseSessoes;
-  if(d.mostrasArr)mostrasArr=d.mostrasArr;
   var events=d.events;
   eventColors={};
   // sort events by earliest future session date; events with no sessions go last
@@ -5268,20 +5248,8 @@ function parseWorkbook(data,filename){
   vinhetaReverseSessoes={};
   sessoesArr.forEach(function(s){(s.vinhetas||[]).forEach(function(c){if(!vinhetaReverseSessoes[c])vinhetaReverseSessoes[c]=[];vinhetaReverseSessoes[c].push(s.nome);});});
   vinhetasArr.forEach(function(v){if(v.evento)evSet.add(v.evento);});
-  mostrasArr=[];
-  var wsM=wb.Sheets['Mostras']||wb.Sheets['mostras'];
-  if(wsM){
-    var rowsM=XLSX.utils.sheet_to_json(wsM,{raw:false});
-    for(var i=0;i<rowsM.length;i++){
-      var r=rowsM[i];var evNome=(r['event_name']||'').toString().trim();
-      if(!evNome)continue;
-      mostrasArr.push({evento:evNome,nome:(r['name']||'').toString().trim(),texto:(r['curatorial_text']||'').toString().trim(),curador:(r['curator']||'').toString().trim(),ordem:Number(r['order'])||999});
-    }
-    mostrasArr.sort(function(a,b){return a.ordem-b.ordem||a.nome.localeCompare(b.nome,'pt-BR');});
-  }
-  mostrasArr.forEach(function(m){if(m.evento)evSet.add(m.evento);});
   var events=Array.from(evSet);
-  applyParsedData({filmesMap:filmesMap,filmesArr:filmesArr,sessoesArr:sessoesArr,sessoesMap:sessoesMap,buscaReverseSessoes:buscaReverseSessoes,cinemasArr:cinemasArr,vinhetasArr:vinhetasArr,vinhetaReverseSessoes:vinhetaReverseSessoes,mostrasArr:mostrasArr,events:events},filename);
+  applyParsedData({filmesMap:filmesMap,filmesArr:filmesArr,sessoesArr:sessoesArr,sessoesMap:sessoesMap,buscaReverseSessoes:buscaReverseSessoes,cinemasArr:cinemasArr,vinhetasArr:vinhetasArr,vinhetaReverseSessoes:vinhetaReverseSessoes,events:events},filename);
 }
 
 function goHome(){
@@ -9292,8 +9260,24 @@ function renderRevista(){
   if(empty)empty.style.display='none';
   var evName=revistaSelectedEvent;
   var color=eventColors[evName]||'#111';
-  var mostras=mostrasArr.filter(function(m){return m.evento===evName;});
-  mostras.forEach(function(m,idx){
+  // programs usa event_id (= nome do evento) e auto=true sinaliza mostra-contêiner automática
+  var mostras=(_progData.programs||[]).filter(function(p){
+    return p.data.event_id===evName&&!p.data.auto;
+  });
+  if(!mostras.length){
+    // evento não tem mostras cadastradas — carrega do Firestore se necessário
+    if(window._olgaPrograms&&!_progData.programs.length){
+      empty.innerHTML='<p>Carregando mostras…</p>';empty.style.display='flex';
+      window._olgaPrograms.list().then(function(progs){
+        _progData.programs=progs;
+        renderRevista();
+      });
+      return;
+    }
+    if(empty){empty.innerHTML='<p>Este evento não possui mostras cadastradas na Programação.</p>';empty.style.display='flex';}
+    return;
+  }
+  mostras.forEach(function(p,idx){
     if(idx>0){
       var div=document.createElement('div');
       div.className='rev-page-divider';
@@ -9306,19 +9290,19 @@ function renderRevista(){
       '<div class="rev-page-num">'+(idx+1)+'</div>'+
     '</div>';
     var label='<div class="rev-mostra-label">mostra</div><hr class="rev-mostra-rule">';
-    var name='<div class="rev-mostra-name">'+_revEsc(m.nome)+'</div>';
-    var curador=m.curador?'<div class="rev-mostra-curador">Curadoria: '+_revEsc(m.curador)+'</div>':'';
+    var name='<div class="rev-mostra-name">'+_revEsc(p.data.name||p.id)+'</div>';
     var textoHtml='';
-    if(m.texto){
-      var paras=m.texto.split(/\n\n+/);
-      if(paras.length===1)paras=m.texto.split(/\n/);
+    var texto=p.data.program_description||'';
+    if(texto){
+      var paras=texto.split(/\n\n+/);
+      if(paras.length===1)paras=texto.split(/\n/);
       textoHtml='<div class="rev-curadorial-text">'+
-        paras.filter(function(p){return p.trim();}).map(function(p){return'<p>'+_revEsc(p.trim())+'</p>';}).join('')+
+        paras.filter(function(t){return t.trim();}).map(function(t){return'<p>'+_revEsc(t.trim())+'</p>';}).join('')+
       '</div>';
     } else {
       textoHtml='<div class="rev-sem-texto">Texto curatorial não disponível.</div>';
     }
-    page.innerHTML=hdr+label+name+curador+textoHtml;
+    page.innerHTML=hdr+label+name+textoHtml;
     container.appendChild(page);
   });
 }

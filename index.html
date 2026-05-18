@@ -2010,6 +2010,16 @@ mark{background:rgba(255,186,32,0.28);color:var(--accent);border-radius:2px;padd
 .rev-submostra-header{font-family:'IBM Plex Mono',monospace;font-size:8px;font-weight:700;letter-spacing:0.24em;text-transform:uppercase;color:#999;padding:18px 0 10px 0;border-bottom:1px solid #e4e0d8;margin-bottom:4px;}
 .rev-submostra-header:first-child{padding-top:0;}
 @media print{.rev-page{page-break-after:always;border:none!important;}#revista-container{background:#fff;padding:0;}.rev-page{box-shadow:none;margin-bottom:0;}}
+.rev-sinopses-list{display:flex;flex-direction:column;}
+.rev-sinopse-entry{padding:18px 0;border-bottom:1px solid #e0dcd5;}
+.rev-sinopse-entry:first-child{padding-top:0;}
+.rev-sinopse-entry:last-child{border-bottom:none;}
+.rev-sinopse-title{font-family:'IBM Plex Sans',sans-serif;font-size:21px;font-weight:700;line-height:1.12;color:#111;margin-bottom:3px;}
+.rev-sinopse-original{font-family:'IBM Plex Sans',sans-serif;font-size:12px;font-weight:300;color:#555;margin-bottom:7px;}
+.rev-sinopse-credits{font-family:'IBM Plex Mono',monospace;font-size:9px;color:#888;letter-spacing:0.06em;margin-bottom:11px;}
+.rev-sinopse-text{font-family:'IBM Plex Sans',sans-serif;font-size:11.5px;font-weight:300;line-height:1.75;color:#222;margin-bottom:11px;}
+.rev-sinopse-info{font-family:'IBM Plex Mono',monospace;font-size:8px;font-weight:700;letter-spacing:0.18em;text-transform:uppercase;color:#bbb;margin-bottom:5px;}
+.rev-sinopse-sess-row{font-family:'IBM Plex Mono',monospace;font-size:9px;color:#555;line-height:1.7;}
 
 /* LIGHT THEME */
 [data-theme="light"]{
@@ -4688,6 +4698,10 @@ html[data-theme]:not([data-theme="win98"]){--mono:var(--sans);}
   <select id="revistaEventSelect" style="min-width:260px;margin-left:8px;" onchange="revistaSelectedEvent=this.value;renderRevista();">
     <option value="" disabled selected>— selecionar evento —</option>
   </select>
+  <div style="display:flex;gap:3px;margin-left:12px;">
+    <button id="revBtnMostras" class="print-btn" onclick="revistaMode='mostras';renderRevista();">Mostras</button>
+    <button id="revBtnSinopses" class="print-btn" onclick="revistaMode='sinopses';renderRevista();">Sinopses</button>
+  </div>
 </div>
 <div class="mode-bar hidden" id="barBilheteria" style="flex-wrap:wrap;row-gap:4px;">
   <div class="event-filters" id="bilheteriaEventFilters"></div>
@@ -5067,6 +5081,7 @@ self.onmessage=function(e){
 var filmesMap={},filmesArr=[],sessoesArr=[],sessoesMap={};
 var buscaReverseSessoes={},eventColors={};
 var revistaSelectedEvent='';
+var revistaMode='mostras';
 var vinhetasArr=[],vinhetaReverseSessoes={},currentVinhetaDetail=null;
 var activeEventsGrade=new Set(),activeEventsBusca=new Set(),activeEventsIngest=new Set(),activeEventsFicha=new Set(),activeEventsCinemas=new Set(),activeEventsDash=new Set(),activeEventsGrade2=new Set(),activeEventsSessoes=new Set(),activeEventsProjecao=new Set(),activeEventsVinhetas=new Set();
 var activeEventsCatalogo=new Set(),activeEventsProgramacao=new Set(),activeEventsKDM=new Set(),activeEventsBilheteria=new Set(),activeEventsReceptivo=new Set(),activeEventsRevista=new Set();
@@ -9361,7 +9376,132 @@ function _revPaginateContent(items,shellFn,startNum,msr){
   return{pages:pages.map(function(s){return s.page;}),nextNum:pNum};
 }
 
+function _revUpdateModeBtns(){
+  var bM=document.getElementById('revBtnMostras'),bS=document.getElementById('revBtnSinopses');
+  if(!bM||!bS)return;
+  bM.style.background=revistaMode==='mostras'?'#111':'';bM.style.color=revistaMode==='mostras'?'#f8f7f4':'';
+  bS.style.background=revistaMode==='sinopses'?'#111':'';bS.style.color=revistaMode==='sinopses'?'#f8f7f4':'';
+}
+
+var _DIAS_REV=['DOM','SEG','TER','QUA','QUI','SEX','SÁB'];
+
+function _revGetSinopseItems(evName){
+  var filmCodes=[],filmCodesSet={},filmSessoes={},filmMostras={};
+  sessoesArr.forEach(function(s){
+    if(s.evento!==evName)return;
+    (s.filmes||[]).forEach(function(cod){
+      if(!filmCodesSet[cod]){filmCodesSet[cod]=true;filmCodes.push(cod);}
+      if(!filmSessoes[cod])filmSessoes[cod]=[];
+      filmSessoes[cod].push(s);
+    });
+  });
+  sessoesArr.forEach(function(s){
+    if(s.evento!==evName||!s.program_id)return;
+    var prog=(_progData.programs||[]).find(function(p){return p.id===s.program_id;});
+    var mostraName=prog?(prog.data.name||prog.id):s.program_id;
+    (s.filmes||[]).forEach(function(cod){
+      if(!filmMostras[cod])filmMostras[cod]={};
+      filmMostras[cod][mostraName]=true;
+    });
+  });
+  filmCodes.sort(function(a,b){
+    var ta=(filmesMap[a]&&filmesMap[a].titulo)||(catalogoFilmesMap[a]&&catalogoFilmesMap[a].title_pt)||a;
+    var tb=(filmesMap[b]&&filmesMap[b].titulo)||(catalogoFilmesMap[b]&&catalogoFilmesMap[b].title_pt)||b;
+    return ta.localeCompare(tb,'pt-BR');
+  });
+  return filmCodes.map(function(cod){
+    var f=filmesMap[cod]||{},cat=catalogoFilmesMap[cod]||{};
+    var titulo=f.titulo||cat.title_pt||cat.title||cod;
+    var original=cat.original_title||'';if(original===titulo)original='';
+    var diretor=Array.isArray(cat.director)?cat.director.join(', '):(cat.director||'');
+    var paises=Array.isArray(cat.countries)?cat.countries.join(', '):(cat.countries||'');
+    var mostras=Object.keys(filmMostras[cod]||{}).sort(function(a,b){return a.localeCompare(b,'pt-BR');});
+    var sessoes=(filmSessoes[cod]||[]).slice().sort(function(a,b){
+      if(!a.date&&!b.date)return 0;if(!a.date)return 1;if(!b.date)return -1;
+      var dd=a.date-b.date;return dd!==0?dd:(a.hora||'').localeCompare(b.hora||'');
+    });
+    return{titulo:titulo,original:original,diretor:diretor,paises:paises,ano:cat.year||'',duracao:f.duracao||'',sinopse:cat.synopsis||'',legenda:f.legenda||'',rating:cat.content_rating||'',mostraStr:mostras.length?mostras.join(' · '):_revEventoLabel(evName),sessoes:sessoes};
+  });
+}
+
+function _revSinopseItemFns(sinopseItems){
+  return sinopseItems.map(function(item){
+    return function(){
+      var el=document.createElement('div');el.className='rev-sinopse-entry';
+      var html='<div class="rev-sinopse-title">'+_revEsc(item.titulo)+'</div>';
+      if(item.original)html+='<div class="rev-sinopse-original">('+_revEsc(item.original)+')</div>';
+      var credits=[];
+      if(item.diretor)credits.push('dir. '+_revEsc(item.diretor));
+      var m2=[];if(item.paises)m2.push(_revEsc(item.paises));if(item.ano)m2.push(_revEsc(String(item.ano)));if(item.duracao)m2.push(_revEsc(item.duracao));
+      if(m2.length)credits.push(m2.join(', '));
+      if(credits.length)html+='<div class="rev-sinopse-credits">'+credits.join(' · ')+'</div>';
+      if(item.sinopse)html+='<div class="rev-sinopse-text">'+_revEsc(item.sinopse)+'</div>';
+      var info=[];
+      if(item.mostraStr)info.push(_revEsc(item.mostraStr));
+      if(item.legenda)info.push(_revEsc(item.legenda));
+      if(item.rating)info.push(_revEsc(item.rating));
+      if(info.length)html+='<div class="rev-sinopse-info">'+info.join(' · ')+'</div>';
+      if(item.sessoes&&item.sessoes.length){
+        html+='<div class="rev-sinopse-sessoes">';
+        item.sessoes.forEach(function(s){
+          var dia=s.date?_DIAS_REV[s.date.getDay()]:'';
+          var ddmm=s.date?String(s.date.getDate()).padStart(2,'0')+'/'+String(s.date.getMonth()+1).padStart(2,'0'):'';
+          var parts=[];
+          if(dia&&ddmm)parts.push(dia+' ('+ddmm+')');
+          if(s.hora)parts.push(s.hora);
+          if(s.cinema)parts.push(s.cinema);
+          html+='<div class="rev-sinopse-sess-row">'+_revEsc(parts.join('  '))+'</div>';
+        });
+        html+='</div>';
+      }
+      el.innerHTML=html;return el;
+    };
+  });
+}
+
+function renderSinopses(){
+  var container=document.getElementById('revista-container');
+  var empty=document.getElementById('revistaEmpty');
+  if(!container)return;
+  Array.from(container.querySelectorAll('.rev-page,.rev-page-divider')).forEach(function(el){el.remove();});
+  if(!revistaSelectedEvent){
+    if(empty){empty.innerHTML='<p>Selecione um evento acima para gerar as sinopses.</p>';empty.style.display='flex';}
+    return;
+  }
+  if(empty)empty.style.display='none';
+  var evName=revistaSelectedEvent,color=eventColors[evName]||'#111';
+  if(window._olgaPrograms&&!(_progData.programs||[]).length){
+    if(empty){empty.innerHTML='<p>Carregando…</p>';empty.style.display='flex';}
+    window._olgaPrograms.list().then(function(progs){_progData.programs=progs;renderSinopses();});
+    return;
+  }
+  var sinopseItems=_revGetSinopseItems(evName);
+  if(!sinopseItems.length){
+    if(empty){empty.innerHTML='<p>Nenhum filme encontrado para este evento.</p>';empty.style.display='flex';}
+    return;
+  }
+  var msr=document.createElement('div');
+  msr.style.cssText='position:fixed;left:-9999px;top:0;width:760px;visibility:hidden;pointer-events:none;';
+  document.body.appendChild(msr);
+  function _sinopsesShell(pNum){
+    var contentEl=document.createElement('div');contentEl.className='rev-sinopses-list';
+    var page=document.createElement('div');page.className='rev-page';
+    page.innerHTML='<div class="rev-page-header"><div class="rev-evento-pill" style="background:'+color+'">'+_revEsc(_revEventoLabel(evName))+'</div><div class="rev-page-num">'+pNum+'</div></div><div class="rev-mostra-label">sinopses</div><hr class="rev-mostra-rule">';
+    page.appendChild(contentEl);
+    return{page:page,contentEl:contentEl};
+  }
+  var result=_revPaginateContent(_revSinopseItemFns(sinopseItems),_sinopsesShell,1,msr);
+  result.pages.forEach(function(pg){msr.removeChild(pg);});
+  document.body.removeChild(msr);
+  result.pages.forEach(function(el,i){
+    if(i>0){var d=document.createElement('div');d.className='rev-page-divider';container.appendChild(d);}
+    container.appendChild(el);
+  });
+}
+
 function renderRevista(){
+  _revUpdateModeBtns();
+  if(revistaMode==='sinopses'){renderSinopses();return;}
   var container=document.getElementById('revista-container');
   var empty=document.getElementById('revistaEmpty');
   if(!container)return;
@@ -11904,7 +12044,7 @@ function renderDash(){
   html+=colBlock('kdm','KDM',kdmBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 17/05/2026 às 15:10';
+  var sysUpdate='última atualização do sistema · 17/05/2026 às 15:12';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -15748,7 +15888,7 @@ window.addEventListener('popstate',function(e){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 17/05/2026 às 15:10</span></div>
+<div id="page-footer"><span>última atualização · 17/05/2026 às 15:12</span></div>
 
 </div>
 

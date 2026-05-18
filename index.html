@@ -7706,6 +7706,7 @@ function goToProgFichaFromGrade(nomeSessao){
 var _recepGuests=[],_recepHotels=[],_recepBookings=[],_recepFlights=[],_recepTransfers=[];
 var _recepEvList=[],_recepEvFilter='',_recepSection='',_recepEditId=null,_recepParentId=null;
 var _recepSort={sec:'',field:'',dir:1},_recepTransDate='',_recepTransVeh='',_recepHandlingPop=false;
+var _recepGuestSel=new Set();
 
 function _re(s){return(s||'').toString().replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 
@@ -8023,7 +8024,16 @@ window._importarPessoasSelecionadas=async function(){
   try{
     for(var i=0;i<selecionadas.length;i++){
       var p=selecionadas[i].data;
-      await window._olgaGuests.save(null,{name:p.name||'',event_id:p.event_id||'',roles:[],contact:{email:'',phone:''},notes:'',arrival_date:'',departure_date:'',hotel_checkin_date:'',hotel_checkout_date:'',mostras:[],submostras:[],filmes:p.filmes||[],updated_at:_recepNow()});
+      var nomeLower=(p.name||'').toLowerCase().trim();
+      var existing=_recepGuests.find(function(g){return(g.data.name||'').toLowerCase().trim()===nomeLower;});
+      if(existing){
+        var mergedFilmes=Array.from(new Set((existing.data.filmes||[]).concat(p.filmes||[])));
+        var mergedData=Object.assign({},existing.data,{filmes:mergedFilmes,updated_at:_recepNow()});
+        await window._olgaGuests.save(existing.id,mergedData);
+        window._logFirestoreEdit&&window._logFirestoreEdit('individual',existing.id,mergedData,'receptivo','convidados');
+      }else{
+        await window._olgaGuests.save(null,{name:p.name||'',event_id:p.event_id||'',roles:[],contact:{email:'',phone:''},notes:'',arrival_date:'',departure_date:'',hotel_checkin_date:'',hotel_checkout_date:'',mostras:[],submostras:[],filmes:p.filmes||[],updated_at:_recepNow()});
+      }
     }
     _recepCloseModal();openRecepSection('convidados');
   }catch(e){
@@ -8144,6 +8154,7 @@ function _renderConvidados(){
   var rows=sorted.map(function(g){
     var d=g.data,sid=_re(g.id);
     return'<tr>'+
+      '<td style="width:22px;text-align:center;"><input type="checkbox" class="recep-guest-chk" data-id="'+sid+'" onchange="_recepToggleGuestSel(\''+sid+'\')"'+(_recepGuestSel.has(g.id)?' checked':'')+'></td>'+
       '<td style="width:22px;text-align:center;">'+_guestStatusDot(d)+'</td>'+
       '<td><button style="background:none;border:none;font-family:var(--mono);font-size:10px;font-weight:600;color:var(--text);cursor:pointer;padding:0;text-align:left;" onclick="openGuestDetail(\''+sid+'\')">'+_re(d.name||'—')+'</button></td>'+
       '<td>'+_recepRoleBadges(d.roles)+'</td>'+
@@ -8161,6 +8172,7 @@ function _renderConvidados(){
       '<button class="recep-print-btn" onclick="_recepPrint()">imprimir</button>'+
       (canEdit?'<button id="recepSyncPessoasBtn" class="recep-print-btn" onclick="window._recepSyncTodasPessoas()" title="Sincroniza equipe e diretores de todos os filmes do catálogo para o banco de pessoas">sincronizar equipe</button>':'')+
       (canEdit?'<button class="recep-print-btn" onclick="openImportPessoasModal()">importar pessoa</button>':'')+
+      (canEdit?'<button id="recepBulkDelBtn" class="recep-btn-del" style="display:none;" onclick="_recepDeleteSelected()">excluir 0 selecionados</button>':'')+
       (canEdit?'<button class="recep-add-btn" onclick="openGuestModal(null)">+ Convidado</button>':'')+
     '</div>'+
     '<div class="recep-pres-legend">'+
@@ -8170,6 +8182,7 @@ function _renderConvidados(){
       '<span><span class="recep-pres-dot recep-pres-gray"></span>ausente / sem datas</span>'+
     '</div>'+
     '<table class="recep-table"><thead><tr>'+
+      '<th style="width:22px;text-align:center;"><input type="checkbox" id="recepGuestSelAll" onclick="_recepToggleAllGuests()" title="Selecionar todos"></th>'+
       '<th style="width:22px;"></th>'+
       _recepSortTh('Nome','nome','convidados')+
       '<th>Papel</th>'+
@@ -8177,7 +8190,7 @@ function _renderConvidados(){
       _recepSortTh('Hotel','hotel','convidados')+
       _recepSortTh('E-mail','email','convidados')+
       '<th></th></tr></thead>'+
-    '<tbody>'+(rows||'<tr><td colspan="7" class="recep-empty">Nenhum convidado encontrado.</td></tr>')+'</tbody></table>';
+    '<tbody>'+(rows||'<tr><td colspan="8" class="recep-empty">Nenhum convidado encontrado.</td></tr>')+'</tbody></table>';
   buildPills(document.getElementById('recepPills'),eventColors,activeEventsReceptivo,function(){_renderConvidados();});
 }
 
@@ -8253,6 +8266,39 @@ window.deleteGuest=async function(id){
   if(!confirm('Excluir este convidado e todos os seus registros de voos, hospedagem e transfers?'))return;
   try{await window._olgaGuests.remove(id);window._logFirestoreEdit&&window._logFirestoreEdit('delete',id,{},'receptivo','convidados');_recepCloseModal();openRecepSection('convidados');}
   catch(e){alert('Erro: '+e.message);}
+};
+window._recepToggleGuestSel=function(id){
+  if(_recepGuestSel.has(id))_recepGuestSel.delete(id);else _recepGuestSel.add(id);
+  _recepUpdateBulkUI();
+};
+window._recepToggleAllGuests=function(){
+  var chkAll=document.getElementById('recepGuestSelAll');
+  var all=document.querySelectorAll('.recep-guest-chk');
+  var ids=Array.from(all).map(function(c){return c.getAttribute('data-id');});
+  if(chkAll&&chkAll.checked){ids.forEach(function(id){_recepGuestSel.add(id);});}
+  else{ids.forEach(function(id){_recepGuestSel.delete(id);});}
+  all.forEach(function(c){c.checked=!!(chkAll&&chkAll.checked);});
+  _recepUpdateBulkUI();
+};
+function _recepUpdateBulkUI(){
+  var n=_recepGuestSel.size;
+  var btn=document.getElementById('recepBulkDelBtn');
+  if(btn){btn.style.display=n?'':'none';btn.textContent='excluir '+n+' selecionado'+(n===1?'':'s');}
+  var chkAll=document.getElementById('recepGuestSelAll');
+  if(chkAll){var total=document.querySelectorAll('.recep-guest-chk').length;chkAll.checked=total>0&&n>=total;chkAll.indeterminate=n>0&&n<total;}
+}
+window._recepDeleteSelected=async function(){
+  var ids=Array.from(_recepGuestSel);
+  if(!ids.length)return;
+  if(!confirm('Excluir '+ids.length+' convidado'+(ids.length===1?'':'s')+' e todos os seus registros?'))return;
+  try{
+    for(var i=0;i<ids.length;i++){
+      await window._olgaGuests.remove(ids[i]);
+      window._logFirestoreEdit&&window._logFirestoreEdit('delete',ids[i],{},'receptivo','convidados');
+    }
+    _recepGuestSel.clear();
+    openRecepSection('convidados');
+  }catch(e){alert('Erro: '+e.message);}
 };
 
 /* ─── GUEST DETAIL ─── */
@@ -12603,7 +12649,7 @@ function renderDash(){
   html+=colBlock('kdm','KDM',kdmBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 18/05/2026 às 15:50';
+  var sysUpdate='última atualização do sistema · 18/05/2026 às 15:52';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -16448,7 +16494,7 @@ window.addEventListener('popstate',function(e){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 18/05/2026 às 15:50</span></div>
+<div id="page-footer"><span>última atualização · 18/05/2026 às 15:52</span></div>
 
 </div>
 

@@ -2022,6 +2022,18 @@ mark{background:rgba(255,186,32,0.28);color:var(--accent);border-radius:2px;padd
 .rev-sinopse-text{font-family:'IBM Plex Sans',sans-serif;font-size:11.5px;font-weight:300;line-height:1.75;color:#222;margin-bottom:11px;}
 .rev-sinopse-info{font-family:'IBM Plex Mono',monospace;font-size:8px;font-weight:700;letter-spacing:0.18em;text-transform:uppercase;color:#bbb;margin-bottom:5px;}
 .rev-sinopse-sess-row{font-family:'IBM Plex Mono',monospace;font-size:9px;color:#555;line-height:1.7;}
+.rev-cinema-pill{font-family:'IBM Plex Mono',monospace;font-size:8px;font-weight:600;letter-spacing:0.28em;text-transform:uppercase;padding:5px 12px;background:#444;color:#f8f7f4;display:inline-block;}
+.rev-grade-wrap{display:flex;gap:0;flex:1;overflow:hidden;}
+.rev-grade-time-col{width:40px;flex-shrink:0;position:relative;}
+.rev-grade-hour-lbl{position:absolute;right:5px;font-family:'IBM Plex Mono',monospace;font-size:6.5px;color:#bbb;transform:translateY(-50%);white-space:nowrap;}
+.rev-grade-days{flex:1;display:flex;border-left:1px solid #ddd;}
+.rev-grade-day-col{flex:1;min-width:0;display:flex;flex-direction:column;border-right:1px solid #e8e4de;}
+.rev-grade-day-hdr{font-family:'IBM Plex Mono',monospace;font-size:6.5px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:#888;text-align:center;padding:4px 2px;border-bottom:1px solid #ddd;flex-shrink:0;white-space:nowrap;overflow:hidden;}
+.rev-grade-day-body{position:relative;overflow:hidden;}
+.rev-grade-hline{position:absolute;left:0;right:0;border-top:1px solid #f0ece6;}
+.rev-grade-session{position:absolute;left:2px;right:2px;overflow:hidden;background:#ede9e2;padding:2px 4px;box-sizing:border-box;}
+.rev-grade-sess-time{font-family:'IBM Plex Mono',monospace;font-size:6.5px;color:#888;line-height:1.4;}
+.rev-grade-sess-title{font-family:'IBM Plex Sans',sans-serif;font-size:7.5px;font-weight:500;color:#111;line-height:1.25;overflow:hidden;}
 
 /* LIGHT THEME */
 [data-theme="light"]{
@@ -9301,6 +9313,13 @@ function _revFmtDate(d){
   var mm=['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
   return dt.getDate()+' '+mm[dt.getMonth()];
 }
+function _revFmtDur(val){
+  var secs=_parseDurSecs(val);
+  if(!secs)return'';
+  var totalMins=Math.round(secs/60);
+  var h=Math.floor(totalMins/60),m=totalMins%60;
+  return h+'h'+String(m).padStart(2,'0');
+}
 
 function _revGetFilmGroups(sessoes){
   var groups={},order=[];
@@ -9414,7 +9433,7 @@ function _revGetSinopseItems(evName){
     });
     var legRaw=f.legenda||'';var vfRaw=f.vf||'';
     var legenda=legRaw.toUpperCase().includes('VF')&&vfRaw?(dcncToCldr(vfRaw)||vfRaw):(dcncToCldr(legRaw)||legRaw);
-    return{titulo:titulo,original:original,diretor:diretor,paises:paises,ano:cat.year||'',duracao:f.duracao||'',sinopse:cat.synopsis||'',legenda:legenda,rating:cat.content_rating||'',mostraStr:mostras.length?mostras.join(' · '):_revEventoLabel(evName),sessoes:sessoes};
+    return{titulo:titulo,original:original,diretor:diretor,paises:paises,ano:cat.year||'',duracao:_revFmtDur(f.duracao||''),sinopse:cat.synopsis||'',legenda:legenda,rating:cat.content_rating||'',mostraStr:mostras.length?mostras.join(' · '):_revEventoLabel(evName),sessoes:sessoes};
   });
 }
 
@@ -9475,6 +9494,114 @@ function _revPaginateColumnsContent(itemFns,pageShellFn,startNum,msr){
     }
   });
   return{pages:pages,nextNum:pNum};
+}
+
+function _revRenderGradePages(evName,color,msr,allPages,startPageNum){
+  var pageNum=startPageNum;
+  var GBODY_H=490;
+  var cinMap={};
+  sessoesArr.forEach(function(s){
+    if(s.evento!==evName||!s.time)return;
+    var cin=s.cinema||'(sem sala)';
+    if(!cinMap[cin])cinMap[cin]=[];
+    cinMap[cin].push(s);
+  });
+  var cinemas=Object.keys(cinMap).sort(function(a,b){return a.localeCompare(b,'pt-BR');});
+  cinemas.forEach(function(cin){
+    var sess=cinMap[cin];
+    var dateMap={};
+    sess.forEach(function(s){
+      if(!s.date)return;
+      var k=s.date.toISOString().slice(0,10);
+      if(!dateMap[k])dateMap[k]=s.date;
+    });
+    var dates=Object.keys(dateMap).sort().map(function(k){return{key:k,date:dateMap[k]};});
+    if(!dates.length)return;
+    var minH=24,maxEndMins=0;
+    sess.forEach(function(s){
+      if(!s.time)return;
+      var sm=s.time.h*60+s.time.m;
+      minH=Math.min(minH,s.time.h);
+      var dur=(s.filmes||[]).reduce(function(acc,cod){return acc+_parseDurSecs((filmesMap[cod]||{}).duracao||'');},0);
+      var em=sm+(dur>0?Math.ceil(dur/60):90);
+      maxEndMins=Math.max(maxEndMins,em);
+    });
+    if(minH>=24)minH=10;
+    var maxH=Math.ceil(maxEndMins/60)+1;
+    var totalMins=(maxH-minH)*60;
+    var PPM=GBODY_H/totalMins;
+    var page=document.createElement('div');
+    page.className='rev-page';
+    page.innerHTML=
+      '<div class="rev-page-header">'+
+        '<div style="display:flex;gap:6px;align-items:center;">'+
+          '<div class="rev-evento-pill" style="background:'+color+'">'+_revEsc(_revEventoLabel(evName))+'</div>'+
+          '<div class="rev-cinema-pill">'+_revEsc(cin)+'</div>'+
+        '</div>'+
+        '<div class="rev-page-num">'+pageNum+'</div>'+
+      '</div>'+
+      '<div class="rev-mostra-label">grade</div><hr class="rev-mostra-rule">'+
+      '<div class="rev-grade-wrap">'+
+        '<div class="rev-grade-time-col"></div>'+
+        '<div class="rev-grade-days"></div>'+
+      '</div>';
+    msr.appendChild(page);
+    allPages.push(page);
+    pageNum++;
+    var timeCol=page.querySelector('.rev-grade-time-col');
+    var daysDiv=page.querySelector('.rev-grade-days');
+    timeCol.style.height=(GBODY_H+20)+'px';
+    for(var h=minH;h<=maxH;h++){
+      var lbl=document.createElement('div');
+      lbl.className='rev-grade-hour-lbl';
+      lbl.style.top=((h-minH)*60*PPM+20)+'px';
+      lbl.textContent=String(h%24).padStart(2,'0')+':00';
+      timeCol.appendChild(lbl);
+    }
+    dates.forEach(function(d){
+      var dt=d.date;
+      var dayCol=document.createElement('div');
+      dayCol.className='rev-grade-day-col';
+      var dayHdr=document.createElement('div');
+      dayHdr.className='rev-grade-day-hdr';
+      dayHdr.textContent=_DIAS_REV[dt.getDay()]+' '+String(dt.getDate()).padStart(2,'0')+'/'+String(dt.getMonth()+1).padStart(2,'0');
+      dayCol.appendChild(dayHdr);
+      var body=document.createElement('div');
+      body.className='rev-grade-day-body';
+      body.style.height=GBODY_H+'px';
+      for(var h=minH+1;h<=maxH;h++){
+        var line=document.createElement('div');
+        line.className='rev-grade-hline';
+        line.style.top=((h-minH)*60*PPM)+'px';
+        body.appendChild(line);
+      }
+      var daySess=sess.filter(function(s){
+        return s.date&&s.date.toISOString().slice(0,10)===d.key&&s.time;
+      }).sort(function(a,b){return(a.time.h*60+a.time.m)-(b.time.h*60+b.time.m);});
+      daySess.forEach(function(s){
+        var sm=s.time.h*60+s.time.m;
+        var dur=(s.filmes||[]).reduce(function(acc,cod){return acc+_parseDurSecs((filmesMap[cod]||{}).duracao||'');},0);
+        var durMin=dur>0?Math.round(dur/60):90;
+        var topPx=(sm-minH*60)*PPM;
+        var heightPx=Math.max(durMin*PPM,20);
+        var titles=(s.filmes||[]).map(function(cod){
+          var cat=catalogoFilmesMap[cod]||{};var f=filmesMap[cod]||{};
+          return cat.title_pt||cat.title||f.titulo||cod;
+        });
+        var block=document.createElement('div');
+        block.className='rev-grade-session';
+        block.style.top=topPx+'px';
+        block.style.height=heightPx+'px';
+        block.style.borderLeft='2px solid '+color;
+        block.innerHTML='<div class="rev-grade-sess-time">'+_revEsc(s.hora||'')+'</div>'+
+          '<div class="rev-grade-sess-title">'+titles.map(_revEsc).join(' · ')+'</div>';
+        body.appendChild(block);
+      });
+      dayCol.appendChild(body);
+      daysDiv.appendChild(dayCol);
+    });
+  });
+  return pageNum;
 }
 
 function renderRevista(){
@@ -9648,7 +9775,11 @@ function renderRevista(){
     }
     var snr=_revPaginateColumnsContent(_revSinopseItemFns(sinopseItems),_sinopsesShell,pageNum,msr);
     snr.pages.forEach(function(pg){allPages.push(pg);});
+    pageNum=snr.nextNum;
   }
+
+  // Grade por cinema
+  _revRenderGradePages(evName,color,msr,allPages,pageNum);
 
   allPages.forEach(function(pg){msr.removeChild(pg);});
   document.body.removeChild(msr);
@@ -12042,7 +12173,7 @@ function renderDash(){
   html+=colBlock('kdm','KDM',kdmBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 17/05/2026 às 15:18';
+  var sysUpdate='última atualização do sistema · 17/05/2026 às 15:22';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -15886,7 +16017,7 @@ window.addEventListener('popstate',function(e){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 17/05/2026 às 15:18</span></div>
+<div id="page-footer"><span>última atualização · 17/05/2026 às 15:22</span></div>
 
 </div>
 

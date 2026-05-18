@@ -2023,17 +2023,19 @@ mark{background:rgba(255,186,32,0.28);color:var(--accent);border-radius:2px;padd
 .rev-sinopse-info{font-family:'IBM Plex Mono',monospace;font-size:8px;font-weight:700;letter-spacing:0.18em;text-transform:uppercase;color:#bbb;margin-bottom:5px;}
 .rev-sinopse-sess-row{font-family:'IBM Plex Mono',monospace;font-size:9px;color:#555;line-height:1.7;}
 .rev-cinema-pill{font-family:'IBM Plex Mono',monospace;font-size:8px;font-weight:600;letter-spacing:0.28em;text-transform:uppercase;padding:5px 12px;background:#444;color:#f8f7f4;display:inline-block;}
-.rev-grade-wrap{display:flex;gap:0;flex:1;overflow:hidden;}
-.rev-grade-time-col{width:40px;flex-shrink:0;position:relative;}
-.rev-grade-hour-lbl{position:absolute;right:5px;font-family:'IBM Plex Mono',monospace;font-size:6.5px;color:#bbb;transform:translateY(-50%);white-space:nowrap;}
-.rev-grade-days{flex:1;display:flex;border-left:1px solid #ddd;}
-.rev-grade-day-col{flex:1;min-width:0;display:flex;flex-direction:column;border-right:1px solid #e8e4de;}
-.rev-grade-day-hdr{font-family:'IBM Plex Mono',monospace;font-size:6.5px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:#888;text-align:center;padding:4px 2px;border-bottom:1px solid #ddd;flex-shrink:0;white-space:nowrap;overflow:hidden;}
-.rev-grade-day-body{position:relative;overflow:hidden;}
-.rev-grade-hline{position:absolute;left:0;right:0;border-top:1px solid #f0ece6;}
-.rev-grade-session{position:absolute;left:2px;right:2px;overflow:hidden;background:#ede9e2;padding:2px 4px;box-sizing:border-box;}
-.rev-grade-sess-time{font-family:'IBM Plex Mono',monospace;font-size:6.5px;color:#888;line-height:1.4;}
-.rev-grade-sess-title{font-family:'IBM Plex Sans',sans-serif;font-size:7.5px;font-weight:500;color:#111;line-height:1.25;overflow:hidden;}
+.rev-grade-cols{display:flex;gap:20px;flex:1;overflow:hidden;}
+.rev-grade-col{flex:1;min-width:0;display:flex;flex-direction:column;gap:0;}
+.rev-grade-day-block{padding-bottom:10px;margin-bottom:8px;border-bottom:1px solid #e0dcd5;}
+.rev-grade-day-block:last-child{border-bottom:none;margin-bottom:0;}
+.rev-grade-day-hdr2{margin-bottom:4px;}
+.rev-grade-day-num2{font-family:'IBM Plex Mono',monospace;font-size:18px;font-weight:700;color:#111;line-height:1;}
+.rev-grade-day-wkd2{font-family:'IBM Plex Mono',monospace;font-size:7.5px;font-weight:400;letter-spacing:0.08em;color:#999;margin-left:5px;}
+.rev-grade-sess-row2{display:flex;align-items:flex-start;gap:7px;margin-bottom:3px;}
+.rev-grade-sess-time2{font-family:'IBM Plex Mono',monospace;font-size:8.5px;font-weight:700;color:#111;flex-shrink:0;width:30px;}
+.rev-grade-sess-content2{flex:1;min-width:0;}
+.rev-grade-sess-label2{font-family:'IBM Plex Mono',monospace;font-size:7.5px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:#444;line-height:1.3;}
+.rev-grade-sess-film2{font-family:'IBM Plex Sans',sans-serif;font-size:9px;font-weight:400;color:#222;line-height:1.35;}
+.rev-grade-sess-films2{font-family:'IBM Plex Sans',sans-serif;font-size:9px;font-weight:300;color:#444;line-height:1.35;}
 
 /* LIGHT THEME */
 [data-theme="light"]{
@@ -9498,10 +9500,10 @@ function _revPaginateColumnsContent(itemFns,pageShellFn,startNum,msr){
 
 function _revRenderGradePages(evName,color,msr,allPages,startPageNum){
   var pageNum=startPageNum;
-  var GBODY_H=490;
+  var GRADE_COL_H=540;
   var cinMap={};
   sessoesArr.forEach(function(s){
-    if(s.evento!==evName||!s.time)return;
+    if(s.evento!==evName)return;
     var cin=s.cinema||'(sem sala)';
     if(!cinMap[cin])cinMap[cin]=[];
     cinMap[cin].push(s);
@@ -9513,92 +9515,115 @@ function _revRenderGradePages(evName,color,msr,allPages,startPageNum){
     sess.forEach(function(s){
       if(!s.date)return;
       var k=s.date.toISOString().slice(0,10);
-      if(!dateMap[k])dateMap[k]=s.date;
+      if(!dateMap[k])dateMap[k]={date:s.date,sessions:[]};
+      dateMap[k].sessions.push(s);
     });
-    var dates=Object.keys(dateMap).sort().map(function(k){return{key:k,date:dateMap[k]};});
+    var dates=Object.keys(dateMap).sort().map(function(k){
+      var d=dateMap[k];
+      d.sessions.sort(function(a,b){
+        return(a.time?a.time.h*60+a.time.m:0)-(b.time?b.time.h*60+b.time.m:0);
+      });
+      return d;
+    });
     if(!dates.length)return;
-    var minH=24,maxEndMins=0;
-    sess.forEach(function(s){
-      if(!s.time)return;
-      var sm=s.time.h*60+s.time.m;
-      minH=Math.min(minH,s.time.h);
-      var dur=(s.filmes||[]).reduce(function(acc,cod){return acc+_parseDurSecs((filmesMap[cod]||{}).duracao||'');},0);
-      var em=sm+(dur>0?Math.ceil(dur/60):90);
-      maxEndMins=Math.max(maxEndMins,em);
-    });
-    if(minH>=24)minH=10;
-    var maxH=Math.ceil(maxEndMins/60)+1;
-    var totalMins=(maxH-minH)*60;
-    var PPM=GBODY_H/totalMins;
-    var page=document.createElement('div');
-    page.className='rev-page';
-    page.innerHTML=
-      '<div class="rev-page-header">'+
-        '<div style="display:flex;gap:6px;align-items:center;">'+
-          '<div class="rev-evento-pill" style="background:'+color+'">'+_revEsc(_revEventoLabel(evName))+'</div>'+
-          '<div class="rev-cinema-pill">'+_revEsc(cin)+'</div>'+
+    function newGradePage(){
+      var page=document.createElement('div');
+      page.className='rev-page';
+      var hdr=document.createElement('div');
+      hdr.className='rev-page-header';
+      hdr.innerHTML='<div style="display:flex;gap:6px;align-items:center;">'+
+        '<div class="rev-evento-pill" style="background:'+color+'">'+_revEsc(_revEventoLabel(evName))+'</div>'+
+        '<div class="rev-cinema-pill">'+_revEsc(cin)+'</div>'+
         '</div>'+
-        '<div class="rev-page-num">'+pageNum+'</div>'+
-      '</div>'+
-      '<div class="rev-mostra-label">grade</div><hr class="rev-mostra-rule">'+
-      '<div class="rev-grade-wrap">'+
-        '<div class="rev-grade-time-col"></div>'+
-        '<div class="rev-grade-days"></div>'+
-      '</div>';
-    msr.appendChild(page);
-    allPages.push(page);
-    pageNum++;
-    var timeCol=page.querySelector('.rev-grade-time-col');
-    var daysDiv=page.querySelector('.rev-grade-days');
-    timeCol.style.height=(GBODY_H+20)+'px';
-    for(var h=minH;h<=maxH;h++){
+        '<div class="rev-page-num">'+pageNum+'</div>';
+      pageNum++;
+      page.appendChild(hdr);
       var lbl=document.createElement('div');
-      lbl.className='rev-grade-hour-lbl';
-      lbl.style.top=((h-minH)*60*PPM+20)+'px';
-      lbl.textContent=String(h%24).padStart(2,'0')+':00';
-      timeCol.appendChild(lbl);
+      lbl.className='rev-mostra-label';
+      lbl.textContent='grade';
+      page.appendChild(lbl);
+      var rule=document.createElement('hr');
+      rule.className='rev-mostra-rule';
+      page.appendChild(rule);
+      var colsWrap=document.createElement('div');
+      colsWrap.className='rev-grade-cols';
+      var cols=[0,1,2].map(function(){
+        var col=document.createElement('div');
+        col.className='rev-grade-col';
+        colsWrap.appendChild(col);
+        return col;
+      });
+      page.appendChild(colsWrap);
+      msr.appendChild(page);
+      allPages.push(page);
+      return cols;
     }
+    var cols=newGradePage();
+    var curC=0;
     dates.forEach(function(d){
+      var block=document.createElement('div');
+      block.className='rev-grade-day-block';
       var dt=d.date;
-      var dayCol=document.createElement('div');
-      dayCol.className='rev-grade-day-col';
-      var dayHdr=document.createElement('div');
-      dayHdr.className='rev-grade-day-hdr';
-      dayHdr.textContent=_DIAS_REV[dt.getDay()]+' '+String(dt.getDate()).padStart(2,'0')+'/'+String(dt.getMonth()+1).padStart(2,'0');
-      dayCol.appendChild(dayHdr);
-      var body=document.createElement('div');
-      body.className='rev-grade-day-body';
-      body.style.height=GBODY_H+'px';
-      for(var h=minH+1;h<=maxH;h++){
-        var line=document.createElement('div');
-        line.className='rev-grade-hline';
-        line.style.top=((h-minH)*60*PPM)+'px';
-        body.appendChild(line);
-      }
-      var daySess=sess.filter(function(s){
-        return s.date&&s.date.toISOString().slice(0,10)===d.key&&s.time;
-      }).sort(function(a,b){return(a.time.h*60+a.time.m)-(b.time.h*60+b.time.m);});
-      daySess.forEach(function(s){
-        var sm=s.time.h*60+s.time.m;
-        var dur=(s.filmes||[]).reduce(function(acc,cod){return acc+_parseDurSecs((filmesMap[cod]||{}).duracao||'');},0);
-        var durMin=dur>0?Math.round(dur/60):90;
-        var topPx=(sm-minH*60)*PPM;
-        var heightPx=Math.max(durMin*PPM,20);
-        var titles=(s.filmes||[]).map(function(cod){
+      var wkd=_DIAS_REV[dt.getDay()];
+      var dateStr=String(dt.getDate()).padStart(2,'0')+'/'+String(dt.getMonth()+1).padStart(2,'0');
+      var hdrEl=document.createElement('div');
+      hdrEl.className='rev-grade-day-hdr2';
+      hdrEl.innerHTML='<span class="rev-grade-day-num2">'+dt.getDate()+'</span>'+
+        '<span class="rev-grade-day-wkd2"> '+_revEsc(wkd+' '+dateStr)+'</span>';
+      block.appendChild(hdrEl);
+      var ruleEl=document.createElement('div');
+      ruleEl.style.cssText='border-top:1px solid #e0dcd5;margin:4px 0 5px 0;';
+      block.appendChild(ruleEl);
+      d.sessions.forEach(function(s){
+        var row=document.createElement('div');
+        row.className='rev-grade-sess-row2';
+        var timeEl=document.createElement('span');
+        timeEl.className='rev-grade-sess-time2';
+        timeEl.textContent=s.hora||'';
+        row.appendChild(timeEl);
+        var cnt=document.createElement('div');
+        cnt.className='rev-grade-sess-content2';
+        var sessName=s.nome||s.name||'';
+        var films=(s.filmes||[]).map(function(cod){
           var cat=catalogoFilmesMap[cod]||{};var f=filmesMap[cod]||{};
           return cat.title_pt||cat.title||f.titulo||cod;
         });
-        var block=document.createElement('div');
-        block.className='rev-grade-session';
-        block.style.top=topPx+'px';
-        block.style.height=heightPx+'px';
-        block.style.borderLeft='2px solid '+color;
-        block.innerHTML='<div class="rev-grade-sess-time">'+_revEsc(s.hora||'')+'</div>'+
-          '<div class="rev-grade-sess-title">'+titles.map(_revEsc).join(' · ')+'</div>';
-        body.appendChild(block);
+        var totalSecs=(s.filmes||[]).reduce(function(acc,cod){
+          return acc+_parseDurSecs((filmesMap[cod]||{}).duracao||'');
+        },0);
+        var durStr=totalSecs>0?_revFmtDur(totalSecs):'';
+        if(sessName){
+          var nameEl=document.createElement('div');
+          nameEl.className='rev-grade-sess-label2';
+          nameEl.textContent=sessName;
+          cnt.appendChild(nameEl);
+          if(films.length){
+            var fEl=document.createElement('div');
+            fEl.className='rev-grade-sess-films2';
+            fEl.textContent=films.join(' · ')+(durStr?' ('+durStr+')':'');
+            cnt.appendChild(fEl);
+          }
+        } else if(films.length>1){
+          var fEl=document.createElement('div');
+          fEl.className='rev-grade-sess-films2';
+          fEl.textContent=films.join(' · ')+(durStr?' ('+durStr+')':'');
+          cnt.appendChild(fEl);
+        } else {
+          var fEl=document.createElement('div');
+          fEl.className='rev-grade-sess-film2';
+          fEl.textContent=(films[0]||'')+(durStr?' ('+durStr+')':'');
+          cnt.appendChild(fEl);
+        }
+        row.appendChild(cnt);
+        block.appendChild(row);
       });
-      dayCol.appendChild(body);
-      daysDiv.appendChild(dayCol);
+      cols[curC].appendChild(block);
+      if(cols[curC].scrollHeight>GRADE_COL_H&&cols[curC].children.length>1){
+        cols[curC].removeChild(block);
+        curC++;
+        if(curC>=3){cols=newGradePage();curC=0;}
+        cols[curC].appendChild(block);
+      }
     });
   });
   return pageNum;
@@ -12173,7 +12198,7 @@ function renderDash(){
   html+=colBlock('kdm','KDM',kdmBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 17/05/2026 às 15:22';
+  var sysUpdate='última atualização do sistema · 18/05/2026 às 15:24';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -16017,7 +16042,7 @@ window.addEventListener('popstate',function(e){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 17/05/2026 às 15:22</span></div>
+<div id="page-footer"><span>última atualização · 18/05/2026 às 15:24</span></div>
 
 </div>
 

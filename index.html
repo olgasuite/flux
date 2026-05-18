@@ -9351,6 +9351,7 @@ function _revGetFilmGroups(sessoes){
       order.push(sid);
     }
     s.filmes.forEach(function(cod){
+      if(!_isFest(cod))return;
       if(groups[sid].seen[cod])return;
       groups[sid].seen[cod]=true;
       var f=filmesMap[cod]||{};
@@ -9360,6 +9361,7 @@ function _revGetFilmGroups(sessoes){
       groups[sid].films.push({titulo:t,original:(o&&o!==t)?o:'',director:Array.isArray(cat.director)?cat.director.join(', '):(cat.director||''),countries:Array.isArray(cat.countries)?cat.countries.join(', '):(cat.countries||''),year:cat.year||''});
     });
   });
+  order.forEach(function(sid){groups[sid].films.sort(function(a,b){return a.titulo.localeCompare(b.titulo,'pt-BR');});});
   return{groups:groups,order:order};
 }
 
@@ -9420,6 +9422,7 @@ function _revGetSinopseItems(evName){
   sessoesArr.forEach(function(s){
     if(s.evento!==evName)return;
     (s.filmes||[]).forEach(function(cod){
+      if(!_isFest(cod))return;
       if(!filmCodesSet[cod]){filmCodesSet[cod]=true;filmCodes.push(cod);}
       if(!filmSessoes[cod])filmSessoes[cod]=[];
       filmSessoes[cod].push(s);
@@ -9470,7 +9473,7 @@ function _revSinopseItemFns(sinopseItems){
       if(item.sinopse)html+='<div class="rev-sinopse-text">'+_revEsc(item.sinopse)+'</div>';
       var info=[];
       if(item.mostraStr)info.push(_revEsc(item.mostraStr));
-      if(item.legenda)info.push(_revEsc(item.legenda));
+      if(item.legenda)info.push('leg. em '+_revEsc(item.legenda));
       if(item.rating)info.push(_revEsc(item.rating));
       if(info.length)html+='<div class="rev-sinopse-info">'+info.join(' · ')+'</div>';
       if(item.sessoes&&item.sessoes.length){
@@ -9680,11 +9683,11 @@ function _revMakeCoverPage(evName,color,mostras,salaParaComplexo,pageNum){
   infoRow.className='rev-cover-info-row';
 
   var vcol=document.createElement('div');vcol.className='rev-cover-info-col';
-  vcol.innerHTML='<div class="rev-cover-info-lbl">locais</div><div class="rev-cover-info-val">'+complexosList.map(_revEsc).join('<br>')+'</div>';
+  vcol.innerHTML='<div class="rev-cover-info-val">'+complexosList.map(_revEsc).join('<br>')+'</div>';
   infoRow.appendChild(vcol);
 
   var pcol=document.createElement('div');pcol.className='rev-cover-info-col';
-  var pH='<div class="rev-cover-info-lbl">período</div><div class="rev-cover-info-val">';
+  var pH='<div class="rev-cover-info-val">';
   if(dMin){
     pH+=_revEsc(_revFmtDate(dMin));
     if(dMax&&dMax.toISOString()!==dMin.toISOString())pH+=' – '+_revEsc(_revFmtDate(dMax));
@@ -9695,9 +9698,9 @@ function _revMakeCoverPage(evName,color,mostras,salaParaComplexo,pageNum){
   infoRow.appendChild(pcol);
 
   var scol=document.createElement('div');scol.className='rev-cover-info-col';
-  scol.innerHTML='<div class="rev-cover-info-lbl">programação</div>'+
+  scol.innerHTML=
     '<div class="rev-cover-stat"><span class="rev-cover-stat-num">'+sessCount+'</span><span class="rev-cover-stat-lbl">sessões</span></div>'+
-    '<div class="rev-cover-stat"><span class="rev-cover-stat-num">'+titleCount+'</span><span class="rev-cover-stat-lbl">títulos</span></div>';
+    '<div class="rev-cover-stat"><span class="rev-cover-stat-num">'+titleCount+'</span><span class="rev-cover-stat-lbl">filmes</span></div>';
   infoRow.appendChild(scol);
 
   body.appendChild(infoRow);
@@ -9723,6 +9726,7 @@ function _revMakeCoverPage(evName,color,mostras,salaParaComplexo,pageNum){
 }
 
 function renderRevista(){
+  if(!_langCache){_langEnsure().then(function(){renderRevista();});return;}
   var container=document.getElementById('revista-container');
   var empty=document.getElementById('revistaEmpty');
   if(!container)return;
@@ -12291,7 +12295,7 @@ function renderDash(){
   html+=colBlock('kdm','KDM',kdmBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 18/05/2026 às 15:30';
+  var sysUpdate='última atualização do sistema · 18/05/2026 às 15:36';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -16135,7 +16139,7 @@ window.addEventListener('popstate',function(e){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 18/05/2026 às 15:30</span></div>
+<div id="page-footer"><span>última atualização · 18/05/2026 às 15:36</span></div>
 
 </div>
 

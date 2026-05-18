@@ -1999,6 +1999,14 @@ mark{background:rgba(255,186,32,0.28);color:var(--accent);border-radius:2px;padd
 .rev-sidebar-range{font-family:'IBM Plex Mono',monospace;font-size:10px;color:#333;line-height:1.7;}
 .rev-sidebar-range span{display:block;}
 .rev-page-divider{width:760px;height:28px;background:var(--bg);flex-shrink:0;}
+.rev-page-footer{border-top:1px solid #ddd;margin-top:32px;padding-top:14px;}
+.rev-submostras{font-family:'IBM Plex Mono',monospace;font-size:8.5px;letter-spacing:0.14em;color:#888;line-height:1.7;}
+.rev-films-list{display:flex;flex-direction:column;}
+.rev-film-entry{padding:11px 0;border-bottom:1px solid #e4e0d8;}
+.rev-film-entry:last-child{border-bottom:none;}
+.rev-film-title-row{font-family:'IBM Plex Sans',sans-serif;font-size:13px;font-weight:500;color:#111;margin-bottom:4px;}
+.rev-film-orig{font-weight:300;color:#555;}
+.rev-film-meta{font-family:'IBM Plex Mono',monospace;font-size:9px;color:#888;letter-spacing:0.06em;}
 @media print{.rev-page{page-break-after:always;border:none!important;}#revista-container{background:#fff;padding:0;}.rev-page{box-shadow:none;margin-bottom:0;}}
 
 /* LIGHT THEME */
@@ -9279,6 +9287,55 @@ function _revFmtDate(d){
   return dt.getDate()+' '+mm[dt.getMonth()];
 }
 
+function _revFilmesDaMostra(sessoes){
+  var seen={},result=[];
+  sessoes.forEach(function(s){
+    if(!s.filmes||!s.filmes.length)return;
+    s.filmes.forEach(function(cod){
+      if(seen[cod])return;
+      seen[cod]=true;
+      var f=filmesMap[cod]||{};
+      var cat=catalogoFilmesMap[cod]||{};
+      var tituloRaw=(f.titulo)||(cat.title_pt)||(cat.title)||cod;
+      var origRaw=(cat.original_title)||'';
+      result.push({
+        titulo:tituloRaw,
+        original:(origRaw&&origRaw!==tituloRaw)?origRaw:'',
+        director:Array.isArray(cat.director)?cat.director.join(', '):(cat.director||''),
+        countries:Array.isArray(cat.countries)?cat.countries.join(', '):(cat.countries||''),
+        year:cat.year||''
+      });
+    });
+  });
+  return result;
+}
+
+function _revBuildFilmsPage(filmes,mostraName,evName,color,pageNum){
+  var filmesHtml=filmes.map(function(f){
+    var titHtml=_revEsc(f.titulo);
+    if(f.original)titHtml+=' <span class="rev-film-orig">('+_revEsc(f.original)+')</span>';
+    var meta=[];
+    if(f.director)meta.push('Dir. '+_revEsc(f.director));
+    if(f.countries)meta.push(_revEsc(f.countries));
+    if(f.year)meta.push(_revEsc(String(f.year)));
+    return'<div class="rev-film-entry">'+
+      '<div class="rev-film-title-row">'+titHtml+'</div>'+
+      (meta.length?'<div class="rev-film-meta">'+meta.join(' · ')+'</div>':'')+
+    '</div>';
+  }).join('');
+  var label=mostraName?_revEsc(mostraName):'filmes';
+  var page=document.createElement('div');
+  page.className='rev-page';
+  page.innerHTML=
+    '<div class="rev-page-header">'+
+      '<div class="rev-evento-pill" style="background:'+color+'">'+_revEsc(_revEventoLabel(evName))+'</div>'+
+      '<div class="rev-page-num">'+pageNum+'</div>'+
+    '</div>'+
+    '<div class="rev-mostra-label">'+label+'</div><hr class="rev-mostra-rule">'+
+    '<div class="rev-films-list">'+filmesHtml+'</div>';
+  return page;
+}
+
 function renderRevista(){
   var container=document.getElementById('revista-container');
   var empty=document.getElementById('revistaEmpty');
@@ -9295,7 +9352,7 @@ function renderRevista(){
     return p.data.event_id===evName&&!p.data.auto;
   });
   if(!mostras.length){
-    if(window._olgaPrograms&&!_progData.programs.length){
+    if(window._olgaPrograms&&!(_progData.programs||[]).length){
       empty.innerHTML='<p>Carregando mostras…</p>';empty.style.display='flex';
       window._olgaPrograms.list().then(function(progs){_progData.programs=progs;renderRevista();});
       return;
@@ -9303,40 +9360,35 @@ function renderRevista(){
     if(empty){empty.innerHTML='<p>Este evento não possui mostras cadastradas na Programação.</p>';empty.style.display='flex';}
     return;
   }
-  mostras.forEach(function(p,idx){
-    if(idx>0){
-      var divider=document.createElement('div');
-      divider.className='rev-page-divider';
-      container.appendChild(divider);
-    }
-    // sessões desta mostra
+  var salaParaComplexo={};
+  cinemasArr.forEach(function(c){if(c.sala&&c.complexo)salaParaComplexo[c.sala]=c.complexo;});
+  var pages=[];
+  var pageNum=0;
+
+  mostras.forEach(function(p){
     var sessoesMostra=sessoesArr.filter(function(s){return s.program_id===p.id;});
-    // mapa sala → complexo
-    var salaParaComplexo={};
-    cinemasArr.forEach(function(c){if(c.sala&&c.complexo)salaParaComplexo[c.sala]=c.complexo;});
-    // complexos únicos (preserva ordem de primeira aparição)
+
+    // sidebar: complexos
     var cinemasVistos={},cinemasLista=[];
     sessoesMostra.forEach(function(s){
       if(!s.cinema)return;
       var complexo=salaParaComplexo[s.cinema]||s.cinema;
       if(!cinemasVistos[complexo]){cinemasVistos[complexo]=true;cinemasLista.push(complexo);}
     });
-    // janela de datas
+    // sidebar: datas
     var datas=sessoesMostra.map(function(s){return s.date;}).filter(Boolean).sort(function(a,b){return a-b;});
-    var dataInicio=datas[0]||null, dataFim=datas[datas.length-1]||null;
+    var dataInicio=datas[0]||null,dataFim=datas[datas.length-1]||null;
     var anoInicio=dataInicio?new Date(dataInicio).getFullYear():'';
     var anoFim=dataFim?new Date(dataFim).getFullYear():'';
 
-    // sidebar HTML
     var sidebarHtml='<div class="rev-sidebar">';
     if(cinemasLista.length){
-      sidebarHtml+='<div class="rev-sidebar-section"><div class="rev-sidebar-lbl">Complexos</div>';
+      sidebarHtml+='<div class="rev-sidebar-section">';
       cinemasLista.forEach(function(c){sidebarHtml+='<div class="rev-sidebar-item">'+_revEsc(c)+'</div>';});
       sidebarHtml+='</div>';
     }
     if(dataInicio){
-      sidebarHtml+='<div class="rev-sidebar-section"><div class="rev-sidebar-lbl">Período</div>';
-      sidebarHtml+='<div class="rev-sidebar-range">';
+      sidebarHtml+='<div class="rev-sidebar-section"><div class="rev-sidebar-range">';
       if(dataInicio===dataFim||!dataFim){
         sidebarHtml+='<span>'+_revEsc(_revFmtDate(dataInicio))+'</span><span>'+anoInicio+'</span>';
       } else if(anoInicio===anoFim){
@@ -9347,6 +9399,15 @@ function renderRevista(){
       sidebarHtml+='</div></div>';
     }
     sidebarHtml+='</div>';
+
+    // footer: submostras
+    var subIds={};
+    sessoesMostra.forEach(function(s){if(s.subprogram_id)subIds[s.subprogram_id]=true;});
+    var subNames=Object.keys(subIds).map(function(sid){
+      var sub=(_progData.subprograms||[]).find(function(x){return x.id===sid;});
+      return sub&&sub.data&&sub.data.name?sub.data.name:sid;
+    }).sort(function(a,b){return a.localeCompare(b,'pt-BR');});
+    var footerHtml=subNames.length?'<div class="rev-page-footer"><div class="rev-submostras">'+subNames.map(_revEsc).join(' · ')+'</div></div>':'';
 
     // texto curatorial
     var textoHtml='';
@@ -9361,12 +9422,14 @@ function renderRevista(){
       textoHtml='<div class="rev-sem-texto">Texto curatorial não disponível.</div>';
     }
 
-    var page=document.createElement('div');
-    page.className='rev-page';
-    page.innerHTML=
+    // página editorial
+    pageNum++;
+    var editPage=document.createElement('div');
+    editPage.className='rev-page';
+    editPage.innerHTML=
       '<div class="rev-page-header">'+
         '<div class="rev-evento-pill" style="background:'+color+'">'+_revEsc(_revEventoLabel(evName))+'</div>'+
-        '<div class="rev-page-num">'+(idx+1)+'</div>'+
+        '<div class="rev-page-num">'+pageNum+'</div>'+
       '</div>'+
       '<div class="rev-mostra-label">mostra</div><hr class="rev-mostra-rule">'+
       '<div class="rev-page-body">'+
@@ -9375,8 +9438,29 @@ function renderRevista(){
           textoHtml+
         '</div>'+
         sidebarHtml+
-      '</div>';
-    container.appendChild(page);
+      '</div>'+
+      footerHtml;
+    pages.push(editPage);
+
+    // página de filmes da mostra
+    var filmes=_revFilmesDaMostra(sessoesMostra);
+    if(filmes.length){
+      pageNum++;
+      pages.push(_revBuildFilmsPage(filmes,p.data.name||p.id,evName,color,pageNum));
+    }
+  });
+
+  // filmes sem mostra
+  var sessSemMostra=sessoesArr.filter(function(s){return s.evento===evName&&!s.program_id;});
+  var filmesSem=_revFilmesDaMostra(sessSemMostra);
+  if(filmesSem.length){
+    pageNum++;
+    pages.push(_revBuildFilmsPage(filmesSem,'',evName,color,pageNum));
+  }
+
+  pages.forEach(function(el,i){
+    if(i>0){var d=document.createElement('div');d.className='rev-page-divider';container.appendChild(d);}
+    container.appendChild(el);
   });
 }
 
@@ -11763,7 +11847,7 @@ function renderDash(){
   html+=colBlock('kdm','KDM',kdmBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 17/05/2026 às 15:06';
+  var sysUpdate='última atualização do sistema · 17/05/2026 às 15:08';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -15607,7 +15691,7 @@ window.addEventListener('popstate',function(e){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 17/05/2026 às 15:06</span></div>
+<div id="page-footer"><span>última atualização · 17/05/2026 às 15:08</span></div>
 
 </div>
 

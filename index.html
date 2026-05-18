@@ -2002,6 +2002,7 @@ mark{background:rgba(255,186,32,0.28);color:var(--accent);border-radius:2px;padd
 .rev-page-footer{border-top:1px solid #ddd;margin-top:32px;padding-top:14px;}
 .rev-submostras{font-family:'IBM Plex Mono',monospace;font-size:8.5px;letter-spacing:0.14em;color:#888;line-height:1.7;}
 .rev-films-list{display:flex;flex-direction:column;}
+.rev-films-sep{border:none;border-top:1px solid #e0dcd5;margin:16px 0 0 0;}
 .rev-film-entry{padding:11px 0;border-bottom:1px solid #e4e0d8;}
 .rev-film-entry:last-child{border-bottom:none;}
 .rev-film-title-row{font-family:'IBM Plex Sans',sans-serif;font-size:13px;font-weight:500;color:#111;margin-bottom:4px;}
@@ -4699,6 +4700,7 @@ html[data-theme]:not([data-theme="win98"]){--mono:var(--sans);}
   <select id="revistaEventSelect" style="min-width:260px;margin-left:8px;" onchange="revistaSelectedEvent=this.value;renderRevista();">
     <option value="" disabled selected>— selecionar evento —</option>
   </select>
+  <button class="print-btn" style="margin-left:auto;" onclick="window.print()">⎙ Imprimir</button>
 </div>
 <div class="mode-bar hidden" id="barBilheteria" style="flex-wrap:wrap;row-gap:4px;">
   <div class="event-filters" id="bilheteriaEventFilters"></div>
@@ -9410,7 +9412,9 @@ function _revGetSinopseItems(evName){
       if(!a.date&&!b.date)return 0;if(!a.date)return 1;if(!b.date)return -1;
       var dd=a.date-b.date;return dd!==0?dd:(a.hora||'').localeCompare(b.hora||'');
     });
-    return{titulo:titulo,original:original,diretor:diretor,paises:paises,ano:cat.year||'',duracao:f.duracao||'',sinopse:cat.synopsis||'',legenda:f.legenda||'',rating:cat.content_rating||'',mostraStr:mostras.length?mostras.join(' · '):_revEventoLabel(evName),sessoes:sessoes};
+    var legRaw=f.legenda||'';var vfRaw=f.vf||'';
+    var legenda=legRaw.toUpperCase().includes('VF')&&vfRaw?(dcncToCldr(vfRaw)||vfRaw):(dcncToCldr(legRaw)||legRaw);
+    return{titulo:titulo,original:original,diretor:diretor,paises:paises,ano:cat.year||'',duracao:f.duracao||'',sinopse:cat.synopsis||'',legenda:legenda,rating:cat.content_rating||'',mostraStr:mostras.length?mostras.join(' · '):_revEventoLabel(evName),sessoes:sessoes};
   });
 }
 
@@ -9490,11 +9494,18 @@ function renderRevista(){
   });
   if(!mostras.length){
     if(window._olgaPrograms&&!(_progData.programs||[]).length){
-      empty.innerHTML='<p>Carregando mostras…</p>';empty.style.display='flex';
-      window._olgaPrograms.list().then(function(progs){_progData.programs=progs;renderRevista();});
+      if(empty){empty.innerHTML='<p>Carregando…</p>';empty.style.display='flex';}
+      var _rp1=window._olgaPrograms.list();
+      var _rp2=window._olgaSubprograms?window._olgaSubprograms.list():Promise.resolve([]);
+      Promise.all([_rp1,_rp2]).then(function(r){_progData.programs=r[0];_progData.subprograms=r[1]||[];renderRevista();});
       return;
     }
     if(empty){empty.innerHTML='<p>Este evento não possui mostras cadastradas na Programação.</p>';empty.style.display='flex';}
+    return;
+  }
+  if(window._olgaSubprograms&&!(_progData.subprograms||[]).length){
+    if(empty){empty.innerHTML='<p>Carregando…</p>';empty.style.display='flex';}
+    window._olgaSubprograms.list().then(function(subs){_progData.subprograms=subs;renderRevista();});
     return;
   }
   var salaParaComplexo={};
@@ -9553,14 +9564,6 @@ function renderRevista(){
     }
     sidebarHtml+='</div>';
 
-    var subIds={};
-    sessoesMostra.forEach(function(s){if(s.subprogram_id)subIds[s.subprogram_id]=true;});
-    var subNames=Object.keys(subIds).map(function(sid){
-      var sub=(_progData.subprograms||[]).find(function(x){return x.id===sid;});
-      return sub&&sub.data&&sub.data.name?sub.data.name:sid;
-    }).sort(function(a,b){return a.localeCompare(b,'pt-BR');});
-    var footerHtml=subNames.length?'<div class="rev-page-footer"><div class="rev-submostras">'+subNames.map(_revEsc).join(' · ')+'</div></div>':'';
-
     var texto=prog.data.program_description||'';
     var paras=[];
     var textoHtml='';
@@ -9569,48 +9572,54 @@ function renderRevista(){
       if(rawP.length===1)rawP=texto.split(/\n/);
       paras=rawP.filter(function(t){return t.trim();});
       textoHtml='<div class="rev-curadorial-text">'+paras.map(function(t){return'<p>'+_revEsc(t.trim())+'</p>';}).join('')+'</div>';
-    } else {
-      textoHtml='<div class="rev-sem-texto">Texto curatorial não disponível.</div>';
     }
 
-    // Página editorial
+    // Página editorial (sem footer de submostras)
     var editPage=document.createElement('div');
     editPage.className='rev-page';
     editPage.innerHTML=
       '<div class="rev-page-header"><div class="rev-evento-pill" style="background:'+color+'">'+_revEsc(_revEventoLabel(evName))+'</div><div class="rev-page-num">'+pageNum+'</div></div>'+
       '<div class="rev-mostra-label">mostra</div><hr class="rev-mostra-rule">'+
-      '<div class="rev-page-body"><div class="rev-main"><div class="rev-mostra-name">'+_revEsc(mostraName)+'</div>'+textoHtml+'</div>'+sidebarHtml+'</div>'+
-      footerHtml;
+      '<div class="rev-page-body"><div class="rev-main"><div class="rev-mostra-name">'+_revEsc(mostraName)+'</div>'+textoHtml+'</div>'+sidebarHtml+'</div>';
     msr.appendChild(editPage);
     allPages.push(editPage);
     pageNum++;
 
-    // Overflow editorial → páginas de continuação
-    if(editPage.scrollHeight>_REV_PAGE_H&&paras.length>0){
+    // Trim overflow text
+    var overflowParas=[];
+    if(paras.length>0){
       var textDiv=editPage.querySelector('.rev-curadorial-text');
-      if(textDiv&&textDiv.children.length>0){
-        var overflowParas=[];
-        while(editPage.scrollHeight>_REV_PAGE_H&&textDiv.children.length>0){
-          overflowParas.unshift(textDiv.lastElementChild);
-          textDiv.removeChild(textDiv.lastElementChild);
-        }
-        if(overflowParas.length){
-          var cname=mostraName;
-          var cr=_revPaginateContent(overflowParas.map(function(el){return function(){return el;};}),function(pn){return _editShell(cname,pn);},pageNum,msr);
-          cr.pages.forEach(function(pg){allPages.push(pg);});
-          pageNum=cr.nextNum;
-        }
+      while(editPage.scrollHeight>_REV_PAGE_H&&textDiv&&textDiv.children.length>0){
+        overflowParas.unshift(textDiv.lastElementChild);
+        textDiv.removeChild(textDiv.lastElementChild);
       }
     }
 
-    // Páginas de filmes
+    // Filmes inline no .rev-main, logo após o texto
+    var mainDiv=editPage.querySelector('.rev-main');
     var filmGroups=_revGetFilmGroups(sessoesMostra);
-    var filmItems=_revFilmItemFns(filmGroups);
-    if(filmItems.length){
-      var fname=mostraName;
-      var fr=_revPaginateContent(filmItems,function(pn){return _filmsShell(fname,pn);},pageNum,msr);
-      fr.pages.forEach(function(pg){allPages.push(pg);});
-      pageNum=fr.nextNum;
+    var filmItemFns=_revFilmItemFns(filmGroups);
+    var remainingFilmEls=[];
+    if(filmItemFns.length){
+      if(paras.length>0){var sepEl=document.createElement('hr');sepEl.className='rev-films-sep';mainDiv.appendChild(sepEl);}
+      var filmsDiv=document.createElement('div');filmsDiv.className='rev-films-list';mainDiv.appendChild(filmsDiv);
+      filmItemFns.forEach(function(fn){
+        var el=fn();
+        filmsDiv.appendChild(el);
+        if(editPage.scrollHeight>_REV_PAGE_H&&filmsDiv.children.length>1){filmsDiv.removeChild(el);remainingFilmEls.push(el);}
+      });
+    }
+
+    // Páginas de continuação: texto overflow → depois filmes restantes
+    if(overflowParas.length){
+      var _cn=mostraName;
+      var cr=_revPaginateContent(overflowParas.map(function(el){return function(){return el;};}),function(pn){return _editShell(_cn,pn);},pageNum,msr);
+      cr.pages.forEach(function(pg){allPages.push(pg);});pageNum=cr.nextNum;
+    }
+    if(remainingFilmEls.length){
+      var _fn=mostraName;
+      var fr=_revPaginateContent(remainingFilmEls.map(function(el){return function(){return el;};}),function(pn){return _filmsShell(_fn,pn);},pageNum,msr);
+      fr.pages.forEach(function(pg){allPages.push(pg);});pageNum=fr.nextNum;
     }
   });
 
@@ -12033,7 +12042,7 @@ function renderDash(){
   html+=colBlock('kdm','KDM',kdmBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 17/05/2026 às 15:14';
+  var sysUpdate='última atualização do sistema · 17/05/2026 às 15:18';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -15877,7 +15886,7 @@ window.addEventListener('popstate',function(e){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 17/05/2026 às 15:14</span></div>
+<div id="page-footer"><span>última atualização · 17/05/2026 às 15:18</span></div>
 
 </div>
 

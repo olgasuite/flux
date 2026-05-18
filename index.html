@@ -7707,6 +7707,7 @@ var _recepGuests=[],_recepHotels=[],_recepBookings=[],_recepFlights=[],_recepTra
 var _recepEvList=[],_recepEvFilter='',_recepSection='',_recepEditId=null,_recepParentId=null;
 var _recepSort={sec:'',field:'',dir:1},_recepTransDate='',_recepTransVeh='',_recepHandlingPop=false;
 var _recepGuestSel=new Set();
+var _recepRoleFilter='';
 
 function _re(s){return(s||'').toString().replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 
@@ -8018,6 +8019,17 @@ function _updateImportCount(){
   var tbtn=document.getElementById('ipToggleAllBtn');
   if(tbtn)tbtn.textContent=todosSelected?'desmarcar todos':'selecionar todos';
 }
+function _progDeFilmes(filmCodes){
+  var mostraIds=new Set(),subIds=new Set();
+  (filmCodes||[]).forEach(function(cod){
+    (buscaReverseSessoes[cod]||[]).forEach(function(nome){
+      var sess=sessoesMap[nome];
+      if(sess&&sess.program_id)mostraIds.add(sess.program_id);
+      if(sess&&sess.subprogram_id)subIds.add(sess.subprogram_id);
+    });
+  });
+  return{mostras:Array.from(mostraIds),submostras:Array.from(subIds)};
+}
 window._importarPessoasSelecionadas=async function(){
   var btn=document.getElementById('importPessoasBtn');if(btn){btn.disabled=true;btn.textContent='Importando…';}
   var selecionadas=_recepPessoas.filter(function(p){return _importPessoasSel.has(p.id);});
@@ -8026,13 +8038,20 @@ window._importarPessoasSelecionadas=async function(){
       var p=selecionadas[i].data;
       var nomeLower=(p.name||'').toLowerCase().trim();
       var existing=_recepGuests.find(function(g){return(g.data.name||'').toLowerCase().trim()===nomeLower;});
+      var importFilmes=p.filmes||[];
+      var importProg=_progDeFilmes(importFilmes);
+      var importRoles=(p.funcoes||[]).indexOf('diretor')>=0?['diretor']:['convidado'];
       if(existing){
-        var mergedFilmes=Array.from(new Set((existing.data.filmes||[]).concat(p.filmes||[])));
-        var mergedData=Object.assign({},existing.data,{filmes:mergedFilmes,updated_at:_recepNow()});
+        var mergedFilmes=Array.from(new Set((existing.data.filmes||[]).concat(importFilmes)));
+        var mergedMostras=Array.from(new Set((existing.data.mostras||[]).concat(importProg.mostras)));
+        var mergedSubs=Array.from(new Set((existing.data.submostras||[]).concat(importProg.submostras)));
+        var existingRoles=existing.data.roles||[];
+        var mergedRoles=existingRoles.length?existingRoles:importRoles;
+        var mergedData=Object.assign({},existing.data,{filmes:mergedFilmes,mostras:mergedMostras,submostras:mergedSubs,roles:mergedRoles,updated_at:_recepNow()});
         await window._olgaGuests.save(existing.id,mergedData);
         window._logFirestoreEdit&&window._logFirestoreEdit('individual',existing.id,mergedData,'receptivo','convidados');
       }else{
-        await window._olgaGuests.save(null,{name:p.name||'',event_id:p.event_id||'',roles:[],contact:{email:'',phone:''},notes:'',arrival_date:'',departure_date:'',hotel_checkin_date:'',hotel_checkout_date:'',mostras:[],submostras:[],filmes:p.filmes||[],updated_at:_recepNow()});
+        await window._olgaGuests.save(null,{name:p.name||'',event_id:p.event_id||'',roles:importRoles,contact:{email:'',phone:''},notes:'',arrival_date:'',departure_date:'',hotel_checkin_date:'',hotel_checkout_date:'',mostras:importProg.mostras,submostras:importProg.submostras,filmes:importFilmes,updated_at:_recepNow()});
       }
     }
     _recepCloseModal();openRecepSection('convidados');
@@ -8148,7 +8167,12 @@ function _renderConvidados(){
   var canEdit=window._olgaCanEdit('receptivo');
   var hotelMap={};_recepHotels.forEach(function(h){hotelMap[h.id]=h.data.name||h.id;});
   var bookMap={};_recepBookings.forEach(function(b){if(b.data.guest_id)bookMap[b.data.guest_id]=hotelMap[b.data.hotel_id]||'—';});
-  var filtered=_recepGuests.filter(function(g){var ev=g.data.event_id;return!ev||activeEventsReceptivo.has(ev);});
+  var filtered=_recepGuests.filter(function(g){
+    var ev=g.data.event_id;
+    if(ev&&!activeEventsReceptivo.has(ev))return false;
+    if(_recepRoleFilter&&(g.data.roles||[]).indexOf(_recepRoleFilter)<0)return false;
+    return true;
+  });
   var keyFns={nome:function(g){return g.data.name||'';},evento:function(g){return _recepEvLabel(g.data.event_id)||'';},hotel:function(g){return bookMap[g.id]||'';},email:function(g){return(g.data.contact&&g.data.contact.email)||'';}};
   var sorted=(_recepSort.sec==='convidados'&&keyFns[_recepSort.field])?_recepApplySort(filtered,keyFns[_recepSort.field]):filtered.slice().sort(function(a,b){return(a.data.name||'').localeCompare(b.data.name||'',undefined,{sensitivity:'base'});});
   var rows=sorted.map(function(g){
@@ -8180,6 +8204,13 @@ function _renderConvidados(){
       '<span><span class="recep-pres-dot recep-pres-yellow"></span>chegada</span>'+
       '<span><span class="recep-pres-dot recep-pres-orange"></span>partida</span>'+
       '<span><span class="recep-pres-dot recep-pres-gray"></span>ausente / sem datas</span>'+
+    '</div>'+
+    '<div style="display:flex;gap:5px;align-items:center;padding:0 0 10px;">'+
+      '<span style="font-family:var(--mono);font-size:9px;color:var(--text-muted);margin-right:2px;">papel:</span>'+
+      ['','jurado','diretor','debatedor','convidado'].map(function(r){
+        var active=_recepRoleFilter===r;
+        return'<button onclick="_recepSetRoleFilter(\''+r+'\')" style="font-family:var(--mono);font-size:9px;padding:2px 7px;border-radius:3px;cursor:pointer;border:1px solid var(--border);background:'+(active?'var(--text)':'var(--surface)')+';color:'+(active?'var(--surface)':'var(--text-muted)')+';">'+(r||'todos')+'</button>';
+      }).join('')+
     '</div>'+
     '<table class="recep-table"><thead><tr>'+
       '<th style="width:22px;text-align:center;"><input type="checkbox" id="recepGuestSelAll" onclick="_recepToggleAllGuests()" title="Selecionar todos"></th>'+
@@ -8267,6 +8298,7 @@ window.deleteGuest=async function(id){
   try{await window._olgaGuests.remove(id);window._logFirestoreEdit&&window._logFirestoreEdit('delete',id,{},'receptivo','convidados');_recepCloseModal();openRecepSection('convidados');}
   catch(e){alert('Erro: '+e.message);}
 };
+window._recepSetRoleFilter=function(r){_recepRoleFilter=r;_renderConvidados();};
 window._recepToggleGuestSel=function(id){
   if(_recepGuestSel.has(id))_recepGuestSel.delete(id);else _recepGuestSel.add(id);
   _recepUpdateBulkUI();
@@ -12649,7 +12681,7 @@ function renderDash(){
   html+=colBlock('kdm','KDM',kdmBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 18/05/2026 às 15:52';
+  var sysUpdate='última atualização do sistema · 18/05/2026 às 15:54';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -16494,7 +16526,7 @@ window.addEventListener('popstate',function(e){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 18/05/2026 às 15:52</span></div>
+<div id="page-footer"><span>última atualização · 18/05/2026 às 15:54</span></div>
 
 </div>
 

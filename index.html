@@ -7932,7 +7932,7 @@ function _renderImportPessoas(filterEv,filterFunc){
     var tituloFilme=catF.title_pt||(ffilm&&ffilm.titulo)||pd.filme_id||'—';
     return'<tr style="opacity:'+(jaCon?'0.5':'1')+'">'+
       '<td style="width:24px;text-align:center;"><input type="checkbox" onchange="_importTogglePessoa(\''+pid+'\')" '+(checked?'checked':'')+' title="'+(jaCon?'Já existe como convidado':'')+'"></td>'+
-      '<td style="font-family:var(--mono);font-size:10px;font-weight:600;color:var(--text);">'+_re(pd.name||'—')+(jaCon?'<span style="margin-left:6px;font-size:9px;color:var(--text-muted);">(já convidado)</span>')+'</span></td>'+
+      '<td style="font-family:var(--mono);font-size:10px;font-weight:600;color:var(--text);">'+_re(pd.name||'—')+(jaCon?' <span style="font-size:9px;color:var(--text-muted);">(já convidado)</span>':'')+'</td>'+
       '<td><span class="recep-role-badge recep-role-convidado" style="font-size:9px;">'+_re(pd.funcao||'—')+'</span></td>'+
       '<td style="font-family:var(--mono);font-size:10px;color:var(--text-muted);">'+_re(tituloFilme)+'</td>'+
       '<td style="font-family:var(--mono);font-size:10px;color:var(--text-muted);">'+_re(_recepEvLabel(pd.event_id))+'</td>'+

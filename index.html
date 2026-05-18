@@ -3967,7 +3967,10 @@ html[data-theme]:not([data-theme="win98"]){--mono:var(--sans);}
   window._olgaBookings = _recepApiOf('hotel_bookings');
   window._olgaFlights  = _recepApiOf('flights');
   window._olgaTransfers= _recepApiOf('transfers');
-  window._olgaPessoas  = _recepApiOf('pessoas');
+  var _pessoasBase=_recepApiOf('pessoas');
+  window._olgaPessoas=Object.assign({},_pessoasBase,{
+    get:async function(id){try{var d=await getDoc(doc(db,'pessoas',id));return d.exists()?{id:d.id,data:d.data()}:null;}catch(e){return null;}}
+  });
 
   // API templates de vinhetas por evento (coleção vin_templates, doc = event_id)
   window._olgaVinTemplates = {
@@ -7851,43 +7854,76 @@ function _recepGuestSelect(selId){
 /* ─── BANCO DE PESSOAS (equipe de filmes) ─── */
 var _recepPessoas=[];
 var _pessoaCrewMap={director:'diretor',cinematography:'fotografia',screenplay:'roteiro',editing:'montagem',sound:'som',art_direction:'direção de arte',costume_design:'figurino',cast:'elenco'};
-function _pessoaDocId(eventId,filmeId,funcao,name){
-  var raw=(eventId||'')+'__'+(filmeId||'')+'__'+(funcao||'')+'__'+(name||'').toLowerCase().trim();
+function _pessoaDocId(eventId,name){
+  var raw=(eventId||'')+'__'+(name||'').toLowerCase().trim();
   return raw.replace(/[^a-zA-Z0-9_\-\.]/g,function(c){return'_'+c.charCodeAt(0).toString(16).padStart(2,'0');}).slice(0,490);
 }
 function _pessoaNow(){var d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')+'T12:00';}
-async function _syncPessoasDeFilme(codigo,filmData,eventoId){
-  if(!window._olgaPessoas)return;
-  var proms=[];
-  (filmData.director||[]).forEach(function(name){
-    if(!(name||'').trim())return;
-    var id=_pessoaDocId(eventoId,codigo,'diretor',name.trim());
-    proms.push(window._olgaPessoas.save(id,{name:name.trim(),event_id:eventoId,filme_id:codigo,funcao:'diretor',updated_at:_pessoaNow()}));
-  });
-  Object.keys(_pessoaCrewMap).filter(function(k){return k!=='director';}).forEach(function(key){
-    var funcao=_pessoaCrewMap[key];
-    ((filmData.crew&&filmData.crew[key])||[]).forEach(function(name){
+
+function _buildPessoaMapFromCat(catMap){
+  var map={};
+  Object.keys(catMap).forEach(function(codigo){
+    var filmData=catMap[codigo];
+    var ev=(filmesArr||[]).find(function(f){return f.codigo===codigo;});
+    var evId=ev?ev.evento:'';
+    if(!evId)return;
+    function add(name,funcao){
       if(!(name||'').trim())return;
-      var id=_pessoaDocId(eventoId,codigo,funcao,name.trim());
-      proms.push(window._olgaPessoas.save(id,{name:name.trim(),event_id:eventoId,filme_id:codigo,funcao:funcao,updated_at:_pessoaNow()}));
+      var n=name.trim();
+      var key=_pessoaDocId(evId,n);
+      if(!map[key])map[key]={name:n,event_id:evId,funcoes:[],filmes:[]};
+      if(map[key].funcoes.indexOf(funcao)<0)map[key].funcoes.push(funcao);
+      if(map[key].filmes.indexOf(codigo)<0)map[key].filmes.push(codigo);
+    }
+    (filmData.director||[]).forEach(function(n){add(n,'diretor');});
+    ['cinematography','screenplay','editing','sound','art_direction','costume_design','cast'].forEach(function(k){
+      ((filmData.crew&&filmData.crew[k])||[]).forEach(function(n){add(n,_pessoaCrewMap[k]);});
     });
   });
-  await Promise.all(proms);
+  return map;
 }
+
+async function _syncPessoasDeFilme(codigo,filmData,eventoId){
+  if(!window._olgaPessoas)return;
+  var names={};
+  function add(name,funcao){
+    if(!(name||'').trim())return;
+    var n=name.trim(),k=n.toLowerCase();
+    if(!names[k])names[k]={name:n,funcoes:[],filmes:[]};
+    if(names[k].funcoes.indexOf(funcao)<0)names[k].funcoes.push(funcao);
+    if(names[k].filmes.indexOf(codigo)<0)names[k].filmes.push(codigo);
+  }
+  (filmData.director||[]).forEach(function(n){add(n,'diretor');});
+  ['cinematography','screenplay','editing','sound','art_direction','costume_design','cast'].forEach(function(k){
+    ((filmData.crew&&filmData.crew[k])||[]).forEach(function(n){add(n,_pessoaCrewMap[k]);});
+  });
+  var now=_pessoaNow();
+  await Promise.all(Object.keys(names).map(async function(k){
+    var info=names[k];
+    var id=_pessoaDocId(eventoId,info.name);
+    var existing=await window._olgaPessoas.get(id);
+    var funcoes=existing?existing.data.funcoes||[]:[];
+    var filmes=existing?existing.data.filmes||[]:[];
+    info.funcoes.forEach(function(f){if(funcoes.indexOf(f)<0)funcoes.push(f);});
+    info.filmes.forEach(function(f){if(filmes.indexOf(f)<0)filmes.push(f);});
+    await window._olgaPessoas.save(id,{name:info.name,event_id:eventoId,funcoes:funcoes,filmes:filmes,updated_at:now});
+  }));
+}
+
 window._recepSyncTodasPessoas=async function(){
   if(!window._olgaCatalogo||!window._olgaPessoas){alert('APIs não disponíveis.');return;}
   var btn=document.getElementById('recepSyncPessoasBtn');
   if(btn){btn.disabled=true;btn.textContent='sincronizando…';}
   try{
     var catMap=await window._olgaCatalogo.load();
-    var proms=Object.keys(catMap).map(function(codigo){
-      var filmData=catMap[codigo];
-      var ev=(filmesArr||[]).find(function(f){return f.codigo===codigo;});
-      var evId=ev?ev.evento:'';
-      if(!evId)return Promise.resolve();
-      return _syncPessoasDeFilme(codigo,filmData,evId);
-    });
-    await Promise.all(proms);
+    var pessoaMap=_buildPessoaMapFromCat(catMap);
+    var existing=await window._olgaPessoas.list();
+    await Promise.all(existing.map(function(p){return window._olgaPessoas.remove(p.id);}));
+    var now=_pessoaNow();
+    await Promise.all(Object.keys(pessoaMap).map(function(key){
+      var p=pessoaMap[key];p.updated_at=now;
+      return window._olgaPessoas.save(key,p);
+    }));
     if(btn){btn.textContent='sincronizado ✓';setTimeout(function(){if(btn){btn.disabled=false;btn.textContent='sincronizar equipe';}},3000);}
   }catch(e){
     if(btn){btn.disabled=false;btn.textContent='sincronizar equipe';}
@@ -7899,54 +7935,54 @@ window._recepSyncTodasPessoas=async function(){
 var _importPessoasSel=new Set();
 window.openImportPessoasModal=async function(){
   _importPessoasSel=new Set();
-  var loadEl='<div style="padding:30px;font-family:var(--mono);font-size:11px;color:var(--text-muted);">Carregando pessoas…</div>';
-  _recepShowModal('<div class="recep-modal-box" style="max-width:680px;width:95vw;">'+
+  _recepShowModal('<div class="recep-modal-box" style="max-width:700px;width:95vw;">'+
     '<div class="recep-modal-head"><span class="recep-modal-title">Importar pessoa como convidado</span><button class="recep-modal-close" onclick="_recepCloseModal()">×</button></div>'+
-    '<div id="importPessoasBody">'+loadEl+'</div>'+
+    '<div id="importPessoasBody"><div style="padding:30px;font-family:var(--mono);font-size:11px;color:var(--text-muted);">Carregando pessoas…</div></div>'+
     '<div class="recep-modal-foot"><span id="importPessoasSel" style="font-family:var(--mono);font-size:10px;color:var(--text-muted);margin-right:auto;">0 selecionada(s)</span><button class="recep-btn-cancel" onclick="_recepCloseModal()">Cancelar</button><button class="recep-btn-save" id="importPessoasBtn" onclick="_importarPessoasSelecionadas()" disabled>Importar</button></div>'+
   '</div>');
   try{
     _recepPessoas=await window._olgaPessoas.list();
-    _renderImportPessoas('','');
+    _renderImportPessoas('');
   }catch(e){
     var b=document.getElementById('importPessoasBody');
     if(b)b.innerHTML='<div style="padding:20px;color:var(--warn);font-family:var(--mono);font-size:11px;">Erro: '+_re(e.message)+'</div>';
   }
 };
-function _renderImportPessoas(filterEv,filterFunc){
+function _renderImportPessoas(filterFunc){
   var body=document.getElementById('importPessoasBody');if(!body)return;
-  var evKeys=Array.from(activeEventsReceptivo).sort();
   var funcoes=['','diretor','fotografia','roteiro','montagem','som','direção de arte','figurino','elenco'];
   var guestNames=new Set(_recepGuests.map(function(g){return(g.data.name||'').toLowerCase().trim();}));
   var filtered=_recepPessoas.filter(function(p){
-    return(!filterEv||p.data.event_id===filterEv)&&(!filterFunc||p.data.funcao===filterFunc);
+    if(!activeEventsReceptivo.has(p.data.event_id))return false;
+    if(filterFunc&&(p.data.funcoes||[]).indexOf(filterFunc)<0)return false;
+    return true;
   }).sort(function(a,b){return(a.data.name||'').localeCompare(b.data.name||'',undefined,{sensitivity:'base'});});
-  var evOpts='<option value="">Todos os eventos</option>'+evKeys.map(function(k){return'<option value="'+_re(k)+'"'+(k===filterEv?' selected':'')+'>'+_re(_recepEvLabel(k))+'</option>';}).join('');
   var funcOpts=funcoes.map(function(f){return'<option value="'+_re(f)+'"'+(f===filterFunc?' selected':'')+'>'+_re(f||'Todas as funções')+'</option>';}).join('');
   var rows=filtered.map(function(p){
     var pd=p.data,pid=_re(p.id);
     var jaCon=guestNames.has((pd.name||'').toLowerCase().trim());
     var checked=_importPessoasSel.has(p.id);
-    var ffilm=(filmesArr||[]).find(function(f){return f.codigo===pd.filme_id;});
-    var catF=(window.catalogoFilmesMap&&window.catalogoFilmesMap[pd.filme_id])||{};
-    var tituloFilme=catF.title_pt||(ffilm&&ffilm.titulo)||pd.filme_id||'—';
+    var funcoesStr=(pd.funcoes||[]).join(', ')||'—';
+    var filmesStr=(pd.filmes||[]).map(function(cod){
+      var catF=(window.catalogoFilmesMap&&window.catalogoFilmesMap[cod])||{};
+      var ff=(filmesArr||[]).find(function(f){return f.codigo===cod;});
+      return catF.title_pt||(ff&&ff.titulo)||cod;
+    }).join(', ')||'—';
     return'<tr style="opacity:'+(jaCon?'0.5':'1')+'">'+
-      '<td style="width:24px;text-align:center;"><input type="checkbox" onchange="_importTogglePessoa(\''+pid+'\')" '+(checked?'checked':'')+' title="'+(jaCon?'Já existe como convidado':'')+'"></td>'+
+      '<td style="width:24px;text-align:center;"><input type="checkbox" onchange="_importTogglePessoa(\''+pid+'\')" '+(checked?'checked':'')+'></td>'+
       '<td style="font-family:var(--mono);font-size:10px;font-weight:600;color:var(--text);">'+_re(pd.name||'—')+(jaCon?' <span style="font-size:9px;color:var(--text-muted);">(já convidado)</span>':'')+'</td>'+
-      '<td><span class="recep-role-badge recep-role-convidado" style="font-size:9px;">'+_re(pd.funcao||'—')+'</span></td>'+
-      '<td style="font-family:var(--mono);font-size:10px;color:var(--text-muted);">'+_re(tituloFilme)+'</td>'+
-      '<td style="font-family:var(--mono);font-size:10px;color:var(--text-muted);">'+_re(_recepEvLabel(pd.event_id))+'</td>'+
+      '<td style="font-family:var(--mono);font-size:10px;color:var(--text-muted);">'+_re(funcoesStr)+'</td>'+
+      '<td style="font-family:var(--mono);font-size:10px;color:var(--text-muted);max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="'+_re(filmesStr)+'">'+_re(filmesStr)+'</td>'+
     '</tr>';
   }).join('');
   body.innerHTML=
     '<div style="display:flex;gap:8px;padding:12px 18px;border-bottom:1px solid var(--border);">'+
-      '<select class="recep-select" style="flex:1;" onchange="_renderImportPessoas(this.value,document.getElementById(\'ipFuncFilter\').value)">'+evOpts+'</select>'+
-      '<select id="ipFuncFilter" class="recep-select" style="flex:1;" onchange="_renderImportPessoas(document.getElementById(\'ipEvFilter\').value||\''+_re(filterEv)+'\',this.value)">'+funcOpts+'</select>'+
+      '<select class="recep-select" style="flex:1;" onchange="_renderImportPessoas(document.getElementById(\'ipFuncFilter\').value)" id="ipFuncFilter">'+funcOpts+'</select>'+
+      '<span style="font-family:var(--mono);font-size:10px;color:var(--text-muted);align-self:center;">'+filtered.length+' pessoa(s)</span>'+
     '</div>'+
-    '<div style="max-height:340px;overflow-y:auto;">'+
-    '<table class="recep-table"><thead><tr><th style="width:24px;"></th><th>Nome</th><th>Função</th><th>Filme</th><th>Evento</th></tr></thead>'+
-    '<tbody>'+(rows||'<tr><td colspan="5" class="recep-empty">Nenhuma pessoa encontrada.</td></tr>')+'</tbody></table></div>';
-  var evSel=body.querySelector('select');if(evSel)evSel.id='ipEvFilter';
+    '<div style="max-height:360px;overflow-y:auto;">'+
+    '<table class="recep-table"><thead><tr><th style="width:24px;"></th><th>Nome</th><th>Função(ões)</th><th>Filme(s)</th></tr></thead>'+
+    '<tbody>'+(rows||'<tr><td colspan="4" class="recep-empty">Nenhuma pessoa encontrada nos eventos ativos.</td></tr>')+'</tbody></table></div>';
   _updateImportCount();
 }
 window._importTogglePessoa=function(id){
@@ -7964,7 +8000,7 @@ window._importarPessoasSelecionadas=async function(){
   try{
     for(var i=0;i<selecionadas.length;i++){
       var p=selecionadas[i].data;
-      await window._olgaGuests.save(null,{name:p.name||'',event_id:p.event_id||'',roles:[],contact:{email:'',phone:''},notes:'',arrival_date:'',departure_date:'',hotel_checkin_date:'',hotel_checkout_date:'',mostra_id:'',submostra_id:'',filme_id:p.filme_id||'',updated_at:_recepNow()});
+      await window._olgaGuests.save(null,{name:p.name||'',event_id:p.event_id||'',roles:[],contact:{email:'',phone:''},notes:'',arrival_date:'',departure_date:'',hotel_checkin_date:'',hotel_checkout_date:'',mostra_id:'',submostra_id:'',filme_id:'',updated_at:_recepNow()});
     }
     _recepCloseModal();openRecepSection('convidados');
   }catch(e){
@@ -12522,7 +12558,7 @@ function renderDash(){
   html+=colBlock('kdm','KDM',kdmBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 18/05/2026 às 15:42';
+  var sysUpdate='última atualização do sistema · 18/05/2026 às 15:44';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -16367,7 +16403,7 @@ window.addEventListener('popstate',function(e){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 18/05/2026 às 15:42</span></div>
+<div id="page-footer"><span>última atualização · 18/05/2026 às 15:44</span></div>
 
 </div>
 

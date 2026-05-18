@@ -1978,7 +1978,7 @@ mark{background:rgba(255,186,32,0.28);color:var(--accent);border-radius:2px;padd
 #revista-container{background:var(--bg);min-height:calc(100vh - 100px);padding:32px 24px 60px;display:flex;flex-direction:column;align-items:center;gap:0;}
 .revista-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;color:var(--text-muted);padding:80px 40px;min-height:50vh;}
 .revista-empty p{font-size:12px;text-align:center;line-height:1.9;font-family:var(--mono);}
-.rev-page{width:760px;height:1060px;overflow:hidden;background:#f8f7f4;color:#111;padding:48px 52px 52px;position:relative;border:1px solid #d6d2ca;margin-bottom:-1px;flex-shrink:0;}
+.rev-page{width:1060px;height:750px;overflow:hidden;background:#f8f7f4;color:#111;padding:40px 52px 44px;position:relative;border:1px solid #d6d2ca;margin-bottom:-1px;flex-shrink:0;}
 .rev-page:first-child{border-top:3px solid #111;}
 .rev-page:last-child{margin-bottom:0;border-bottom:3px solid #111;}
 .rev-page-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:36px;}
@@ -1998,7 +1998,7 @@ mark{background:rgba(255,186,32,0.28);color:var(--accent);border-radius:2px;padd
 .rev-sidebar-item{font-family:'IBM Plex Sans',sans-serif;font-size:10.5px;font-weight:400;color:#333;line-height:1.5;margin-bottom:3px;}
 .rev-sidebar-range{font-family:'IBM Plex Mono',monospace;font-size:10px;color:#333;line-height:1.7;}
 .rev-sidebar-range span{display:block;}
-.rev-page-divider{width:760px;height:28px;background:var(--bg);flex-shrink:0;}
+.rev-page-divider{width:1060px;height:28px;background:var(--bg);flex-shrink:0;}
 .rev-page-footer{border-top:1px solid #ddd;margin-top:32px;padding-top:14px;}
 .rev-submostras{font-family:'IBM Plex Mono',monospace;font-size:8.5px;letter-spacing:0.14em;color:#888;line-height:1.7;}
 .rev-films-list{display:flex;flex-direction:column;}
@@ -2010,7 +2010,8 @@ mark{background:rgba(255,186,32,0.28);color:var(--accent);border-radius:2px;padd
 .rev-submostra-header{font-family:'IBM Plex Mono',monospace;font-size:8px;font-weight:700;letter-spacing:0.24em;text-transform:uppercase;color:#999;padding:18px 0 10px 0;border-bottom:1px solid #e4e0d8;margin-bottom:4px;}
 .rev-submostra-header:first-child{padding-top:0;}
 @media print{.rev-page{page-break-after:always;border:none!important;}#revista-container{background:#fff;padding:0;}.rev-page{box-shadow:none;margin-bottom:0;}}
-.rev-sinopses-list{display:flex;flex-direction:column;}
+.rev-sinopses-list{display:flex;gap:24px;align-items:flex-start;}
+.rev-sinopse-col{flex:1;min-width:0;}
 .rev-sinopse-entry{padding:18px 0;border-bottom:1px solid #e0dcd5;}
 .rev-sinopse-entry:first-child{padding-top:0;}
 .rev-sinopse-entry:last-child{border-bottom:none;}
@@ -4698,10 +4699,6 @@ html[data-theme]:not([data-theme="win98"]){--mono:var(--sans);}
   <select id="revistaEventSelect" style="min-width:260px;margin-left:8px;" onchange="revistaSelectedEvent=this.value;renderRevista();">
     <option value="" disabled selected>— selecionar evento —</option>
   </select>
-  <div style="display:flex;gap:3px;margin-left:12px;">
-    <button id="revBtnMostras" class="print-btn" onclick="revistaMode='mostras';renderRevista();">Mostras</button>
-    <button id="revBtnSinopses" class="print-btn" onclick="revistaMode='sinopses';renderRevista();">Sinopses</button>
-  </div>
 </div>
 <div class="mode-bar hidden" id="barBilheteria" style="flex-wrap:wrap;row-gap:4px;">
   <div class="event-filters" id="bilheteriaEventFilters"></div>
@@ -5081,7 +5078,6 @@ self.onmessage=function(e){
 var filmesMap={},filmesArr=[],sessoesArr=[],sessoesMap={};
 var buscaReverseSessoes={},eventColors={};
 var revistaSelectedEvent='';
-var revistaMode='mostras';
 var vinhetasArr=[],vinhetaReverseSessoes={},currentVinhetaDetail=null;
 var activeEventsGrade=new Set(),activeEventsBusca=new Set(),activeEventsIngest=new Set(),activeEventsFicha=new Set(),activeEventsCinemas=new Set(),activeEventsDash=new Set(),activeEventsGrade2=new Set(),activeEventsSessoes=new Set(),activeEventsProjecao=new Set(),activeEventsVinhetas=new Set();
 var activeEventsCatalogo=new Set(),activeEventsProgramacao=new Set(),activeEventsKDM=new Set(),activeEventsBilheteria=new Set(),activeEventsReceptivo=new Set(),activeEventsRevista=new Set();
@@ -9320,7 +9316,7 @@ function _revGetFilmGroups(sessoes){
       groups[sid].seen[cod]=true;
       var f=filmesMap[cod]||{};
       var cat=catalogoFilmesMap[cod]||{};
-      var t=(f.titulo)||(cat.title_pt)||(cat.title)||cod;
+      var t=(cat.title_pt)||(cat.title)||(f.titulo)||cod;
       var o=cat.original_title||'';
       groups[sid].films.push({titulo:t,original:(o&&o!==t)?o:'',director:Array.isArray(cat.director)?cat.director.join(', '):(cat.director||''),countries:Array.isArray(cat.countries)?cat.countries.join(', '):(cat.countries||''),year:cat.year||''});
     });
@@ -9355,7 +9351,8 @@ function _revFilmItemFns(filmGroups){
   return items;
 }
 
-var _REV_PAGE_H=1060;
+var _REV_PAGE_H=750;
+var _REV_COL_H=530;
 function _revPaginateContent(items,shellFn,startNum,msr){
   var pNum=startNum,pages=[];
   var shell=shellFn(pNum++);
@@ -9374,13 +9371,6 @@ function _revPaginateContent(items,shellFn,startNum,msr){
     }
   });
   return{pages:pages.map(function(s){return s.page;}),nextNum:pNum};
-}
-
-function _revUpdateModeBtns(){
-  var bM=document.getElementById('revBtnMostras'),bS=document.getElementById('revBtnSinopses');
-  if(!bM||!bS)return;
-  bM.style.background=revistaMode==='mostras'?'#111':'';bM.style.color=revistaMode==='mostras'?'#f8f7f4':'';
-  bS.style.background=revistaMode==='sinopses'?'#111':'';bS.style.color=revistaMode==='sinopses'?'#f8f7f4':'';
 }
 
 var _DIAS_REV=['DOM','SEG','TER','QUA','QUI','SEX','SÁB'];
@@ -9411,7 +9401,7 @@ function _revGetSinopseItems(evName){
   });
   return filmCodes.map(function(cod){
     var f=filmesMap[cod]||{},cat=catalogoFilmesMap[cod]||{};
-    var titulo=f.titulo||cat.title_pt||cat.title||cod;
+    var titulo=cat.title_pt||cat.title||f.titulo||cod;
     var original=cat.original_title||'';if(original===titulo)original='';
     var diretor=Array.isArray(cat.director)?cat.director.join(', '):(cat.director||'');
     var paises=Array.isArray(cat.countries)?cat.countries.join(', '):(cat.countries||'');
@@ -9459,49 +9449,31 @@ function _revSinopseItemFns(sinopseItems){
   });
 }
 
-function renderSinopses(){
-  var container=document.getElementById('revista-container');
-  var empty=document.getElementById('revistaEmpty');
-  if(!container)return;
-  Array.from(container.querySelectorAll('.rev-page,.rev-page-divider')).forEach(function(el){el.remove();});
-  if(!revistaSelectedEvent){
-    if(empty){empty.innerHTML='<p>Selecione um evento acima para gerar as sinopses.</p>';empty.style.display='flex';}
-    return;
-  }
-  if(empty)empty.style.display='none';
-  var evName=revistaSelectedEvent,color=eventColors[evName]||'#111';
-  if(window._olgaPrograms&&!(_progData.programs||[]).length){
-    if(empty){empty.innerHTML='<p>Carregando…</p>';empty.style.display='flex';}
-    window._olgaPrograms.list().then(function(progs){_progData.programs=progs;renderSinopses();});
-    return;
-  }
-  var sinopseItems=_revGetSinopseItems(evName);
-  if(!sinopseItems.length){
-    if(empty){empty.innerHTML='<p>Nenhum filme encontrado para este evento.</p>';empty.style.display='flex';}
-    return;
-  }
-  var msr=document.createElement('div');
-  msr.style.cssText='position:fixed;left:-9999px;top:0;width:760px;visibility:hidden;pointer-events:none;';
-  document.body.appendChild(msr);
-  function _sinopsesShell(pNum){
-    var contentEl=document.createElement('div');contentEl.className='rev-sinopses-list';
-    var page=document.createElement('div');page.className='rev-page';
-    page.innerHTML='<div class="rev-page-header"><div class="rev-evento-pill" style="background:'+color+'">'+_revEsc(_revEventoLabel(evName))+'</div><div class="rev-page-num">'+pNum+'</div></div><div class="rev-mostra-label">sinopses</div><hr class="rev-mostra-rule">';
-    page.appendChild(contentEl);
-    return{page:page,contentEl:contentEl};
-  }
-  var result=_revPaginateContent(_revSinopseItemFns(sinopseItems),_sinopsesShell,1,msr);
-  result.pages.forEach(function(pg){msr.removeChild(pg);});
-  document.body.removeChild(msr);
-  result.pages.forEach(function(el,i){
-    if(i>0){var d=document.createElement('div');d.className='rev-page-divider';container.appendChild(d);}
-    container.appendChild(el);
+function _revPaginateColumnsContent(itemFns,pageShellFn,startNum,msr){
+  var pNum=startNum,pages=[],shells=[];
+  var curShell=pageShellFn(pNum++);
+  msr.appendChild(curShell.page);
+  pages.push(curShell.page);shells.push(curShell);
+  var curP=0,curC=0;
+  itemFns.forEach(function(itemFn){
+    var el=itemFn();
+    shells[curP].cols[curC].appendChild(el);
+    if(shells[curP].cols[curC].scrollHeight>_REV_COL_H&&shells[curP].cols[curC].children.length>1){
+      shells[curP].cols[curC].removeChild(el);
+      curC++;
+      if(curC>=3){
+        var ns=pageShellFn(pNum++);
+        msr.appendChild(ns.page);
+        pages.push(ns.page);shells.push(ns);
+        curP++;curC=0;
+      }
+      shells[curP].cols[curC].appendChild(el);
+    }
   });
+  return{pages:pages,nextNum:pNum};
 }
 
 function renderRevista(){
-  _revUpdateModeBtns();
-  if(revistaMode==='sinopses'){renderSinopses();return;}
   var container=document.getElementById('revista-container');
   var empty=document.getElementById('revistaEmpty');
   if(!container)return;
@@ -9528,7 +9500,7 @@ function renderRevista(){
   var salaParaComplexo={};
   cinemasArr.forEach(function(c){if(c.sala&&c.complexo)salaParaComplexo[c.sala]=c.complexo;});
   var msr=document.createElement('div');
-  msr.style.cssText='position:fixed;left:-9999px;top:0;width:760px;visibility:hidden;pointer-events:none;';
+  msr.style.cssText='position:fixed;left:-9999px;top:0;width:1060px;visibility:hidden;pointer-events:none;';
   document.body.appendChild(msr);
   var allPages=[],pageNum=1;
 
@@ -9650,6 +9622,23 @@ function renderRevista(){
     var evLabel=_revEventoLabel(evName);
     var sr=_revPaginateContent(semItems,function(pn){return _filmsShell(evLabel,pn);},pageNum,msr);
     sr.pages.forEach(function(pg){allPages.push(pg);});
+    pageNum=sr.nextNum;
+  }
+
+  // Sinopses
+  var sinopseItems=_revGetSinopseItems(evName);
+  if(sinopseItems.length){
+    function _sinopsesShell(pn){
+      var cols=[0,1,2].map(function(){var c=document.createElement('div');c.className='rev-sinopse-col';return c;});
+      var colsEl=document.createElement('div');colsEl.className='rev-sinopses-list';
+      cols.forEach(function(c){colsEl.appendChild(c);});
+      var page=document.createElement('div');page.className='rev-page';
+      page.innerHTML='<div class="rev-page-header"><div class="rev-evento-pill" style="background:'+color+'">'+_revEsc(_revEventoLabel(evName))+'</div><div class="rev-page-num">'+pn+'</div></div><div class="rev-mostra-label">sinopses</div><hr class="rev-mostra-rule">';
+      page.appendChild(colsEl);
+      return{page:page,cols:cols};
+    }
+    var snr=_revPaginateColumnsContent(_revSinopseItemFns(sinopseItems),_sinopsesShell,pageNum,msr);
+    snr.pages.forEach(function(pg){allPages.push(pg);});
   }
 
   allPages.forEach(function(pg){msr.removeChild(pg);});
@@ -12044,7 +12033,7 @@ function renderDash(){
   html+=colBlock('kdm','KDM',kdmBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 17/05/2026 às 15:12';
+  var sysUpdate='última atualização do sistema · 17/05/2026 às 15:14';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -15888,7 +15877,7 @@ window.addEventListener('popstate',function(e){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 17/05/2026 às 15:12</span></div>
+<div id="page-footer"><span>última atualização · 17/05/2026 às 15:14</span></div>
 
 </div>
 

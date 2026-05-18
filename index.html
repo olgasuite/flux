@@ -3967,6 +3967,7 @@ html[data-theme]:not([data-theme="win98"]){--mono:var(--sans);}
   window._olgaBookings = _recepApiOf('hotel_bookings');
   window._olgaFlights  = _recepApiOf('flights');
   window._olgaTransfers= _recepApiOf('transfers');
+  window._olgaPessoas  = _recepApiOf('pessoas');
 
   // API templates de vinhetas por evento (coleção vin_templates, doc = event_id)
   window._olgaVinTemplates = {
@@ -7847,6 +7848,209 @@ function _recepGuestSelect(selId){
   return _recepGuests.map(function(g){return'<option value="'+_re(g.id)+'"'+(g.id===selId?' selected':'')+'>'+_re(g.data.name||g.id)+'</option>';}).join('');
 }
 
+/* ─── BANCO DE PESSOAS (equipe de filmes) ─── */
+var _recepPessoas=[];
+var _pessoaCrewMap={director:'diretor',cinematography:'fotografia',screenplay:'roteiro',editing:'montagem',sound:'som',art_direction:'direção de arte',costume_design:'figurino',cast:'elenco'};
+function _pessoaDocId(eventId,filmeId,funcao,name){
+  var raw=(eventId||'')+'__'+(filmeId||'')+'__'+(funcao||'')+'__'+(name||'').toLowerCase().trim();
+  return raw.replace(/[^a-zA-Z0-9_\-\.]/g,function(c){return'_'+c.charCodeAt(0).toString(16).padStart(2,'0');}).slice(0,490);
+}
+function _pessoaNow(){var d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')+'T12:00';}
+async function _syncPessoasDeFilme(codigo,filmData,eventoId){
+  if(!window._olgaPessoas)return;
+  var proms=[];
+  (filmData.director||[]).forEach(function(name){
+    if(!(name||'').trim())return;
+    var id=_pessoaDocId(eventoId,codigo,'diretor',name.trim());
+    proms.push(window._olgaPessoas.save(id,{name:name.trim(),event_id:eventoId,filme_id:codigo,funcao:'diretor',updated_at:_pessoaNow()}));
+  });
+  Object.keys(_pessoaCrewMap).filter(function(k){return k!=='director';}).forEach(function(key){
+    var funcao=_pessoaCrewMap[key];
+    ((filmData.crew&&filmData.crew[key])||[]).forEach(function(name){
+      if(!(name||'').trim())return;
+      var id=_pessoaDocId(eventoId,codigo,funcao,name.trim());
+      proms.push(window._olgaPessoas.save(id,{name:name.trim(),event_id:eventoId,filme_id:codigo,funcao:funcao,updated_at:_pessoaNow()}));
+    });
+  });
+  await Promise.all(proms);
+}
+window._recepSyncTodasPessoas=async function(){
+  if(!window._olgaCatalogo||!window._olgaPessoas){alert('APIs não disponíveis.');return;}
+  var btn=document.getElementById('recepSyncPessoasBtn');
+  if(btn){btn.disabled=true;btn.textContent='sincronizando…';}
+  try{
+    var catMap=await window._olgaCatalogo.load();
+    var proms=Object.keys(catMap).map(function(codigo){
+      var filmData=catMap[codigo];
+      var ev=(filmesArr||[]).find(function(f){return f.codigo===codigo;});
+      var evId=ev?ev.evento:'';
+      if(!evId)return Promise.resolve();
+      return _syncPessoasDeFilme(codigo,filmData,evId);
+    });
+    await Promise.all(proms);
+    if(btn){btn.textContent='sincronizado ✓';setTimeout(function(){if(btn){btn.disabled=false;btn.textContent='sincronizar equipe';}},3000);}
+  }catch(e){
+    if(btn){btn.disabled=false;btn.textContent='sincronizar equipe';}
+    alert('Erro ao sincronizar: '+e.message);
+  }
+};
+
+/* ─── IMPORTAR PESSOA COMO CONVIDADO ─── */
+var _importPessoasSel=new Set();
+window.openImportPessoasModal=async function(){
+  _importPessoasSel=new Set();
+  var loadEl='<div style="padding:30px;font-family:var(--mono);font-size:11px;color:var(--text-muted);">Carregando pessoas…</div>';
+  _recepShowModal('<div class="recep-modal-box" style="max-width:680px;width:95vw;">'+
+    '<div class="recep-modal-head"><span class="recep-modal-title">Importar pessoa como convidado</span><button class="recep-modal-close" onclick="_recepCloseModal()">×</button></div>'+
+    '<div id="importPessoasBody">'+loadEl+'</div>'+
+    '<div class="recep-modal-foot"><span id="importPessoasSel" style="font-family:var(--mono);font-size:10px;color:var(--text-muted);margin-right:auto;">0 selecionada(s)</span><button class="recep-btn-cancel" onclick="_recepCloseModal()">Cancelar</button><button class="recep-btn-save" id="importPessoasBtn" onclick="_importarPessoasSelecionadas()" disabled>Importar</button></div>'+
+  '</div>');
+  try{
+    _recepPessoas=await window._olgaPessoas.list();
+    _renderImportPessoas('','');
+  }catch(e){
+    var b=document.getElementById('importPessoasBody');
+    if(b)b.innerHTML='<div style="padding:20px;color:var(--warn);font-family:var(--mono);font-size:11px;">Erro: '+_re(e.message)+'</div>';
+  }
+};
+function _renderImportPessoas(filterEv,filterFunc){
+  var body=document.getElementById('importPessoasBody');if(!body)return;
+  var evKeys=Array.from(activeEventsReceptivo).sort();
+  var funcoes=['','diretor','fotografia','roteiro','montagem','som','direção de arte','figurino','elenco'];
+  var guestNames=new Set(_recepGuests.map(function(g){return(g.data.name||'').toLowerCase().trim();}));
+  var filtered=_recepPessoas.filter(function(p){
+    return(!filterEv||p.data.event_id===filterEv)&&(!filterFunc||p.data.funcao===filterFunc);
+  }).sort(function(a,b){return(a.data.name||'').localeCompare(b.data.name||'',undefined,{sensitivity:'base'});});
+  var evOpts='<option value="">Todos os eventos</option>'+evKeys.map(function(k){return'<option value="'+_re(k)+'"'+(k===filterEv?' selected':'')+'>'+_re(_recepEvLabel(k))+'</option>';}).join('');
+  var funcOpts=funcoes.map(function(f){return'<option value="'+_re(f)+'"'+(f===filterFunc?' selected':'')+'>'+_re(f||'Todas as funções')+'</option>';}).join('');
+  var rows=filtered.map(function(p){
+    var pd=p.data,pid=_re(p.id);
+    var jaCon=guestNames.has((pd.name||'').toLowerCase().trim());
+    var checked=_importPessoasSel.has(p.id);
+    var ffilm=(filmesArr||[]).find(function(f){return f.codigo===pd.filme_id;});
+    var catF=(window.catalogoFilmesMap&&window.catalogoFilmesMap[pd.filme_id])||{};
+    var tituloFilme=catF.title_pt||(ffilm&&ffilm.titulo)||pd.filme_id||'—';
+    return'<tr style="opacity:'+(jaCon?'0.5':'1')+'">'+
+      '<td style="width:24px;text-align:center;"><input type="checkbox" onchange="_importTogglePessoa(\''+pid+'\')" '+(checked?'checked':'')+' title="'+(jaCon?'Já existe como convidado':'')+'"></td>'+
+      '<td style="font-family:var(--mono);font-size:10px;font-weight:600;color:var(--text);">'+_re(pd.name||'—')+(jaCon?'<span style="margin-left:6px;font-size:9px;color:var(--text-muted);">(já convidado)</span>')+'</span></td>'+
+      '<td><span class="recep-role-badge recep-role-convidado" style="font-size:9px;">'+_re(pd.funcao||'—')+'</span></td>'+
+      '<td style="font-family:var(--mono);font-size:10px;color:var(--text-muted);">'+_re(tituloFilme)+'</td>'+
+      '<td style="font-family:var(--mono);font-size:10px;color:var(--text-muted);">'+_re(_recepEvLabel(pd.event_id))+'</td>'+
+    '</tr>';
+  }).join('');
+  body.innerHTML=
+    '<div style="display:flex;gap:8px;padding:12px 18px;border-bottom:1px solid var(--border);">'+
+      '<select class="recep-select" style="flex:1;" onchange="_renderImportPessoas(this.value,document.getElementById(\'ipFuncFilter\').value)">'+evOpts+'</select>'+
+      '<select id="ipFuncFilter" class="recep-select" style="flex:1;" onchange="_renderImportPessoas(document.getElementById(\'ipEvFilter\').value||\''+_re(filterEv)+'\',this.value)">'+funcOpts+'</select>'+
+    '</div>'+
+    '<div style="max-height:340px;overflow-y:auto;">'+
+    '<table class="recep-table"><thead><tr><th style="width:24px;"></th><th>Nome</th><th>Função</th><th>Filme</th><th>Evento</th></tr></thead>'+
+    '<tbody>'+(rows||'<tr><td colspan="5" class="recep-empty">Nenhuma pessoa encontrada.</td></tr>')+'</tbody></table></div>';
+  var evSel=body.querySelector('select');if(evSel)evSel.id='ipEvFilter';
+  _updateImportCount();
+}
+window._importTogglePessoa=function(id){
+  if(_importPessoasSel.has(id))_importPessoasSel.delete(id);else _importPessoasSel.add(id);
+  _updateImportCount();
+};
+function _updateImportCount(){
+  var n=_importPessoasSel.size;
+  var lbl=document.getElementById('importPessoasSel');if(lbl)lbl.textContent=n+' selecionada(s)';
+  var btn=document.getElementById('importPessoasBtn');if(btn)btn.disabled=!n;
+}
+window._importarPessoasSelecionadas=async function(){
+  var btn=document.getElementById('importPessoasBtn');if(btn){btn.disabled=true;btn.textContent='Importando…';}
+  var selecionadas=_recepPessoas.filter(function(p){return _importPessoasSel.has(p.id);});
+  try{
+    for(var i=0;i<selecionadas.length;i++){
+      var p=selecionadas[i].data;
+      await window._olgaGuests.save(null,{name:p.name||'',event_id:p.event_id||'',roles:[],contact:{email:'',phone:''},notes:'',arrival_date:'',departure_date:'',hotel_checkin_date:'',hotel_checkout_date:'',mostra_id:'',submostra_id:'',filme_id:p.filme_id||'',updated_at:_recepNow()});
+    }
+    _recepCloseModal();openRecepSection('convidados');
+  }catch(e){
+    if(btn){btn.disabled=false;btn.textContent='Importar';}
+    alert('Erro: '+e.message);
+  }
+};
+
+/* ─── AUTOCOMPLETE MOSTRA / FILME (modal de convidado) ─── */
+function _gResetAssoc(){
+  ['g_mostra_txt','g_submostra_txt','g_filme_txt'].forEach(function(id){var el=document.getElementById(id);if(el)el.value='';});
+  ['g_mostra_id','g_submostra_id','g_filme_id'].forEach(function(id){var el=document.getElementById(id);if(el)el.value='';});
+  var w=document.getElementById('g_submostra_wrap');if(w)w.style.display='none';
+}
+function _gHideAcBlur(resId,txtId,hidId){
+  setTimeout(function(){
+    var r=document.getElementById(resId);if(r)r.style.display='none';
+    var t=document.getElementById(txtId);if(t&&!t.value){var h=document.getElementById(hidId);if(h)h.value='';}
+  },200);
+}
+function _gMostraSuggest(){
+  if(!(_progData.programs||[]).length&&window._olgaPrograms){
+    Promise.all([window._olgaPrograms.list(),window._olgaSubprograms?window._olgaSubprograms.list():Promise.resolve([])]).then(function(r){_progData.programs=r[0];_progData.subprograms=r[1]||[];_gMostraSuggest();});
+    return;
+  }
+  var evId=(document.getElementById('g_event')||{}).value||'';
+  var q=(document.getElementById('g_mostra_txt').value||'').toLowerCase();
+  var res=document.getElementById('g_mostra_res');if(!res)return;
+  var items=(_progData.programs||[]).filter(function(p){return p.data&&!p.data.auto&&(!evId||p.data.event_id===evId)&&(p.data.name||'').toLowerCase().indexOf(q)>=0;});
+  if(!items.length){res.innerHTML='<div class="prog-autocomplete-item" style="color:var(--text-muted);">Sem resultados.</div>';res.style.display='block';return;}
+  res.innerHTML=items.map(function(p){return'<div class="prog-autocomplete-item" onmousedown="_gMostraSelect(\''+_re(p.id)+'\')">'+_re(p.data.name||p.id)+'</div>';}).join('');
+  res.style.display='block';
+}
+function _gMostraSelect(id){
+  var p=(_progData.programs||[]).find(function(x){return x.id===id;});
+  var name=p&&p.data&&p.data.name?p.data.name:id;
+  var inp=document.getElementById('g_mostra_txt');if(inp)inp.value=name;
+  var hid=document.getElementById('g_mostra_id');if(hid)hid.value=id;
+  var res=document.getElementById('g_mostra_res');if(res)res.style.display='none';
+  var stxt=document.getElementById('g_submostra_txt');if(stxt)stxt.value='';
+  var shid=document.getElementById('g_submostra_id');if(shid)shid.value='';
+  var wrap=document.getElementById('g_submostra_wrap');if(wrap)wrap.style.display=id?'block':'none';
+}
+function _gSubmostraSuggest(){
+  var mosId=(document.getElementById('g_mostra_id')||{}).value||'';
+  var q=(document.getElementById('g_submostra_txt').value||'').toLowerCase();
+  var res=document.getElementById('g_submostra_res');if(!res)return;
+  var items=(_progData.subprograms||[]).filter(function(s){return s.data&&(!mosId||s.data.program_id===mosId)&&(s.data.name||'').toLowerCase().indexOf(q)>=0;});
+  if(!items.length){res.innerHTML='<div class="prog-autocomplete-item" style="color:var(--text-muted);">Sem resultados.</div>';res.style.display='block';return;}
+  res.innerHTML=items.map(function(s){return'<div class="prog-autocomplete-item" onmousedown="_gSubmostraSelect(\''+_re(s.id)+'\')">'+_re(s.data.name||s.id)+'</div>';}).join('');
+  res.style.display='block';
+}
+function _gSubmostraSelect(id){
+  var s=(_progData.subprograms||[]).find(function(x){return x.id===id;});
+  var name=s&&s.data&&s.data.name?s.data.name:id;
+  var inp=document.getElementById('g_submostra_txt');if(inp)inp.value=name;
+  var hid=document.getElementById('g_submostra_id');if(hid)hid.value=id;
+  var res=document.getElementById('g_submostra_res');if(res)res.style.display='none';
+}
+function _gFilmeSuggest(){
+  var evId=(document.getElementById('g_event')||{}).value||'';
+  var q=(document.getElementById('g_filme_txt').value||'').toLowerCase();
+  var res=document.getElementById('g_filme_res');if(!res)return;
+  var items=(filmesArr||[]).filter(function(f){
+    if(evId&&f.evento!==evId)return false;
+    var catF=(window.catalogoFilmesMap&&window.catalogoFilmesMap[f.codigo])||{};
+    var s=((catF.title_pt||f.titulo||'')+' '+(f.titulo||'')+' '+(f.codigo||'')).toLowerCase();
+    return q?s.indexOf(q)>=0:true;
+  }).slice(0,20);
+  if(!items.length){res.innerHTML='<div class="prog-autocomplete-item" style="color:var(--text-muted);">Sem resultados.</div>';res.style.display='block';return;}
+  res.innerHTML=items.map(function(f){
+    var catF=(window.catalogoFilmesMap&&window.catalogoFilmesMap[f.codigo])||{};
+    var label=catF.title_pt||f.titulo||f.codigo;
+    return'<div class="prog-autocomplete-item" onmousedown="_gFilmeSelect(\''+_re(f.codigo)+'\')">'+_re(label)+' <span style="color:var(--text-muted);font-size:9px;">'+_re(f.codigo)+'</span></div>';
+  }).join('');
+  res.style.display='block';
+}
+function _gFilmeSelect(codigo){
+  var f=(filmesArr||[]).find(function(x){return x.codigo===codigo;});
+  var catF=(window.catalogoFilmesMap&&window.catalogoFilmesMap[codigo])||{};
+  var label=catF.title_pt||(f&&f.titulo)||codigo;
+  var inp=document.getElementById('g_filme_txt');if(inp)inp.value=label+' ('+codigo+')';
+  var hid=document.getElementById('g_filme_id');if(hid)hid.value=codigo;
+  var res=document.getElementById('g_filme_res');if(res)res.style.display='none';
+}
+
 function _renderConvidados(){
   var canEdit=window._olgaCanEdit('receptivo');
   var hotelMap={};_recepHotels.forEach(function(h){hotelMap[h.id]=h.data.name||h.id;});
@@ -7872,6 +8076,8 @@ function _renderConvidados(){
       '<span class="recep-bar-title">Convidados</span>'+
       '<div id="recepPills" style="display:contents;"></div>'+
       '<button class="recep-print-btn" onclick="_recepPrint()">imprimir</button>'+
+      (canEdit?'<button id="recepSyncPessoasBtn" class="recep-print-btn" onclick="window._recepSyncTodasPessoas()" title="Sincroniza equipe e diretores de todos os filmes do catálogo para o banco de pessoas">sincronizar equipe</button>':'')+
+      (canEdit?'<button class="recep-print-btn" onclick="openImportPessoasModal()">importar pessoa</button>':'')+
       (canEdit?'<button class="recep-add-btn" onclick="openGuestModal(null)">+ Convidado</button>':'')+
     '</div>'+
     '<div class="recep-pres-legend">'+
@@ -7902,6 +8108,14 @@ function openGuestModal(id,tmplData){
   var hotelsFiltered=_recepHotels.filter(function(h){return!h.data.event_id||!evId||h.data.event_id===evId;});
   var hotelOpts='<option value="">— sem hotel —</option>'+hotelsFiltered.map(function(h){return'<option value="'+_re(h.id)+'"'+(h.id===curHotelId?' selected':'')+'>'+_re(h.data.name||h.id)+'</option>';}).join('');
   var roleCheck=function(r){return'<label class="recep-roles-row" style="margin:0;"><input type="checkbox" name="g_role" value="'+r+'"'+((d.roles||[]).indexOf(r)>=0?' checked':'')+'>'+r+'</label>';};
+  var mostraId=d.mostra_id||'';var submostraId=d.submostra_id||'';var filmeId=d.filme_id||'';
+  var mp=mostraId?(_progData.programs||[]).find(function(p){return p.id===mostraId;}):null;
+  var mostraTxt=mp&&mp.data&&mp.data.name?mp.data.name:mostraId;
+  var sp=submostraId?(_progData.subprograms||[]).find(function(s){return s.id===submostraId;}):null;
+  var submostraTxt=sp&&sp.data&&sp.data.name?sp.data.name:submostraId;
+  var ff=filmeId?(filmesArr||[]).find(function(x){return x.codigo===filmeId;}):null;
+  var catFF=filmeId&&window.catalogoFilmesMap?window.catalogoFilmesMap[filmeId]||{}:{};
+  var filmeTxt=filmeId?(catFF.title_pt||(ff&&ff.titulo)||filmeId)+' ('+filmeId+')':'';
   var title=id?'Editar Convidado':tmplData?'Duplicar Convidado':'Novo Convidado';
   _recepShowModal(
     '<div class="recep-modal-box">'+
@@ -7909,7 +8123,7 @@ function openGuestModal(id,tmplData){
     '<div id="recepMErr" class="recep-modal-err" style="margin:0 18px;"></div>'+
     '<div class="recep-modal-body">'+
       '<div class="recep-field"><label class="recep-label">Nome</label><input id="g_name" class="recep-input" value="'+_re(d.name||'')+'"></div>'+
-      '<div class="recep-field"><label class="recep-label">Evento</label><select id="g_event" class="recep-select"><option value="">—</option>'+_recepEvSelect(evId)+'</select></div>'+
+      '<div class="recep-field"><label class="recep-label">Evento</label><select id="g_event" class="recep-select" onchange="_gResetAssoc()"><option value="">—</option>'+_recepEvSelect(evId)+'</select></div>'+
       '<div class="recep-field"><label class="recep-label">Hotel</label><select id="g_hotel" class="recep-select">'+hotelOpts+'</select></div>'+
       '<div class="recep-2col">'+
         '<div class="recep-field"><label class="recep-label">Chegada</label><input id="g_arrival" type="date" class="recep-input" value="'+_re(d.arrival_date||'')+'"></div>'+
@@ -7920,6 +8134,9 @@ function openGuestModal(id,tmplData){
         '<div class="recep-field"><label class="recep-label">Check-out hotel</label><input id="g_checkout" type="date" class="recep-input" value="'+_re(d.hotel_checkout_date||'')+'"></div>'+
       '</div>'+
       '<div class="recep-field"><label class="recep-label">Papel</label><div class="recep-roles-row">'+roleCheck('jurado')+roleCheck('diretor')+roleCheck('debatedor')+roleCheck('convidado')+'</div></div>'+
+      '<div class="recep-field"><label class="recep-label">Mostra</label><div class="prog-autocomplete-wrap"><input id="g_mostra_txt" class="recep-input" placeholder="buscar por nome…" autocomplete="off" value="'+_re(mostraTxt)+'" oninput="_gMostraSuggest()" onblur="_gHideAcBlur(\'g_mostra_res\',\'g_mostra_txt\',\'g_mostra_id\')"><input type="hidden" id="g_mostra_id" value="'+_re(mostraId)+'"><div id="g_mostra_res" class="prog-autocomplete-results"></div></div></div>'+
+      '<div class="recep-field" id="g_submostra_wrap" style="'+(mostraId?'':'display:none')+'"><label class="recep-label">Sub-mostra</label><div class="prog-autocomplete-wrap"><input id="g_submostra_txt" class="recep-input" placeholder="buscar por nome…" autocomplete="off" value="'+_re(submostraTxt)+'" oninput="_gSubmostraSuggest()" onblur="_gHideAcBlur(\'g_submostra_res\',\'g_submostra_txt\',\'g_submostra_id\')"><input type="hidden" id="g_submostra_id" value="'+_re(submostraId)+'"><div id="g_submostra_res" class="prog-autocomplete-results"></div></div></div>'+
+      '<div class="recep-field"><label class="recep-label">Filme</label><div class="prog-autocomplete-wrap"><input id="g_filme_txt" class="recep-input" placeholder="buscar por nome…" autocomplete="off" value="'+_re(filmeTxt)+'" oninput="_gFilmeSuggest()" onblur="_gHideAcBlur(\'g_filme_res\',\'g_filme_txt\',\'g_filme_id\')"><input type="hidden" id="g_filme_id" value="'+_re(filmeId)+'"><div id="g_filme_res" class="prog-autocomplete-results"></div></div></div>'+
       '<div class="recep-field"><label class="recep-label">E-mail</label><input id="g_email" class="recep-input" value="'+_re((d.contact&&d.contact.email)||'')+'"></div>'+
       '<div class="recep-field"><label class="recep-label">Telefone</label><input id="g_phone" class="recep-input" value="'+_re((d.contact&&d.contact.phone)||'')+'"></div>'+
       '<div class="recep-field"><label class="recep-label">Observações</label><textarea id="g_notes" class="recep-textarea">'+_re(d.notes||'')+'</textarea></div>'+
@@ -7936,7 +8153,7 @@ window.saveGuest=async function(curBookId){
   var name=(document.getElementById('g_name').value||'').trim();
   if(!name){var e=document.getElementById('recepMErr');e.textContent='Nome obrigatório.';e.style.display='block';return;}
   var hotelId=document.getElementById('g_hotel').value||'';
-  var data={name:name,event_id:document.getElementById('g_event').value||'',roles:Array.from(document.querySelectorAll('input[name="g_role"]:checked')).map(function(x){return x.value;}),contact:{email:(document.getElementById('g_email').value||'').trim(),phone:(document.getElementById('g_phone').value||'').trim()},notes:(document.getElementById('g_notes').value||'').trim(),arrival_date:document.getElementById('g_arrival').value||'',departure_date:document.getElementById('g_departure').value||'',hotel_checkin_date:document.getElementById('g_checkin').value||'',hotel_checkout_date:document.getElementById('g_checkout').value||'',updated_at:_recepNow()};
+  var data={name:name,event_id:document.getElementById('g_event').value||'',roles:Array.from(document.querySelectorAll('input[name="g_role"]:checked')).map(function(x){return x.value;}),contact:{email:(document.getElementById('g_email').value||'').trim(),phone:(document.getElementById('g_phone').value||'').trim()},notes:(document.getElementById('g_notes').value||'').trim(),arrival_date:document.getElementById('g_arrival').value||'',departure_date:document.getElementById('g_departure').value||'',hotel_checkin_date:document.getElementById('g_checkin').value||'',hotel_checkout_date:document.getElementById('g_checkout').value||'',mostra_id:(document.getElementById('g_mostra_id').value||'').trim(),submostra_id:(document.getElementById('g_submostra_id').value||'').trim(),filme_id:(document.getElementById('g_filme_id').value||'').trim(),updated_at:_recepNow()};
   try{
     var guestId=await window._olgaGuests.save(_recepEditId,data);
     window._logFirestoreEdit&&window._logFirestoreEdit('individual',_recepEditId||guestId,data,'receptivo','convidados');
@@ -7970,6 +8187,13 @@ function _renderGuestDetail(guestId){
   var g=_recepGuests.find(function(x){return x.id===guestId;});
   if(!g){document.getElementById('receptivo-container').innerHTML='<div class="recep-empty">Convidado não encontrado.</div>';return;}
   var d=g.data,sid=_re(guestId),canEdit=window._olgaCanEdit('receptivo');
+  var _mprog=d.mostra_id?(_progData.programs||[]).find(function(p){return p.id===d.mostra_id;}):null;
+  var _mostraNome=_mprog&&_mprog.data&&_mprog.data.name?_mprog.data.name:d.mostra_id||'';
+  var _ssub=d.submostra_id?(_progData.subprograms||[]).find(function(s){return s.id===d.submostra_id;}):null;
+  var _subNome=_ssub&&_ssub.data&&_ssub.data.name?_ssub.data.name:d.submostra_id||'';
+  var _ffilm=d.filme_id?(filmesArr||[]).find(function(f){return f.codigo===d.filme_id;}):null;
+  var _catFF=d.filme_id&&window.catalogoFilmesMap?window.catalogoFilmesMap[d.filme_id]||{}:{};
+  var _filmeNome=d.filme_id?(_catFF.title_pt||(_ffilm&&_ffilm.titulo)||d.filme_id)+'  ('+d.filme_id+')':'';
   function _gDate(v){if(!v)return null;var p=v.split('-');return p.length===3?p[2]+'/'+p[1]+'/'+p[0]:v;}
 
   function secTable(cols,rows,emptyMsg){
@@ -8024,6 +8248,9 @@ function _renderGuestDetail(guestId){
         (_gDate(d.departure_date)?'<span>Partida: '+_gDate(d.departure_date)+'</span>':'')+
         (_gDate(d.hotel_checkin_date)?'<span>Check-in hotel: '+_gDate(d.hotel_checkin_date)+'</span>':'')+
         (_gDate(d.hotel_checkout_date)?'<span>Check-out hotel: '+_gDate(d.hotel_checkout_date)+'</span>':'')+
+        (_mostraNome?'<span>Mostra: '+_re(_mostraNome)+'</span>':'')+
+        (_subNome?'<span>Sub-mostra: '+_re(_subNome)+'</span>':'')+
+        (_filmeNome?'<span>Filme: '+_re(_filmeNome)+'</span>':'')+
       '</div>'+
       (d.notes?'<div style="margin-top:8px;font-family:var(--mono);font-size:10px;color:var(--text-muted);">'+_re(d.notes)+'</div>':'')+
     '</div>'+
@@ -12295,7 +12522,7 @@ function renderDash(){
   html+=colBlock('kdm','KDM',kdmBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 18/05/2026 às 15:38';
+  var sysUpdate='última atualização do sistema · 18/05/2026 às 15:42';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -14692,6 +14919,7 @@ async function doSaveCat(){
     await window._olgaCatalogo.save(_catCode,data);
     window._logFirestoreEdit&&window._logFirestoreEdit('individual',_catCode,data,'catalogo','filmes');
     catalogoFilmesMap[_catCode]=data;
+    (function(){var _ev=(filmesArr||[]).find(function(f){return f.codigo===_catCode;});if(_ev&&_ev.evento)_syncPessoasDeFilme(_catCode,data,_ev.evento).catch(function(e){console.warn('pessoas sync:',e);});})();
     var _cf=filmesMap[_catCode];
     if(_cf&&window._olgaCopias){try{await window._olgaCopias.save(_catCode,{festival_code:_catCode,event_name:_cf.evento||'',title:_cf.titulo||'',original_language:data.original_language||'',dcp_subtitle_code:_cf.legenda||'',vf_subtitle_code:_cf.vf||'',projection_lens:_cf.lente||'',audio_format:_cf.som||'',status:_cf.status||'',notes:_cf.obs||'',dcp_creator:_cf.col_k||'',has_kdm:_cf.kdm||'',subtitle_status:_cf.col_n||'',cpl_id:_cf.cpl||'',ov_cpl_id:_cf.cplOV||'',dcp_resolution:_cf.resolucao||'',dcp_duration:_cf.duracao||'',dcp_size:_cf.gb||'',dcp_fps:_cf.fps||'',storage_location:_cf.hd||'',dcp_uuid:_cf.dcp_uuid||'',accessibility_features:_cf.acessibilidade||'',dcp_link:_cf.dcp_link||'',file_link:_cf.file_link||''});_cf.idioma=data.original_language||'';}catch(e){}}
     _catEditing=false;
@@ -16139,7 +16367,7 @@ window.addEventListener('popstate',function(e){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 18/05/2026 às 15:38</span></div>
+<div id="page-footer"><span>última atualização · 18/05/2026 às 15:42</span></div>
 
 </div>
 

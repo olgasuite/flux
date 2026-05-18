@@ -1978,20 +1978,26 @@ mark{background:rgba(255,186,32,0.28);color:var(--accent);border-radius:2px;padd
 #revista-container{background:var(--bg);min-height:calc(100vh - 100px);padding:32px 24px 60px;display:flex;flex-direction:column;align-items:center;gap:0;}
 .revista-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;color:var(--text-muted);padding:80px 40px;min-height:50vh;}
 .revista-empty p{font-size:12px;text-align:center;line-height:1.9;font-family:var(--mono);}
-.rev-page{width:760px;min-height:520px;background:#f8f7f4;color:#111;padding:52px 60px 56px;position:relative;border:1px solid #d6d2ca;margin-bottom:-1px;flex-shrink:0;}
+.rev-page{width:760px;min-height:520px;background:#f8f7f4;color:#111;padding:48px 52px 52px;position:relative;border:1px solid #d6d2ca;margin-bottom:-1px;flex-shrink:0;}
 .rev-page:first-child{border-top:3px solid #111;}
 .rev-page:last-child{margin-bottom:0;border-bottom:3px solid #111;}
-.rev-page-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:40px;}
+.rev-page-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:36px;}
 .rev-evento-pill{font-family:'IBM Plex Mono',monospace;font-size:8px;font-weight:600;letter-spacing:0.28em;text-transform:uppercase;padding:5px 12px;background:#111;color:#f8f7f4;display:inline-block;}
 .rev-page-num{font-family:'IBM Plex Mono',monospace;font-size:9px;color:#999;letter-spacing:0.12em;margin-top:4px;}
 .rev-mostra-label{font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:600;letter-spacing:0.22em;text-transform:uppercase;color:#777;margin-bottom:10px;}
 .rev-mostra-rule{border:none;border-top:1px solid #333;margin:0 0 22px 0;}
-.rev-mostra-name{font-family:'IBM Plex Sans',sans-serif;font-size:38px;font-weight:700;line-height:1.08;color:#111;margin-bottom:28px;max-width:560px;}
-.rev-mostra-curador{font-family:'IBM Plex Sans',sans-serif;font-size:12px;font-weight:400;color:#555;margin-bottom:28px;letter-spacing:0.01em;}
-.rev-curadorial-text{font-family:'IBM Plex Sans',sans-serif;font-size:13px;font-weight:300;line-height:1.85;color:#222;column-count:2;column-gap:40px;column-rule:1px solid #ddd;}
+.rev-page-body{display:flex;gap:0;align-items:flex-start;}
+.rev-main{flex:1;min-width:0;padding-right:32px;}
+.rev-mostra-name{font-family:'IBM Plex Sans',sans-serif;font-size:36px;font-weight:700;line-height:1.08;color:#111;margin-bottom:24px;}
+.rev-curadorial-text{font-family:'IBM Plex Sans',sans-serif;font-size:12.5px;font-weight:300;line-height:1.85;color:#222;}
 .rev-curadorial-text p{margin-bottom:1em;}
-.rev-curadorial-text p:first-child::first-letter{font-size:3em;font-weight:700;float:left;line-height:1;margin:0 0.07em 0 0;color:#111;}
 .rev-sem-texto{font-family:'IBM Plex Mono',monospace;font-size:11px;color:#aaa;font-style:italic;padding:20px 0;}
+.rev-sidebar{width:148px;flex-shrink:0;border-left:1px solid #ccc;padding-left:20px;display:flex;flex-direction:column;gap:24px;}
+.rev-sidebar-section{}
+.rev-sidebar-lbl{font-family:'IBM Plex Mono',monospace;font-size:7.5px;font-weight:700;letter-spacing:0.26em;text-transform:uppercase;color:#999;margin-bottom:10px;}
+.rev-sidebar-item{font-family:'IBM Plex Sans',sans-serif;font-size:10.5px;font-weight:400;color:#333;line-height:1.5;margin-bottom:3px;}
+.rev-sidebar-range{font-family:'IBM Plex Mono',monospace;font-size:10px;color:#333;line-height:1.7;}
+.rev-sidebar-range span{display:block;}
 .rev-page-divider{width:760px;height:28px;background:var(--bg);flex-shrink:0;}
 @media print{.rev-page{page-break-after:always;border:none!important;}#revista-container{background:#fff;padding:0;}.rev-page{box-shadow:none;margin-bottom:0;}}
 
@@ -4320,12 +4326,16 @@ html[data-theme]:not([data-theme="win98"]){--mono:var(--sans);}
 
       // eventos cadastrados no Firestore (fonte de verdade para cores e eventos sem filmes)
       var eventosFirestore2 = [];
+      if(!window._olgaEventoNomes)window._olgaEventoNomes={};
       eventosSnap.forEach(function(doc) {
         var r = doc.data();
         var nome = (r.nome || doc.id || '').trim();
         if (!nome) return;
         if (!allowedEvento(nome)) return;
         eventosFirestore2.push({ nome: nome });
+        // mapeia code → nome_exibicao para uso na Revista
+        if(r.nome_exibicao)window._olgaEventoNomes[doc.id]=r.nome_exibicao;
+        if(r.nome_exibicao)window._olgaEventoNomes[nome]=r.nome_exibicao;
       });
       window._olgaEventosCache = eventosFirestore2;
 
@@ -9224,14 +9234,10 @@ function _processKDMTest(sessaoNome,xml){
 
 /* ── REVISTA ────────────────────────────────────────────────── */
 function _revEventoLabel(eventId){
-  // Tenta nome_exibicao do módulo equipe, depois nome do receptivo, fallback para o código
+  if(window._olgaEventoNomes&&window._olgaEventoNomes[eventId])return window._olgaEventoNomes[eventId];
   if(window._adminEventos&&window._adminEventos.length){
     var e=window._adminEventos.find(function(x){return x.id===eventId;});
     if(e&&e.data.nome_exibicao)return e.data.nome_exibicao;
-  }
-  if(window._recepEvList&&window._recepEvList.length){
-    var e2=window._recepEvList.find(function(x){return x.id===eventId;});
-    if(e2&&(e2.data.nome_exibicao||e2.data.nome))return e2.data.nome_exibicao||e2.data.nome;
   }
   return eventId;
 }
@@ -9247,15 +9253,8 @@ function buildRevistaFilters(){
 function buildRevistaEventSelect(){
   var sel=document.getElementById('revistaEventSelect');
   if(!sel)return;
-  var today=new Date();today.setHours(0,0,0,0);
-  // só eventos ativos (sessão futura) E dentro dos pills selecionados
-  var activeEvs=new Set();
-  sessoesArr.forEach(function(s){
-    if(!s.evento||!activeEventsRevista.has(s.evento))return;
-    var d=s.date?new Date(s.date):null;
-    if(d&&d>=today)activeEvs.add(s.evento);
-  });
-  var opts=Array.from(activeEvs).sort(function(a,b){
+  // eventos com pill ativo (igual a outros módulos)
+  var opts=Array.from(activeEventsRevista).sort(function(a,b){
     return _revEventoLabel(a).localeCompare(_revEventoLabel(b),'pt-BR');
   });
   sel.innerHTML='<option value="" disabled selected>— selecionar evento —</option>';
@@ -9264,12 +9263,20 @@ function buildRevistaEventSelect(){
     o.value=ev;o.textContent=_revEventoLabel(ev);
     sel.appendChild(o);
   });
-  if(revistaSelectedEvent&&activeEvs.has(revistaSelectedEvent)){
+  if(revistaSelectedEvent&&activeEventsRevista.has(revistaSelectedEvent)){
     sel.value=revistaSelectedEvent;
   } else {
     revistaSelectedEvent='';
     sel.value='';
   }
+}
+
+function _revFmtDate(d){
+  if(!d)return'—';
+  var dt=d instanceof Date?d:new Date(d);
+  if(isNaN(dt))return'—';
+  var mm=['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
+  return dt.getDate()+' '+mm[dt.getMonth()];
 }
 
 function renderRevista(){
@@ -9278,24 +9285,19 @@ function renderRevista(){
   if(!container)return;
   Array.from(container.querySelectorAll('.rev-page,.rev-page-divider')).forEach(function(el){el.remove();});
   if(!revistaSelectedEvent){
-    if(empty)empty.style.display='flex';
+    if(empty){empty.innerHTML='<p>Selecione um evento acima para gerar a revista.</p>';empty.style.display='flex';}
     return;
   }
   if(empty)empty.style.display='none';
   var evName=revistaSelectedEvent;
   var color=eventColors[evName]||'#111';
-  // programs usa event_id (= nome do evento) e auto=true sinaliza mostra-contêiner automática
   var mostras=(_progData.programs||[]).filter(function(p){
     return p.data.event_id===evName&&!p.data.auto;
   });
   if(!mostras.length){
-    // evento não tem mostras cadastradas — carrega do Firestore se necessário
     if(window._olgaPrograms&&!_progData.programs.length){
       empty.innerHTML='<p>Carregando mostras…</p>';empty.style.display='flex';
-      window._olgaPrograms.list().then(function(progs){
-        _progData.programs=progs;
-        renderRevista();
-      });
+      window._olgaPrograms.list().then(function(progs){_progData.programs=progs;renderRevista();});
       return;
     }
     if(empty){empty.innerHTML='<p>Este evento não possui mostras cadastradas na Programação.</p>';empty.style.display='flex';}
@@ -9303,18 +9305,50 @@ function renderRevista(){
   }
   mostras.forEach(function(p,idx){
     if(idx>0){
-      var div=document.createElement('div');
-      div.className='rev-page-divider';
-      container.appendChild(div);
+      var divider=document.createElement('div');
+      divider.className='rev-page-divider';
+      container.appendChild(divider);
     }
-    var page=document.createElement('div');
-    page.className='rev-page';
-    var hdr='<div class="rev-page-header">'+
-      '<div class="rev-evento-pill" style="background:'+color+'">'+_revEsc(_revEventoLabel(evName))+'</div>'+
-      '<div class="rev-page-num">'+(idx+1)+'</div>'+
-    '</div>';
-    var label='<div class="rev-mostra-label">mostra</div><hr class="rev-mostra-rule">';
-    var name='<div class="rev-mostra-name">'+_revEsc(p.data.name||p.id)+'</div>';
+    // sessões desta mostra
+    var sessoesMostra=sessoesArr.filter(function(s){return s.program_id===p.id;});
+    // mapa sala → complexo
+    var salaParaComplexo={};
+    cinemasArr.forEach(function(c){if(c.sala&&c.complexo)salaParaComplexo[c.sala]=c.complexo;});
+    // complexos únicos (preserva ordem de primeira aparição)
+    var cinemasVistos={},cinemasLista=[];
+    sessoesMostra.forEach(function(s){
+      if(!s.cinema)return;
+      var complexo=salaParaComplexo[s.cinema]||s.cinema;
+      if(!cinemasVistos[complexo]){cinemasVistos[complexo]=true;cinemasLista.push(complexo);}
+    });
+    // janela de datas
+    var datas=sessoesMostra.map(function(s){return s.date;}).filter(Boolean).sort(function(a,b){return a-b;});
+    var dataInicio=datas[0]||null, dataFim=datas[datas.length-1]||null;
+    var anoInicio=dataInicio?new Date(dataInicio).getFullYear():'';
+    var anoFim=dataFim?new Date(dataFim).getFullYear():'';
+
+    // sidebar HTML
+    var sidebarHtml='<div class="rev-sidebar">';
+    if(cinemasLista.length){
+      sidebarHtml+='<div class="rev-sidebar-section"><div class="rev-sidebar-lbl">Complexos</div>';
+      cinemasLista.forEach(function(c){sidebarHtml+='<div class="rev-sidebar-item">'+_revEsc(c)+'</div>';});
+      sidebarHtml+='</div>';
+    }
+    if(dataInicio){
+      sidebarHtml+='<div class="rev-sidebar-section"><div class="rev-sidebar-lbl">Período</div>';
+      sidebarHtml+='<div class="rev-sidebar-range">';
+      if(dataInicio===dataFim||!dataFim){
+        sidebarHtml+='<span>'+_revEsc(_revFmtDate(dataInicio))+'</span><span>'+anoInicio+'</span>';
+      } else if(anoInicio===anoFim){
+        sidebarHtml+='<span>'+_revEsc(_revFmtDate(dataInicio))+' —</span><span>'+_revEsc(_revFmtDate(dataFim))+'</span><span>'+anoFim+'</span>';
+      } else {
+        sidebarHtml+='<span>'+_revEsc(_revFmtDate(dataInicio))+' '+anoInicio+' —</span><span>'+_revEsc(_revFmtDate(dataFim))+' '+anoFim+'</span>';
+      }
+      sidebarHtml+='</div></div>';
+    }
+    sidebarHtml+='</div>';
+
+    // texto curatorial
     var textoHtml='';
     var texto=p.data.program_description||'';
     if(texto){
@@ -9326,7 +9360,22 @@ function renderRevista(){
     } else {
       textoHtml='<div class="rev-sem-texto">Texto curatorial não disponível.</div>';
     }
-    page.innerHTML=hdr+label+name+textoHtml;
+
+    var page=document.createElement('div');
+    page.className='rev-page';
+    page.innerHTML=
+      '<div class="rev-page-header">'+
+        '<div class="rev-evento-pill" style="background:'+color+'">'+_revEsc(_revEventoLabel(evName))+'</div>'+
+        '<div class="rev-page-num">'+(idx+1)+'</div>'+
+      '</div>'+
+      '<div class="rev-mostra-label">mostra</div><hr class="rev-mostra-rule">'+
+      '<div class="rev-page-body">'+
+        '<div class="rev-main">'+
+          '<div class="rev-mostra-name">'+_revEsc(p.data.name||p.id)+'</div>'+
+          textoHtml+
+        '</div>'+
+        sidebarHtml+
+      '</div>';
     container.appendChild(page);
   });
 }
@@ -11714,7 +11763,7 @@ function renderDash(){
   html+=colBlock('kdm','KDM',kdmBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 17/05/2026 às 15:02';
+  var sysUpdate='última atualização do sistema · 17/05/2026 às 15:06';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -15558,7 +15607,7 @@ window.addEventListener('popstate',function(e){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 17/05/2026 às 15:02</span></div>
+<div id="page-footer"><span>última atualização · 17/05/2026 às 15:06</span></div>
 
 </div>
 

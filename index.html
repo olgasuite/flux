@@ -12769,7 +12769,7 @@ function renderDash(){
   html+=colBlock('kdm','KDM',kdmBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 19/05/2026 às 16:16';
+  var sysUpdate='última atualização do sistema · 19/05/2026 às 16:18';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -15050,6 +15050,8 @@ function renderCatDetail(){
   }
   if(_catEditing||meta.synopsis)
     html+=catBlock('Sinopse',_catEditing?'<textarea class="cat-textarea" id="catf_synopsis" rows="6">'+((meta.synopsis||'').replace(/</g,'&lt;').replace(/>/g,'&gt;'))+'</textarea>':'<div class="cat-value synopsis">'+(meta.synopsis||'\u2014')+'</div>');
+  if(_catEditing||meta.synopsis_en)
+    html+=catBlock('Sinopse em ingl\u00eas',_catEditing?'<textarea class="cat-textarea" id="catf_synopsis_en" rows="6" placeholder="English synopsis\u2026">'+((meta.synopsis_en||'').replace(/</g,'&lt;').replace(/>/g,'&gt;'))+'</textarea>':'<div class="cat-value synopsis">'+(meta.synopsis_en||'\u2014')+'</div>');
   var selOpts=['FEST','NÃO FEST','SUPLENTE','CONVIDADO','VISIONAMENTO'];
   html+=catBlock('Metadados',
     '<div class="cat-grid">'+catFld('Gênero',_catEditing?catTagInp('genre',meta.genre||[]):catTags(meta.genre||[]))+catFld('País(es)',_catEditing?catTagInp('countries',meta.countries||[]):catTags(meta.countries||[]))+'</div>'
@@ -15064,6 +15066,7 @@ function renderCatDetail(){
     +catFld('Screener',_catEditing?catInp('screener',meta.screener||''):(meta.screener?'<a href="'+meta.screener.replace(/"/g,'&quot;')+'" target="_blank" style="color:var(--accent)">'+meta.screener+'</a>':'—'))
     +catFld('Trailer',_catEditing?catInp('trailer',meta.trailer||''):(meta.trailer?'<a href="'+meta.trailer.replace(/"/g,'&quot;')+'" target="_blank" style="color:var(--accent)">'+meta.trailer+'</a>':'—'))
     +'</div>'
+    +(_catEditing||meta.website?catFld('Website',_catEditing?catInp('website',meta.website||''):(meta.website?'<a href="'+meta.website.replace(/"/g,'&quot;')+'" target="_blank" style="color:var(--accent)">'+meta.website+'</a>':'—')):'')
   );
   if(_catEditing||meta.copy_arrival_forecast||meta.copy_notes)
     html+=catBlock('Logística','<div class="cat-grid">'+catFld('Previsão de chegada da cópia',_catEditing?catInp('copy_arrival_forecast',meta.copy_arrival_forecast||''):(meta.copy_arrival_forecast||'\u2014'))+catFld('Anotações sobre a cópia',_catEditing?catInp('copy_notes',meta.copy_notes||''):(meta.copy_notes||'\u2014'))+'</div>');
@@ -15154,7 +15157,9 @@ async function doSaveCat(){
       contact_email:gv('contact_email'),year:parseInt(gv('year'))||null,
       copy_arrival_forecast:gv('copy_arrival_forecast'),copy_notes:gv('copy_notes'),
       screener:gv('screener'),trailer:gv('trailer'),selecao:selEl?selEl.value:'',
+      website:gv('website'),
       synopsis:(document.getElementById('catf_synopsis')||{value:''}).value.trim(),
+      synopsis_en:(document.getElementById('catf_synopsis_en')||{value:''}).value.trim(),
       director:catGetTags('director'),
       countries:catGetTags('countries'),genre:catGetTags('genre'),
       production_company:catGetTags('production_company'),
@@ -15282,12 +15287,13 @@ function renderCatCreate(){
     +catFld('E · Elenco',catTagInp('crew_cast',[]))
   );
   html+=catBlock('Sinopse','<textarea class="cat-textarea" id="catf_synopsis" rows="5"></textarea>');
+  html+=catBlock('Sinopse em inglês','<textarea class="cat-textarea" id="catf_synopsis_en" rows="5" placeholder="English synopsis…"></textarea>');
   html+=catBlock('Empresa(s) Produtora(s) e Distribuidora(s)',
     '<div class="cat-grid">'+catFld('Empresa(s) Produtora(s)',catTagInp('production_company',[]))+catFld('Distribuidora(s)',catTagInp('distribution_company',[]))+'</div>'
   );
   html+=catBlock('Distribuição',
     '<div class="cat-grid">'+catFld('Screener',catInp('screener',''))+catFld('Trailer',catInp('trailer',''))+'</div>'
-    +'<div class="cat-grid">'+catFld('Email de contato',catInp('contact_email',''))+'</div>'
+    +'<div class="cat-grid">'+catFld('Email de contato',catInp('contact_email',''))+catFld('Website',catInp('website',''))+'</div>'
     +'<div class="cat-grid">'+catFld('Previsão de chegada',catInp('copy_arrival_forecast','','date'))+catFld('Notas sobre a cópia',catInp('copy_notes',''))+'</div>'
   );
   html+=catBlock('Palavras-chave',catFld('Palavras-chave',catTagInp('keywords',[])));
@@ -15368,6 +15374,8 @@ async function doCreateFilm(){
     title_pt:titlePt,
     original_title:gv('original_title'),english_title:gv('english_title'),
     synopsis:synEl?synEl.value.trim():'',
+    synopsis_en:(document.getElementById('catf_synopsis_en')||{value:''}).value.trim(),
+    website:gv('website'),
     film_type:gv('film_type'),content_rating:gv('content_rating'),
     original_language:gv('original_language'),
     screener:gv('screener'),trailer:gv('trailer'),selecao:selEl?selEl.value:'',
@@ -15400,6 +15408,8 @@ async function doCreateFilm(){
       if(td.countries&&td.countries.length&&!catalogData.countries.length)catalogData.countries=td.countries;
       if(td.genre&&td.genre.length&&!catalogData.genre.length)catalogData.genre=td.genre;
       if(td.synopsis&&!catalogData.synopsis)catalogData.synopsis=td.synopsis;
+      if(td.synopsis_en&&!catalogData.synopsis_en)catalogData.synopsis_en=td.synopsis_en;
+      if(td.website&&!catalogData.website)catalogData.website=td.website;
       if(td.original_language&&!catalogData.original_language)catalogData.original_language=td.original_language;
       if(td.production_company&&td.production_company.length&&!catalogData.production_company.length)catalogData.production_company=td.production_company;
       if(td.crew){
@@ -15517,10 +15527,10 @@ async function fetchTMDBMovie(tmdbId){
   var ptResp=await fetch('https://api.themoviedb.org/3/movie/'+tmdbId+'?api_key='+KEY+'&language=pt-BR&append_to_response=credits,videos');
   if(!ptResp.ok)throw new Error('TMDB '+ptResp.status+': '+ptResp.statusText);
   var d=await ptResp.json();
-  var enTitle=d.original_title||'';
+  var enTitle=d.original_title||'',enSynopsis='';
   try{
     var enResp=await fetch('https://api.themoviedb.org/3/movie/'+tmdbId+'?api_key='+KEY+'&language=en-US');
-    if(enResp.ok){var ed=await enResp.json();enTitle=ed.title||enTitle;}
+    if(enResp.ok){var ed=await enResp.json();enTitle=ed.title||enTitle;enSynopsis=ed.overview||'';}
   }catch(e){}
   var crewList=d.credits&&d.credits.crew?d.credits.crew:[];
   function crewByJobs(jobs){return crewList.filter(function(p){return jobs.indexOf(p.job)!==-1;}).map(function(p){return p.name;});}
@@ -15548,6 +15558,8 @@ async function fetchTMDBMovie(tmdbId){
     countries:(d.production_countries||[]).map(function(c){return _tmdbCountryPt[c.iso_3166_1]||c.name;}),
     genre:(d.genres||[]).map(function(g){return g.name;}),
     synopsis:d.overview||'',
+    synopsis_en:enSynopsis,
+    website:d.homepage||'',
     original_language:_tmdbLangPt[d.original_language]||d.original_language||'',
     runtime:d.runtime||null,
     trailer:trailer,
@@ -15583,6 +15595,8 @@ async function importFromTMDB(codigo,btn){
     if(td.countries&&td.countries.length)merged.countries=td.countries;
     if(td.genre&&td.genre.length)merged.genre=td.genre;
     if(td.synopsis)merged.synopsis=td.synopsis;
+    if(td.synopsis_en)merged.synopsis_en=td.synopsis_en;
+    if(td.website)merged.website=td.website;
     if(td.original_language)merged.original_language=td.original_language;
     if(td.production_company&&td.production_company.length)merged.production_company=td.production_company;
     if(td.trailer)merged.trailer=td.trailer;
@@ -16617,7 +16631,7 @@ window.addEventListener('popstate',function(e){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 19/05/2026 às 16:16</span></div>
+<div id="page-footer"><span>última atualização · 19/05/2026 às 16:18</span></div>
 
 </div>
 

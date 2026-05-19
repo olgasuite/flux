@@ -8044,15 +8044,18 @@ function _updateImportCount(){
   if(tbtn)tbtn.textContent=todosSelected?'desmarcar todos':'selecionar todos';
 }
 function _progDeFilmes(filmCodes){
-  var mostraIds=new Set(),subIds=new Set();
+  var mostraIds=new Set(),subNames=new Set();
   (filmCodes||[]).forEach(function(cod){
     (buscaReverseSessoes[cod]||[]).forEach(function(nome){
       var sess=sessoesMap[nome];
       if(sess&&sess.program_id)mostraIds.add(sess.program_id);
-      if(sess&&sess.subprogram_id)subIds.add(sess.subprogram_id);
+      if(sess&&sess.subprogram_id){
+        var sub=(_progData.subprograms||[]).find(function(x){return x.id===sess.subprogram_id;});
+        subNames.add(sub&&sub.data&&sub.data.name?sub.data.name:sess.subprogram_id);
+      }
     });
   });
-  return{mostras:Array.from(mostraIds),submostras:Array.from(subIds)};
+  return{mostras:Array.from(mostraIds),submostras:Array.from(subNames)};
 }
 window._importarPessoasSelecionadas=async function(){
   var btn=document.getElementById('importPessoasBtn');if(btn){btn.disabled=true;btn.textContent='Importando…';}
@@ -8068,7 +8071,8 @@ window._importarPessoasSelecionadas=async function(){
       if(existing){
         var mergedFilmes=Array.from(new Set((existing.data.filmes||[]).concat(importFilmes)));
         var mergedMostras=Array.from(new Set((existing.data.mostras||[]).concat(importProg.mostras)));
-        var mergedSubs=Array.from(new Set((existing.data.submostras||[]).concat(importProg.submostras)));
+        var existingSubsNorm=(existing.data.submostras||[]).map(function(v){var s=(_progData.subprograms||[]).find(function(x){return x.id===v;});return s&&s.data&&s.data.name?s.data.name:v;});
+        var mergedSubs=Array.from(new Set(existingSubsNorm.concat(importProg.submostras)));
         var existingRoles=existing.data.roles||[];
         var mergedRoles=existingRoles.length?existingRoles:importRoles;
         var mergedData=Object.assign({},existing.data,{filmes:mergedFilmes,mostras:mergedMostras,submostras:mergedSubs,roles:mergedRoles,updated_at:_recepNow()});
@@ -8264,7 +8268,7 @@ function openGuestModal(id,tmplData){
   var _dSubs=d.submostras||(d.submostra_id?[d.submostra_id]:[]);
   _gFilmesSel=_dFilmes.map(function(cod){var f=(filmesArr||[]).find(function(x){return x.codigo===cod;});var catF=(window.catalogoFilmesMap&&window.catalogoFilmesMap[cod])||{};var label=(catF.title_pt||(f&&f.titulo)||cod)+' ('+cod+')';return{codigo:cod,label:label};});
   _gMostrasSel=_dMostras.map(function(mid){var p=(_progData.programs||[]).find(function(x){return x.id===mid;});return{id:mid,name:p&&p.data&&p.data.name?p.data.name:mid};});
-  _gSubsSel=_dSubs.map(function(sid){var s=(_progData.subprograms||[]).find(function(x){return x.id===sid;});return{id:sid,name:s&&s.data&&s.data.name?s.data.name:sid};});
+  _gSubsSel=_dSubs.map(function(v){var s=(_progData.subprograms||[]).find(function(x){return x.id===v||(x.data&&x.data.name===v);});return{id:s?s.id:v,name:s&&s.data&&s.data.name?s.data.name:v};});
   var title=id?'Editar Convidado':tmplData?'Duplicar Convidado':'Novo Convidado';
   _recepShowModal(
     '<div class="recep-modal-box">'+
@@ -8303,7 +8307,7 @@ window.saveGuest=async function(curBookId){
   var name=(document.getElementById('g_name').value||'').trim();
   if(!name){var e=document.getElementById('recepMErr');e.textContent='Nome obrigatório.';e.style.display='block';return;}
   var hotelId=document.getElementById('g_hotel').value||'';
-  var data={name:name,event_id:document.getElementById('g_event').value||'',roles:Array.from(document.querySelectorAll('input[name="g_role"]:checked')).map(function(x){return x.value;}),contact:{email:(document.getElementById('g_email').value||'').trim(),phone:(document.getElementById('g_phone').value||'').trim()},notes:(document.getElementById('g_notes').value||'').trim(),arrival_date:document.getElementById('g_arrival').value||'',departure_date:document.getElementById('g_departure').value||'',hotel_checkin_date:document.getElementById('g_checkin').value||'',hotel_checkout_date:document.getElementById('g_checkout').value||'',mostras:_gMostrasSel.map(function(m){return m.id;}),submostras:_gSubsSel.map(function(s){return s.id;}),filmes:_gFilmesSel.map(function(f){return f.codigo;}),updated_at:_recepNow()};
+  var data={name:name,event_id:document.getElementById('g_event').value||'',roles:Array.from(document.querySelectorAll('input[name="g_role"]:checked')).map(function(x){return x.value;}),contact:{email:(document.getElementById('g_email').value||'').trim(),phone:(document.getElementById('g_phone').value||'').trim()},notes:(document.getElementById('g_notes').value||'').trim(),arrival_date:document.getElementById('g_arrival').value||'',departure_date:document.getElementById('g_departure').value||'',hotel_checkin_date:document.getElementById('g_checkin').value||'',hotel_checkout_date:document.getElementById('g_checkout').value||'',mostras:_gMostrasSel.map(function(m){return m.id;}),submostras:_gSubsSel.map(function(s){return s.name;}),filmes:_gFilmesSel.map(function(f){return f.codigo;}),updated_at:_recepNow()};
   try{
     var guestId=await window._olgaGuests.save(_recepEditId,data);
     window._logFirestoreEdit&&window._logFirestoreEdit('individual',_recepEditId||guestId,data,'receptivo','convidados');
@@ -12705,7 +12709,7 @@ function renderDash(){
   html+=colBlock('kdm','KDM',kdmBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 18/05/2026 às 15:56';
+  var sysUpdate='última atualização do sistema · 18/05/2026 às 15:58';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -16550,7 +16554,7 @@ window.addEventListener('popstate',function(e){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 18/05/2026 às 15:56</span></div>
+<div id="page-footer"><span>última atualização · 18/05/2026 às 15:58</span></div>
 
 </div>
 

@@ -7814,12 +7814,17 @@ function openRecepSection(section){
     else if(section==='transporte')proms.push(window._olgaTransfers.list());
     Promise.all(proms).then(function(r){
       _recepGuests=r[0];
-      if(section==='convidados'){_recepHotels=r[1];_recepBookings=r[2];_renderConvidados();}
+      if(section==='convidados'){_recepHotels=r[1];_recepBookings=r[2];_ensureSubprograms().then(_renderConvidados);}
       else if(section==='hoteis'){_recepHotels=r[1];_recepBookings=r[2];_renderHoteis();}
       else if(section==='voos'){_recepFlights=r[1];_renderVoos();}
       else if(section==='transporte'){_recepTransfers=r[1];_renderTransporte();}
     }).catch(_recepErr);
   }).catch(_recepErr);
+}
+
+function _ensureSubprograms(){
+  if((_progData.subprograms||[]).length||!window._olgaSubprograms)return Promise.resolve();
+  return window._olgaSubprograms.list().then(function(r){_progData.subprograms=r;});
 }
 
 /* ─── CONVIDADOS ─── */
@@ -8061,6 +8066,7 @@ window._importarPessoasSelecionadas=async function(){
   var btn=document.getElementById('importPessoasBtn');if(btn){btn.disabled=true;btn.textContent='Importando…';}
   var selecionadas=_recepPessoas.filter(function(p){return _importPessoasSel.has(p.id);});
   try{
+    await _ensureSubprograms();
     for(var i=0;i<selecionadas.length;i++){
       var p=selecionadas[i].data;
       var nomeLower=(p.name||'').toLowerCase().trim();
@@ -8367,7 +8373,7 @@ function openGuestDetail(guestId){
   _recepLoadEvs().then(function(){
     Promise.all([window._olgaGuests.list(),window._olgaFlights.list(),window._olgaBookings.list(),window._olgaHotels.list(),window._olgaTransfers.list()]).then(function(r){
       _recepGuests=r[0];_recepFlights=r[1];_recepBookings=r[2];_recepHotels=r[3];_recepTransfers=r[4];
-      _renderGuestDetail(guestId);
+      _ensureSubprograms().then(function(){_renderGuestDetail(guestId);});
     }).catch(_recepErr);
   });
 }
@@ -12709,7 +12715,7 @@ function renderDash(){
   html+=colBlock('kdm','KDM',kdmBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 18/05/2026 às 15:58';
+  var sysUpdate='última atualização do sistema · 18/05/2026 às 16:00';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -16554,7 +16560,7 @@ window.addEventListener('popstate',function(e){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 18/05/2026 às 15:58</span></div>
+<div id="page-footer"><span>última atualização · 18/05/2026 às 16:00</span></div>
 
 </div>
 

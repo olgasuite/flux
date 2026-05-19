@@ -7711,7 +7711,7 @@ var _recepGuests=[],_recepHotels=[],_recepBookings=[],_recepFlights=[],_recepTra
 var _recepEvList=[],_recepEvFilter='',_recepSection='',_recepEditId=null,_recepParentId=null;
 var _recepSort={sec:'',field:'',dir:1},_recepTransDate='',_recepTransVeh='',_recepHandlingPop=false;
 var _recepGuestSel=new Set();
-var _recepRoleFilter='';
+var _recepRoleFilter=new Set();
 
 function _re(s){return(s||'').toString().replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 
@@ -7814,7 +7814,7 @@ function openRecepSection(section){
     else if(section==='transporte')proms.push(window._olgaTransfers.list());
     Promise.all(proms).then(function(r){
       _recepGuests=r[0];
-      if(section==='convidados'){_recepHotels=r[1];_recepBookings=r[2];_ensureSubprograms().then(_renderConvidados);}
+      if(section==='convidados'){_recepHotels=r[1];_recepBookings=r[2];_ensureProgData().then(_renderConvidados);}
       else if(section==='hoteis'){_recepHotels=r[1];_recepBookings=r[2];_renderHoteis();}
       else if(section==='voos'){_recepFlights=r[1];_renderVoos();}
       else if(section==='transporte'){_recepTransfers=r[1];_renderTransporte();}
@@ -7822,9 +7822,11 @@ function openRecepSection(section){
   }).catch(_recepErr);
 }
 
-function _ensureSubprograms(){
-  if((_progData.subprograms||[]).length||!window._olgaSubprograms)return Promise.resolve();
-  return window._olgaSubprograms.list().then(function(r){_progData.subprograms=r;});
+function _ensureProgData(){
+  var proms=[];
+  if(!(_progData.programs||[]).length&&window._olgaPrograms)proms.push(window._olgaPrograms.list().then(function(r){_progData.programs=r;}));
+  if(!(_progData.subprograms||[]).length&&window._olgaSubprograms)proms.push(window._olgaSubprograms.list().then(function(r){_progData.subprograms=r;}));
+  return Promise.all(proms);
 }
 
 /* ─── CONVIDADOS ─── */
@@ -8066,7 +8068,7 @@ window._importarPessoasSelecionadas=async function(){
   var btn=document.getElementById('importPessoasBtn');if(btn){btn.disabled=true;btn.textContent='Importando…';}
   var selecionadas=_recepPessoas.filter(function(p){return _importPessoasSel.has(p.id);});
   try{
-    await _ensureSubprograms();
+    await _ensureProgData();
     for(var i=0;i<selecionadas.length;i++){
       var p=selecionadas[i].data;
       var nomeLower=(p.name||'').toLowerCase().trim();
@@ -8204,7 +8206,7 @@ function _renderConvidados(){
   var filtered=_recepGuests.filter(function(g){
     var ev=g.data.event_id;
     if(ev&&!activeEventsReceptivo.has(ev))return false;
-    if(_recepRoleFilter&&(g.data.roles||[]).indexOf(_recepRoleFilter)<0)return false;
+    if(_recepRoleFilter.size>0&&!(g.data.roles||[]).some(function(r){return _recepRoleFilter.has(r);}))return false;
     return true;
   });
   var keyFns={nome:function(g){return g.data.name||'';},evento:function(g){return _recepEvLabel(g.data.event_id)||'';},hotel:function(g){return bookMap[g.id]||'';}};
@@ -8242,7 +8244,7 @@ function _renderConvidados(){
     '<div style="display:flex;gap:5px;align-items:center;padding:0 0 10px;">'+
       '<span style="font-family:var(--mono);font-size:9px;color:var(--text-muted);margin-right:2px;">papel:</span>'+
       ['','jurado','diretor','debatedor','convidado'].map(function(r){
-        var active=_recepRoleFilter===r;
+        var active=r===''?_recepRoleFilter.size===0:_recepRoleFilter.has(r);
         return'<button onclick="_recepSetRoleFilter(\''+r+'\')" style="font-family:var(--mono);font-size:9px;padding:2px 7px;border-radius:3px;cursor:pointer;border:1px solid var(--border);background:'+(active?'var(--text)':'var(--surface)')+';color:'+(active?'var(--surface)':'var(--text-muted)')+';">'+(r||'todos')+'</button>';
       }).join('')+
     '</div>'+
@@ -8332,7 +8334,12 @@ window.deleteGuest=async function(id){
   try{await window._olgaGuests.remove(id);window._logFirestoreEdit&&window._logFirestoreEdit('delete',id,{},'receptivo','convidados');_recepCloseModal();openRecepSection('convidados');}
   catch(e){alert('Erro: '+e.message);}
 };
-window._recepSetRoleFilter=function(r){_recepRoleFilter=r;_renderConvidados();};
+window._recepSetRoleFilter=function(r){
+  if(!r){_recepRoleFilter.clear();}
+  else if(_recepRoleFilter.has(r)){_recepRoleFilter.delete(r);}
+  else{_recepRoleFilter.add(r);}
+  _renderConvidados();
+};
 window._recepToggleGuestSel=function(id){
   if(_recepGuestSel.has(id))_recepGuestSel.delete(id);else _recepGuestSel.add(id);
   _recepUpdateBulkUI();
@@ -8373,7 +8380,7 @@ function openGuestDetail(guestId){
   _recepLoadEvs().then(function(){
     Promise.all([window._olgaGuests.list(),window._olgaFlights.list(),window._olgaBookings.list(),window._olgaHotels.list(),window._olgaTransfers.list()]).then(function(r){
       _recepGuests=r[0];_recepFlights=r[1];_recepBookings=r[2];_recepHotels=r[3];_recepTransfers=r[4];
-      _ensureSubprograms().then(function(){_renderGuestDetail(guestId);});
+      _ensureProgData().then(function(){_renderGuestDetail(guestId);});
     }).catch(_recepErr);
   });
 }
@@ -12715,7 +12722,7 @@ function renderDash(){
   html+=colBlock('kdm','KDM',kdmBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 18/05/2026 às 16:00';
+  var sysUpdate='última atualização do sistema · 18/05/2026 às 16:04';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -16560,7 +16567,7 @@ window.addEventListener('popstate',function(e){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 18/05/2026 às 16:00</span></div>
+<div id="page-footer"><span>última atualização · 18/05/2026 às 16:04</span></div>
 
 </div>
 

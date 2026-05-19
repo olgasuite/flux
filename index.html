@@ -4021,12 +4021,19 @@ html[data-theme]:not([data-theme="win98"]){--mono:var(--sans);}
             year:r.year?parseInt(r.year):null, director:fsa(r.director),
             countries:fsa(r.countries), production_company:fsa(r.production_company),
             distribution_company:fsa(r.distribution_company), synopsis:fss(r.synopsis),
+            synopsis_en:fss(r.synopsis_en), website:fss(r.website),
             genre:fsa(r.genre), film_type:fss(r.film_type), content_rating:fss(r.content_rating),
             original_language:fss(r.original_language), subtitles:fsa(r.subtitles),
             contact_email:fss(r.contact_email), awards:fsa(r.awards),
             director_filmography:fsa(r.director_filmography),
+            keywords:fsa(r.keywords), producers:fsa(r.producers),
             copy_arrival_forecast:fss(r.copy_arrival_forecast), copy_notes:fss(r.copy_notes),
             selecao:fss(r.selecao), screener:fss(r.screener), trailer:fss(r.trailer),
+            film_color:fss(r.film_color), aspect_ratio:fss(r.aspect_ratio),
+            shooting_format:fss(r.shooting_format), student_project:fss(r.student_project),
+            ff_submission_id:fss(r.ff_submission_id), ff_link:fss(r.ff_link),
+            ff_rating:fss(r.ff_rating), ff_category:fss(r.ff_category),
+            ff_duration:fss(r.ff_duration),
             crew:r.crew?{
               cinematography:fsa(r.crew.cinematography), screenplay:fsa(r.crew.screenplay),
               editing:fsa(r.crew.editing), sound:fsa(r.crew.sound),
@@ -4049,16 +4056,24 @@ html[data-theme]:not([data-theme="win98"]){--mono:var(--sans);}
       }
       var fields={
         festival_code:fsStr(codigo),system_name:fsStr(data.system_name||''),title_pt:fsStr(data.title_pt),
-        original_title:fsStr(data.original_title),english_title:fsStr(data.english_title),
-        synopsis:fsStr(data.synopsis),film_type:fsStr(data.film_type),
+        title:fsStr(data.title||''),original_title:fsStr(data.original_title),english_title:fsStr(data.english_title),
+        synopsis:fsStr(data.synopsis),synopsis_en:fsStr(data.synopsis_en||''),
+        film_type:fsStr(data.film_type),
         content_rating:fsStr(data.content_rating),original_language:fsStr(data.original_language),
         screener:fsStr(data.screener),trailer:fsStr(data.trailer||''),selecao:fsStr(data.selecao),
-        contact_email:fsStr(data.contact_email),copy_arrival_forecast:fsStr(data.copy_arrival_forecast),
+        contact_email:fsStr(data.contact_email),website:fsStr(data.website||''),
+        copy_arrival_forecast:fsStr(data.copy_arrival_forecast),
         copy_notes:fsStr(data.copy_notes),year:data.year?fsInt(data.year):fsStr(''),
         director:fsArr(data.director),
         countries:fsArr(data.countries),genre:fsArr(data.genre),
         production_company:fsArr(data.production_company),distribution_company:fsArr(data.distribution_company),
         awards:fsArr(data.awards),director_filmography:fsArr(data.director_filmography),
+        keywords:fsArr(data.keywords||[]),producers:fsArr(data.producers||[]),
+        film_color:fsStr(data.film_color||''),aspect_ratio:fsStr(data.aspect_ratio||''),
+        shooting_format:fsStr(data.shooting_format||''),student_project:fsStr(data.student_project||''),
+        ff_submission_id:fsStr(data.ff_submission_id||''),ff_link:fsStr(data.ff_link||''),
+        ff_rating:fsStr(data.ff_rating||''),ff_category:fsStr(data.ff_category||''),
+        ff_duration:fsStr(data.ff_duration||''),
         crew:{mapValue:{fields:crewF}}
       };
       var token = await auth.currentUser.getIdToken();
@@ -12772,7 +12787,7 @@ function renderDash(){
   html+=colBlock('kdm','KDM',kdmBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 19/05/2026 às 16:28';
+  var sysUpdate='última atualização do sistema · 19/05/2026 às 16:38';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -14942,6 +14957,7 @@ function renderCatalogo(){
   var _catCanEdit=window._olgaUser&&window._olgaCanEdit('catalogo');
   if(_catCanEdit)html+='<button class="cat-edit-btn" style="margin-left:auto;" onclick="openCatCreate()">+ Novo filme</button>';
   if(_catCanEdit&&!window._olgaHasRestricao('catalogo.importar_acervo'))html+='<button class="cat-edit-btn" onclick="importCopiasToCatalog()">↓ Importar do Acervo</button>';
+  if(_catCanEdit)html+='<button class="cat-edit-btn" style="background:var(--accent-dim);border-color:var(--accent);color:var(--accent);" onclick="openFFImport()">↓ FilmFreeway</button>';
   html+='</div>';
   // slots bar
   html+='<div class="cat-slots-bar" id="cat-slots-bar" style="display:'+((_catSlots.length)?'flex':'none')+'">';
@@ -16634,7 +16650,7 @@ window.addEventListener('popstate',function(e){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 19/05/2026 às 16:28</span></div>
+<div id="page-footer"><span>última atualização · 19/05/2026 às 16:38</span></div>
 
 </div>
 
@@ -17972,4 +17988,351 @@ window._mobIrParaWeb=function(){
 };
 </script>
 
-</html>
+<!-- ═══════════════════════════════════════════════════════════════
+     FILMFREEWAY IMPORTER
+════════════════════════════════════════════════════════════════ -->
+<style>
+#ffImportModal{display:none;position:fixed;inset:0;z-index:2100;background:rgba(0,0,0,0.72);align-items:center;justify-content:center;}
+#ffImportModal.open{display:flex;}
+.ffim-box{background:var(--surface);border:1px solid var(--border);border-radius:6px;width:min(860px,96vw);max-height:90vh;display:flex;flex-direction:column;overflow:hidden;}
+.ffim-head{display:flex;align-items:center;justify-content:space-between;padding:14px 20px;border-bottom:1px solid var(--border);flex-shrink:0;}
+.ffim-title{font-family:var(--mono);font-size:11px;font-weight:700;letter-spacing:0.18em;text-transform:uppercase;color:var(--accent);}
+.ffim-close{background:none;border:none;color:var(--text-muted);font-size:18px;cursor:pointer;padding:0 4px;line-height:1;}
+.ffim-close:hover{color:var(--text);}
+.ffim-body{padding:20px;overflow-y:auto;flex:1;}
+.ffim-footer{padding:12px 20px;border-top:1px solid var(--border);display:flex;align-items:center;gap:10px;justify-content:flex-end;flex-shrink:0;}
+/* Drop zone */
+.ffim-drop{border:2px dashed var(--border);border-radius:4px;padding:40px 20px;text-align:center;cursor:pointer;transition:border-color 0.15s,background 0.15s;}
+.ffim-drop:hover,.ffim-drop.drag-over{border-color:var(--accent);background:var(--accent-glow);}
+.ffim-drop-icon{font-size:28px;color:var(--text-muted);margin-bottom:8px;}
+.ffim-drop-label{font-family:var(--mono);font-size:11px;color:var(--text-muted);letter-spacing:0.06em;}
+.ffim-drop-label strong{color:var(--accent-text);cursor:pointer;text-decoration:underline;}
+/* Options row */
+.ffim-opts{display:flex;align-items:center;gap:20px;padding:12px 0;border-bottom:1px solid var(--border);margin-bottom:14px;flex-wrap:wrap;}
+.ffim-opt-label{font-family:var(--mono);font-size:10px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:var(--text-muted);}
+.ffim-opt-val{font-family:var(--mono);font-size:10px;color:var(--text-dim);}
+.ffim-check{display:flex;align-items:center;gap:6px;cursor:pointer;font-family:var(--mono);font-size:10px;color:var(--text-dim);}
+.ffim-check input{accent-color:var(--accent);}
+/* Preview table */
+.ffim-preview-hdr{font-family:var(--mono);font-size:10px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--text-muted);margin-bottom:8px;display:flex;align-items:center;gap:8px;}
+.ffim-count{background:var(--accent-dim);color:var(--accent);border-radius:3px;padding:1px 7px;font-size:10px;}
+.ffim-tbl-wrap{overflow-x:auto;max-height:300px;overflow-y:auto;border:1px solid var(--border);border-radius:3px;}
+.ffim-tbl{width:100%;border-collapse:collapse;font-family:var(--mono);font-size:10px;}
+.ffim-tbl th{background:var(--surface2);color:var(--text-muted);padding:5px 10px;text-align:left;font-weight:600;letter-spacing:0.06em;border-bottom:1px solid var(--border);white-space:nowrap;position:sticky;top:0;}
+.ffim-tbl td{padding:5px 10px;color:var(--text-dim);border-bottom:1px solid var(--border);vertical-align:top;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.ffim-tbl tr:last-child td{border-bottom:none;}
+.ffim-tbl tr.dup td{background:rgba(255,180,171,0.07);}
+.ffim-tbl td.dup-badge{color:var(--warn);font-size:9px;white-space:nowrap;}
+.ffim-tbl td.ok-badge{color:var(--ok);font-size:9px;}
+/* Progress */
+.ffim-progress{margin-top:12px;}
+.ffim-prog-bar-wrap{background:var(--surface2);border-radius:2px;height:4px;overflow:hidden;margin:8px 0;}
+.ffim-prog-bar{height:100%;background:var(--accent);transition:width 0.15s;width:0%;}
+.ffim-prog-text{font-family:var(--mono);font-size:10px;color:var(--text-muted);}
+.ffim-prog-errors{margin-top:8px;font-family:var(--mono);font-size:10px;color:var(--warn);}
+/* Buttons */
+.ffim-btn{display:inline-flex;align-items:center;gap:5px;padding:6px 16px;font-family:var(--sans);font-size:10px;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;border-radius:var(--r);cursor:pointer;border:1px solid var(--border);background:var(--surface2);color:var(--text-dim);transition:background 0.1s;}
+.ffim-btn:hover{background:var(--surface3);}
+.ffim-btn.primary{background:var(--accent);color:var(--on-accent);border-color:var(--accent);}
+.ffim-btn.primary:hover{background:var(--accent-text);border-color:var(--accent-text);}
+.ffim-btn:disabled{opacity:0.4;cursor:not-allowed;}
+</style>
+
+<div id="ffImportModal">
+  <div class="ffim-box">
+    <div class="ffim-head">
+      <span class="ffim-title">↓ Importar do FilmFreeway</span>
+      <button class="ffim-close" onclick="closeFFImport()">×</button>
+    </div>
+    <div class="ffim-body" id="ffImportBody">
+      <!-- conteúdo dinâmico -->
+    </div>
+    <div class="ffim-footer" id="ffImportFooter">
+      <button class="ffim-btn" onclick="closeFFImport()">Cancelar</button>
+      <button class="ffim-btn primary" id="ffImportBtn" onclick="ffStartImport()" disabled>Importar</button>
+    </div>
+  </div>
+</div>
+<input type="file" id="ffFileInput" accept=".csv,.xlsx" style="display:none" onchange="ffHandleFile(this.files[0])">
+
+<script>
+/* ═══ FILMFREEWAY IMPORTER ═══ */
+var _ffRows=[];
+var _ffImporting=false;
+
+function openFFImport(){
+  _ffRows=[];_ffImporting=false;
+  document.getElementById('ffImportModal').classList.add('open');
+  _ffRenderStep1();
+}
+function closeFFImport(){
+  if(_ffImporting)return;
+  document.getElementById('ffImportModal').classList.remove('open');
+}
+
+function _ffRenderStep1(){
+  document.getElementById('ffImportBody').innerHTML=
+    '<div class="ffim-drop" id="ffDropZone" onclick="document.getElementById(\'ffFileInput\').click()" ondragover="event.preventDefault();this.classList.add(\'drag-over\')" ondragleave="this.classList.remove(\'drag-over\')" ondrop="event.preventDefault();this.classList.remove(\'drag-over\');ffHandleFile(event.dataTransfer.files[0])">'
+    +'<div class="ffim-drop-icon">⬇</div>'
+    +'<div class="ffim-drop-label">Arraste um arquivo ou <strong>clique para selecionar</strong></div>'
+    +'<div class="ffim-drop-label" style="margin-top:4px;">CSV ou XLSX exportado do FilmFreeway</div>'
+    +'</div>'
+    +'<div style="font-family:var(--mono);font-size:9px;color:var(--text-muted);margin-top:10px;">O sistema re-encoda CSVs automaticamente para UTF-8 com BOM antes de processar.</div>';
+  var btn=document.getElementById('ffImportBtn');
+  if(btn){btn.disabled=true;btn.textContent='Importar';}
+}
+
+function ffHandleFile(file){
+  if(!file)return;
+  var ext=file.name.split('.').pop().toLowerCase();
+  if(ext==='csv'){
+    var reader=new FileReader();
+    reader.onload=function(e){
+      var buf=e.target.result;
+      var uint8=new Uint8Array(buf);
+      // detect and strip BOM if already present
+      var offset=(uint8[0]===0xEF&&uint8[1]===0xBB&&uint8[2]===0xBF)?3:0;
+      var text;
+      try{text=new TextDecoder('utf-8',{fatal:true}).decode(uint8.slice(offset));}
+      catch(e2){text=new TextDecoder('windows-1252',{fatal:false}).decode(uint8);}
+      // re-encode as UTF-8 with BOM
+      var bom='\uFEFF';
+      var blob=new Blob([bom+text],{type:'text/csv;charset=utf-8'});
+      blob.arrayBuffer().then(function(arr){_ffParseBuffer(arr);});
+    };
+    reader.readAsArrayBuffer(file);
+  } else {
+    var reader2=new FileReader();
+    reader2.onload=function(e){_ffParseBuffer(e.target.result);};
+    reader2.readAsArrayBuffer(file);
+  }
+}
+
+function _ffParseBuffer(buf){
+  try{
+    var wb=XLSX.read(new Uint8Array(buf),{type:'array',codepage:65001,raw:false});
+    var ws=wb.Sheets[wb.SheetNames[0]];
+    var rows=XLSX.utils.sheet_to_json(ws,{defval:''});
+    rows=rows.filter(function(r){return _ffClean(r['Tracking Number']);});
+    if(!rows.length){alert('Nenhuma linha válida encontrada (sem Tracking Number).');return;}
+    _ffRows=rows;
+    _ffRenderPreview(rows);
+  }catch(err){alert('Erro ao ler arquivo: '+err.message);}
+}
+
+/* ── normalização de campos ── */
+function _ffClean(v){
+  if(v===null||v===undefined)return'';
+  var s=String(v).trim().replace(/\t/g,'').replace(/\r/g,'');
+  return(s==='NaN'||s==='NaT'||s==='nan')?'':s;
+}
+function _ffSplitComma(v){
+  var s=_ffClean(v);if(!s)return[];
+  return s.split(/,\s*/).map(function(x){return x.trim();}).filter(Boolean);
+}
+function _ffYear(v){
+  var s=_ffClean(v);if(!s)return null;
+  var m=s.match(/(\d{4})/);return m?parseInt(m[1]):null;
+}
+function _ffFilmType(v){
+  var s=_ffClean(v).toLowerCase();if(!s)return'';
+  var isShort=s.indexOf('short')>=0;
+  var isFeat=s.indexOf('feature')>=0;
+  var isDoc=s.indexOf('documentary')>=0;
+  var isAnim=s.indexOf('animation')>=0;
+  var isExp=s.indexOf('experimental')>=0;
+  var base=isFeat?'longa':isShort?'curta':'';
+  var tags=[];
+  if(isDoc)tags.push('documentário');
+  if(isAnim)tags.push('animação');
+  if(isExp)tags.push('experimental');
+  return([base].concat(tags)).filter(Boolean).join(' / ');
+}
+function _ffAspectRatio(v){
+  var s=_ffClean(v);if(!s)return'';
+  s=s.replace(/\s+/g,'');
+  // fix common typos
+  s=s.replace(/^2:35:1$/,'2.35:1').replace(/^116:9$/,'1.78:1').replace(/^21:9$/,'2.33:1');
+  // "1:2.39" → "2.39:1"
+  if(/^1:[\d.]+$/.test(s)){s=s.split(':')[1]+':1';}
+  // bare decimal → add ":1"
+  if(/^[\d]+\.[\d]+$/.test(s)){s=s+':1';}
+  // "16:9" → keep, but note it's 1.78:1
+  return s;
+}
+function _ffGenres(v){
+  // filter out non-genre identity tags common in FF
+  var skip=['Women','Latino','Brazilian Short Film','Social Themes','Afro-Brazilian',
+    'LGBTQ+','Indigenous','Middle Eastern','Asian','African','South Asian','European',
+    'Disability','Environmental','Political','Film School','Award Winner'];
+  var skipLow=skip.map(function(x){return x.toLowerCase();});
+  return _ffSplitComma(v).filter(function(g){
+    return skipLow.indexOf(g.toLowerCase())<0;
+  });
+}
+function _ffNormalizeRow(row){
+  var titleOL=_ffClean(row['Project Title (Original Language)']);
+  var titleEN=_ffClean(row['Project Title']);
+  var judging=_ffClean(row['Judging Status']);
+  var submId=_ffClean(row['Submission ID']);
+  // Rating: xlsx may store 9.0 as integer 90 — if >10, divide by 10
+  var ratingRaw=_ffClean(row['Rating']);
+  var ratingNum=parseFloat(ratingRaw);
+  var rating=isNaN(ratingNum)?'':((ratingNum>10?ratingNum/10:ratingNum).toFixed(1));
+  return{
+    festival_code:_ffClean(row['Tracking Number']),
+    system_name:titleOL||titleEN,
+    title:titleEN,
+    title_pt:titleOL||titleEN,
+    original_title:titleOL,
+    english_title:titleEN,
+    synopsis:_ffClean(row['Synopsis (Original Language)']),
+    synopsis_en:_ffClean(row['Synopsis']),
+    director:_ffSplitComma(row['Directors']),
+    producers:_ffSplitComma(row['Producers']),
+    countries:_ffSplitComma(row['Country of Origin']),
+    original_language:_ffClean(row['Language']),
+    year:_ffYear(row['Completion Date']),
+    film_type:_ffFilmType(row['Project Type']),
+    genre:_ffGenres(row['Genres']),
+    trailer:_ffClean(row['Trailer URL']),
+    contact_email:_ffClean(row['Email']),
+    website:_ffClean(row['Project Website']),
+    selecao:judging==='Selected'?'FEST':'',
+    screener:'',
+    awards:_ffClean(row['Screenings / Awards'])?[_ffClean(row['Screenings / Awards'])]:[], // keep as single text block
+    film_color:_ffClean(row['Film Color']),
+    aspect_ratio:_ffAspectRatio(row['Aspect Ratio']),
+    shooting_format:_ffClean(row['Shooting Format']),
+    student_project:_ffClean(row['Student Project']),
+    ff_submission_id:submId,
+    ff_link:_ffClean(row['Submission Link']),
+    ff_category:_ffClean(row['Submission Categories']),
+    ff_rating:rating,
+    ff_duration:_ffClean(row['Duration']),
+    keywords:[],
+    production_company:[],distribution_company:[],
+    director_filmography:[],subtitles:[],
+    content_rating:'',copy_arrival_forecast:'',copy_notes:'',
+    crew:{
+      screenplay:_ffSplitComma(row['Writers']),
+      cast:_ffSplitComma(row['Key Cast']),
+      cinematography:[],editing:[],sound:[],art_direction:[],costume_design:[]
+    }
+  };
+}
+
+/* ── preview ── */
+function _ffRenderPreview(rows){
+  var dupes=[];
+  rows.forEach(function(r){
+    var code=_ffClean(r['Tracking Number']);
+    if(catalogoFilmesMap&&catalogoFilmesMap[code])dupes.push(code);
+  });
+  var dupSet=new Set(dupes);
+  var html='<div class="ffim-opts">'
+    +'<span class="ffim-opt-label">Arquivo</span>'
+    +'<span class="ffim-opt-val">'+rows.length+' filmes</span>'
+    +'<span class="ffim-opt-label">Já cadastrados</span>'
+    +'<span class="ffim-opt-val">'+(dupes.length>0?'<span style="color:var(--warn)">'+dupes.length+'</span>':'0')+'</span>'
+    +'<label class="ffim-check"><input type="checkbox" id="ffOverwrite"> Sobrescrever duplicatas</label>'
+    +'</div>';
+  html+='<div class="ffim-preview-hdr">Pré-visualização <span class="ffim-count">'+rows.length+'</span></div>';
+  html+='<div class="ffim-tbl-wrap"><table class="ffim-tbl"><thead><tr>'
+    +'<th>Código</th><th>Status</th><th>Título PT</th><th>Título orig.</th>'
+    +'<th>Dir.</th><th>País</th><th>Ano</th><th>Duração</th><th>Categoria</th>'
+    +'</tr></thead><tbody>';
+  rows.forEach(function(r){
+    var code=_ffClean(r['Tracking Number']);
+    var isDup=dupSet.has(code);
+    var d=_ffNormalizeRow(r);
+    html+='<tr'+(isDup?' class="dup"':'')+'>'
+      +'<td>'+_ffEsc(code)+'</td>'
+      +'<td class="'+(isDup?'dup-badge':'ok-badge')+'">'+(isDup?'↻ duplicata':'✓ novo')+'</td>'
+      +'<td title="'+_ffEsc(d.title_pt)+'">'+_ffEsc((d.title_pt||'').slice(0,30))+'</td>'
+      +'<td title="'+_ffEsc(d.original_title)+'">'+_ffEsc((d.original_title||'').slice(0,28))+'</td>'
+      +'<td>'+_ffEsc((d.director||[]).join(', ').slice(0,24))+'</td>'
+      +'<td>'+_ffEsc((d.countries||[]).join(', ').slice(0,16))+'</td>'
+      +'<td>'+_ffEsc(d.year||'')+'</td>'
+      +'<td>'+_ffEsc(d.ff_duration||'')+'</td>'
+      +'<td>'+_ffEsc(d.ff_category||'')+'</td>'
+      +'</tr>';
+  });
+  html+='</tbody></table></div>';
+  html+='<div id="ffProgress" class="ffim-progress" style="display:none">'
+    +'<div class="ffim-prog-bar-wrap"><div class="ffim-prog-bar" id="ffProgBar"></div></div>'
+    +'<div class="ffim-prog-text" id="ffProgText"></div>'
+    +'<div class="ffim-prog-errors" id="ffProgErrors"></div>'
+    +'</div>';
+  document.getElementById('ffImportBody').innerHTML=html;
+  var btn=document.getElementById('ffImportBtn');
+  if(btn){btn.disabled=false;btn.textContent='Importar '+rows.length+' filmes';}
+}
+
+function _ffEsc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+
+/* ── import execution ── */
+async function ffStartImport(){
+  if(_ffImporting||!_ffRows.length)return;
+  if(!window._olgaCatalogo){alert('API do catálogo não disponível. Faça login primeiro.');return;}
+  _ffImporting=true;
+  var overwrite=document.getElementById('ffOverwrite')&&document.getElementById('ffOverwrite').checked;
+  var btn=document.getElementById('ffImportBtn');
+  if(btn)btn.disabled=true;
+  var progWrap=document.getElementById('ffProgress');
+  var progBar=document.getElementById('ffProgBar');
+  var progText=document.getElementById('ffProgText');
+  var progErrors=document.getElementById('ffProgErrors');
+  if(progWrap)progWrap.style.display='';
+  var errors=[];var imported=0;var skipped=0;var total=_ffRows.length;
+  function updateProg(i,msg){
+    var pct=Math.round((i/total)*100);
+    if(progBar)progBar.style.width=pct+'%';
+    if(progText)progText.textContent=msg||'Importando '+i+'/'+total+'…';
+    if(progErrors)progErrors.innerHTML=errors.slice(-5).map(function(e){return'⚠ '+_ffEsc(e);}).join('<br>');
+  }
+  for(var i=0;i<_ffRows.length;i++){
+    var row=_ffRows[i];
+    var data=_ffNormalizeRow(row);
+    var code=data.festival_code;
+    if(!code){errors.push('Linha '+(i+1)+': Tracking Number vazio');updateProg(i+1);continue;}
+    if(!overwrite&&catalogoFilmesMap&&catalogoFilmesMap[code]){skipped++;updateProg(i+1,'Pulando duplicata: '+code);continue;}
+    updateProg(i,'Importando '+code+'…');
+    try{
+      await window._olgaCatalogo.save(code,data);
+      // skeleton técnico com duração do FF
+      if(window._olgaCopias){
+        try{
+          await window._olgaCopias.save(code,{
+            festival_code:code,event_name:'',
+            title:data.title||data.title_pt||'',
+            original_language:data.original_language||'',
+            dcp_duration:data.ff_duration||'',
+            dcp_subtitle_code:'',vf_subtitle_code:'',projection_lens:'',
+            audio_format:'',status:'Aguardando',notes:'',dcp_creator:'',
+            has_kdm:'',subtitle_status:'',cpl_id:'',ov_cpl_id:'',
+            dcp_resolution:'',dcp_size:'',dcp_fps:'',storage_location:'',
+            dcp_uuid:'',accessibility_features:'',dcp_link:'',file_link:''
+          });
+        }catch(eCop){console.warn('copias save:',eCop);}
+      }
+      if(catalogoFilmesMap)catalogoFilmesMap[code]=data;
+      imported++;
+    }catch(e){errors.push(code+': '+e.message);}
+    updateProg(i+1);
+    // small yield so UI can breathe
+    if(i%5===4)await new Promise(function(r){setTimeout(r,0);});
+  }
+  _ffImporting=false;
+  var summary='Concluído: '+imported+' importado'+(imported!==1?'s':'')+', '+skipped+' pulado'+(skipped!==1?'s':'')+(errors.length?' — '+errors.length+' erro'+(errors.length!==1?'s':''):'');
+  if(progText)progText.textContent=summary;
+  if(progBar)progBar.style.width='100%';
+  if(btn){btn.disabled=false;btn.textContent='Fechar';}
+  document.getElementById('ffImportFooter').innerHTML='<button class="ffim-btn primary" onclick="closeFFImport();if(typeof renderCatalogo===\'function\')renderCatalogo();">Fechar e atualizar catálogo</button>';
+  if(typeof window._olgaLoadFirestore==='function'){
+    try{await window._olgaLoadFirestore();}catch(e){}
+  }
+  if(typeof buildBuscaFilterPanel==='function')buildBuscaFilterPanel();
+}
+</script>
+

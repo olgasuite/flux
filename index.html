@@ -4792,12 +4792,6 @@ html[data-theme]:not([data-theme="win98"]){--mono:var(--sans);}
     <div class="landing-logo-flux">Flux</div>
   </div>
   <div class="landing-badge">sistema de gestão de festivais de cinema</div>
-  <p class="landing-sub">Carregue o arquivo de programação para acessar os módulos abaixo.</p>
-  <div class="landing-drop" id="landingDrop">
-    <div class="drop-icon">📂</div>
-    <div class="drop-label">Carregar sistema_olga.xlsx</div>
-    <div class="drop-sub">clique ou arraste o arquivo aqui</div>
-  </div>
   <div class="landing-modules">
     <div class="module-card disabled" id="modCardDash" onclick="moduleCardClick('dash')">
       <div class="module-icon"><i data-lucide="bar-chart-2"></i></div>
@@ -4859,6 +4853,11 @@ html[data-theme]:not([data-theme="win98"]){--mono:var(--sans);}
       <div class="module-name">Revista</div>
       <div class="module-desc">Publicação editorial com mostras e programação do evento</div>
     </div>
+  </div>
+  <div class="landing-drop" id="landingDrop">
+    <div class="drop-icon">📂</div>
+    <div class="drop-label">Carregar sistema_olga.xlsx</div>
+    <div class="drop-sub">clique ou arraste o arquivo aqui</div>
   </div>
 </div>
 
@@ -5267,7 +5266,7 @@ function applyParsedData(d,filename){
   if(fileNameEl){fileNameEl.textContent=filename||'arquivo carregado';fileNameEl.classList.add('loaded');}
   window._olgaDataLabel=filename||null;
   landingDrop.classList.add('loaded');
-  landingDrop.innerHTML='<div class="drop-icon" style="opacity:1">✓</div><div class="drop-label" style="color:var(--ok)">'+(filename||'arquivo carregado')+'</div><div class="drop-sub">arquivo carregado — selecione um módulo abaixo</div>';
+  landingDrop.innerHTML='<div class="drop-icon" style="opacity:1">✓</div><div class="drop-label" style="color:var(--ok)">'+(filename||'arquivo carregado')+'</div><div class="drop-sub">arquivo carregado — selecione um módulo acima</div>';
   if(window._mobileActive)olgaMobileRefresh();
 }
 
@@ -12769,7 +12768,7 @@ function renderDash(){
   html+=colBlock('kdm','KDM',kdmBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 19/05/2026 às 16:20';
+  var sysUpdate='última atualização do sistema · 19/05/2026 às 16:22';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -16631,7 +16630,7 @@ window.addEventListener('popstate',function(e){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 19/05/2026 às 16:20</span></div>
+<div id="page-footer"><span>última atualização · 19/05/2026 às 16:22</span></div>
 
 </div>
 

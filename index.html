@@ -12769,7 +12769,7 @@ function renderDash(){
   html+=colBlock('kdm','KDM',kdmBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 19/05/2026 às 16:18';
+  var sysUpdate='última atualização do sistema · 19/05/2026 às 16:20';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -15527,10 +15527,10 @@ async function fetchTMDBMovie(tmdbId){
   var ptResp=await fetch('https://api.themoviedb.org/3/movie/'+tmdbId+'?api_key='+KEY+'&language=pt-BR&append_to_response=credits,videos');
   if(!ptResp.ok)throw new Error('TMDB '+ptResp.status+': '+ptResp.statusText);
   var d=await ptResp.json();
-  var enTitle=d.original_title||'',enSynopsis='';
+  var enTitle=d.original_title||'',enSynopsis='',enHomepage='';
   try{
     var enResp=await fetch('https://api.themoviedb.org/3/movie/'+tmdbId+'?api_key='+KEY+'&language=en-US');
-    if(enResp.ok){var ed=await enResp.json();enTitle=ed.title||enTitle;enSynopsis=ed.overview||'';}
+    if(enResp.ok){var ed=await enResp.json();enTitle=ed.title||enTitle;enSynopsis=ed.overview||'';enHomepage=ed.homepage||'';}
   }catch(e){}
   var crewList=d.credits&&d.credits.crew?d.credits.crew:[];
   function crewByJobs(jobs){return crewList.filter(function(p){return jobs.indexOf(p.job)!==-1;}).map(function(p){return p.name;});}
@@ -15559,7 +15559,7 @@ async function fetchTMDBMovie(tmdbId){
     genre:(d.genres||[]).map(function(g){return g.name;}),
     synopsis:d.overview||'',
     synopsis_en:enSynopsis,
-    website:d.homepage||'',
+    website:enHomepage||d.homepage||'',
     original_language:_tmdbLangPt[d.original_language]||d.original_language||'',
     runtime:d.runtime||null,
     trailer:trailer,
@@ -16631,7 +16631,7 @@ window.addEventListener('popstate',function(e){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 19/05/2026 às 16:18</span></div>
+<div id="page-footer"><span>última atualização · 19/05/2026 às 16:20</span></div>
 
 </div>
 

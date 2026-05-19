@@ -8268,7 +8268,7 @@ function _renderConvidados(){
       }).join('')+
     '</div>'+
     '<div style="padding:0 0 10px;">'+
-      '<input id="recepGuestSearchInput" type="text" placeholder="buscar por nome, filme, mostra ou submostra…" value="'+_re(_recepGuestSearch)+'" oninput="_recepGuestSearch=this.value;var _pos=this.selectionStart;_renderConvidados();var _inp=document.getElementById('recepGuestSearchInput');if(_inp){_inp.focus();_inp.setSelectionRange(_pos,_pos);}" style="font-family:var(--mono);font-size:10px;padding:4px 8px;border:1px solid var(--border2);background:var(--surface2);color:var(--text);border-radius:3px;width:340px;max-width:100%;outline:none;">'+
+      '<input id="recepGuestSearchInput" type="text" placeholder="buscar por nome, filme, mostra ou submostra…" value="'+_re(_recepGuestSearch)+'" oninput="_recepOnSearch(this)" style="font-family:var(--mono);font-size:10px;padding:4px 8px;border:1px solid var(--border2);background:var(--surface2);color:var(--text);border-radius:3px;width:340px;max-width:100%;outline:none;">'+
     '</div>'+
     '<table class="recep-table"><thead><tr>'+
       '<th style="width:22px;text-align:center;"><input type="checkbox" id="recepGuestSelAll" onclick="_recepToggleAllGuests()" title="Selecionar todos"></th>'+
@@ -8281,6 +8281,14 @@ function _renderConvidados(){
       '<th></th></tr></thead>'+
     '<tbody>'+(rows||'<tr><td colspan="8" class="recep-empty">Nenhum convidado encontrado.</td></tr>')+'</tbody></table>';
   buildPills(document.getElementById('recepPills'),eventColors,activeEventsReceptivo,function(){_renderConvidados();});
+}
+
+function _recepOnSearch(inp){
+  _recepGuestSearch=inp.value;
+  var pos=inp.selectionStart;
+  _renderConvidados();
+  var el=document.getElementById('recepGuestSearchInput');
+  if(el){el.focus();el.setSelectionRange(pos,pos);}
 }
 
 function openGuestModal(id,tmplData){

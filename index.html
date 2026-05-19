@@ -497,6 +497,7 @@ select:disabled{opacity:0.3;cursor:not-allowed;}
 /* ── FICHA / SESSÃO ── */
 #ficha-container{padding:24px 28px;}
 .ficha{max-width:1320px;margin:0 auto;background:var(--surface);border:1px solid var(--border);border-radius:var(--r);}
+.ficha-nav-bar{max-width:1320px;margin:0 auto;padding:8px 0;display:flex;justify-content:flex-end;}
 .ficha-header{padding:20px 24px 16px;border-bottom:2px solid var(--accent);display:flex;align-items:flex-start;gap:20px;}
 .ficha-header-main{flex:1;min-width:0;}
 .ficha-extra{flex-shrink:0;border-left:1px solid var(--border);padding-left:16px;display:flex;flex-direction:column;gap:5px;min-width:160px;max-width:220px;}
@@ -3146,7 +3147,7 @@ mark{background:rgba(255,186,32,0.28);color:var(--accent);border-radius:2px;padd
   #main-content{zoom:1!important;}
   @page{margin:14mm 11mm;size:A4 landscape;}
   body{background:white;color:black;}
-  header,.mode-bar,#landing{display:none!important;}
+  header,.mode-bar,.ficha-nav-bar,#landing{display:none!important;}
   #app{display:block!important;}
   /* show only the active panel */
   .mode-panel{display:none!important;}
@@ -5617,7 +5618,21 @@ function renderFicha(nome,s){
 
   var _fpAllC=getAllCinemas();var _fpCi=_fpAllC.map[s.cinema]||{};
   var _fpUtcTag=_fpCi.utc_offset?'<span style="font-family:var(--mono);font-size:9px;color:var(--text-muted);margin-left:5px;opacity:0.75;">('+_fpCi.utc_offset+')</span>':'';
-  document.getElementById('fichaWrap').innerHTML='<div class="ficha"><div class="ficha-header"><div class="ficha-header-main"><div class="ficha-session-wrap"><div class="ficha-session-name">'+nome+'</div>'+(s.name?'<div class="prog-sess-display-name-ficha">'+esc(s.name)+'</div>':'')+eventoBadge+(fichaRatingBadge?fichaRatingBadge:'')+'</div><div class="ficha-meta"><div class="meta-item"><div class="meta-label">Cinema</div><div class="meta-value">'+(s.cinema||'—')+_fpUtcTag+'</div></div><div class="meta-item"><div class="meta-label">Data</div><div class="meta-value">'+s.dia+'</div></div><div class="meta-item"><div class="meta-label">Hora</div><div class="meta-value">'+s.hora+'</div></div><div class="meta-item"><div class="meta-label">Filmes</div><div class="meta-value highlight">'+films.length+'</div></div></div></div>'+extraHtml+'</div>'+vinhetasHtml+'<div class="film-table-wrap"><table><thead><tr><th>#</th><th>Filme</th><th class="center">Lente</th><th class="center">Som</th><th>Legenda</th><th class="center">Idioma</th><th class="center">KDM</th><th>CPL</th><th>Duração</th><th>OBS</th><th class="center">Res</th><th class="center">FPS · GB</th><th class="center" title="Acessibilidade"><svg width="13" height="13" viewBox="0 0 24 24" style="stroke:currentColor;stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round;vertical-align:middle;"><circle cx="11" cy="4" r="1"/><path d="m11 9 2 7h5l-1.5 3"/><path d="M9 9H7l1 7"/><path d="M13.5 19a4.5 4.5 0 1 1-9 0 4.5 4.5 0 0 1 9 0z"/></svg></th></tr></thead><tbody>'+(rows||'<tr><td colspan="13" style="text-align:center;color:var(--text-muted);padding:24px">Nenhum filme encontrado para esta sessão.</td></tr>')+'</tbody></table></div><div class="ficha-footer"><div class="footer-total">Duração total dos filmes: <strong>'+totalDur+'</strong>'+(totalVinSecs>0?' &nbsp;·&nbsp; Vinhetas: <strong>'+_secsToHMS(totalVinSecs)+'</strong>':'')+' &nbsp;·&nbsp; Tamanho: <strong>'+totalGBStr+'</strong></div><div class="footer-stamp">OLGA · '+new Date().toLocaleString('pt-BR')+'</div></div></div>';
+  var _fichaNavSafe=nome.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+  var _fichaNavBtn=window._olgaHasRestricao('projecao.btn_programacao')?'':'<div class="ficha-nav-bar"><button class="prog-btn-sm" onclick="_goToProgFromFicha(\''+_fichaNavSafe+'\')">← ficha de programação</button></div>';
+  document.getElementById('fichaWrap').innerHTML=_fichaNavBtn+'<div class="ficha"><div class="ficha-header"><div class="ficha-header-main"><div class="ficha-session-wrap"><div class="ficha-session-name">'+nome+'</div>'+(s.name?'<div class="prog-sess-display-name-ficha">'+esc(s.name)+'</div>':'')+eventoBadge+(fichaRatingBadge?fichaRatingBadge:'')+'</div><div class="ficha-meta"><div class="meta-item"><div class="meta-label">Cinema</div><div class="meta-value">'+(s.cinema||'—')+_fpUtcTag+'</div></div><div class="meta-item"><div class="meta-label">Data</div><div class="meta-value">'+s.dia+'</div></div><div class="meta-item"><div class="meta-label">Hora</div><div class="meta-value">'+s.hora+'</div></div><div class="meta-item"><div class="meta-label">Filmes</div><div class="meta-value highlight">'+films.length+'</div></div></div></div>'+extraHtml+'</div>'+vinhetasHtml+'<div class="film-table-wrap"><table><thead><tr><th>#</th><th>Filme</th><th class="center">Lente</th><th class="center">Som</th><th>Legenda</th><th class="center">Idioma</th><th class="center">KDM</th><th>CPL</th><th>Duração</th><th>OBS</th><th class="center">Res</th><th class="center">FPS · GB</th><th class="center" title="Acessibilidade"><svg width="13" height="13" viewBox="0 0 24 24" style="stroke:currentColor;stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round;vertical-align:middle;"><circle cx="11" cy="4" r="1"/><path d="m11 9 2 7h5l-1.5 3"/><path d="M9 9H7l1 7"/><path d="M13.5 19a4.5 4.5 0 1 1-9 0 4.5 4.5 0 0 1 9 0z"/></svg></th></tr></thead><tbody>'+(rows||'<tr><td colspan="13" style="text-align:center;color:var(--text-muted);padding:24px">Nenhum filme encontrado para esta sessão.</td></tr>')+'</tbody></table></div><div class="ficha-footer"><div class="footer-total">Duração total dos filmes: <strong>'+totalDur+'</strong>'+(totalVinSecs>0?' &nbsp;·&nbsp; Vinhetas: <strong>'+_secsToHMS(totalVinSecs)+'</strong>':'')+' &nbsp;·&nbsp; Tamanho: <strong>'+totalGBStr+'</strong></div><div class="footer-stamp">OLGA · '+new Date().toLocaleString('pt-BR')+'</div></div></div>';
+}
+
+function _goToFichaFromProg(nome){
+  switchMode('ficha');
+  var sel=document.getElementById('sessionSelect');
+  if(sel){sel.value=nome;sel.dispatchEvent(new Event('change'));}
+}
+function _goToProgFromFicha(nome){
+  var s=sessoesMap[nome];
+  var pid=s?s.program_id:null;
+  switchMode('programacao');
+  if(pid)_progGoSessao(nome,pid);
 }
 
 /* GRADE */
@@ -7967,9 +7982,9 @@ window._recepSyncTodasPessoas=async function(){
       var p=pessoaMap[key];p.updated_at=now;
       return window._olgaPessoas.save(key,p);
     }));
-    if(btn){btn.textContent='sincronizado ✓';setTimeout(function(){if(btn){btn.disabled=false;btn.textContent='sincronizar equipe';}},3000);}
+    if(btn){btn.textContent='sincronizado ✓';setTimeout(function(){if(btn){btn.disabled=false;btn.textContent='sincronizar equipe e elenco';}},3000);}
   }catch(e){
-    if(btn){btn.disabled=false;btn.textContent='sincronizar equipe';}
+    if(btn){btn.disabled=false;btn.textContent='sincronizar equipe e elenco';}
     alert('Erro ao sincronizar: '+e.message);
   }
 };
@@ -8249,7 +8264,7 @@ function _renderConvidados(){
       '<span class="recep-bar-title">Convidados</span>'+
       '<div id="recepPills" style="display:contents;"></div>'+
       '<button class="recep-print-btn" onclick="_recepPrint()">imprimir</button>'+
-      (canEdit?'<button id="recepSyncPessoasBtn" class="recep-print-btn" onclick="window._recepSyncTodasPessoas()" title="Sincroniza equipe e diretores de todos os filmes do catálogo para o banco de pessoas">sincronizar equipe</button>':'')+
+      (canEdit?'<button id="recepSyncPessoasBtn" class="recep-print-btn" onclick="window._recepSyncTodasPessoas()" title="Sincroniza diretores, equipe técnica e elenco de todos os filmes do catálogo para o banco de pessoas">sincronizar equipe e elenco</button>':'')+
       (canEdit?'<button class="recep-print-btn" onclick="openImportPessoasModal()">importar pessoa</button>':'')+
       (canEdit?'<button id="recepBulkDelBtn" class="recep-btn-del" style="display:none;" onclick="_recepDeleteSelected()">excluir 0 selecionados</button>':'')+
       (canEdit?'<button class="recep-add-btn" onclick="openGuestModal(null)">+ Convidado</button>':'')+
@@ -12754,7 +12769,7 @@ function renderDash(){
   html+=colBlock('kdm','KDM',kdmBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 19/05/2026 às 16:12';
+  var sysUpdate='última atualização do sistema · 19/05/2026 às 16:14';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -13158,6 +13173,7 @@ function _progRenderSessao(sessaoNome){
   if(prog)html+='<span class="prog-breadcrumb">'+esc(prog.data.name||prog.id)+'</span>';
   if(canEdit||vinOnly)html+='<button class="prog-btn-sm" style="margin-left:auto;" onclick="openProgSessaoModal(\''+safeNome+'\',\''+safePid+'\',null)">'+(vinOnly?'✎ editar vinhetas':'✎ editar sessão')+'</button>';
   html+='<button class="prog-btn-sm"'+((canEdit||vinOnly)?'':' style="margin-left:auto;"')+' onclick="printProgFicha()">⎙ imprimir</button>';
+  if(!window._olgaHasRestricao('sessoes.btn_projecao'))html+='<button class="prog-btn-sm" onclick="_goToFichaFromProg(\''+safeNome+'\')">ficha de projeção →</button>';
   html+='</div>';
   html+='<div class="ficha"><div class="ficha-header"><div class="ficha-header-main">';
   html+='<div class="ficha-session-wrap">';
@@ -13722,7 +13738,9 @@ var _EQUIPE_RESTRICOES=[
   {k:'sessoes.somente_vinhetas',label:'Sessões · Edição restrita a vinhetas (sem criar, duplicar, deletar)'},
   {k:'acervo.sem_catalogo',label:'Acervo Técnico · Ocultar botão "Ver no Catálogo"'},
   {k:'catalogo.importar_acervo',label:'Catálogo · Ocultar botão "Importar do Acervo"'},
-  {k:'catalogo.tmdb',label:'Catálogo · Ocultar importação do TMDB'}
+  {k:'catalogo.tmdb',label:'Catálogo · Ocultar importação do TMDB'},
+  {k:'sessoes.btn_projecao',label:'Sessões · Ocultar botão "Ficha de Projeção"'},
+  {k:'projecao.btn_programacao',label:'Projeção · Ocultar botão "Ficha de Programação"'}
 ];
 
 function renderEquipe(){
@@ -16599,7 +16617,7 @@ window.addEventListener('popstate',function(e){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 19/05/2026 às 16:12</span></div>
+<div id="page-footer"><span>última atualização · 19/05/2026 às 16:14</span></div>
 
 </div>
 

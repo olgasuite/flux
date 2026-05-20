@@ -12789,7 +12789,7 @@ function renderDash(){
   html+=colBlock('kdm','KDM',kdmBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 19/05/2026 às 16:48';
+  var sysUpdate='última atualização do sistema · 19/05/2026 às 17:08';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -15027,6 +15027,8 @@ function renderCatDetail(){
     html+=catFld('Título em português',_catEditing?catInp('title_pt',meta.title_pt||''):(meta.title_pt||'—'));
     html+='<div class="cat-grid">'+catFld('Título original',catInp('original_title',meta.original_title||''))+catFld('Título em inglês',catInp('english_title',meta.english_title||''))+'</div>';
     html+=catFld('Direção',catTagInp('director',dirArr));
+    if(_catEditing||(meta.producers&&meta.producers.length))
+      html+=catFld('Produção',_catEditing?catTagInp('producers',meta.producers||[]):catTags(meta.producers||[]));
   }else{
     html+='<div class="cat-header-title">'+(meta.title_pt||title)+'</div>';
     if(meta.original_title||meta.english_title)html+='<div class="cat-header-orig">'+[meta.original_title,meta.english_title].filter(Boolean).join(' · ')+'</div>';
@@ -15076,7 +15078,7 @@ function renderCatDetail(){
   var selOpts=['FEST','NÃO FEST','SUPLENTE','CONVIDADO','VISIONAMENTO'];
   html+=catBlock('Metadados',
     '<div class="cat-grid">'+catFld('Gênero',_catEditing?catTagInp('genre',meta.genre||[]):catTags(meta.genre||[]))+catFld('País(es)',_catEditing?catTagInp('countries',meta.countries||[]):catTags(meta.countries||[]))+'</div>'
-    +'<div class="cat-grid">'+catFld('UF',_catEditing?catInp('uf',meta.uf||''):(meta.uf||'\u2014'))+catFld('Empresa(s) Produtora(s)',_catEditing?catTagInp('production_company',toArr(meta.production_company)):catTags(toArr(meta.production_company)))+'</div>'
+    +'<div class="cat-grid">'+catFld('UF (estado)',_catEditing?catInp('uf',meta.uf||'','text'):(meta.uf?'<span style="font-family:var(--mono);font-weight:700;color:var(--text);">'+meta.uf+'</span>':'\u2014'))+catFld('Empresa(s) Produtora(s)',_catEditing?catTagInp('production_company',toArr(meta.production_company)):catTags(toArr(meta.production_company)))+'</div>'
     +'<div class="cat-grid">'+catFld('Distribuidora(s)',_catEditing?catTagInp('distribution_company',toArr(meta.distribution_company)):catTags(toArr(meta.distribution_company)))+catFld('Ano',_catEditing?catInp('year',meta.year||'','number'):(meta.year?String(meta.year):'\u2014'))+'</div>'
     +'<div class="cat-grid">'+catFld('Email de contato',_catEditing?catInp('contact_email',meta.contact_email||''):(meta.contact_email||'\u2014'))+catFld('Idioma original',_catEditing?catInp('original_language',meta.original_language||''):(meta.original_language||'\u2014'))+'</div>'
     +catFld('Palavras-chave',_catEditing?catTagInp('keywords',meta.keywords||[]):catTags(meta.keywords||[]))
@@ -15093,6 +15095,14 @@ function renderCatDetail(){
     html+=catBlock('Logística','<div class="cat-grid">'+catFld('Previsão de chegada da cópia',_catEditing?catInp('copy_arrival_forecast',meta.copy_arrival_forecast||''):(meta.copy_arrival_forecast||'\u2014'))+catFld('Anotações sobre a cópia',_catEditing?catInp('copy_notes',meta.copy_notes||''):(meta.copy_notes||'\u2014'))+'</div>');
   if(_catEditing||(meta.awards&&meta.awards.length)||(meta.director_filmography&&meta.director_filmography.length))
     html+=catBlock('Histórico',catFld('Prêmios',_catEditing?catTagInp('awards',meta.awards||[]):catTags(meta.awards||[]))+catFld('Filmografia do diretor',_catEditing?catTagInp('director_filmography',meta.director_filmography||[]):catTags(meta.director_filmography||[])));
+  if(!_catEditing&&(meta.ff_submission_id||meta.ff_rating||meta.ff_category||meta.ff_link)){
+    var ffHtml='<div class="cat-grid">';
+    if(meta.ff_rating)ffHtml+=catFld('Nota média dos jurados','<span style="font-family:var(--mono);font-size:22px;font-weight:700;color:var(--accent);">'+meta.ff_rating+'</span><span style="font-family:var(--mono);font-size:10px;color:var(--text-muted);margin-left:4px;">/10</span>');
+    if(meta.ff_category)ffHtml+=catFld('Categoria',meta.ff_category);
+    ffHtml+='</div>';
+    if(meta.ff_submission_id)ffHtml+=catFld('ID da submissão','<span style="font-family:var(--mono);font-size:11px;color:var(--text-dim);">'+meta.ff_submission_id+'</span>'+(meta.ff_link?'  <a href="'+meta.ff_link.replace(/"/g,'&quot;')+'" target="_blank" style="font-family:var(--mono);font-size:10px;color:var(--accent);margin-left:8px;">↗ ver no FilmFreeway</a>':''));
+    html+=catBlock('FilmFreeway',ffHtml);
+  }
   var sessoes=sessoesArr.filter(function(s){return s.filmes&&s.filmes.indexOf(_catCode)!==-1;})
     .sort(function(a,b){return(a.date&&b.date?a.date-b.date:0)||(a.time&&b.time?(a.time.h*60+a.time.m)-(b.time.h*60+b.time.m):0);});
   if(sessoes.length){
@@ -15182,6 +15192,7 @@ async function doSaveCat(){
       synopsis:(document.getElementById('catf_synopsis')||{value:''}).value.trim(),
       synopsis_en:(document.getElementById('catf_synopsis_en')||{value:''}).value.trim(),
       director:catGetTags('director'),
+      producers:catGetTags('producers'),
       countries:catGetTags('countries'),genre:catGetTags('genre'),
       production_company:catGetTags('production_company'),
       distribution_company:catGetTags('distribution_company'),
@@ -15297,6 +15308,7 @@ function renderCatCreate(){
   );
   html+=catBlock('Dados do filme',
     catFld('Direção',catTagInp('director',[]))
+    +catFld('Produção',catTagInp('producers',[]))
     +'<div class="cat-grid">'+catFld('Gênero',catTagInp('genre',[]))+catFld('País(es)',catTagInp('countries',[]))+'</div>'
     +'<div class="cat-grid">'+catFld('Metragem',catInp('film_type',''))+catFld('Classificação etária',catInp('content_rating',''))+'</div>'
     +'<div class="cat-grid">'+catFld('Ano',catInp('year','','number'))+catFld('Seleção','<select class="cat-input" id="catf_selecao"><option value=""></option>'+['FEST','NÃO FEST','SUPLENTE','CONVIDADO','VISIONAMENTO'].map(function(v){return'<option>'+v+'</option>';}).join('')+'</select>')+'</div>'
@@ -16652,7 +16664,7 @@ window.addEventListener('popstate',function(e){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 19/05/2026 às 16:48</span></div>
+<div id="page-footer"><span>última atualização · 19/05/2026 às 17:08</span></div>
 
 </div>
 
@@ -18112,7 +18124,7 @@ function ffHandleFile(file){
 
 function _ffParseBuffer(buf){
   try{
-    var wb=XLSX.read(new Uint8Array(buf),{type:'array',codepage:65001,raw:false});
+    var wb=XLSX.read(new Uint8Array(buf),{type:'array',codepage:65001,cellDates:true});
     var ws=wb.Sheets[wb.SheetNames[0]];
     var rows=XLSX.utils.sheet_to_json(ws,{defval:''});
     rows=rows.filter(function(r){return _ffClean(r['Tracking Number']);});
@@ -18224,18 +18236,16 @@ function _ffTranslateUf(state){
   return _ffUfMap[s]||_ffUfMap[s.trim()]||'';
 }
 function _ffYear(v){
-  // Trata serial dates do Excel (ex: 46209) e strings de data variadas
-  var raw=String(v===null||v===undefined?'':v).trim();
-  if(/^\d{5}$/.test(raw)){
-    var n=parseInt(raw);
-    if(n>40000&&n<60000){
-      // serial Excel → Date (epoch: 30/12/1899)
-      var d=new Date(Date.UTC(1899,11,30)+n*86400000);
-      return d.getUTCFullYear();
-    }
-  }
+  // cellDates:true → JS Date object
+  if(v instanceof Date&&!isNaN(v.getTime()))return v.getUTCFullYear();
   var s=_ffClean(v);if(!s)return null;
-  var m=s.match(/\b(19|20)\d{2}\b/);return m?parseInt(m[0]):null;
+  // serial Excel de 5 dígitos (fallback se raw)
+  if(/^\d{5}$/.test(s)){var n=parseInt(s);if(n>40000&&n<60000){var d=new Date(Date.UTC(1899,11,30)+n*86400000);return d.getUTCFullYear();}}
+  // ano de 4 dígitos em qualquer posição
+  var m4=s.match(/\b(19|20)\d{2}\b/);if(m4)return parseInt(m4[0]);
+  // formato mm-dd-yy ou dd/mm/yy (2 dígitos no final)
+  var m2=s.match(/\b(\d{2})$/);if(m2){var y2=parseInt(m2[1]);return y2+(y2>=50?1900:2000);}
+  return null;
 }
 function _ffFilmType(v){
   var s=_ffClean(v).toLowerCase();if(!s)return'';

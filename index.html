@@ -4029,6 +4029,7 @@ html[data-theme]:not([data-theme="win98"]){--mono:var(--sans);}
             keywords:fsa(r.keywords), producers:fsa(r.producers),
             copy_arrival_forecast:fss(r.copy_arrival_forecast), copy_notes:fss(r.copy_notes),
             selecao:fss(r.selecao), screener:fss(r.screener), trailer:fss(r.trailer),
+            uf:fss(r.uf),
             film_color:fss(r.film_color), aspect_ratio:fss(r.aspect_ratio),
             shooting_format:fss(r.shooting_format), student_project:fss(r.student_project),
             ff_submission_id:fss(r.ff_submission_id), ff_link:fss(r.ff_link),
@@ -4069,6 +4070,7 @@ html[data-theme]:not([data-theme="win98"]){--mono:var(--sans);}
         production_company:fsArr(data.production_company),distribution_company:fsArr(data.distribution_company),
         awards:fsArr(data.awards),director_filmography:fsArr(data.director_filmography),
         keywords:fsArr(data.keywords||[]),producers:fsArr(data.producers||[]),
+        uf:fsStr(data.uf||''),
         film_color:fsStr(data.film_color||''),aspect_ratio:fsStr(data.aspect_ratio||''),
         shooting_format:fsStr(data.shooting_format||''),student_project:fsStr(data.student_project||''),
         ff_submission_id:fsStr(data.ff_submission_id||''),ff_link:fsStr(data.ff_link||''),
@@ -12787,7 +12789,7 @@ function renderDash(){
   html+=colBlock('kdm','KDM',kdmBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 19/05/2026 às 16:38';
+  var sysUpdate='última atualização do sistema · 19/05/2026 às 16:48';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -15074,9 +15076,9 @@ function renderCatDetail(){
   var selOpts=['FEST','NÃO FEST','SUPLENTE','CONVIDADO','VISIONAMENTO'];
   html+=catBlock('Metadados',
     '<div class="cat-grid">'+catFld('Gênero',_catEditing?catTagInp('genre',meta.genre||[]):catTags(meta.genre||[]))+catFld('País(es)',_catEditing?catTagInp('countries',meta.countries||[]):catTags(meta.countries||[]))+'</div>'
-    +'<div class="cat-grid">'+catFld('Empresa(s) Produtora(s)',_catEditing?catTagInp('production_company',toArr(meta.production_company)):catTags(toArr(meta.production_company)))+catFld('Distribuidora(s)',_catEditing?catTagInp('distribution_company',toArr(meta.distribution_company)):catTags(toArr(meta.distribution_company)))+'</div>'
-    +'<div class="cat-grid">'+catFld('Ano',_catEditing?catInp('year',meta.year||'','number'):(meta.year?String(meta.year):'\u2014'))+catFld('Email de contato',_catEditing?catInp('contact_email',meta.contact_email||''):(meta.contact_email||'\u2014'))+'</div>'
-    +catFld('Idioma original',_catEditing?catInp('original_language',meta.original_language||''):(meta.original_language||'\u2014'))
+    +'<div class="cat-grid">'+catFld('UF',_catEditing?catInp('uf',meta.uf||''):(meta.uf||'\u2014'))+catFld('Empresa(s) Produtora(s)',_catEditing?catTagInp('production_company',toArr(meta.production_company)):catTags(toArr(meta.production_company)))+'</div>'
+    +'<div class="cat-grid">'+catFld('Distribuidora(s)',_catEditing?catTagInp('distribution_company',toArr(meta.distribution_company)):catTags(toArr(meta.distribution_company)))+catFld('Ano',_catEditing?catInp('year',meta.year||'','number'):(meta.year?String(meta.year):'\u2014'))+'</div>'
+    +'<div class="cat-grid">'+catFld('Email de contato',_catEditing?catInp('contact_email',meta.contact_email||''):(meta.contact_email||'\u2014'))+catFld('Idioma original',_catEditing?catInp('original_language',meta.original_language||''):(meta.original_language||'\u2014'))+'</div>'
     +catFld('Palavras-chave',_catEditing?catTagInp('keywords',meta.keywords||[]):catTags(meta.keywords||[]))
     +catFld('Seleção',_catEditing
       ?'<select class="cat-input" id="catf_selecao"><option value="">—</option>'+selOpts.map(function(o){return'<option value="'+o+'"'+(meta.selecao===o?' selected':'')+'>'+o+'</option>';}).join('')+'</select>'
@@ -15176,7 +15178,7 @@ async function doSaveCat(){
       contact_email:gv('contact_email'),year:parseInt(gv('year'))||null,
       copy_arrival_forecast:gv('copy_arrival_forecast'),copy_notes:gv('copy_notes'),
       screener:gv('screener'),trailer:gv('trailer'),selecao:selEl?selEl.value:'',
-      website:gv('website'),
+      website:gv('website'),uf:gv('uf'),
       synopsis:(document.getElementById('catf_synopsis')||{value:''}).value.trim(),
       synopsis_en:(document.getElementById('catf_synopsis_en')||{value:''}).value.trim(),
       director:catGetTags('director'),
@@ -16650,7 +16652,7 @@ window.addEventListener('popstate',function(e){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 19/05/2026 às 16:38</span></div>
+<div id="page-footer"><span>última atualização · 19/05/2026 às 16:48</span></div>
 
 </div>
 
@@ -18120,6 +18122,75 @@ function _ffParseBuffer(buf){
   }catch(err){alert('Erro ao ler arquivo: '+err.message);}
 }
 
+/* ── mapas de tradução ── */
+var _ffCountryPt={
+  'Afghanistan':'Afeganistão','Albania':'Albânia','Algeria':'Argélia','Angola':'Angola',
+  'Argentina':'Argentina','Armenia':'Armênia','Australia':'Austrália','Austria':'Áustria',
+  'Azerbaijan':'Azerbaijão','Bangladesh':'Bangladesh','Belgium':'Bélgica','Bolivia':'Bolívia',
+  'Bosnia and Herzegovina':'Bósnia e Herzegovina','Brazil':'Brasil','Bulgaria':'Bulgária',
+  'Cambodia':'Camboja','Cameroon':'Camarões','Canada':'Canadá','Chile':'Chile',
+  'China':'China','Colombia':'Colômbia','Congo':'Congo','Costa Rica':'Costa Rica',
+  'Croatia':'Croácia','Cuba':'Cuba','Czech Republic':'República Tcheca',
+  'Czechia':'República Tcheca','Denmark':'Dinamarca','Dominican Republic':'República Dominicana',
+  'Ecuador':'Equador','Egypt':'Egito','El Salvador':'El Salvador','Estonia':'Estônia',
+  'Ethiopia':'Etiópia','Finland':'Finlândia','France':'França','Georgia':'Geórgia',
+  'Germany':'Alemanha','Ghana':'Gana','Greece':'Grécia','Guatemala':'Guatemala',
+  'Haiti':'Haiti','Honduras':'Honduras','Hong Kong':'Hong Kong','Hungary':'Hungria',
+  'Iceland':'Islândia','India':'Índia','Indonesia':'Indonésia',
+  'Iran':'Irã','Iran, Islamic Republic of':'Irã','Islamic Republic of Iran':'Irã',
+  'Iraq':'Iraque','Ireland':'Irlanda','Israel':'Israel','Italy':'Itália',
+  'Jamaica':'Jamaica','Japan':'Japão','Jordan':'Jordânia','Kazakhstan':'Cazaquistão',
+  'Kenya':'Quênia','Kosovo':'Kosovo','Latvia':'Letônia','Lebanon':'Líbano',
+  'Libya':'Líbia','Lithuania':'Lituânia','Luxembourg':'Luxemburgo',
+  'Malaysia':'Malásia','Mexico':'México','Moldova':'Moldávia','Morocco':'Marrocos',
+  'Mozambique':'Moçambique','Myanmar':'Mianmar','Nepal':'Nepal',
+  'Netherlands':'Países Baixos','New Zealand':'Nova Zelândia','Nicaragua':'Nicarágua',
+  'Nigeria':'Nigéria','North Macedonia':'Macedônia do Norte','Norway':'Noruega',
+  'Not Specified':'Não especificado','Pakistan':'Paquistão','Palestine':'Palestina',
+  'Panama':'Panamá','Paraguay':'Paraguai','Peru':'Peru','Philippines':'Filipinas',
+  'Poland':'Polônia','Portugal':'Portugal','Romania':'Romênia','Russia':'Rússia',
+  'Saudi Arabia':'Arábia Saudita','Senegal':'Senegal','Serbia':'Sérvia',
+  'Singapore':'Cingapura','Slovakia':'Eslováquia','Slovenia':'Eslovênia',
+  'Somalia':'Somália','South Africa':'África do Sul','South Korea':'Coreia do Sul',
+  'Spain':'Espanha','Sri Lanka':'Sri Lanka','Sudan':'Sudão','Sweden':'Suécia',
+  'Switzerland':'Suíça','Syria':'Síria','Taiwan':'Taiwan','Tanzania':'Tanzânia',
+  'Thailand':'Tailândia','Tunisia':'Tunísia','Turkey':'Turquia','Uganda':'Uganda',
+  'Ukraine':'Ucrânia','United Arab Emirates':'Emirados Árabes Unidos',
+  'United Kingdom':'Reino Unido','United States':'Estados Unidos',
+  'United States of America':'Estados Unidos','Uruguay':'Uruguai',
+  'Uzbekistan':'Uzbequistão','Venezuela':'Venezuela','Vietnam':'Vietnã',
+  'Viet Nam':'Vietnã','Yemen':'Iêmen','Zimbabwe':'Zimbábue'
+};
+var _ffCategoryPt={
+  'National Competition':'Competição Nacional',
+  'International Competition':'Competição Internacional',
+  'Short Film Competition':'Competição de Curtas',
+  'Documentary Competition':'Competição de Documentários',
+  'Student Competition':'Competição Estudantil',
+  'Panorama':'Panorama','Special Screening':'Exibição Especial',
+  'Out of Competition':'Fora de Competição'
+};
+var _ffUfMap={
+  // abreviações já corretas
+  'AC':'AC','AL':'AL','AP':'AP','AM':'AM','BA':'BA','CE':'CE','DF':'DF',
+  'ES':'ES','GO':'GO','MA':'MA','MT':'MT','MS':'MS','MG':'MG','PA':'PA',
+  'PB':'PB','PR':'PR','PE':'PE','PI':'PI','RJ':'RJ','RN':'RN','RS':'RS',
+  'RO':'RO','RR':'RR','SC':'SC','SP':'SP','SE':'SE','TO':'TO',
+  // nomes por extenso → UF
+  'Acre':'AC','Alagoas':'AL','Amapá':'AP','Amazonas':'AM','Bahia':'BA',
+  'Ceará':'CE','Distrito Federal':'DF','Espírito Santo':'ES',
+  'Goiás':'GO','Maranhão':'MA','Mato Grosso':'MT','Mato Grosso do Sul':'MS',
+  'Minas Gerais':'MG','Pará':'PA','Paraíba':'PB','Paraná':'PR',
+  'Pernambuco':'PE','Piauí':'PI','Rio de Janeiro':'RJ',
+  'Rio Grande do Norte':'RN','Rio Grande do Sul':'RS','Rondônia':'RO',
+  'Roraima':'RR','Santa Catarina':'SC','São Paulo':'SP','Sergipe':'SE',
+  'Tocantins':'TO',
+  // variantes de capitalização comuns no FF
+  'rio grande do sul':'RS','são paulo':'SP','minas gerais':'MG',
+  'rio de janeiro':'RJ','bahia ':'BA','pernambuco':'PE','paraná':'PR',
+  'paraíba':'PB','pará':'PA','amazonas':'AM','acre':'AC','goiás':'GO'
+};
+
 /* ── normalização de campos ── */
 function _ffClean(v){
   if(v===null||v===undefined)return'';
@@ -18130,9 +18201,41 @@ function _ffSplitComma(v){
   var s=_ffClean(v);if(!s)return[];
   return s.split(/,\s*/).map(function(x){return x.trim();}).filter(Boolean);
 }
+function _ffSplitCountries(v){
+  // Trata casos como "Iran, Islamic Republic of" que têm vírgulas internas
+  var s=_ffClean(v);if(!s)return[];
+  // pré-processamento: substitui nomes compostos conhecidos por versão unificada
+  s=s.replace(/Iran,\s*Islamic Republic of/gi,'Iran');
+  s=s.replace(/Korea,\s*Republic of/gi,'South Korea');
+  s=s.replace(/Korea,\s*Democratic People['\u2019]s Republic of/gi,'North Korea');
+  s=s.replace(/Tanzania,\s*United Republic of/gi,'Tanzania');
+  s=s.replace(/Bolivia,\s*Plurinational State of/gi,'Bolivia');
+  s=s.replace(/Venezuela,\s*Bolivarian Republic of/gi,'Venezuela');
+  s=s.replace(/Viet\s*Nam/gi,'Vietnam');
+  s=s.replace(/Not\s*Specified/gi,'Not Specified');
+  return s.split(/,\s*/).map(function(x){return x.trim();}).filter(Boolean);
+}
+function _ffTranslateCountry(name){
+  var t=name.trim();
+  return _ffCountryPt[t]||_ffCountryPt[t.replace(/\s+/g,' ')]||t;
+}
+function _ffTranslateUf(state){
+  var s=_ffClean(state);if(!s)return'';
+  return _ffUfMap[s]||_ffUfMap[s.trim()]||'';
+}
 function _ffYear(v){
+  // Trata serial dates do Excel (ex: 46209) e strings de data variadas
+  var raw=String(v===null||v===undefined?'':v).trim();
+  if(/^\d{5}$/.test(raw)){
+    var n=parseInt(raw);
+    if(n>40000&&n<60000){
+      // serial Excel → Date (epoch: 30/12/1899)
+      var d=new Date(Date.UTC(1899,11,30)+n*86400000);
+      return d.getUTCFullYear();
+    }
+  }
   var s=_ffClean(v);if(!s)return null;
-  var m=s.match(/(\d{4})/);return m?parseInt(m[1]):null;
+  var m=s.match(/\b(19|20)\d{2}\b/);return m?parseInt(m[0]):null;
 }
 function _ffFilmType(v){
   var s=_ffClean(v).toLowerCase();if(!s)return'';
@@ -18175,10 +18278,18 @@ function _ffNormalizeRow(row){
   var titleEN=_ffClean(row['Project Title']);
   var judging=_ffClean(row['Judging Status']);
   var submId=_ffClean(row['Submission ID']);
-  // Rating: xlsx may store 9.0 as integer 90 — if >10, divide by 10
+  // Rating: xlsx pode converter 9.0 → 90; se >10, divide por 10
   var ratingRaw=_ffClean(row['Rating']);
   var ratingNum=parseFloat(ratingRaw);
   var rating=isNaN(ratingNum)?'':((ratingNum>10?ratingNum/10:ratingNum).toFixed(1));
+  // países: split especializado + tradução
+  var countriesRaw=_ffSplitCountries(row['Country of Origin']);
+  var countries=countriesRaw.map(_ffTranslateCountry);
+  // categoria traduzida
+  var catRaw=_ffClean(row['Submission Categories']);
+  var ffCategory=_ffCategoryPt[catRaw]||catRaw;
+  // UF do submissor
+  var uf=_ffTranslateUf(row['State']);
   return{
     festival_code:_ffClean(row['Tracking Number']),
     system_name:titleOL||titleEN,
@@ -18190,7 +18301,8 @@ function _ffNormalizeRow(row){
     synopsis_en:_ffClean(row['Synopsis']),
     director:_ffSplitComma(row['Directors']),
     producers:_ffSplitComma(row['Producers']),
-    countries:_ffSplitComma(row['Country of Origin']),
+    countries:countries,
+    uf:uf,
     original_language:_ffClean(row['Language']),
     year:_ffYear(row['Completion Date']),
     film_type:_ffFilmType(row['Project Type']),
@@ -18200,14 +18312,14 @@ function _ffNormalizeRow(row){
     website:_ffClean(row['Project Website']),
     selecao:judging==='Selected'?'FEST':'',
     screener:'',
-    awards:_ffClean(row['Screenings / Awards'])?[_ffClean(row['Screenings / Awards'])]:[], // keep as single text block
+    awards:_ffClean(row['Screenings / Awards'])?[_ffClean(row['Screenings / Awards'])]:[], 
     film_color:_ffClean(row['Film Color']),
     aspect_ratio:_ffAspectRatio(row['Aspect Ratio']),
     shooting_format:_ffClean(row['Shooting Format']),
     student_project:_ffClean(row['Student Project']),
     ff_submission_id:submId,
     ff_link:_ffClean(row['Submission Link']),
-    ff_category:_ffClean(row['Submission Categories']),
+    ff_category:ffCategory,
     ff_rating:rating,
     ff_duration:_ffClean(row['Duration']),
     keywords:[],

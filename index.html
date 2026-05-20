@@ -12789,7 +12789,7 @@ function renderDash(){
   html+=colBlock('kdm','KDM',kdmBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 19/05/2026 às 17:18';
+  var sysUpdate='última atualização do sistema · 19/05/2026 às 17:38';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -16664,7 +16664,7 @@ window.addEventListener('popstate',function(e){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 19/05/2026 às 17:18</span></div>
+<div id="page-footer"><span>última atualização · 19/05/2026 às 17:38</span></div>
 
 </div>
 
@@ -18247,19 +18247,103 @@ function _ffYear(v){
   var m2=s.match(/\b(\d{2})$/);if(m2){var y2=parseInt(m2[1]);return y2+(y2>=50?1900:2000);}
   return null;
 }
+/* ── tradução de idiomas ── */
+var _ffLangPt={
+  'Portuguese':'Português','English':'Inglês','Spanish':'Espanhol',
+  'French':'Francês','German':'Alemão','Italian':'Italiano',
+  'Arabic':'Árabe','Chinese':'Chinês','Chinese - Min Nan':'Chinês (Min Nan)',
+  'Bengali':'Bengali','Serbian':'Sérvio','Haitian':'Crioulo Haitiano',
+  'Hebrew':'Hebraico','Persian':'Persa','Polish':'Polonês',
+  'Lithuanian':'Lituano','Russian':'Russo','Uzbek':'Uzbeque',
+  'Finnish':'Finlandês','Latin':'Latim','American Sign Language':'Língua de Sinais (ASL)',
+  'No Dialogue':'Sem diálogo','Other':'Outro'
+};
+function _ffTranslateLang(v){
+  var s=_ffClean(v);if(!s)return'';
+  return s.split(/,\s*/).map(function(l){
+    var t=l.trim();return _ffLangPt[t]||t;
+  }).filter(Boolean).join(', ');
+}
+
+/* ── normalização de gêneros ── */
+var _ffGenreNorm={
+  'animation':'Animação','animação':'Animação',
+  'documentary':'Documentário','documentary short':'Documentário',
+  'hybrid documentary':'Documentário híbrido',
+  'experimental':'Experimental',
+  'drama':'Drama','dramedy':'Drama',
+  'comedy':'Comédia','humour':'Comédia',
+  'horror':'Terror','horrorr':'Terror','terror':'Terror',
+  'sci-fi':'Sci-Fi','scifi':'Sci-Fi','sci fi':'Sci-Fi',
+  'speculative fiction':'Ficção especulativa',
+  'thriller':'Thriller','triller':'Thriller',
+  'fantasy':'Fantasia','fantasia':'Fantasia',
+  'musical':'Musical','music':'Musical',
+  'adventure':'Aventura','aventure':'Aventura','aventura':'Aventura',
+  'stop motion':'Stop Motion',
+  'road movie':'Road Movie',
+  'biopic':'Biopic',
+  'coming of age':'Coming-of-age',
+  'essay':'Ensaio',
+  'portrait':'Retrato',
+  'magical realism':'Realismo mágico',
+  'historical':'Histórico',
+  "children's film":'Cinema infantil',
+  'mixed media':'Mídia mista',
+  'hybrid':'Híbrido',
+  'archive':'Arquivo','archival':'Arquivo',
+  'observational':'Observacional',
+  'mystery':'Mistério','mythe':'Mitologia',
+  'dystopia':'Distopia',
+  'queer':'Queer',
+  'artistry':'Artístico',
+  'contemplative':'Contemplativo',
+  'technology':'Tecnologia',
+  'fiction':'Ficção',
+  'epoc':'Época','epoch':'Época',
+};
+// tags que não são gênero (identidade, origem, categoria)
+var _ffGenreSkip=new Set([
+  'short','feature','student','women','latino','afro','queer cinema',
+  'brazilian short film','latino short film','brazilian documentary short',
+  'social themes','environmental','brazil','community','comunnity',
+  'cultura popular','young','independent','music video','other',
+  'realistic cinema','archive film'
+]);
+
+/* ── extrai metragem (SOMENTE comprimento) do Project Type ── */
 function _ffFilmType(v){
   var s=_ffClean(v).toLowerCase();if(!s)return'';
-  var isShort=s.indexOf('short')>=0;
-  var isFeat=s.indexOf('feature')>=0;
-  var isDoc=s.indexOf('documentary')>=0;
-  var isAnim=s.indexOf('animation')>=0;
-  var isExp=s.indexOf('experimental')>=0;
-  var base=isFeat?'longa':isShort?'curta':'';
-  var tags=[];
-  if(isDoc)tags.push('documentário');
-  if(isAnim)tags.push('animação');
-  if(isExp)tags.push('experimental');
-  return([base].concat(tags)).filter(Boolean).join(' / ');
+  if(s.indexOf('feature')>=0)return'longa';
+  if(s.indexOf('short')>=0)return'curta';
+  return'';// documentários, animações etc. vão para gêneros
+}
+
+/* ── extrai gêneros do campo Genres + do Project Type ── */
+function _ffGenres(genresStr,projectTypeStr){
+  var raw=[];
+  // do campo Genres
+  _ffSplitComma(genresStr).forEach(function(g){raw.push(g);});
+  // do Project Type: extrair tipos que não são comprimento
+  var typeSkip=new Set(['short','feature','student','other']);
+  var typeToPt={'documentary':'Documentário','animation':'Animação',
+    'experimental':'Experimental','music video':'Videoclipe'};
+  _ffSplitComma(projectTypeStr).forEach(function(t){
+    var tl=t.trim().toLowerCase();
+    if(typeSkip.has(tl))return;
+    if(typeToPt[tl])raw.push(typeToPt[tl]);
+  });
+  // normalizar, deduplicar, filtrar
+  var seen=new Set();
+  var out=[];
+  raw.forEach(function(g){
+    var tl=g.trim().toLowerCase();
+    if(!tl||_ffGenreSkip.has(tl))return;
+    var norm=_ffGenreNorm[tl]||(g.trim().charAt(0).toUpperCase()+g.trim().slice(1));
+    var key=norm.toLowerCase();
+    if(!seen.has(key)){seen.add(key);out.push(norm);}
+  });
+  return out;
 }
 function _ffAspectRatio(v){
   var s=_ffClean(v);if(!s)return'';
@@ -18272,16 +18356,6 @@ function _ffAspectRatio(v){
   if(/^[\d]+\.[\d]+$/.test(s)){s=s+':1';}
   // "16:9" → keep, but note it's 1.78:1
   return s;
-}
-function _ffGenres(v){
-  // filter out non-genre identity tags common in FF
-  var skip=['Women','Latino','Brazilian Short Film','Social Themes','Afro-Brazilian',
-    'LGBTQ+','Indigenous','Middle Eastern','Asian','African','South Asian','European',
-    'Disability','Environmental','Political','Film School','Award Winner'];
-  var skipLow=skip.map(function(x){return x.toLowerCase();});
-  return _ffSplitComma(v).filter(function(g){
-    return skipLow.indexOf(g.toLowerCase())<0;
-  });
 }
 function _ffNormalizeRow(row){
   var titleOL=_ffClean(row['Project Title (Original Language)']);
@@ -18320,10 +18394,10 @@ function _ffNormalizeRow(row){
     producers:_ffSplitComma(row['Producers']),
     countries:countries,
     uf:uf,
-    original_language:_ffClean(row['Language']),
+    original_language:_ffTranslateLang(row['Language']),
     year:_ffYear(row['Completion Date']),
     film_type:_ffFilmType(row['Project Type']),
-    genre:_ffGenres(row['Genres']),
+    genre:_ffGenres(row['Genres'],row['Project Type']),
     trailer:_ffClean(row['Trailer URL']),
     contact_email:_ffClean(row['Email']),
     website:_ffClean(row['Project Website']),
@@ -18351,89 +18425,193 @@ function _ffNormalizeRow(row){
   };
 }
 
-/* ── preview ── */
-function _ffRenderPreview(rows){
-  var dupes=[];
+/* ── detecção de duplicatas de título dentro do lote ── */
+function _ffBuildTitleDupMap(rows){
+  // retorna Map: code → Set de códigos com mesmo título
+  var titleMap={};
   rows.forEach(function(r){
     var code=_ffClean(r['Tracking Number']);
-    if(catalogoFilmesMap&&catalogoFilmesMap[code])dupes.push(code);
+    var en=_ffClean(r['Project Title']).toLowerCase().trim();
+    var pt=_ffClean(r['Project Title (Original Language)']).toLowerCase().trim();
+    [en,pt].forEach(function(t){
+      if(!t)return;
+      if(!titleMap[t])titleMap[t]=[];
+      titleMap[t].push(code);
+    });
   });
-  var dupSet=new Set(dupes);
-  var html='<div class="ffim-opts">'
-    +'<span class="ffim-opt-label">Arquivo</span>'
-    +'<span class="ffim-opt-val">'+rows.length+' filmes</span>'
-    +'<span class="ffim-opt-label">Já cadastrados</span>'
-    +'<span class="ffim-opt-val">'+(dupes.length>0?'<span style="color:var(--warn)">'+dupes.length+'</span>':'0')+'</span>'
-    +'<label class="ffim-check"><input type="checkbox" id="ffOverwrite"> Sobrescrever duplicatas</label>'
-    +'</div>';
-  html+='<div class="ffim-preview-hdr">Pré-visualização <span class="ffim-count">'+rows.length+'</span></div>';
-  html+='<div class="ffim-tbl-wrap"><table class="ffim-tbl"><thead><tr>'
-    +'<th>Código</th><th>Status</th><th>Título PT</th><th>Título orig.</th>'
-    +'<th>Dir.</th><th>País</th><th>Ano</th><th>Duração</th><th>Categoria</th>'
-    +'</tr></thead><tbody>';
+  var dupMap={};// code → [other codes with same title]
+  Object.keys(titleMap).forEach(function(t){
+    var codes=titleMap[t].filter(function(v,i,a){return a.indexOf(v)===i;});// unique
+    if(codes.length<2)return;
+    codes.forEach(function(c){
+      if(!dupMap[c])dupMap[c]=new Set();
+      codes.forEach(function(o){if(o!==c)dupMap[c].add(o);});
+    });
+  });
+  return dupMap;
+}
+
+/* ── preview com checkboxes, evento, duplicatas ── */
+function _ffRenderPreview(rows){
+  var dupCatalog=new Set();// códigos que já existem no catálogo
+  var dupMap=_ffBuildTitleDupMap(rows);// duplicatas de título dentro do lote
   rows.forEach(function(r){
     var code=_ffClean(r['Tracking Number']);
-    var isDup=dupSet.has(code);
+    if(catalogoFilmesMap&&catalogoFilmesMap[code])dupCatalog.add(code);
+  });
+
+  // ── selector de evento ──
+  var evts=(typeof eventosList!=='undefined'&&Array.isArray(eventosList))?eventosList.filter(Boolean):[];
+  var evtHtml='';
+  if(evts.length===0){
+    evtHtml='<label class="ffim-opt-label" style="display:flex;align-items:center;gap:6px;">'
+      +'Evento <input id="ffEvtInput" class="ffim-check" style="padding:2px 6px;font-family:var(--mono);font-size:10px;background:var(--surface2);border:1px solid var(--border);border-radius:2px;color:var(--text-dim);width:160px;" placeholder="ex: FICB 2026">'
+      +'</label>';
+  } else {
+    evtHtml='<label class="ffim-opt-label" style="display:flex;align-items:center;gap:6px;">Evento '
+      +'<select id="ffEvtInput" style="font-family:var(--mono);font-size:10px;background:var(--surface2);border:1px solid var(--border);border-radius:2px;color:var(--text-dim);padding:2px 6px;">'
+      +'<option value="">— sem evento —</option>'
+      +evts.map(function(e){return'<option value="'+_ffEsc(e)+'">'+_ffEsc(e)+'</option>';}).join('')
+      +'</select></label>';
+  }
+
+  // ── cabeçalho de opções ──
+  var html='<div class="ffim-opts">'
+    +evtHtml
+    +'<span class="ffim-opt-label">Total</span><span class="ffim-opt-val">'+rows.length+' filmes</span>'
+    +(dupCatalog.size?'<span class="ffim-opt-val" style="color:var(--warn);">'+dupCatalog.size+' já cadastrados</span>':'')
+    +(Object.keys(dupMap).length?'<span class="ffim-opt-val" style="color:var(--accent);">'+Object.keys(dupMap).length+' com título repetido no lote</span>':'')
+    +'<label class="ffim-check"><input type="checkbox" id="ffOverwrite"> Sobrescrever cadastrados</label>'
+    +'</div>';
+
+  // ── barra de seleção ──
+  html+='<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">'
+    +'<button class="ffim-btn" style="padding:3px 10px;" onclick="ffSelAll(true)">Todos</button>'
+    +'<button class="ffim-btn" style="padding:3px 10px;" onclick="ffSelAll(false)">Nenhum</button>'
+    +'<span id="ffSelCount" style="font-family:var(--mono);font-size:10px;color:var(--text-muted);">'+rows.length+' selecionados</span>'
+    +'</div>';
+
+  // ── tabela com checkboxes ──
+  html+='<div class="ffim-tbl-wrap"><table class="ffim-tbl"><thead><tr>'
+    +'<th style="width:28px;"><input type="checkbox" id="ffChkAll" checked onchange="ffSelAll(this.checked)" title="Selecionar todos"></th>'
+    +'<th>Código</th><th>Status</th><th>Título PT</th><th>Dir.</th>'
+    +'<th>País</th><th>Ano</th><th>Duração</th>'
+    +'</tr></thead><tbody>';
+
+  rows.forEach(function(r,idx){
+    var code=_ffClean(r['Tracking Number']);
     var d=_ffNormalizeRow(r);
-    html+='<tr'+(isDup?' class="dup"':'')+'>'
-      +'<td>'+_ffEsc(code)+'</td>'
-      +'<td class="'+(isDup?'dup-badge':'ok-badge')+'">'+(isDup?'↻ duplicata':'✓ novo')+'</td>'
-      +'<td title="'+_ffEsc(d.title_pt)+'">'+_ffEsc((d.title_pt||'').slice(0,30))+'</td>'
-      +'<td title="'+_ffEsc(d.original_title)+'">'+_ffEsc((d.original_title||'').slice(0,28))+'</td>'
-      +'<td>'+_ffEsc((d.director||[]).join(', ').slice(0,24))+'</td>'
+    var isCatDup=dupCatalog.has(code);
+    var isTitleDup=!!dupMap[code];
+    var rowClass=isCatDup?'dup':isTitleDup?'title-dup':'';
+    var statusHtml='<span class="ok-badge">✓ novo</span>';
+    if(isCatDup)statusHtml='<span class="dup-badge">↻ cadastrado</span>';
+    if(isTitleDup){
+      var others=Array.from(dupMap[code]).join(', ');
+      statusHtml+='<span class="ffim-title-dup-badge" title="Mesmo título que: '+_ffEsc(others)+'">⚠ título dup.</span>';
+    }
+    html+='<tr class="'+rowClass+'" id="ffrow-'+idx+'">'
+      +'<td style="text-align:center;"><input type="checkbox" class="ff-row-chk" data-idx="'+idx+'" checked onchange="ffUpdateSelCount()"></td>'
+      +'<td style="font-weight:600;color:var(--text);">'+_ffEsc(code)+'</td>'
+      +'<td>'+statusHtml+'</td>'
+      +'<td title="'+_ffEsc(d.title_pt)+'">'+_ffEsc((d.title_pt||'').slice(0,32))+'</td>'
+      +'<td>'+_ffEsc((d.director||[]).join(', ').slice(0,22))+'</td>'
       +'<td>'+_ffEsc((d.countries||[]).join(', ').slice(0,16))+'</td>'
       +'<td>'+_ffEsc(d.year||'')+'</td>'
       +'<td>'+_ffEsc(d.ff_duration||'')+'</td>'
-      +'<td>'+_ffEsc(d.ff_category||'')+'</td>'
       +'</tr>';
   });
+
   html+='</tbody></table></div>';
+
+  // aviso de duplicatas de título
+  if(Object.keys(dupMap).length){
+    html+='<div style="font-family:var(--mono);font-size:10px;color:var(--accent);background:var(--accent-dim);border:1px solid rgba(255,186,32,0.25);border-radius:3px;padding:8px 12px;margin-top:10px;">'
+      +'⚠ Filmes marcados com "título dup." têm o mesmo título mas códigos distintos no FilmFreeway. Podem ser versões diferentes da mesma submissão — revise e desmarque o que não quiser importar.'
+      +'</div>';
+  }
+
   html+='<div id="ffProgress" class="ffim-progress" style="display:none">'
     +'<div class="ffim-prog-bar-wrap"><div class="ffim-prog-bar" id="ffProgBar"></div></div>'
     +'<div class="ffim-prog-text" id="ffProgText"></div>'
     +'<div class="ffim-prog-errors" id="ffProgErrors"></div>'
     +'</div>';
+
   document.getElementById('ffImportBody').innerHTML=html;
+
+  // CSS extra para título-dup
+  var st=document.getElementById('ffTitleDupStyle');
+  if(!st){st=document.createElement('style');st.id='ffTitleDupStyle';document.head.appendChild(st);}
+  st.textContent='.ffim-tbl tr.title-dup td{background:rgba(255,186,32,0.05);}'
+    +'.ffim-title-dup-badge{color:var(--accent);font-size:9px;margin-left:4px;}'
+    +'.ffim-tbl tr.dup td{background:rgba(255,180,171,0.07);}';
+
+  ffUpdateSelCount();
   var btn=document.getElementById('ffImportBtn');
-  if(btn){btn.disabled=false;btn.textContent='Importar '+rows.length+' filmes';}
+  if(btn){btn.disabled=false;}
+}
+
+function ffSelAll(checked){
+  document.querySelectorAll('.ff-row-chk').forEach(function(c){c.checked=checked;});
+  var all=document.getElementById('ffChkAll');if(all)all.checked=checked;
+  ffUpdateSelCount();
+}
+function ffUpdateSelCount(){
+  var chks=document.querySelectorAll('.ff-row-chk');
+  var n=Array.from(chks).filter(function(c){return c.checked;}).length;
+  var el=document.getElementById('ffSelCount');
+  if(el)el.textContent=n+' selecionado'+(n!==1?'s':'');
+  var btn=document.getElementById('ffImportBtn');
+  if(btn)btn.textContent='Importar '+n+' filme'+(n!==1?'s':'');
+  var all=document.getElementById('ffChkAll');
+  if(all)all.indeterminate=(n>0&&n<chks.length);
 }
 
 function _ffEsc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 
-/* ── import execution ── */
 async function ffStartImport(){
   if(_ffImporting||!_ffRows.length)return;
   if(!window._olgaCatalogo){alert('API do catálogo não disponível. Faça login primeiro.');return;}
+
+  // coletar índices selecionados
+  var chks=Array.from(document.querySelectorAll('.ff-row-chk'));
+  var selectedIdxs=chks.filter(function(c){return c.checked;}).map(function(c){return parseInt(c.dataset.idx);});
+  if(!selectedIdxs.length){alert('Selecione ao menos um filme para importar.');return;}
+
+  // evento selecionado
+  var evtEl=document.getElementById('ffEvtInput');
+  var selectedEvent=(evtEl?evtEl.value.trim():'');
+
   _ffImporting=true;
   var overwrite=document.getElementById('ffOverwrite')&&document.getElementById('ffOverwrite').checked;
-  var btn=document.getElementById('ffImportBtn');
-  if(btn)btn.disabled=true;
+  var btn=document.getElementById('ffImportBtn');if(btn)btn.disabled=true;
   var progWrap=document.getElementById('ffProgress');
   var progBar=document.getElementById('ffProgBar');
   var progText=document.getElementById('ffProgText');
   var progErrors=document.getElementById('ffProgErrors');
   if(progWrap)progWrap.style.display='';
-  var errors=[];var imported=0;var skipped=0;var total=_ffRows.length;
-  function updateProg(i,msg){
-    var pct=Math.round((i/total)*100);
+
+  var errors=[],imported=0,skipped=0,total=selectedIdxs.length;
+  function updateProg(done,msg){
+    var pct=Math.round((done/total)*100);
     if(progBar)progBar.style.width=pct+'%';
-    if(progText)progText.textContent=msg||'Importando '+i+'/'+total+'…';
+    if(progText)progText.textContent=msg||'Importando '+done+'/'+total+'…';
     if(progErrors)progErrors.innerHTML=errors.slice(-5).map(function(e){return'⚠ '+_ffEsc(e);}).join('<br>');
   }
-  for(var i=0;i<_ffRows.length;i++){
-    var row=_ffRows[i];
+
+  for(var si=0;si<selectedIdxs.length;si++){
+    var row=_ffRows[selectedIdxs[si]];
     var data=_ffNormalizeRow(row);
     var code=data.festival_code;
-    if(!code){errors.push('Linha '+(i+1)+': Tracking Number vazio');updateProg(i+1);continue;}
-    if(!overwrite&&catalogoFilmesMap&&catalogoFilmesMap[code]){skipped++;updateProg(i+1,'Pulando duplicata: '+code);continue;}
-    updateProg(i,'Importando '+code+'…');
+    if(!code){errors.push('Linha sem código');updateProg(si+1);continue;}
+    if(!overwrite&&catalogoFilmesMap&&catalogoFilmesMap[code]){skipped++;updateProg(si+1,'Pulando: '+code);continue;}
+    updateProg(si,'Importando '+code+'…');
     try{
       await window._olgaCatalogo.save(code,data);
-      // skeleton técnico com duração do FF
       if(window._olgaCopias){
         try{
           await window._olgaCopias.save(code,{
-            festival_code:code,event_name:'',
+            festival_code:code,event_name:selectedEvent,
             title:data.title||data.title_pt||'',
             original_language:data.original_language||'',
             dcp_duration:data.ff_duration||'',
@@ -18443,24 +18621,22 @@ async function ffStartImport(){
             dcp_resolution:'',dcp_size:'',dcp_fps:'',storage_location:'',
             dcp_uuid:'',accessibility_features:'',dcp_link:'',file_link:''
           });
-        }catch(eCop){console.warn('copias save:',eCop);}
+        }catch(eCop){console.warn('copias:',eCop);}
       }
       if(catalogoFilmesMap)catalogoFilmesMap[code]=data;
       imported++;
     }catch(e){errors.push(code+': '+e.message);}
-    updateProg(i+1);
-    // small yield so UI can breathe
-    if(i%5===4)await new Promise(function(r){setTimeout(r,0);});
+    updateProg(si+1);
+    if(si%5===4)await new Promise(function(r){setTimeout(r,0);});
   }
+
   _ffImporting=false;
   var summary='Concluído: '+imported+' importado'+(imported!==1?'s':'')+', '+skipped+' pulado'+(skipped!==1?'s':'')+(errors.length?' — '+errors.length+' erro'+(errors.length!==1?'s':''):'');
+  if(selectedEvent)summary+=' · evento: '+selectedEvent;
   if(progText)progText.textContent=summary;
   if(progBar)progBar.style.width='100%';
-  if(btn){btn.disabled=false;btn.textContent='Fechar';}
   document.getElementById('ffImportFooter').innerHTML='<button class="ffim-btn primary" onclick="closeFFImport();if(typeof renderCatalogo===\'function\')renderCatalogo();">Fechar e atualizar catálogo</button>';
-  if(typeof window._olgaLoadFirestore==='function'){
-    try{await window._olgaLoadFirestore();}catch(e){}
-  }
+  if(typeof window._olgaLoadFirestore==='function'){try{await window._olgaLoadFirestore();}catch(e){}}
   if(typeof buildBuscaFilterPanel==='function')buildBuscaFilterPanel();
 }
 </script>

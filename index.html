@@ -12789,7 +12789,7 @@ function renderDash(){
   html+=colBlock('kdm','KDM',kdmBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 19/05/2026 às 17:38';
+  var sysUpdate='última atualização do sistema · 19/05/2026 às 17:48';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -16664,7 +16664,7 @@ window.addEventListener('popstate',function(e){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 19/05/2026 às 17:38</span></div>
+<div id="page-footer"><span>última atualização · 19/05/2026 às 17:48</span></div>
 
 </div>
 
@@ -18451,14 +18451,94 @@ function _ffBuildTitleDupMap(rows){
   return dupMap;
 }
 
-/* ── preview com checkboxes, evento, duplicatas ── */
-function _ffRenderPreview(rows){
-  var dupCatalog=new Set();// códigos que já existem no catálogo
-  var dupMap=_ffBuildTitleDupMap(rows);// duplicatas de título dentro do lote
-  rows.forEach(function(r){
-    var code=_ffClean(r['Tracking Number']);
-    if(catalogoFilmesMap&&catalogoFilmesMap[code])dupCatalog.add(code);
+/* ── estado de ordenação da tabela de preview ── */
+var _ffSortCol=null,_ffSortAsc=true;
+var _ffNormalized=[],_ffDupCatalog=new Set(),_ffDupMap={},_ffDisplayOrder=[];
+
+function _ffGetSortVal(d,dupC,dupM,col){
+  switch(col){
+    case'code': return _ffClean(d._raw['Tracking Number']);
+    case'status':{
+      var v=dupC?1:0;if(dupM)v+=2;return v;}
+    case'title': return(d.title_pt||'').toLowerCase();
+    case'dir':   return(d.director||[]).join(', ').toLowerCase();
+    case'country':return(d.countries||[]).join(', ').toLowerCase();
+    case'year':  return d.year||0;
+    case'dur':{
+      var s=d.ff_duration||'';var p=s.split(':').map(Number);
+      return p.length===3?p[0]*3600+p[1]*60+p[2]:p.length===2?p[0]*60+p[1]:0;}
+    default: return'';
+  }
+}
+
+function _ffSortTable(col){
+  if(_ffSortCol===col){_ffSortAsc=!_ffSortAsc;}
+  else{_ffSortCol=col;_ffSortAsc=true;}
+  // salvar estado dos checkboxes antes de re-renderizar
+  var saved={};
+  document.querySelectorAll('.ff-row-chk').forEach(function(c){
+    saved[c.dataset.idx]=c.checked;
   });
+  var indices=_ffDisplayOrder.slice();
+  indices.sort(function(a,b){
+    var va=_ffGetSortVal(_ffNormalized[a],_ffDupCatalog.has(_ffNormalized[a].festival_code),!!_ffDupMap[_ffNormalized[a].festival_code],col);
+    var vb=_ffGetSortVal(_ffNormalized[b],_ffDupCatalog.has(_ffNormalized[b].festival_code),!!_ffDupMap[_ffNormalized[b].festival_code],col);
+    var r=typeof va==='number'?va-vb:String(va).localeCompare(String(vb),'pt-BR');
+    return _ffSortAsc?r:-r;
+  });
+  _ffDisplayOrder=indices;
+  _ffRenderTbody(saved);
+  // atualizar indicadores de coluna
+  document.querySelectorAll('.ff-sort-th').forEach(function(th){
+    var c=th.dataset.col;
+    th.querySelector('.ff-sort-ind').textContent=c===_ffSortCol?(_ffSortAsc?'▲':'▼'):'⇅';
+    th.style.color=c===_ffSortCol?'var(--accent)':'';
+  });
+}
+
+function _ffRenderTbody(savedSel){
+  var tbody=document.getElementById('ffTbody');if(!tbody)return;
+  var html='';
+  _ffDisplayOrder.forEach(function(origIdx){
+    var d=_ffNormalized[origIdx];
+    var code=d.festival_code;
+    var isCatDup=_ffDupCatalog.has(code);
+    var isTitleDup=!!_ffDupMap[code];
+    var prevChecked=savedSel?savedSel[origIdx]:true;
+    var checked=(prevChecked===undefined?true:prevChecked)?'checked':'';
+    var rowClass=isCatDup?'dup':isTitleDup?'title-dup':'';
+    var statusHtml='<span class="ok-badge">✓ novo</span>';
+    if(isCatDup)statusHtml='<span class="dup-badge">↻ cadastrado</span>';
+    if(isTitleDup){
+      var others=Array.from(_ffDupMap[code]).join(', ');
+      statusHtml+='<span class="ffim-title-dup-badge" title="Mesmo título que: '+_ffEsc(others)+'">⚠ dup.</span>';
+    }
+    html+='<tr class="'+rowClass+'">'
+      +'<td style="text-align:center;"><input type="checkbox" class="ff-row-chk" data-idx="'+origIdx+'" '+checked+' onchange="ffUpdateSelCount()"></td>'
+      +'<td style="font-weight:600;color:var(--text);">'+_ffEsc(code)+'</td>'
+      +'<td>'+statusHtml+'</td>'
+      +'<td title="'+_ffEsc(d.title_pt)+'">'+_ffEsc((d.title_pt||'').slice(0,32))+'</td>'
+      +'<td>'+_ffEsc((d.director||[]).join(', ').slice(0,22))+'</td>'
+      +'<td>'+_ffEsc((d.countries||[]).join(', ').slice(0,16))+'</td>'
+      +'<td>'+_ffEsc(d.year||'')+'</td>'
+      +'<td>'+_ffEsc(d.ff_duration||'')+'</td>'
+      +'</tr>';
+  });
+  tbody.innerHTML=html;
+  ffUpdateSelCount();
+}
+
+/* ── preview com checkboxes, evento, duplicatas, ordenação ── */
+function _ffRenderPreview(rows){
+  // pré-calcular dados normalizados (evita re-normalizar a cada sort)
+  _ffNormalized=rows.map(function(r){var d=_ffNormalizeRow(r);d._raw=r;return d;});
+  _ffDupCatalog=new Set();
+  _ffDupMap=_ffBuildTitleDupMap(rows);
+  _ffNormalized.forEach(function(d){
+    if(catalogoFilmesMap&&catalogoFilmesMap[d.festival_code])_ffDupCatalog.add(d.festival_code);
+  });
+  _ffDisplayOrder=rows.map(function(_,i){return i;});
+  _ffSortCol=null;_ffSortAsc=true;
 
   // ── selector de evento ──
   var evts=(typeof eventosList!=='undefined'&&Array.isArray(eventosList))?eventosList.filter(Boolean):[];
@@ -18479,8 +18559,8 @@ function _ffRenderPreview(rows){
   var html='<div class="ffim-opts">'
     +evtHtml
     +'<span class="ffim-opt-label">Total</span><span class="ffim-opt-val">'+rows.length+' filmes</span>'
-    +(dupCatalog.size?'<span class="ffim-opt-val" style="color:var(--warn);">'+dupCatalog.size+' já cadastrados</span>':'')
-    +(Object.keys(dupMap).length?'<span class="ffim-opt-val" style="color:var(--accent);">'+Object.keys(dupMap).length+' com título repetido no lote</span>':'')
+    +(_ffDupCatalog.size?'<span class="ffim-opt-val" style="color:var(--warn);">'+_ffDupCatalog.size+' já cadastrados</span>':'')
+    +(Object.keys(_ffDupMap).length?'<span class="ffim-opt-val" style="color:var(--accent);">'+Object.keys(_ffDupMap).length+' com título repetido</span>':'')
     +'<label class="ffim-check"><input type="checkbox" id="ffOverwrite"> Sobrescrever cadastrados</label>'
     +'</div>';
 
@@ -18491,43 +18571,31 @@ function _ffRenderPreview(rows){
     +'<span id="ffSelCount" style="font-family:var(--mono);font-size:10px;color:var(--text-muted);">'+rows.length+' selecionados</span>'
     +'</div>';
 
-  // ── tabela com checkboxes ──
+  // ── cabeçalho da tabela com colunas clicáveis ──
+  function sortTh(col,label,width){
+    var w=width?'style="width:'+width+';"':'';
+    return'<th '+w+' class="ff-sort-th" data-col="'+col+'" onclick="_ffSortTable(\''+col+'\')" '
+      +'style="cursor:pointer;user-select:none;white-space:nowrap;">'
+      +label+' <span class="ff-sort-ind" style="font-size:9px;color:var(--text-muted);">⇅</span></th>';
+  }
+
   html+='<div class="ffim-tbl-wrap"><table class="ffim-tbl"><thead><tr>'
     +'<th style="width:28px;"><input type="checkbox" id="ffChkAll" checked onchange="ffSelAll(this.checked)" title="Selecionar todos"></th>'
-    +'<th>Código</th><th>Status</th><th>Título PT</th><th>Dir.</th>'
-    +'<th>País</th><th>Ano</th><th>Duração</th>'
-    +'</tr></thead><tbody>';
-
-  rows.forEach(function(r,idx){
-    var code=_ffClean(r['Tracking Number']);
-    var d=_ffNormalizeRow(r);
-    var isCatDup=dupCatalog.has(code);
-    var isTitleDup=!!dupMap[code];
-    var rowClass=isCatDup?'dup':isTitleDup?'title-dup':'';
-    var statusHtml='<span class="ok-badge">✓ novo</span>';
-    if(isCatDup)statusHtml='<span class="dup-badge">↻ cadastrado</span>';
-    if(isTitleDup){
-      var others=Array.from(dupMap[code]).join(', ');
-      statusHtml+='<span class="ffim-title-dup-badge" title="Mesmo título que: '+_ffEsc(others)+'">⚠ título dup.</span>';
-    }
-    html+='<tr class="'+rowClass+'" id="ffrow-'+idx+'">'
-      +'<td style="text-align:center;"><input type="checkbox" class="ff-row-chk" data-idx="'+idx+'" checked onchange="ffUpdateSelCount()"></td>'
-      +'<td style="font-weight:600;color:var(--text);">'+_ffEsc(code)+'</td>'
-      +'<td>'+statusHtml+'</td>'
-      +'<td title="'+_ffEsc(d.title_pt)+'">'+_ffEsc((d.title_pt||'').slice(0,32))+'</td>'
-      +'<td>'+_ffEsc((d.director||[]).join(', ').slice(0,22))+'</td>'
-      +'<td>'+_ffEsc((d.countries||[]).join(', ').slice(0,16))+'</td>'
-      +'<td>'+_ffEsc(d.year||'')+'</td>'
-      +'<td>'+_ffEsc(d.ff_duration||'')+'</td>'
-      +'</tr>';
-  });
-
-  html+='</tbody></table></div>';
+    +sortTh('code','Código','72px')
+    +sortTh('status','Status','110px')
+    +sortTh('title','Título PT')
+    +sortTh('dir','Dir.')
+    +sortTh('country','País','80px')
+    +sortTh('year','Ano','44px')
+    +sortTh('dur','Duração','60px')
+    +'</tr></thead>'
+    +'<tbody id="ffTbody"></tbody>'
+    +'</table></div>';
 
   // aviso de duplicatas de título
-  if(Object.keys(dupMap).length){
+  if(Object.keys(_ffDupMap).length){
     html+='<div style="font-family:var(--mono);font-size:10px;color:var(--accent);background:var(--accent-dim);border:1px solid rgba(255,186,32,0.25);border-radius:3px;padding:8px 12px;margin-top:10px;">'
-      +'⚠ Filmes marcados com "título dup." têm o mesmo título mas códigos distintos no FilmFreeway. Podem ser versões diferentes da mesma submissão — revise e desmarque o que não quiser importar.'
+      +'⚠ Filmes marcados com "⚠ dup." têm o mesmo título mas códigos distintos. Revise e desmarque o que não quiser importar.'
       +'</div>';
   }
 
@@ -18539,14 +18607,15 @@ function _ffRenderPreview(rows){
 
   document.getElementById('ffImportBody').innerHTML=html;
 
-  // CSS extra para título-dup
+  // CSS extra
   var st=document.getElementById('ffTitleDupStyle');
   if(!st){st=document.createElement('style');st.id='ffTitleDupStyle';document.head.appendChild(st);}
   st.textContent='.ffim-tbl tr.title-dup td{background:rgba(255,186,32,0.05);}'
-    +'.ffim-title-dup-badge{color:var(--accent);font-size:9px;margin-left:4px;}'
-    +'.ffim-tbl tr.dup td{background:rgba(255,180,171,0.07);}';
+    +'.ffim-title-dup-badge{color:var(--accent);font-size:9px;margin-left:3px;white-space:nowrap;}'
+    +'.ffim-tbl tr.dup td{background:rgba(255,180,171,0.07);}'
+    +'.ff-sort-th:hover{background:var(--surface2);}';
 
-  ffUpdateSelCount();
+  _ffRenderTbody(null);
   var btn=document.getElementById('ffImportBtn');
   if(btn){btn.disabled=false;}
 }

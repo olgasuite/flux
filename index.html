@@ -15366,6 +15366,7 @@ function renderCatCreate(){
     )
     +catFld('Nome no sistema *','<input class="cat-input" id="catf_system_name" placeholder="Atribua um nome para circulação interna — esse campo não pode ser alterado">')
     +(!window._olgaHasRestricao('catalogo.tmdb')?catFld('ID no TMDB <span style="font-weight:400;opacity:0.6;">(opcional)</span>','<input class="cat-input" id="catf_tmdb_id" placeholder="Ex: 155 · preenche títulos, direção, sinopse, gênero e país automaticamente">'):'')
+    +catFld('ID na Cinemateca <span style="font-weight:400;opacity:0.6;">(opcional)</span>','<input class="cat-input" id="catf_cinemateca_id" placeholder="Ex: 036372 · preenche dados da Filmografia Brasileira automaticamente">')
   );
   // Campos de copias (acervo técnico) — só na criação
   html+=catBlock('Acervo Técnico',
@@ -15541,6 +15542,34 @@ async function doCreateFilm(){
       if(td.runtime&&!durHMMSS){durHMMSS=_catMinToHMMSS(td.runtime);var _durInp=document.getElementById('catf_dcp_duration_min');if(_durInp)_durInp.value=td.runtime;}
       if(td.trailer&&!catalogData.trailer)catalogData.trailer=td.trailer;
     }catch(tmdbErr){console.warn('TMDB:',tmdbErr);}
+    if(msg){msg.className='cat-msg';msg.textContent='Salvando…';}
+  }
+  var cinIdVal=(document.getElementById('catf_cinemateca_id')||{value:''}).value.trim();
+  if(cinIdVal){
+    if(msg){msg.className='cat-msg';msg.textContent='Buscando dados na Cinemateca…';}
+    try{
+      var cinResp=await fetch(_CINEMATECA_FN+'?id='+encodeURIComponent(cinIdVal));
+      var cinJson=await cinResp.json();
+      if(cinResp.ok){
+        var cinMapped=_cinToCatalog(cinJson);
+        catalogData.cinemateca_raw=cinJson;
+        if(cinMapped.title_pt&&!catalogData.title_pt)catalogData.title_pt=cinMapped.title_pt;
+        if(cinMapped.original_title&&!catalogData.original_title)catalogData.original_title=cinMapped.original_title;
+        if(cinMapped.director&&cinMapped.director.length&&!catalogData.director.length)catalogData.director=cinMapped.director;
+        if(cinMapped.year&&!catalogData.year)catalogData.year=cinMapped.year;
+        if(cinMapped.countries&&cinMapped.countries.length&&!catalogData.countries.length)catalogData.countries=cinMapped.countries;
+        if(cinMapped.genre&&cinMapped.genre.length&&!catalogData.genre.length)catalogData.genre=cinMapped.genre;
+        if(cinMapped.synopsis&&!catalogData.synopsis)catalogData.synopsis=cinMapped.synopsis;
+        if(cinMapped.film_type&&!catalogData.film_type)catalogData.film_type=cinMapped.film_type;
+        if(cinMapped.runtime&&!durHMMSS){durHMMSS=_catMinToHMMSS(cinMapped.runtime);}
+        if(cinMapped.production_company&&cinMapped.production_company.length&&!catalogData.production_company.length)catalogData.production_company=cinMapped.production_company;
+        if(cinMapped.crew){
+          var cc2=catalogData.crew||{cinematography:[],screenplay:[],editing:[],sound:[],art_direction:[],costume_design:[],cast:[]};
+          ['cinematography','screenplay','editing','sound','art_direction','costume_design'].forEach(function(k){if(cinMapped.crew[k]&&cinMapped.crew[k].length&&!(cc2[k]&&cc2[k].length))cc2[k]=cinMapped.crew[k];});
+          catalogData.crew=cc2;
+        }
+      }
+    }catch(cinErr){console.warn('Cinemateca:',cinErr);}
     if(msg){msg.className='cat-msg';msg.textContent='Salvando…';}
   }
   var copiasData={

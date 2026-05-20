@@ -12816,7 +12816,7 @@ function renderDash(){
   html+=colBlock('kdm','KDM',kdmBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 20/05/2026 às 19:40';
+  var sysUpdate='última atualização do sistema · 20/05/2026 às 19:44';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -15020,7 +15020,7 @@ function goToBuscaCod(codigo){
 function renderCatDetail(){
   var cont=document.getElementById('catalogo-container');if(!cont||!_catCode)return;
   var copia=filmesMap[_catCode]||{};var meta=catalogoFilmesMap[_catCode]||{};
-  var title=meta.title||copia.titulo||_catCode;var dur=fmtDurMin(copia.duracao);
+  var title=meta.title||copia.titulo||_catCode;var dur=fmtDurMin(copia.duracao)||(meta.runtime?meta.runtime+"'":'');
   var sCls=catStatusCls(copia.status);
   var canEdit=window._olgaUser&&window._olgaCanEdit('catalogo');
   var dirArr=Array.isArray(meta.director)?meta.director:(meta.director?[meta.director]:[]);
@@ -15190,9 +15190,13 @@ function catTagInp(id,arr){
     +'<input class="cat-tag-input" placeholder="Escreva e Enter" onkeydown="catAddTag(event,&quot;'+id+'&quot;)"></div>';
 }
 function _cinNome(s){
-  if(!s)return s;
-  var m=String(s).match(/^([^,]+),\s*(\S.*)$/);
-  return m?(m[2].trim()+' '+m[1].trim()):s;
+  if(!s)return String(s);
+  var str=String(s).trim();
+  var char='';
+  var cm=str.match(/^(.*?)\s*(\([^)]*\))\s*$/);
+  if(cm){str=cm[1].trim();char=' '+cm[2];}
+  var m=str.match(/^([^,]+),\s*(.+)$/);
+  return(m?(m[2].trim()+' '+m[1].trim()):str)+char;
 }
 function _cinRawVal(v){
   if(Array.isArray(v))return'<span style="font-family:var(--sans);font-size:12px;color:var(--text);">'+v.map(_cinNome).join(' · ')+'</span>';
@@ -15792,6 +15796,7 @@ function _cinToCatalog(cd){
   var r={};
   var toArr=function(v){return v?(Array.isArray(v)?v:[v]):null;};
   var nested=function(obj,key){return obj&&typeof obj==='object'&&!Array.isArray(obj)?obj[key]:null;};
+  var uniq=function(a){return a.filter(function(v,i,arr){return arr.indexOf(v)===i;});};
 
   if(cd['Título'])r.title_pt=cd['Título'];
 
@@ -15800,19 +15805,19 @@ function _cinToCatalog(cd){
     if(dataProd['Ano'])r.year=parseInt(dataProd['Ano']);
     if(dataProd['País']){
       var pc=toArr(dataProd['País']);
-      r.countries=pc.map(function(p){return _CIN_PAIS[p]||p;});
+      r.countries=uniq(pc.map(function(p){return _CIN_PAIS[p]||p;}));
     }
     if(dataProd['Estado'])r.uf=dataProd['Estado'];
   }
 
   if(cd['Sinopse'])r.synopsis=cd['Sinopse'];
-  if(cd['Gênero'])r.genre=toArr(cd['Gênero']);
+  if(cd['Gênero'])r.genre=uniq(toArr(cd['Gênero']));
   if(cd['Prêmios'])r.awards=toArr(cd['Prêmios']);
 
   var kwArr=[];
   if(cd['Termos descritores'])kwArr=kwArr.concat(toArr(cd['Termos descritores']));
   if(cd['Descritores secundários'])kwArr=kwArr.concat(toArr(cd['Descritores secundários']));
-  if(kwArr.length)r.keywords=kwArr;
+  if(kwArr.length)r.keywords=uniq(kwArr);
 
   if(cd['Material original']){
     var mm=String(cd['Material original']).match(/(\d+)min/i);
@@ -15827,52 +15832,50 @@ function _cinToCatalog(cd){
   }
 
   var dirVal=nested(cd['Direção'],'Direção');
-  if(dirVal)r.director=toArr(dirVal);
+  if(dirVal)r.director=uniq(toArr(dirVal));
 
   var prodObj=cd['Produção'];
   if(prodObj){
     var cp=prodObj['Companhia(s) produtora(s)'];
-    if(cp)r.production_company=toArr(cp);
+    if(cp)r.production_company=uniq(toArr(cp));
     var prodArr=[];
     if(prodObj['Produção'])prodArr=prodArr.concat(toArr(prodObj['Produção']));
     if(prodObj['Co-produção'])prodArr=prodArr.concat(toArr(prodObj['Co-produção']));
     if(prodObj['Direção de produção'])prodArr=prodArr.concat(toArr(prodObj['Direção de produção']));
     if(prodObj['Produção executiva'])prodArr=prodArr.concat(toArr(prodObj['Produção executiva']));
-    if(prodArr.length)r.producers=prodArr;
+    if(prodArr.length)r.producers=uniq(prodArr);
   }
 
   var distObj=cd['Distribuição'];
-  if(distObj&&distObj['Companhia(s) distribuidora(s)'])r.distribution_company=toArr(distObj['Companhia(s) distribuidora(s)']);
+  if(distObj&&distObj['Companhia(s) distribuidora(s)'])r.distribution_company=uniq(toArr(distObj['Companhia(s) distribuidora(s)']));
 
   var crew={};
   var argObj=cd['Argumento/roteiro'];
-  if(argObj&&argObj['Roteiro'])crew.screenplay=toArr(argObj['Roteiro']);
+  if(argObj&&argObj['Roteiro'])crew.screenplay=uniq(toArr(argObj['Roteiro']));
   var fotoObj=cd['Fotografia'];
-  if(fotoObj&&fotoObj['Direção de fotografia'])crew.cinematography=toArr(fotoObj['Direção de fotografia']);
+  if(fotoObj&&fotoObj['Direção de fotografia'])crew.cinematography=uniq(toArr(fotoObj['Direção de fotografia']));
   var montObj=cd['Montagem'];
-  if(montObj&&montObj['Montagem'])crew.editing=toArr(montObj['Montagem']);
+  if(montObj&&montObj['Montagem'])crew.editing=uniq(toArr(montObj['Montagem']));
   var musicObj=cd['Música'];
-  if(musicObj&&musicObj['Música'])crew.sound=toArr(musicObj['Música']);
-  else{var musAdd=cd['Dados adicionais de música'];if(musAdd&&musAdd['Música de'])crew.sound=toArr(musAdd['Música de']);}
+  if(musicObj&&musicObj['Música'])crew.sound=uniq(toArr(musicObj['Música']));
+  else{var musAdd=cd['Dados adicionais de música'];if(musAdd&&musAdd['Música de'])crew.sound=uniq(toArr(musAdd['Música de']));}
   var arteObj=cd['Direção de arte'];
   if(arteObj){
-    if(arteObj['Direção de arte'])crew.art_direction=toArr(arteObj['Direção de arte']);
-    if(arteObj['Figurinos'])crew.costume_design=toArr(arteObj['Figurinos']);
+    if(arteObj['Direção de arte'])crew.art_direction=uniq(toArr(arteObj['Direção de arte']));
+    if(arteObj['Figurinos'])crew.costume_design=uniq(toArr(arteObj['Figurinos']));
   }
 
-  var _metaElenco=new Set(['Conteúdo examinado','Fontes utilizadas','Fontes consultadas','Observações']);
   var elencoObj=cd['Identidades/elenco:'];
-  if(elencoObj&&typeof elencoObj==='object'){
+  if(elencoObj){
     var castNames=[];
-    Object.keys(elencoObj).forEach(function(k){
-      if(_metaElenco.has(k))return;
-      // Na Cinemateca o ator é a CHAVE: <b>Sobrenome, Nome:</b> (Personagem)
-      var s=k.replace(/\s*\([^)]*\)/g,'').trim();
+    var elencoArr=Array.isArray(elencoObj)?elencoObj:Object.keys(elencoObj);
+    elencoArr.forEach(function(entry){
+      var s=String(entry).replace(/\s*\([^)]*\)/g,'').trim();
       if(!s)return;
       var m=s.match(/^([^,]+),\s*(.+)$/);
       castNames.push(m?(m[2].trim()+' '+m[1].trim()):s);
     });
-    if(castNames.length)crew.cast=castNames.slice(0,5);
+    if(castNames.length)crew.cast=uniq(castNames).slice(0,5);
   }
 
   if(Object.keys(crew).length)r.crew=crew;
@@ -17039,7 +17042,7 @@ window.addEventListener('popstate',function(e){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 20/05/2026 às 19:40</span></div>
+<div id="page-footer"><span>última atualização · 20/05/2026 às 19:44</span></div>
 
 </div>
 

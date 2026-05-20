@@ -12812,7 +12812,7 @@ function renderDash(){
   html+=colBlock('kdm','KDM',kdmBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 20/05/2026 às 19:00';
+  var sysUpdate='última atualização do sistema · 20/05/2026 às 19:04';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -13491,7 +13491,7 @@ function openProgSessaoModal(sessaoNome,programId,subprogramId){
   var cinemasFilt=cinemasArr.filter(function(c){
     if(evEstados&&evEstados.size)return evEstados.has(c.estado);
     return true;
-  });
+  }).sort(function(a,b){return a.sala.localeCompare(b.sala,'pt-BR',{sensitivity:'base'});});
   var cinemaOpts=cinemasFilt.map(function(c){return'<option value="'+esc(c.sala)+'"'+(s&&s.cinema===c.sala?' selected':'')+'>'+esc(c.sala)+'</option>';}).join('');
   _progSessaoFilmsArr=s?s.filmes.slice():[];
   _progSessaoBumpersArr=s?s.vinhetas.slice():[];
@@ -15035,7 +15035,8 @@ function renderCatDetail(){
   var acervoBtn='<button class="cat-card-btn" style="margin-left:0;" onclick="goToBuscaCod(\''+_catCode.replace(/'/g,"\\'")+'\')">Ver no Acervo Técnico</button>';
   if(canEdit&&!_catEditing){
     var _tmdbDetailBtn=(!window._olgaHasRestricao||!window._olgaHasRestricao('catalogo.tmdb'))?'<button class="cat-edit-btn" onclick="importFromTMDB(\''+_catCode.replace(/'/g,"\\'")+'\',this)">↓ TMDB</button>':'';
-    html+='<div class="cat-actions">'+acervoBtn+_tmdbDetailBtn+'<button class="cat-edit-btn" onclick="duplicateCatFilm(\''+_catCode.replace(/\'/g,"\\\'")+'\')">⧉ Duplicar</button><button class="cat-edit-btn" onclick="startCatEdit()">✎ Editar</button><button class="cat-edit-btn" style="color:var(--warn);border-color:var(--warn);" onclick="deleteCatFilm(\''+_catCode.replace(/\'/g,"\\\'")+'\')">× Excluir</button></div>';
+    var _cinDetailBtn='<button class="cat-edit-btn" onclick="importFromCinemateca(\''+_catCode.replace(/'/g,"\\'")+'\',this)">↓ Cinemateca</button>';
+    html+='<div class="cat-actions">'+acervoBtn+_tmdbDetailBtn+_cinDetailBtn+'<button class="cat-edit-btn" onclick="duplicateCatFilm(\''+_catCode.replace(/\'/g,"\\\'")+'\')">⧉ Duplicar</button><button class="cat-edit-btn" onclick="startCatEdit()">✎ Editar</button><button class="cat-edit-btn" style="color:var(--warn);border-color:var(--warn);" onclick="deleteCatFilm(\''+_catCode.replace(/\'/g,"\\\'")+'\')">× Excluir</button></div>';
   }
   else if(_catEditing)
     html+='<div class="cat-actions"><span class="cat-msg" id="catSaveMsg"></span><button class="cat-cancel-btn" onclick="_catConfirmLeave(cancelCatEdit)">Cancelar</button><button class="cat-save-btn" onclick="doSaveCat()">Salvar</button></div>';
@@ -15160,6 +15161,7 @@ function renderCatDetail(){
     });
     html+=catBlock('Sessões ('+sessoes.length+')',sh+'</div>');
   }
+  if(meta.cinemateca_raw&&!_catEditing)html+=_renderCinBlock(meta.cinemateca_raw);
   if(_catEditing){
     html+='<div class="cat-actions" style="margin-top:8px;border-top:1px solid var(--border);padding-top:14px;"><span class="cat-msg" id="catSaveMsgBottom"></span><button class="cat-cancel-btn" onclick="_catConfirmLeave(cancelCatEdit)">Cancelar</button><button class="cat-save-btn" onclick="doSaveCat()">Salvar</button></div>';
   }
@@ -15182,6 +15184,44 @@ function catTagInp(id,arr){
   return '<div class="cat-tag-input-wrap" id="catf_'+id+'" data-tags="'+tagsJson+'">'
     +catTagHtml(tags,id)
     +'<input class="cat-tag-input" placeholder="Escreva e Enter" onkeydown="catAddTag(event,&quot;'+id+'&quot;)"></div>';
+}
+function _cinRawVal(v){
+  if(Array.isArray(v))return'<span style="font-family:var(--sans);font-size:12px;color:var(--text);">'+v.join(' · ')+'</span>';
+  if(v&&typeof v==='object'){
+    var inner='';
+    Object.keys(v).forEach(function(k){
+      var v2=v[k];
+      inner+='<div style="display:flex;gap:10px;margin-bottom:4px;">'
+        +'<span style="font-family:var(--mono);font-size:10px;color:var(--text-muted);white-space:nowrap;min-width:140px;padding-top:1px;">'+k+'</span>'
+        +'<span style="font-family:var(--sans);font-size:12px;color:var(--text);">'+(Array.isArray(v2)?v2.join(', '):String(v2||''))+'</span>'
+        +'</div>';
+    });
+    return'<div style="padding-left:10px;border-left:2px solid var(--border2);">'+inner+'</div>';
+  }
+  return'<span style="font-family:var(--sans);font-size:12px;color:var(--text);">'+String(v||'')+'</span>';
+}
+function _renderCinBlock(raw){
+  var skip=new Set(['ID','URL','Código do Filme']);
+  var titulo=raw['Título']||raw['Título']||'';
+  var url=raw['URL']||'';
+  var html='<details style="margin-top:24px;border-top:1px solid var(--border);padding-top:16px;">';
+  html+='<summary style="cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;user-select:none;">'
+    +'<span style="font-family:var(--mono);font-size:10px;font-weight:700;letter-spacing:0.07em;color:var(--text-muted);text-transform:uppercase;">Filmografia Brasileira · Cinemateca</span>'
+    +'<span style="font-family:var(--sans);font-size:12px;color:var(--text-dim);">'+titulo+'</span>'
+    +'</summary>';
+  html+='<div style="margin-top:14px;">';
+  if(url)html+='<div style="margin-bottom:14px;"><a href="'+url+'" target="_blank" rel="noopener" style="font-family:var(--mono);font-size:11px;color:var(--accent);text-decoration:none;">Ver ficha original ↗</a></div>';
+  Object.keys(raw).forEach(function(k){
+    if(skip.has(k))return;
+    var v=raw[k];
+    if(!v||(Array.isArray(v)&&!v.length))return;
+    html+='<div style="margin-bottom:12px;">'
+      +'<div style="font-family:var(--mono);font-size:10px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:4px;">'+k+'</div>'
+      +_cinRawVal(v)
+      +'</div>';
+  });
+  html+='</div></details>';
+  return html;
 }
 function catHasCrew(c){function _h(v){return Array.isArray(v)?v.length>0:!!v;}return!!(c&&(_h(c.cinematography)||_h(c.screenplay)||_h(c.editing)||_h(c.sound)||_h(c.art_direction)||_h(c.costume_design)||_h(c.cast)));}
 function catGetTags(id){var el=document.getElementById('catf_'+id);if(!el)return[];try{return JSON.parse(el.getAttribute('data-tags')||'[]');}catch(e){return[];}}
@@ -15250,6 +15290,7 @@ async function doSaveCat(){
             art_direction:catGetTags('crew_art_direction'),costume_design:catGetTags('crew_costume_design'),
             cast:catGetTags('crew_cast')}
     };
+    if(catalogoFilmesMap[_catCode]&&catalogoFilmesMap[_catCode].cinemateca_raw)data.cinemateca_raw=catalogoFilmesMap[_catCode].cinemateca_raw;
     await window._olgaCatalogo.save(_catCode,data);
     window._logFirestoreEdit&&window._logFirestoreEdit('individual',_catCode,data,'catalogo','filmes');
     catalogoFilmesMap[_catCode]=data;
@@ -15693,6 +15734,216 @@ async function importFromTMDB(codigo,btn){
   }catch(e){
     alert('Erro ao importar do TMDB: '+e.message);
     if(btn){btn.disabled=false;btn.textContent=origText;}
+  }
+}
+
+// ── Cinemateca Brasileira ────────────────────────────────────────────────────
+var _CINEMATECA_FN='https://us-central1-olga-suite.cloudfunctions.net/cinemateca';
+
+var _CIN_PAIS={'BR':'Brasil','US':'Estados Unidos','FR':'França','AR':'Argentina','PT':'Portugal','IT':'Itália','ES':'Espanha','DE':'Alemanha','GB':'Reino Unido','MX':'México','CL':'Chile','CO':'Colômbia','UY':'Uruguai','BO':'Bolívia','PE':'Peru','VE':'Venezuela','CU':'Cuba','JP':'Japão','CN':'China','RU':'Rússia'};
+
+function _cinToCatalog(cd){
+  var r={};
+  var toArr=function(v){return v?(Array.isArray(v)?v:[v]):null;};
+  var nested=function(obj,key){return obj&&typeof obj==='object'&&!Array.isArray(obj)?obj[key]:null;};
+
+  if(cd['Título'])r.title_pt=cd['Título'];
+
+  var dataProd=cd['Data e local de produção'];
+  if(dataProd){
+    if(dataProd['Ano'])r.year=parseInt(dataProd['Ano']);
+    if(dataProd['País']){
+      var pc=toArr(dataProd['País']);
+      r.countries=pc.map(function(p){return _CIN_PAIS[p]||p;});
+    }
+  }
+
+  if(cd['Sinopse'])r.synopsis=cd['Sinopse'];
+
+  if(cd['Gênero'])r.genre=toArr(cd['Gênero']);
+
+  if(cd['Material original']){
+    var mm=String(cd['Material original']).match(/(\d+)min/i);
+    if(mm)r.runtime=parseInt(mm[1]);
+  }
+
+  if(cd['Categorias']){
+    var cs=String(cd['Categorias']);
+    if(cs.indexOf('Longa')!==-1)r.film_type='Longa-metragem';
+    else if(cs.indexOf('Curta')!==-1)r.film_type='Curta-metragem';
+    else if(cs.indexOf('Médio')!==-1||cs.indexOf('Medio')!==-1)r.film_type='Média-metragem';
+  }
+
+  var dirVal=nested(cd['Direção'],'Direção');
+  if(dirVal)r.director=toArr(dirVal);
+
+  var prodObj=cd['Produção'];
+  if(prodObj){
+    var cp=prodObj['Companhia(s) produtora(s)'];
+    if(cp)r.production_company=toArr(cp);
+  }
+
+  var crew={};
+  var argObj=cd['Argumento/roteiro'];
+  if(argObj&&argObj['Roteiro'])crew.screenplay=toArr(argObj['Roteiro']);
+  var fotoObj=cd['Fotografia'];
+  if(fotoObj&&fotoObj['Direção de fotografia'])crew.cinematography=toArr(fotoObj['Direção de fotografia']);
+  var montObj=cd['Montagem'];
+  if(montObj&&montObj['Montagem'])crew.editing=toArr(montObj['Montagem']);
+  var musicObj=cd['Música'];
+  if(musicObj&&musicObj['Música'])crew.sound=toArr(musicObj['Música']);
+  else{var musAdd=cd['Dados adicionais de música'];if(musAdd&&musAdd['Música de'])crew.sound=toArr(musAdd['Música de']);}
+  var arteObj=cd['Direção de arte'];
+  if(arteObj){
+    if(arteObj['Direção de arte'])crew.art_direction=toArr(arteObj['Direção de arte']);
+    if(arteObj['Figurinos'])crew.costume_design=toArr(arteObj['Figurinos']);
+  }
+  if(Object.keys(crew).length)r.crew=crew;
+
+  if(cd['URL'])r.website=cd['URL'];
+  return r;
+}
+
+var _CIN_LABELS={
+  title_pt:'Título PT',original_title:'Título original',director:'Direção',
+  year:'Ano',countries:'País',genre:'Gênero',synopsis:'Sinopse',
+  runtime:'Duração (min)',film_type:'Metragem',production_company:'Produtora',
+  website:'Website','crew.screenplay':'Roteiro','crew.cinematography':'Fotografia',
+  'crew.editing':'Montagem','crew.sound':'Música','crew.art_direction':'Direção de arte',
+  'crew.costume_design':'Figurinos'
+};
+
+function _cinDisp(v){
+  if(v===null||v===undefined)return '—';
+  if(Array.isArray(v))return v.join(', ');
+  return String(v);
+}
+
+function _initCinModal(){
+  if(document.getElementById('_cinMergeModal'))return;
+  var el=document.createElement('div');
+  el.id='_cinMergeModal';
+  el.style.cssText='display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:9999;align-items:flex-start;justify-content:center;overflow:auto;padding:40px 20px;';
+  el.innerHTML=
+    '<div style="background:var(--surface);border:1px solid var(--border);width:100%;max-width:580px;display:flex;flex-direction:column;">'+
+      '<div style="padding:14px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;">'+
+        '<span style="font-family:var(--mono);font-size:12px;font-weight:700;letter-spacing:0.05em;color:var(--text);">↓ CINEMATECA BRASILEIRA</span>'+
+        '<button onclick="document.getElementById(\'_cinMergeCancel\').click()" style="background:none;border:none;cursor:pointer;color:var(--text-muted);font-size:20px;line-height:1;padding:0 4px;">×</button>'+
+      '</div>'+
+      '<div id="_cinMergeBody" style="padding:18px;overflow-y:auto;max-height:60vh;"></div>'+
+      '<div style="padding:12px 18px;border-top:1px solid var(--border);display:flex;gap:8px;justify-content:flex-end;">'+
+        '<button id="_cinMergeCancel" class="cat-edit-btn">Cancelar</button>'+
+        '<button id="_cinMergeApply" class="cat-edit-btn" style="color:var(--accent);border-color:var(--accent);">Aplicar</button>'+
+      '</div>'+
+    '</div>';
+  document.body.appendChild(el);
+}
+
+function _showCinMerge(codigo,atual,novo,btn,rawCd){
+  _initCinModal();
+  var preench=[],conflito=[];
+  function flatten(obj,prefix){
+    var out={};
+    Object.keys(obj).forEach(function(k){
+      var fk=prefix?prefix+'.'+k:k;
+      if(k==='crew'&&typeof obj[k]==='object'&&!Array.isArray(obj[k])){
+        Object.assign(out,flatten(obj[k],'crew'));
+      } else {
+        out[fk]=obj[k];
+      }
+    });
+    return out;
+  }
+  var novoFlat=flatten(novo,'');
+  var atualFlat=flatten(atual,'');
+  Object.keys(novoFlat).forEach(function(k){
+    var vN=novoFlat[k];
+    var vA=atualFlat[k];
+    if(!vN||(Array.isArray(vN)&&!vN.length))return;
+    var vazia=!vA||(Array.isArray(vA)&&!vA.length)||vA===''||vA===0;
+    if(vazia){preench.push({k:k,novo:vN});}
+    else{conflito.push({k:k,atual:vA,novo:vN});}
+  });
+  var html='';
+  if(preench.length){
+    html+='<div style="margin-bottom:16px;">';
+    html+='<div style="font-family:var(--mono);font-size:10px;color:var(--text-muted);margin-bottom:8px;text-transform:uppercase;letter-spacing:0.06em;">Campos que serão preenchidos ('+preench.length+')</div>';
+    html+='<div style="display:flex;flex-wrap:wrap;gap:5px;">';
+    preench.forEach(function(p){
+      html+='<span style="font-family:var(--sans);font-size:11px;background:rgba(80,180,100,0.1);border:1px solid rgba(80,180,100,0.3);padding:2px 8px;color:var(--text);">'+(_CIN_LABELS[p.k]||p.k)+'</span>';
+    });
+    html+='</div></div>';
+  }
+  if(conflito.length){
+    html+='<div>';
+    html+='<div style="font-family:var(--mono);font-size:10px;color:var(--text-muted);margin-bottom:10px;text-transform:uppercase;letter-spacing:0.06em;">Conflitos — escolha campo a campo ('+conflito.length+')</div>';
+    conflito.forEach(function(c,idx){
+      html+='<div style="border:1px solid var(--border);padding:10px 12px;margin-bottom:8px;">';
+      html+='<div style="font-family:var(--mono);font-size:11px;font-weight:600;margin-bottom:8px;">'+(_CIN_LABELS[c.k]||c.k)+'</div>';
+      html+='<label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;margin-bottom:6px;">';
+      html+='<input type="radio" name="cin_c'+idx+'" value="manter" checked style="margin-top:2px;accent-color:var(--accent);">';
+      html+='<span style="font-family:var(--sans);font-size:12px;"><span style="color:var(--text-muted);font-size:10px;display:block;margin-bottom:1px;">Manter atual</span>'+_cinDisp(c.atual)+'</span>';
+      html+='</label>';
+      html+='<label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;">';
+      html+='<input type="radio" name="cin_c'+idx+'" value="substituir" style="margin-top:2px;accent-color:var(--accent);">';
+      html+='<span style="font-family:var(--sans);font-size:12px;"><span style="color:var(--text-muted);font-size:10px;display:block;margin-bottom:1px;">Usar Cinemateca</span>'+_cinDisp(c.novo)+'</span>';
+      html+='</label>';
+      html+='</div>';
+    });
+    html+='</div>';
+  }
+  if(!preench.length&&!conflito.length){
+    html='<div style="font-family:var(--sans);font-size:13px;color:var(--text-muted);padding:24px 0;text-align:center;">Nenhum campo novo encontrado nesse registro.</div>';
+  }
+  document.getElementById('_cinMergeBody').innerHTML=html;
+  document.getElementById('_cinMergeModal').style.display='flex';
+  document.getElementById('_cinMergeApply').onclick=async function(){
+    var merged=Object.assign({},atual);
+    if(rawCd)merged.cinemateca_raw=rawCd;
+    preench.forEach(function(p){
+      if(p.k.startsWith('crew.')){merged.crew=Object.assign({},merged.crew||{});merged.crew[p.k.substring(5)]=p.novo;}
+      else{merged[p.k]=p.novo;}
+    });
+    conflito.forEach(function(c,idx){
+      var escolha='manter';
+      document.querySelectorAll('input[name="cin_c'+idx+'"]').forEach(function(r){if(r.checked)escolha=r.value;});
+      if(escolha==='substituir'){
+        if(c.k.startsWith('crew.')){merged.crew=Object.assign({},merged.crew||{});merged.crew[c.k.substring(5)]=c.novo;}
+        else{merged[c.k]=c.novo;}
+      }
+    });
+    document.getElementById('_cinMergeModal').style.display='none';
+    try{
+      await window._olgaCatalogo.save(codigo,merged);
+      window._logFirestoreEdit&&window._logFirestoreEdit('individual',codigo,merged,'catalogo','filmes');
+      catalogoFilmesMap[codigo]=merged;
+      if(btn){btn.disabled=false;btn.textContent='↓ Cinemateca';}
+      renderCatDetail();
+    }catch(e){
+      alert('Erro ao salvar: '+e.message);
+      if(btn){btn.disabled=false;btn.textContent='↓ Cinemateca';}
+    }
+  };
+  document.getElementById('_cinMergeCancel').onclick=function(){
+    document.getElementById('_cinMergeModal').style.display='none';
+    if(btn){btn.disabled=false;btn.textContent='↓ Cinemateca';}
+  };
+}
+
+async function importFromCinemateca(codigo,btn){
+  if(!window._olgaCanEdit||!window._olgaCanEdit('catalogo')){alert('Sem permissão para editar o catálogo.');return;}
+  var id=(prompt('ID do filme na Filmografia Brasileira (Cinemateca):')||'').trim();
+  if(!id)return;
+  if(btn){btn.disabled=true;btn.textContent='Consultando…';}
+  try{
+    var resp=await fetch(_CINEMATECA_FN+'?id='+encodeURIComponent(id));
+    var cd=await resp.json();
+    if(!resp.ok)throw new Error(cd.error||'Erro '+resp.status);
+    var catalogData=catalogoFilmesMap[codigo]||{};
+    _showCinMerge(codigo,catalogData,_cinToCatalog(cd),btn,cd);
+  }catch(e){
+    alert('Erro ao consultar Cinemateca: '+e.message);
+    if(btn){btn.disabled=false;btn.textContent='↓ Cinemateca';}
   }
 }
 
@@ -16711,7 +16962,7 @@ window.addEventListener('popstate',function(e){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 20/05/2026 às 19:00</span></div>
+<div id="page-footer"><span>última atualização · 20/05/2026 às 19:04</span></div>
 
 </div>
 

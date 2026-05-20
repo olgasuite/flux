@@ -1072,7 +1072,7 @@ select:disabled{opacity:0.35;cursor:not-allowed;}
 .landing-badge{font-family:var(--mono);font-size:9px;font-weight:600;letter-spacing:0.3em;text-transform:uppercase;color:var(--accent);margin-bottom:28px;border:1px solid rgba(255,186,32,0.3);padding:4px 14px;}
 .landing-title{font-family:var(--mono);font-size:52px;font-weight:600;color:var(--text);letter-spacing:-0.02em;line-height:1;margin-bottom:10px;text-align:center;}
 .landing-sub{font-family:var(--sans);font-size:14px;font-weight:300;color:var(--text-dim);text-align:center;line-height:1.6;margin-bottom:48px;max-width:400px;}
-.landing-drop{border:1px dashed rgba(255,186,32,0.35);background:var(--accent-glow);padding:36px 56px;display:flex;flex-direction:column;align-items:center;gap:12px;cursor:pointer;transition:all 0.2s;margin-top:120px;margin-bottom:48px;min-width:360px;}
+.landing-drop{border:1px dashed rgba(255,186,32,0.35);background:var(--accent-glow);padding:36px 56px;display:flex;flex-direction:column;align-items:center;gap:12px;cursor:pointer;transition:all 0.2s;margin-top:28px;margin-bottom:48px;min-width:360px;}
 .landing-drop:hover:not(.loaded){border-color:rgba(255,186,32,0.65);background:var(--accent-dim);}
 .landing-drop.drag-over{border-color:var(--accent);background:var(--accent-dim);}
 .landing-drop.loaded{border-style:solid;border-color:rgba(61,186,110,0.45);background:rgba(61,186,110,0.06);cursor:default;}
@@ -12812,7 +12812,7 @@ function renderDash(){
   html+=colBlock('kdm','KDM',kdmBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 19/05/2026 às 18:28';
+  var sysUpdate='última atualização do sistema · 19/05/2026 às 18:38';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -15077,13 +15077,27 @@ function renderCatDetail(){
     +'<div class="cat-grid">'+catFld('Metragem',_catEditing?catInp('film_type',meta.film_type||''):(meta.film_type||'\u2014'))+catFld('Classificação etária',_catEditing?'<select class="cat-input" id="catf_content_rating"><option value="">—</option>'+['L','10','12','14','16','18'].map(function(r){return'<option value="'+r+'"'+(meta.content_rating===r?' selected':'')+'>'+r+'</option>';}).join('')+'</select>':_catRatingBadge(meta.content_rating))+'</div>'
     +'<div class="cat-grid">'+catFld('Duração',dur||copia.duracao||'\u2014')+catFld('Acessibilidade',copia.acessibilidade||'\u2014')+'</div>'
   );
-  var crewViewPairs=[
-    ['P',toArr(meta.producers)],
-    ['F',crewArr(crew.cinematography)],['R',crewArr(crew.screenplay)],
-    ['M',crewArr(crew.editing)],['S',crewArr(crew.sound)],
-    ['A',crewArr(crew.art_direction)],['Fg',crewArr(crew.costume_design)]
-  ];
   if(_catEditing||catHasCrew(crew)||dirArr.length||(meta.producers&&meta.producers.length)){
+    // build person→roles map for view mode
+    function _buildCrewPersonMap(){
+      var personRoles={},order=[];
+      var allPairs=[
+        ['P',toArr(meta.producers)],
+        ['D',dirArr],
+        ['F',crewArr(crew.cinematography)],['R',crewArr(crew.screenplay)],
+        ['M',crewArr(crew.editing)],['S',crewArr(crew.sound)],
+        ['A',crewArr(crew.art_direction)],['Fg',crewArr(crew.costume_design)],
+        ['E',crewArr(crew.cast)]
+      ];
+      allPairs.forEach(function(pair){
+        pair[1].forEach(function(name){
+          var n=name.trim();if(!n)return;
+          if(!personRoles[n]){personRoles[n]=[];order.push(n);}
+          personRoles[n].push(pair[0]);
+        });
+      });
+      return order.map(function(n){return{name:n,roles:personRoles[n]};});
+    }
     html+=catBlock('Equipe',_catEditing
       ?catFld('P · Produção',catTagInp('producers',toArr(meta.producers)))
        +'<div class="cat-grid">'+catFld('F · Fotografia',catTagInp('crew_cinematography',crewArr(crew.cinematography)))+catFld('R · Roteiro',catTagInp('crew_screenplay',crewArr(crew.screenplay)))+'</div>'
@@ -15091,9 +15105,9 @@ function renderCatDetail(){
        +'<div class="cat-grid">'+catFld('A · Arte',catTagInp('crew_art_direction',crewArr(crew.art_direction)))+catFld('Fg · Figurino',catTagInp('crew_costume_design',crewArr(crew.costume_design)))+'</div>'
        +catFld('E · Elenco',catTagInp('crew_cast',crewArr(crew.cast)))
       :'<div class="cat-crew">'
-       +crewViewPairs.filter(function(p){return p[1].length;})
-        .map(function(p){return'<span class="cat-crew-abbr">'+p[0]+'</span><span class="cat-crew-val">'+p[1].join(', ')+'</span>';}).join('')
-       +(crewArr(crew.cast).length?'<span class="cat-crew-abbr">E</span><span class="cat-crew-val">'+crewArr(crew.cast).join(', ')+'</span>':'')
+       +_buildCrewPersonMap().map(function(p){
+          return'<span class="cat-crew-abbr">'+p.roles.join(', ')+'</span><span class="cat-crew-val">'+p.name+'</span>';
+        }).join('')
        +'</div>'
     );
   }
@@ -15125,31 +15139,22 @@ function renderCatDetail(){
       +catFld('Outros créditos','<textarea class="cat-textarea" id="catf_ff_other_credits" rows="3" placeholder="ex: Dir. de Fotografia: Nome">'+((meta.ff_other_credits||'').replace(/</g,'&lt;'))+'</textarea>')
     :'')
     +((!_catEditing&&(meta.ff_student==='Yes'||meta.ff_student==='Sim')&&meta.ff_school)?catFld('Escola/instituição',meta.ff_school):'')
+    +(!_catEditing&&(meta.ff_student||meta.ff_first_time)?(function(){
+      var parts=[];
+      if(meta.ff_student){var s=meta.ff_student;var yes=s.toLowerCase().indexOf('yes')>=0||s.toLowerCase().indexOf('sim')>=0;parts.push('<span style="display:inline-flex;align-items:center;gap:6px;"><span style="display:inline-flex;align-items:center;justify-content:center;width:14px;height:14px;border:1px solid var(--border2);border-radius:2px;font-size:10px;">'+(yes?'✓':'')+'</span> Projeto estudantil</span>');}
+      if(meta.ff_first_time){var f=meta.ff_first_time;var yesF=f.toLowerCase().indexOf('yes')>=0||f.toLowerCase().indexOf('sim')>=0;parts.push('<span style="display:inline-flex;align-items:center;gap:6px;"><span style="display:inline-flex;align-items:center;justify-content:center;width:14px;height:14px;border:1px solid var(--border2);border-radius:2px;font-size:10px;">'+(yesF?'✓':'')+'</span> Primeiro longa/curta</span>');}
+      return parts.length?catFld('','<div style="display:flex;gap:16px;flex-wrap:wrap;font-family:var(--mono);font-size:11px;color:var(--text-dim);">'+parts.join('')+'</div>'):'';
+    })():'')
   );
   if(_catEditing||meta.copy_arrival_forecast||meta.copy_notes)
     html+=catBlock('Logística','<div class="cat-grid">'+catFld('Previsão de chegada da cópia',_catEditing?catInp('copy_arrival_forecast',meta.copy_arrival_forecast||''):(meta.copy_arrival_forecast||'\u2014'))+catFld('Anotações sobre a cópia',_catEditing?catInp('copy_notes',meta.copy_notes||''):(meta.copy_notes||'\u2014'))+'</div>');
   if(_catEditing||(meta.awards&&meta.awards.length)||(meta.director_filmography&&meta.director_filmography.length))
     html+=catBlock('Histórico',catFld('Prêmios',_catEditing?catTagInp('awards',meta.awards||[]):catTags(meta.awards||[]))+catFld('Filmografia do diretor',_catEditing?catTagInp('director_filmography',meta.director_filmography||[]):catTags(meta.director_filmography||[])));
-  if(!_catEditing&&(meta.ff_submission_id||meta.ff_rating||meta.ff_category||meta.ff_link||meta.ff_student||meta.ff_school||meta.ff_first_time||meta.ff_other_credits)){
+  if(!_catEditing&&(meta.ff_submission_id||meta.ff_rating||meta.ff_category||meta.ff_link)){
     var ffHtml='<div class="cat-grid">';
     if(meta.ff_rating)ffHtml+=catFld('Nota média dos jurados','<span style="font-family:var(--mono);font-size:22px;font-weight:700;color:var(--accent);">'+meta.ff_rating+'</span><span style="font-family:var(--mono);font-size:10px;color:var(--text-muted);margin-left:4px;">/10</span>');
     if(meta.ff_category)ffHtml+=catFld('Categoria',meta.ff_category);
     ffHtml+='</div>';
-    if(meta.ff_student){
-      var isStudent=meta.ff_student.toLowerCase().indexOf('yes')!==-1||meta.ff_student.toLowerCase().indexOf('sim')!==-1;
-      ffHtml+='<div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">'
-        +'<span style="display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;border:1px solid var(--border2);border-radius:2px;font-size:11px;color:var(--text-dim);">'+(isStudent?'✕':'')+'</span>'
-        +'<span style="font-family:var(--mono);font-size:11px;color:var(--text-dim);">Projeto estudantil</span>'
-        +(isStudent&&meta.ff_school?'<span style="font-family:var(--mono);font-size:11px;color:var(--text-muted);">· '+_ffEsc(meta.ff_school)+'</span>':'')
-        +'</div>';
-    }
-    if(meta.ff_first_time){
-      var isFirst=meta.ff_first_time.toLowerCase().indexOf('yes')!==-1||meta.ff_first_time.toLowerCase().indexOf('sim')!==-1;
-      ffHtml+='<div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">'
-        +'<span style="display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;border:1px solid var(--border2);border-radius:2px;font-size:11px;color:var(--text-dim);">'+(isFirst?'✕':'')+'</span>'
-        +'<span style="font-family:var(--mono);font-size:11px;color:var(--text-dim);">Primeiro longa/curta</span>'
-        +'</div>';
-    }
     if(meta.ff_other_credits)ffHtml+=catFld('Outros créditos','<span style="font-family:var(--mono);font-size:11px;color:var(--text-dim);white-space:pre-wrap;">'+meta.ff_other_credits.replace(/</g,'&lt;')+'</span>');
     if(meta.ff_submission_id)ffHtml+=catFld('ID da submissão','<span style="font-family:var(--mono);font-size:11px;color:var(--text-dim);">'+meta.ff_submission_id+'</span>'+(meta.ff_link?'  <a href="'+meta.ff_link.replace(/"/g,'&quot;')+'" target="_blank" style="font-family:var(--mono);font-size:10px;color:var(--accent);margin-left:8px;">↗ filmfreeway.com</a>':''));
     html+=catBlock('FilmFreeway',ffHtml);
@@ -16719,7 +16724,7 @@ window.addEventListener('popstate',function(e){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 19/05/2026 às 18:28</span></div>
+<div id="page-footer"><span>última atualização · 19/05/2026 às 18:38</span></div>
 
 </div>
 

@@ -12013,7 +12013,7 @@ function dashStatusClass(v){
   if(!v||v==='-')return'st-error';
   var u=v.toUpperCase();
   if(u.includes('OK')||u.includes('LG'))return'st-ok';
-  if(u.includes('ERRO'))return'st-error';
+  if(u.includes('ERRO')||u.includes('AGUARD'))return'st-error';
   if(u.includes('CANCEL'))return'st-cancel';
   return'st-accent';
 }
@@ -12789,7 +12789,7 @@ function renderDash(){
   html+=colBlock('kdm','KDM',kdmBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 19/05/2026 às 17:48';
+  var sysUpdate='última atualização do sistema · 19/05/2026 às 18:08';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -16664,7 +16664,7 @@ window.addEventListener('popstate',function(e){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 19/05/2026 às 17:48</span></div>
+<div id="page-footer"><span>última atualização · 19/05/2026 às 18:08</span></div>
 
 </div>
 
@@ -18075,13 +18075,43 @@ var _ffRows=[];
 var _ffImporting=false;
 
 function openFFImport(){
-  _ffRows=[];_ffImporting=false;
+  _ffResetState();
   document.getElementById('ffImportModal').classList.add('open');
   _ffRenderStep1();
 }
 function closeFFImport(){
   if(_ffImporting)return;
   document.getElementById('ffImportModal').classList.remove('open');
+}
+
+function _ffResetState(){
+  _ffRows=[];_ffImporting=false;
+  _ffNormalized=[];_ffDupCatalog=new Set();_ffDupMap={};_ffDisplayOrder=[];
+  _ffSortCol=null;_ffSortAsc=true;
+  // limpa o file input para permitir selecionar o mesmo arquivo de novo
+  var fi=document.getElementById('ffFileInput');if(fi)fi.value='';
+}
+
+function _ffSetFooter(phase){
+  var el=document.getElementById('ffImportFooter');if(!el)return;
+  if(phase==='step1'){
+    el.innerHTML='<button class="ffim-btn" onclick="closeFFImport()">Cancelar</button>'
+      +'<button class="ffim-btn primary" id="ffImportBtn" onclick="ffStartImport()" disabled>Importar</button>';
+  } else if(phase==='preview'){
+    el.innerHTML='<button class="ffim-btn" onclick="closeFFImport()">Cancelar</button>'
+      +'<button class="ffim-btn" onclick="_ffGoBack()">← Trocar arquivo</button>'
+      +'<button class="ffim-btn primary" id="ffImportBtn" onclick="ffStartImport()">Importar</button>';
+  } else if(phase==='done'){
+    el.innerHTML='<button class="ffim-btn" onclick="_ffGoBack()">← Nova importação</button>'
+      +'<button class="ffim-btn primary" onclick="closeFFImport();if(typeof renderCatalogo===\'function\')renderCatalogo();">Fechar e atualizar catálogo</button>';
+  }
+}
+
+function _ffGoBack(){
+  if(_ffImporting)return;
+  _ffResetState();
+  _ffRenderStep1();
+  _ffSetFooter('step1');
 }
 
 function _ffRenderStep1(){
@@ -18092,8 +18122,7 @@ function _ffRenderStep1(){
     +'<div class="ffim-drop-label" style="margin-top:4px;">CSV ou XLSX exportado do FilmFreeway</div>'
     +'</div>'
     +'<div style="font-family:var(--mono);font-size:9px;color:var(--text-muted);margin-top:10px;">O sistema re-encoda CSVs automaticamente para UTF-8 com BOM antes de processar.</div>';
-  var btn=document.getElementById('ffImportBtn');
-  if(btn){btn.disabled=true;btn.textContent='Importar';}
+  _ffSetFooter('step1');
 }
 
 function ffHandleFile(file){
@@ -18451,7 +18480,24 @@ function _ffBuildTitleDupMap(rows){
   return dupMap;
 }
 
-/* ── estado de ordenação da tabela de preview ── */
+/* ── eventos permitidos para o usuário atual ── */
+function _ffGetUserEventos(){
+  // fonte primária: cache do Firestore já filtrado por allowedEvento
+  var cache=(window._olgaEventosCache||[]).map(function(e){return e.nome;}).filter(Boolean);
+  if(cache.length)return cache;
+  // fallback: eventColors filtrado pelas permissões do usuário
+  var userEvs=window._olgaUser&&window._olgaUser.eventos&&window._olgaUser.eventos.length
+    ?new Set(window._olgaUser.eventos):null;
+  return Object.keys(eventColors||{}).filter(function(e){return!userEvs||userEvs.has(e);});
+}
+function _ffUpdateImportBtn(){
+  var evEl=document.getElementById('ffEvtInput');
+  var btn=document.getElementById('ffImportBtn');
+  if(!btn)return;
+  var ok=!evEl||(evEl.value&&evEl.value.trim()!=='');
+  btn.disabled=!ok;
+  btn.title=ok?'':'Selecione um evento antes de importar';
+}
 var _ffSortCol=null,_ffSortAsc=true;
 var _ffNormalized=[],_ffDupCatalog=new Set(),_ffDupMap={},_ffDisplayOrder=[];
 
@@ -18540,24 +18586,34 @@ function _ffRenderPreview(rows){
   _ffDisplayOrder=rows.map(function(_,i){return i;});
   _ffSortCol=null;_ffSortAsc=true;
 
-  // ── selector de evento ──
-  var evts=(typeof eventosList!=='undefined'&&Array.isArray(eventosList))?eventosList.filter(Boolean):[];
-  var evtHtml='';
+  // ── selector de evento (obrigatório) ──
+  var evts=_ffGetUserEventos();
+  var evtHtml='<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">'
+    +'<span class="ffim-opt-label" style="color:var(--text);">Evento <span style="color:var(--warn);font-size:11px;">*</span></span>';
   if(evts.length===0){
-    evtHtml='<label class="ffim-opt-label" style="display:flex;align-items:center;gap:6px;">'
-      +'Evento <input id="ffEvtInput" class="ffim-check" style="padding:2px 6px;font-family:var(--mono);font-size:10px;background:var(--surface2);border:1px solid var(--border);border-radius:2px;color:var(--text-dim);width:160px;" placeholder="ex: FICB 2026">'
-      +'</label>';
+    // sem eventos carregados: input livre
+    evtHtml+='<input id="ffEvtInput" style="padding:4px 8px;font-family:var(--mono);font-size:11px;background:var(--surface2);border:1px solid var(--border);border-radius:3px;color:var(--text);width:200px;" placeholder="Nome do evento…" oninput="_ffUpdateImportBtn()">';
+    evtHtml+='<span style="font-family:var(--mono);font-size:9px;color:var(--text-muted);">Nenhum evento encontrado — verifique se os dados estão carregados.</span>';
+  } else if(evts.length===1){
+    // único evento: pré-selecionado e desabilitado
+    evtHtml+='<select id="ffEvtInput" style="padding:4px 8px;font-family:var(--mono);font-size:11px;background:var(--surface2);border:1px solid var(--accent);border-radius:3px;color:var(--text);min-width:180px;" onchange="_ffUpdateImportBtn()">'
+      +'<option value="'+_ffEsc(evts[0])+'">'+_ffEsc(evts[0])+'</option>'
+      +'</select>'
+      +'<span style="font-family:var(--mono);font-size:9px;color:var(--ok);">✓ pré-selecionado</span>';
   } else {
-    evtHtml='<label class="ffim-opt-label" style="display:flex;align-items:center;gap:6px;">Evento '
-      +'<select id="ffEvtInput" style="font-family:var(--mono);font-size:10px;background:var(--surface2);border:1px solid var(--border);border-radius:2px;color:var(--text-dim);padding:2px 6px;">'
-      +'<option value="">— sem evento —</option>'
+    // múltiplos eventos: dropdown sem pré-seleção
+    evtHtml+='<select id="ffEvtInput" style="padding:4px 8px;font-family:var(--mono);font-size:11px;background:var(--surface2);border:1px solid var(--border);border-radius:3px;color:var(--text);min-width:200px;" onchange="_ffUpdateImportBtn()">'
+      +'<option value="">— selecione o evento —</option>'
       +evts.map(function(e){return'<option value="'+_ffEsc(e)+'">'+_ffEsc(e)+'</option>';}).join('')
-      +'</select></label>';
+      +'</select>';
   }
+  evtHtml+='</div>';
 
   // ── cabeçalho de opções ──
-  var html='<div class="ffim-opts">'
+  var html='<div style="background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:10px 14px;margin-bottom:10px;">'
     +evtHtml
+    +'</div>';
+  html+='<div class="ffim-opts">'
     +'<span class="ffim-opt-label">Total</span><span class="ffim-opt-val">'+rows.length+' filmes</span>'
     +(_ffDupCatalog.size?'<span class="ffim-opt-val" style="color:var(--warn);">'+_ffDupCatalog.size+' já cadastrados</span>':'')
     +(Object.keys(_ffDupMap).length?'<span class="ffim-opt-val" style="color:var(--accent);">'+Object.keys(_ffDupMap).length+' com título repetido</span>':'')
@@ -18616,8 +18672,8 @@ function _ffRenderPreview(rows){
     +'.ff-sort-th:hover{background:var(--surface2);}';
 
   _ffRenderTbody(null);
-  var btn=document.getElementById('ffImportBtn');
-  if(btn){btn.disabled=false;}
+  _ffSetFooter('preview');
+  _ffUpdateImportBtn();
 }
 
 function ffSelAll(checked){
@@ -18647,13 +18703,20 @@ async function ffStartImport(){
   var selectedIdxs=chks.filter(function(c){return c.checked;}).map(function(c){return parseInt(c.dataset.idx);});
   if(!selectedIdxs.length){alert('Selecione ao menos um filme para importar.');return;}
 
-  // evento selecionado
+  // evento selecionado (obrigatório)
   var evtEl=document.getElementById('ffEvtInput');
   var selectedEvent=(evtEl?evtEl.value.trim():'');
+  if(!selectedEvent){
+    var evtWrap=evtEl?evtEl.parentElement:null;
+    if(evtEl){evtEl.style.borderColor='var(--warn)';evtEl.focus();}
+    alert('Selecione um evento antes de importar.');
+    return;
+  }
 
   _ffImporting=true;
   var overwrite=document.getElementById('ffOverwrite')&&document.getElementById('ffOverwrite').checked;
-  var btn=document.getElementById('ffImportBtn');if(btn)btn.disabled=true;
+  // desabilitar footer durante importação
+  document.querySelectorAll('#ffImportFooter button').forEach(function(b){b.disabled=true;});
   var progWrap=document.getElementById('ffProgress');
   var progBar=document.getElementById('ffProgBar');
   var progText=document.getElementById('ffProgText');
@@ -18704,7 +18767,7 @@ async function ffStartImport(){
   if(selectedEvent)summary+=' · evento: '+selectedEvent;
   if(progText)progText.textContent=summary;
   if(progBar)progBar.style.width='100%';
-  document.getElementById('ffImportFooter').innerHTML='<button class="ffim-btn primary" onclick="closeFFImport();if(typeof renderCatalogo===\'function\')renderCatalogo();">Fechar e atualizar catálogo</button>';
+  _ffSetFooter('done');
   if(typeof window._olgaLoadFirestore==='function'){try{await window._olgaLoadFirestore();}catch(e){}}
   if(typeof buildBuscaFilterPanel==='function')buildBuscaFilterPanel();
 }

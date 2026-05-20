@@ -10095,7 +10095,7 @@ function _revRenderGradePages(evName,evBg,evText,msr,allPages,startPageNum){
         row.appendChild(timeEl);
         var cnt=document.createElement('div');
         cnt.className='rev-grade-sess-content2';
-        var sessName=s.nome||s.name||'';
+        var sessName=s.name||s.nome||'';
         var filmsData=(s.filmes||[]).map(function(cod){
           var f=filmesMap[cod]||{};var cat=catalogoFilmesMap[cod]||{};
           var title=cat.title_pt||cat.title||f.titulo||cod;
@@ -12812,7 +12812,7 @@ function renderDash(){
   html+=colBlock('kdm','KDM',kdmBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 20/05/2026 às 18:58';
+  var sysUpdate='última atualização do sistema · 20/05/2026 às 19:00';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -16711,7 +16711,7 @@ window.addEventListener('popstate',function(e){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 20/05/2026 às 18:58</span></div>
+<div id="page-footer"><span>última atualização · 20/05/2026 às 19:00</span></div>
 
 </div>
 

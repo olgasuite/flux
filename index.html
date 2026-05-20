@@ -15185,15 +15185,20 @@ function catTagInp(id,arr){
     +catTagHtml(tags,id)
     +'<input class="cat-tag-input" placeholder="Escreva e Enter" onkeydown="catAddTag(event,&quot;'+id+'&quot;)"></div>';
 }
+function _cinNome(s){
+  if(!s)return s;
+  var m=String(s).match(/^([^,]+),\s*(\S.*)$/);
+  return m?(m[2].trim()+' '+m[1].trim()):s;
+}
 function _cinRawVal(v){
-  if(Array.isArray(v))return'<span style="font-family:var(--sans);font-size:12px;color:var(--text);">'+v.join(' · ')+'</span>';
+  if(Array.isArray(v))return'<span style="font-family:var(--sans);font-size:12px;color:var(--text);">'+v.map(_cinNome).join(' · ')+'</span>';
   if(v&&typeof v==='object'){
     var inner='';
     Object.keys(v).forEach(function(k){
       var v2=v[k];
       inner+='<div style="display:flex;gap:10px;margin-bottom:4px;">'
-        +'<span style="font-family:var(--mono);font-size:10px;color:var(--text-muted);white-space:nowrap;min-width:140px;padding-top:1px;">'+k+'</span>'
-        +'<span style="font-family:var(--sans);font-size:12px;color:var(--text);">'+(Array.isArray(v2)?v2.join(', '):String(v2||''))+'</span>'
+        +'<span style="font-family:var(--mono);font-size:10px;color:var(--text-muted);white-space:nowrap;min-width:140px;padding-top:1px;">'+_cinNome(k)+'</span>'
+        +'<span style="font-family:var(--sans);font-size:12px;color:var(--text);">'+(Array.isArray(v2)?v2.map(_cinNome).join(', '):_cinNome(String(v2||'')))+'</span>'
         +'</div>';
     });
     return'<div style="padding-left:10px;border-left:2px solid var(--border2);">'+inner+'</div>';
@@ -15206,7 +15211,7 @@ function _renderCinBlock(raw){
   var url=raw['URL']||'';
   var html='<details style="margin-top:24px;border-top:1px solid var(--border);padding-top:16px;">';
   html+='<summary style="cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;user-select:none;">'
-    +'<span style="font-family:var(--mono);font-size:10px;font-weight:700;letter-spacing:0.07em;color:var(--text-muted);text-transform:uppercase;">Filmografia Brasileira · Cinemateca</span>'
+    +'<span style="font-family:var(--mono);font-size:10px;font-weight:700;letter-spacing:0.07em;color:var(--text-muted);text-transform:uppercase;">Filmografia Brasileira · Cinemateca Brasileira</span>'
     +'<span style="font-family:var(--sans);font-size:12px;color:var(--text-dim);">'+titulo+'</span>'
     +'</summary>';
   html+='<div style="margin-top:14px;">';
@@ -15563,9 +15568,15 @@ async function doCreateFilm(){
         if(cinMapped.film_type&&!catalogData.film_type)catalogData.film_type=cinMapped.film_type;
         if(cinMapped.runtime&&!durHMMSS){durHMMSS=_catMinToHMMSS(cinMapped.runtime);}
         if(cinMapped.production_company&&cinMapped.production_company.length&&!catalogData.production_company.length)catalogData.production_company=cinMapped.production_company;
+        if(cinMapped.distribution_company&&cinMapped.distribution_company.length&&!catalogData.distribution_company.length)catalogData.distribution_company=cinMapped.distribution_company;
+        if(cinMapped.producers&&cinMapped.producers.length&&!(catalogData.producers&&catalogData.producers.length))catalogData.producers=cinMapped.producers;
+        if(cinMapped.uf&&!catalogData.uf)catalogData.uf=cinMapped.uf;
+        if(cinMapped.awards&&cinMapped.awards.length&&!catalogData.awards.length)catalogData.awards=cinMapped.awards;
+        if(cinMapped.keywords&&cinMapped.keywords.length&&!catalogData.keywords.length)catalogData.keywords=cinMapped.keywords;
         if(cinMapped.crew){
           var cc2=catalogData.crew||{cinematography:[],screenplay:[],editing:[],sound:[],art_direction:[],costume_design:[],cast:[]};
           ['cinematography','screenplay','editing','sound','art_direction','costume_design'].forEach(function(k){if(cinMapped.crew[k]&&cinMapped.crew[k].length&&!(cc2[k]&&cc2[k].length))cc2[k]=cinMapped.crew[k];});
+          if(cinMapped.crew.cast&&cinMapped.crew.cast.length&&!(cc2.cast&&cc2.cast.length))cc2.cast=cinMapped.crew.cast.slice(0,5);
           catalogData.crew=cc2;
         }
       }
@@ -15785,11 +15796,17 @@ function _cinToCatalog(cd){
       var pc=toArr(dataProd['País']);
       r.countries=pc.map(function(p){return _CIN_PAIS[p]||p;});
     }
+    if(dataProd['Estado'])r.uf=dataProd['Estado'];
   }
 
   if(cd['Sinopse'])r.synopsis=cd['Sinopse'];
-
   if(cd['Gênero'])r.genre=toArr(cd['Gênero']);
+  if(cd['Prêmios'])r.awards=toArr(cd['Prêmios']);
+
+  var kwArr=[];
+  if(cd['Termos descritores'])kwArr=kwArr.concat(toArr(cd['Termos descritores']));
+  if(cd['Descritores secundários'])kwArr=kwArr.concat(toArr(cd['Descritores secundários']));
+  if(kwArr.length)r.keywords=kwArr;
 
   if(cd['Material original']){
     var mm=String(cd['Material original']).match(/(\d+)min/i);
@@ -15810,7 +15827,14 @@ function _cinToCatalog(cd){
   if(prodObj){
     var cp=prodObj['Companhia(s) produtora(s)'];
     if(cp)r.production_company=toArr(cp);
+    var prodArr=[];
+    if(prodObj['Produção'])prodArr=prodArr.concat(toArr(prodObj['Produção']));
+    if(prodObj['Co-produção'])prodArr=prodArr.concat(toArr(prodObj['Co-produção']));
+    if(prodArr.length)r.producers=prodArr;
   }
+
+  var distObj=cd['Distribuição'];
+  if(distObj&&distObj['Companhia(s) distribuidora(s)'])r.distribution_company=toArr(distObj['Companhia(s) distribuidora(s)']);
 
   var crew={};
   var argObj=cd['Argumento/roteiro'];
@@ -15827,19 +15851,38 @@ function _cinToCatalog(cd){
     if(arteObj['Direção de arte'])crew.art_direction=toArr(arteObj['Direção de arte']);
     if(arteObj['Figurinos'])crew.costume_design=toArr(arteObj['Figurinos']);
   }
-  if(Object.keys(crew).length)r.crew=crew;
 
-  if(cd['URL'])r.website=cd['URL'];
+  var _metaElenco=new Set(['Conteúdo examinado','Fontes utilizadas','Fontes consultadas','Observações']);
+  var elencoObj=cd['Identidades/elenco:'];
+  if(elencoObj&&typeof elencoObj==='object'){
+    var castNames=[];
+    Object.keys(elencoObj).forEach(function(k){
+      if(_metaElenco.has(k))return;
+      var names=Array.isArray(elencoObj[k])?elencoObj[k]:[elencoObj[k]];
+      names.forEach(function(name){
+        if(!name||typeof name!=='string')return;
+        var s=name.replace(/\s*\([^)]*\)/g,'').trim();
+        if(!s)return;
+        var m=s.match(/^([^,]+),\s*(.+)$/);
+        castNames.push(m?(m[2].trim()+' '+m[1].trim()):s);
+      });
+    });
+    if(castNames.length)crew.cast=castNames.slice(0,5);
+  }
+
+  if(Object.keys(crew).length)r.crew=crew;
   return r;
 }
 
 var _CIN_LABELS={
   title_pt:'Título PT',original_title:'Título original',director:'Direção',
-  year:'Ano',countries:'País',genre:'Gênero',synopsis:'Sinopse',
+  year:'Ano',countries:'País',uf:'UF',genre:'Gênero',synopsis:'Sinopse',
   runtime:'Duração (min)',film_type:'Metragem',production_company:'Produtora',
-  website:'Website','crew.screenplay':'Roteiro','crew.cinematography':'Fotografia',
+  distribution_company:'Distribuidora',producers:'Produtores',
+  keywords:'Palavras-chave',awards:'Prêmios',
+  'crew.screenplay':'Roteiro','crew.cinematography':'Fotografia',
   'crew.editing':'Montagem','crew.sound':'Música','crew.art_direction':'Direção de arte',
-  'crew.costume_design':'Figurinos'
+  'crew.costume_design':'Figurinos','crew.cast':'Elenco'
 };
 
 function _cinDisp(v){

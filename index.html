@@ -12789,7 +12789,7 @@ function renderDash(){
   html+=colBlock('kdm','KDM',kdmBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 19/05/2026 às 17:08';
+  var sysUpdate='última atualização do sistema · 19/05/2026 às 17:18';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -15100,7 +15100,7 @@ function renderCatDetail(){
     if(meta.ff_rating)ffHtml+=catFld('Nota média dos jurados','<span style="font-family:var(--mono);font-size:22px;font-weight:700;color:var(--accent);">'+meta.ff_rating+'</span><span style="font-family:var(--mono);font-size:10px;color:var(--text-muted);margin-left:4px;">/10</span>');
     if(meta.ff_category)ffHtml+=catFld('Categoria',meta.ff_category);
     ffHtml+='</div>';
-    if(meta.ff_submission_id)ffHtml+=catFld('ID da submissão','<span style="font-family:var(--mono);font-size:11px;color:var(--text-dim);">'+meta.ff_submission_id+'</span>'+(meta.ff_link?'  <a href="'+meta.ff_link.replace(/"/g,'&quot;')+'" target="_blank" style="font-family:var(--mono);font-size:10px;color:var(--accent);margin-left:8px;">↗ ver no FilmFreeway</a>':''));
+    if(meta.ff_submission_id)ffHtml+=catFld('ID da submissão','<span style="font-family:var(--mono);font-size:11px;color:var(--text-dim);">'+meta.ff_submission_id+'</span>'+(meta.ff_link?'  <a href="'+meta.ff_link.replace(/"/g,'&quot;')+'" target="_blank" style="font-family:var(--mono);font-size:10px;color:var(--accent);margin-left:8px;">↗ filmfreeway.com</a>':''));
     html+=catBlock('FilmFreeway',ffHtml);
   }
   var sessoes=sessoesArr.filter(function(s){return s.filmes&&s.filmes.indexOf(_catCode)!==-1;})
@@ -16664,7 +16664,7 @@ window.addEventListener('popstate',function(e){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 19/05/2026 às 17:08</span></div>
+<div id="page-footer"><span>última atualização · 19/05/2026 às 17:18</span></div>
 
 </div>
 
@@ -18300,6 +18300,13 @@ function _ffNormalizeRow(row){
   var ffCategory=_ffCategoryPt[catRaw]||catRaw;
   // UF do submissor
   var uf=_ffTranslateUf(row['State']);
+  // Submission Link: filmfreeway.com → ff_link; vimeo/yt/drive → screener
+  var submLink=_ffClean(row['Submission Link']);
+  var ffLink='',screenerLink='';
+  if(submLink){
+    if(submLink.indexOf('filmfreeway.com')>=0)ffLink=submLink;
+    else screenerLink=submLink;
+  }
   return{
     festival_code:_ffClean(row['Tracking Number']),
     system_name:titleOL||titleEN,
@@ -18321,14 +18328,14 @@ function _ffNormalizeRow(row){
     contact_email:_ffClean(row['Email']),
     website:_ffClean(row['Project Website']),
     selecao:judging==='Selected'?'FEST':'',
-    screener:'',
+    screener:screenerLink,
     awards:_ffClean(row['Screenings / Awards'])?[_ffClean(row['Screenings / Awards'])]:[], 
     film_color:_ffClean(row['Film Color']),
     aspect_ratio:_ffAspectRatio(row['Aspect Ratio']),
     shooting_format:_ffClean(row['Shooting Format']),
     student_project:_ffClean(row['Student Project']),
     ff_submission_id:submId,
-    ff_link:_ffClean(row['Submission Link']),
+    ff_link:ffLink,
     ff_category:ffCategory,
     ff_rating:rating,
     ff_duration:_ffClean(row['Duration']),

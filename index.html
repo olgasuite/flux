@@ -4042,7 +4042,9 @@ html[data-theme]:not([data-theme="win98"]){--mono:var(--sans);}
               editing:fsa(r.crew.editing), sound:fsa(r.crew.sound),
               art_direction:fsa(r.crew.art_direction), costume_design:fsa(r.crew.costume_design),
               cast:fsa(r.crew.cast)
-            }:{}
+            }:{},
+            runtime:r.runtime?parseInt(r.runtime):null,
+            cinemateca_raw:r.cinemateca_raw?(function(){try{return JSON.parse(r.cinemateca_raw);}catch(e){return null;}})():null
           };
         });
         return map;
@@ -4080,7 +4082,9 @@ html[data-theme]:not([data-theme="win98"]){--mono:var(--sans);}
         ff_duration:fsStr(data.ff_duration||''),
         ff_student:fsStr(data.ff_student||''),ff_school:fsStr(data.ff_school||''),
         ff_first_time:fsStr(data.ff_first_time||''),ff_other_credits:fsStr(data.ff_other_credits||''),
-        crew:{mapValue:{fields:crewF}}
+        runtime:data.runtime?fsInt(data.runtime):{integerValue:'0'},
+        crew:{mapValue:{fields:crewF}},
+        cinemateca_raw:fsStr(data.cinemateca_raw?JSON.stringify(data.cinemateca_raw):'')
       };
       var token = await auth.currentUser.getIdToken();
       var url='https://firestore.googleapis.com/v1/projects/olga-suite/databases/(default)/documents/filmes/'+encodeURIComponent(codigo);
@@ -12812,7 +12816,7 @@ function renderDash(){
   html+=colBlock('kdm','KDM',kdmBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 20/05/2026 às 19:04';
+  var sysUpdate='última atualização do sistema · 20/05/2026 às 19:38';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -15296,6 +15300,7 @@ async function doSaveCat(){
             cast:catGetTags('crew_cast')}
     };
     if(catalogoFilmesMap[_catCode]&&catalogoFilmesMap[_catCode].cinemateca_raw)data.cinemateca_raw=catalogoFilmesMap[_catCode].cinemateca_raw;
+    if(catalogoFilmesMap[_catCode]&&catalogoFilmesMap[_catCode].runtime)data.runtime=catalogoFilmesMap[_catCode].runtime;
     await window._olgaCatalogo.save(_catCode,data);
     window._logFirestoreEdit&&window._logFirestoreEdit('individual',_catCode,data,'catalogo','filmes');
     catalogoFilmesMap[_catCode]=data;
@@ -15567,6 +15572,7 @@ async function doCreateFilm(){
         if(cinMapped.synopsis&&!catalogData.synopsis)catalogData.synopsis=cinMapped.synopsis;
         if(cinMapped.film_type&&!catalogData.film_type)catalogData.film_type=cinMapped.film_type;
         if(cinMapped.runtime&&!durHMMSS){durHMMSS=_catMinToHMMSS(cinMapped.runtime);}
+        if(cinMapped.runtime&&!catalogData.runtime)catalogData.runtime=cinMapped.runtime;
         if(cinMapped.production_company&&cinMapped.production_company.length&&!catalogData.production_company.length)catalogData.production_company=cinMapped.production_company;
         if(cinMapped.distribution_company&&cinMapped.distribution_company.length&&!catalogData.distribution_company.length)catalogData.distribution_company=cinMapped.distribution_company;
         if(cinMapped.producers&&cinMapped.producers.length&&!(catalogData.producers&&catalogData.producers.length))catalogData.producers=cinMapped.producers;
@@ -15858,14 +15864,11 @@ function _cinToCatalog(cd){
     var castNames=[];
     Object.keys(elencoObj).forEach(function(k){
       if(_metaElenco.has(k))return;
-      var names=Array.isArray(elencoObj[k])?elencoObj[k]:[elencoObj[k]];
-      names.forEach(function(name){
-        if(!name||typeof name!=='string')return;
-        var s=name.replace(/\s*\([^)]*\)/g,'').trim();
-        if(!s)return;
-        var m=s.match(/^([^,]+),\s*(.+)$/);
-        castNames.push(m?(m[2].trim()+' '+m[1].trim()):s);
-      });
+      // Na Cinemateca o ator é a CHAVE: <b>Sobrenome, Nome:</b> (Personagem)
+      var s=k.replace(/\s*\([^)]*\)/g,'').trim();
+      if(!s)return;
+      var m=s.match(/^([^,]+),\s*(.+)$/);
+      castNames.push(m?(m[2].trim()+' '+m[1].trim()):s);
     });
     if(castNames.length)crew.cast=castNames.slice(0,5);
   }
@@ -17034,7 +17037,7 @@ window.addEventListener('popstate',function(e){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 20/05/2026 às 19:04</span></div>
+<div id="page-footer"><span>última atualização · 20/05/2026 às 19:38</span></div>
 
 </div>
 

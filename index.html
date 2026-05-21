@@ -12816,7 +12816,7 @@ function renderDash(){
   html+=colBlock('kdm','KDM',kdmBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 20/05/2026 às 19:54';
+  var sysUpdate='última atualização do sistema · 20/05/2026 às 19:56';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -15760,7 +15760,7 @@ async function importFromTMDB(codigo,btn){
   try{
     var td=await fetchTMDBMovie(tmdbId);
     var catalogData=catalogoFilmesMap[codigo]||{};
-    _showCinMerge(codigo,catalogData,td,btn,null);
+    _showCinMerge(codigo,catalogData,td,btn,null,'TMDB');
   }catch(e){
     alert('Erro ao importar do TMDB: '+e.message);
     if(btn){btn.disabled=false;btn.textContent=origText;}
@@ -15899,7 +15899,7 @@ function _initCinModal(){
   document.body.appendChild(el);
 }
 
-function _showCinMerge(codigo,atual,novo,btn,rawCd){
+function _showCinMerge(codigo,atual,novo,btn,rawCd,fonte){
   _initCinModal();
   var preench=[],conflito=[];
   function flatten(obj,prefix){
@@ -15946,7 +15946,7 @@ function _showCinMerge(codigo,atual,novo,btn,rawCd){
       html+='</label>';
       html+='<label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;">';
       html+='<input type="radio" name="cin_c'+idx+'" value="substituir" style="margin-top:2px;accent-color:var(--accent);">';
-      html+='<span style="font-family:var(--sans);font-size:12px;"><span style="color:var(--text-muted);font-size:10px;display:block;margin-bottom:1px;">Usar Filmografia Brasileira</span>'+_cinDisp(c.novo)+'</span>';
+      html+='<span style="font-family:var(--sans);font-size:12px;"><span style="color:var(--text-muted);font-size:10px;display:block;margin-bottom:1px;">Usar '+(fonte||'Filmografia Brasileira')+'</span>'+_cinDisp(c.novo)+'</span>';
       html+='</label>';
       html+='</div>';
     });
@@ -16001,7 +16001,7 @@ async function importFromCinemateca(codigo,btn){
     var cd=await resp.json();
     if(!resp.ok)throw new Error(cd.error||'Erro '+resp.status);
     var catalogData=catalogoFilmesMap[codigo]||{};
-    _showCinMerge(codigo,catalogData,_cinToCatalog(cd),btn,cd);
+    _showCinMerge(codigo,catalogData,_cinToCatalog(cd),btn,cd,'Filmografia Brasileira');
   }catch(e){
     alert('Erro ao consultar Filmografia Brasileira: '+e.message);
     if(btn){btn.disabled=false;btn.textContent='↓ Cinemateca';}
@@ -17023,7 +17023,7 @@ window.addEventListener('popstate',function(e){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 20/05/2026 às 19:54</span></div>
+<div id="page-footer"><span>última atualização · 20/05/2026 às 19:56</span></div>
 
 </div>
 

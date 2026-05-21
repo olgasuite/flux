@@ -12816,7 +12816,7 @@ function renderDash(){
   html+=colBlock('kdm','KDM',kdmBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 20/05/2026 às 19:50';
+  var sysUpdate='última atualização do sistema · 20/05/2026 às 19:54';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -15039,7 +15039,7 @@ function renderCatDetail(){
   var acervoBtn='<button class="cat-card-btn" style="margin-left:0;" onclick="goToBuscaCod(\''+_catCode.replace(/'/g,"\\'")+'\')">Ver no Acervo Técnico</button>';
   if(canEdit&&!_catEditing){
     var _tmdbDetailBtn=(!window._olgaHasRestricao||!window._olgaHasRestricao('catalogo.tmdb'))?'<button class="cat-edit-btn" onclick="importFromTMDB(\''+_catCode.replace(/'/g,"\\'")+'\',this)">↓ TMDB</button>':'';
-    var _cinDetailBtn='<button class="cat-edit-btn" onclick="importFromCinemateca(\''+_catCode.replace(/'/g,"\\'")+'\',this)">↓ Cinemateca</button>';
+    var _cinDetailBtn='<button class="cat-edit-btn" onclick="importFromCinemateca(\''+_catCode.replace(/'/g,"\\'")+'\',this)">↓ Filmografia Brasileira</button>';
     html+='<div class="cat-actions">'+acervoBtn+_tmdbDetailBtn+_cinDetailBtn+'<button class="cat-edit-btn" onclick="duplicateCatFilm(\''+_catCode.replace(/\'/g,"\\\'")+'\')">⧉ Duplicar</button><button class="cat-edit-btn" onclick="startCatEdit()">✎ Editar</button><button class="cat-edit-btn" style="color:var(--warn);border-color:var(--warn);" onclick="deleteCatFilm(\''+_catCode.replace(/\'/g,"\\\'")+'\')">× Excluir</button></div>';
   }
   else if(_catEditing)
@@ -15380,7 +15380,7 @@ function renderCatCreate(){
     )
     +catFld('Nome no sistema *','<input class="cat-input" id="catf_system_name" placeholder="Atribua um nome para circulação interna — esse campo não pode ser alterado">')
     +(!window._olgaHasRestricao('catalogo.tmdb')?catFld('ID no TMDB <span style="font-weight:400;opacity:0.6;">(opcional)</span>','<input class="cat-input" id="catf_tmdb_id" placeholder="Ex: 155 · preenche títulos, direção, sinopse, gênero e país automaticamente">'):'')
-    +catFld('ID na Cinemateca <span style="font-weight:400;opacity:0.6;">(opcional)</span>','<input class="cat-input" id="catf_cinemateca_id" placeholder="Ex: 036372 · preenche dados da Filmografia Brasileira automaticamente">')
+    +catFld('ID na Filmografia Brasileira <span style="font-weight:400;opacity:0.6;">(opcional)</span>','<input class="cat-input" id="catf_cinemateca_id" placeholder="Ex: 036372 · preenche dados da Filmografia Brasileira automaticamente">')
   );
   // Campos de copias (acervo técnico) — só na criação
   html+=catBlock('Acervo Técnico',
@@ -15559,8 +15559,9 @@ async function doCreateFilm(){
     if(msg){msg.className='cat-msg';msg.textContent='Salvando…';}
   }
   var cinIdVal=(document.getElementById('catf_cinemateca_id')||{value:''}).value.trim();
+  if(cinIdVal&&!confirm(_CIN_DISCLAIMER))cinIdVal='';
   if(cinIdVal){
-    if(msg){msg.className='cat-msg';msg.textContent='Buscando dados na Cinemateca…';}
+    if(msg){msg.className='cat-msg';msg.textContent='Buscando dados na Filmografia Brasileira…';}
     try{
       var cinResp=await fetch(_CINEMATECA_FN+'?id='+encodeURIComponent(cinIdVal));
       var cinJson=await cinResp.json();
@@ -15748,6 +15749,7 @@ async function fetchTMDBMovie(tmdbId){
 }
 
 var _TMDB_DISCLAIMER='Esse produto usa a API do TMDB mas não é endossado ou certificado pelo TMDB. Recomendamos a revisão de todos os dados preenchidos automaticamente.';
+var _CIN_DISCLAIMER='Os dados solicitados estão hospedados na base do Catálogo Filmografia Brasileira, no site da Cinemateca Brasileira, fruto da pesquisa de seus profissionais. Esse sistema de importação não é certificado pela Cinemateca Brasileira, recomendamos a revisão de todos os dados preenchidos automaticamente.';
 async function importFromTMDB(codigo,btn){
   if(!window._olgaCanEdit||!window._olgaCanEdit('catalogo')){alert('Sem permissão para editar o catálogo.');return;}
   if(!confirm(_TMDB_DISCLAIMER))return;
@@ -15757,30 +15759,8 @@ async function importFromTMDB(codigo,btn){
   if(btn){btn.disabled=true;btn.textContent='Importando…';}
   try{
     var td=await fetchTMDBMovie(tmdbId);
-    var merged=Object.assign({},catalogoFilmesMap[codigo]||{},{festival_code:codigo});
-    if(td.title_pt)merged.title_pt=td.title_pt;
-    if(td.original_title)merged.original_title=td.original_title;
-    if(td.english_title)merged.english_title=td.english_title;
-    if(td.director&&td.director.length)merged.director=td.director;
-    if(td.year)merged.year=td.year;
-    if(td.countries&&td.countries.length)merged.countries=td.countries;
-    if(td.genre&&td.genre.length)merged.genre=td.genre;
-    if(td.synopsis)merged.synopsis=td.synopsis;
-    if(td.synopsis_en)merged.synopsis_en=td.synopsis_en;
-    if(td.website)merged.website=td.website;
-    if(td.original_language)merged.original_language=td.original_language;
-    if(td.production_company&&td.production_company.length)merged.production_company=td.production_company;
-    if(td.trailer)merged.trailer=td.trailer;
-    if(td.crew){
-      var mc=Object.assign({cinematography:[],screenplay:[],editing:[],sound:[],art_direction:[],costume_design:[],cast:[]},merged.crew||{});
-      ['cinematography','screenplay','editing','sound','art_direction','costume_design','cast'].forEach(function(k){if(td.crew[k]&&td.crew[k].length)mc[k]=td.crew[k];});
-      merged.crew=mc;
-    }
-    await window._olgaCatalogo.save(codigo,merged);
-    window._logFirestoreEdit&&window._logFirestoreEdit('individual',codigo,merged,'catalogo','filmes');
-    catalogoFilmesMap[codigo]=merged;
-    if(btn){btn.disabled=false;btn.textContent=origText;}
-    renderCatDetail();
+    var catalogData=catalogoFilmesMap[codigo]||{};
+    _showCinMerge(codigo,catalogData,td,btn,null);
   }catch(e){
     alert('Erro ao importar do TMDB: '+e.message);
     if(btn){btn.disabled=false;btn.textContent=origText;}
@@ -15966,7 +15946,7 @@ function _showCinMerge(codigo,atual,novo,btn,rawCd){
       html+='</label>';
       html+='<label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;">';
       html+='<input type="radio" name="cin_c'+idx+'" value="substituir" style="margin-top:2px;accent-color:var(--accent);">';
-      html+='<span style="font-family:var(--sans);font-size:12px;"><span style="color:var(--text-muted);font-size:10px;display:block;margin-bottom:1px;">Usar Cinemateca</span>'+_cinDisp(c.novo)+'</span>';
+      html+='<span style="font-family:var(--sans);font-size:12px;"><span style="color:var(--text-muted);font-size:10px;display:block;margin-bottom:1px;">Usar Filmografia Brasileira</span>'+_cinDisp(c.novo)+'</span>';
       html+='</label>';
       html+='</div>';
     });
@@ -15997,11 +15977,11 @@ function _showCinMerge(codigo,atual,novo,btn,rawCd){
       await window._olgaCatalogo.save(codigo,merged);
       window._logFirestoreEdit&&window._logFirestoreEdit('individual',codigo,merged,'catalogo','filmes');
       catalogoFilmesMap[codigo]=merged;
-      if(btn){btn.disabled=false;btn.textContent='↓ Cinemateca';}
+      if(btn){btn.disabled=false;btn.textContent='↓ Filmografia Brasileira';}
       renderCatDetail();
     }catch(e){
       alert('Erro ao salvar: '+e.message);
-      if(btn){btn.disabled=false;btn.textContent='↓ Cinemateca';}
+      if(btn){btn.disabled=false;btn.textContent='↓ Filmografia Brasileira';}
     }
   };
   document.getElementById('_cinMergeCancel').onclick=function(){
@@ -16012,7 +15992,8 @@ function _showCinMerge(codigo,atual,novo,btn,rawCd){
 
 async function importFromCinemateca(codigo,btn){
   if(!window._olgaCanEdit||!window._olgaCanEdit('catalogo')){alert('Sem permissão para editar o catálogo.');return;}
-  var id=(prompt('ID do filme na Filmografia Brasileira (Cinemateca):')||'').trim();
+  if(!confirm(_CIN_DISCLAIMER))return;
+  var id=(prompt('ID do filme na Filmografia Brasileira:')||'').trim();
   if(!id)return;
   if(btn){btn.disabled=true;btn.textContent='Consultando…';}
   try{
@@ -16022,7 +16003,7 @@ async function importFromCinemateca(codigo,btn){
     var catalogData=catalogoFilmesMap[codigo]||{};
     _showCinMerge(codigo,catalogData,_cinToCatalog(cd),btn,cd);
   }catch(e){
-    alert('Erro ao consultar Cinemateca: '+e.message);
+    alert('Erro ao consultar Filmografia Brasileira: '+e.message);
     if(btn){btn.disabled=false;btn.textContent='↓ Cinemateca';}
   }
 }
@@ -17042,7 +17023,7 @@ window.addEventListener('popstate',function(e){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 20/05/2026 às 19:50</span></div>
+<div id="page-footer"><span>última atualização · 20/05/2026 às 19:54</span></div>
 
 </div>
 

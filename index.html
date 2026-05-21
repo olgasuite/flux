@@ -4334,7 +4334,7 @@ html[data-theme]:not([data-theme="win98"]){--mono:var(--sans);}
           apresentacao: fs(r['has_introduction']),  publico:    fs(r['total_audience']),  renda: fs(r['total_revenue']),
           ingressos: fs(r['reserved_tickets']),     leg_eletronica: fs(r['has_electronic_subtitles']),
           acessibilidades: fs(r['available_accessibility']), col_ag: fs(r['has_debate']), para_convidados: fs(r['for_guests']),
-          name: fs(r['name']),      program_id:     fs(r['program_id']),
+          name: fs(r['name']),      program_id:     fs(r['program_id']),          _docId: doc.id,
           subprogram_id: fs(r['subprogram_id']),    session_description: fs(r['session_description']),
           notes: fs(r['notes'])
         };
@@ -12848,7 +12848,7 @@ function renderDash(){
   html+=colBlock('kdm','KDM',kdmBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 21/05/2026 às 10:02';
+  var sysUpdate='última atualização do sistema · 21/05/2026 às 10:04';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -13731,7 +13731,7 @@ async function saveProgSessaoModal(){
       available_accessibility:ex.acessibilidades||'',
       total_audience:ex.publico||'',total_revenue:ex.renda||'',notes:ex.notes||''};
     var btn=document.getElementById('progSessaoModalSave');btn.disabled=true;btn.textContent='Salvando…';
-    try{await window._olgaSessoes.save(nome,vinData);window._logFirestoreEdit&&window._logFirestoreEdit('individual',nome,vinData,'programacao','sessoes');closeProgSessaoModal();await window._olgaLoadFirestore();if(_progSessaoContextProgramId){_progView={level:'program',programId:_progSessaoContextProgramId,sessaoNome:null};}_progRender();}
+    try{await window._olgaSessoes.save(ex._docId||nome,vinData);window._logFirestoreEdit&&window._logFirestoreEdit('individual',nome,vinData,'programacao','sessoes');closeProgSessaoModal();await window._olgaLoadFirestore();if(_progSessaoContextProgramId){_progView={level:'program',programId:_progSessaoContextProgramId,sessaoNome:null};}_progRender();}
     catch(e){_progSessErr('Erro: '+e.message);}
     finally{btn.disabled=false;btn.textContent='Salvar';}
     return;
@@ -13765,7 +13765,8 @@ async function saveProgSessaoModal(){
   };
   var btn=document.getElementById('progSessaoModalSave');btn.disabled=true;btn.textContent='Salvando…';
   try{
-    await window._olgaSessoes.save(nome,data);
+    var _saveDocId=(sessoesMap[nome]&&sessoesMap[nome]._docId)||nome;
+    await window._olgaSessoes.save(_saveDocId,data);
     window._logFirestoreEdit&&window._logFirestoreEdit('individual',nome,data,'programacao','sessoes');
     closeProgSessaoModal();
     await window._olgaLoadFirestore();
@@ -17058,7 +17059,7 @@ window.addEventListener('popstate',function(e){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 21/05/2026 às 10:02</span></div>
+<div id="page-footer"><span>última atualização · 21/05/2026 às 10:04</span></div>
 
 </div>
 

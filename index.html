@@ -2027,6 +2027,7 @@ mark{background:rgba(255,186,32,0.28);color:var(--accent);border-radius:2px;padd
 .rev-cover-sub-item{font-family:'IBM Plex Mono',monospace;font-size:8.5px;color:#777;letter-spacing:0.06em;line-height:1.9;}
 .rev-grade-acess-icon{display:inline-flex;align-items:center;margin-left:4px;opacity:0.55;vertical-align:middle;}
 .rev-grade-debate-badge{font-family:'IBM Plex Mono',monospace;font-size:6.5px;font-weight:700;letter-spacing:0.14em;color:#888;background:#eeebe5;padding:1px 4px;margin-left:4px;vertical-align:middle;border-radius:2px;}
+.rev-grade-convidados-badge{font-family:'IBM Plex Mono',monospace;font-size:6.5px;font-weight:700;letter-spacing:0.14em;color:#666;background:#e5eaee;padding:1px 4px;margin-left:4px;vertical-align:middle;border-radius:2px;}
 @media print{.rev-page{page-break-after:always;border:none!important;}#revista-container{background:#fff;padding:0;}.rev-page{box-shadow:none;margin-bottom:0;}}
 .rev-sinopses-list{display:flex;gap:24px;align-items:flex-start;}
 .rev-sinopse-col{flex:1;min-width:0;}
@@ -4332,7 +4333,7 @@ html[data-theme]:not([data-theme="win98"]){--mono:var(--sans);}
           vinhetas: vinhetas2,      convidados:     fs(r['guests']),
           apresentacao: fs(r['has_introduction']),  publico:    fs(r['total_audience']),  renda: fs(r['total_revenue']),
           ingressos: fs(r['reserved_tickets']),     leg_eletronica: fs(r['has_electronic_subtitles']),
-          acessibilidades: fs(r['available_accessibility']), col_ag: fs(r['has_debate']),
+          acessibilidades: fs(r['available_accessibility']), col_ag: fs(r['has_debate']), para_convidados: fs(r['for_guests']),
           name: fs(r['name']),      program_id:     fs(r['program_id']),
           subprogram_id: fs(r['subprogram_id']),    session_description: fs(r['session_description']),
           notes: fs(r['notes'])
@@ -5113,7 +5114,7 @@ self.onmessage=function(e){
       var vinhetas=[];
       if(Array.isArray(r['bumpers'])&&r['bumpers'].length){r['bumpers'].forEach(function(vc){var vcs=(vc||'').toString().trim();if(vcs&&vcs!=='-'&&!/^=/.test(vcs))vinhetas.push(vcs);});}
       else{for(var vi=1;vi<=10;vi++){var vc=(r['bumper_'+vi]||'').toString().trim();if(vc&&vc!=='-'&&!/^=/.test(vc))vinhetas.push(vc);}}
-      var s={nome:nome,cinema:r['venue_name']||'',dia:fmtDateStr(r['date']),hora:fmtTimeStr(r['time']),filmes:codes,date:parseDate(r['date']),time:parseTime(r['time']),evento:evento,vinhetas:vinhetas,convidados:(r['guests']||'').toString().trim(),apresentacao:(r['has_introduction']||'').toString().trim(),publico:(r['total_audience']||'').toString().trim(),renda:(r['total_revenue']||'').toString().trim(),ingressos:(r['reserved_tickets']||'').toString().trim(),leg_eletronica:(r['has_electronic_subtitles']||'').toString().trim(),acessibilidades:(r['available_accessibility']||'').toString().trim(),col_ag:(r['has_debate']||'').toString().trim(),name:(r['name']||'').toString().trim(),program_id:(r['program_id']||'').toString().trim(),subprogram_id:(r['subprogram_id']||'').toString().trim(),session_description:(r['session_description']||'').toString().trim()};
+      var s={nome:nome,cinema:r['venue_name']||'',dia:fmtDateStr(r['date']),hora:fmtTimeStr(r['time']),filmes:codes,date:parseDate(r['date']),time:parseTime(r['time']),evento:evento,vinhetas:vinhetas,convidados:(r['guests']||'').toString().trim(),apresentacao:(r['has_introduction']||'').toString().trim(),publico:(r['total_audience']||'').toString().trim(),renda:(r['total_revenue']||'').toString().trim(),ingressos:(r['reserved_tickets']||'').toString().trim(),leg_eletronica:(r['has_electronic_subtitles']||'').toString().trim(),acessibilidades:(r['available_accessibility']||'').toString().trim(),col_ag:(r['has_debate']||'').toString().trim(),para_convidados:(r['for_guests']||'').toString().trim(),name:(r['name']||'').toString().trim(),program_id:(r['program_id']||'').toString().trim(),subprogram_id:(r['subprogram_id']||'').toString().trim(),session_description:(r['session_description']||'').toString().trim()};
       sessoesArr.push(s);sessoesMap[nome]=s;
       codes.forEach(function(c){if(!buscaReverseSessoes[c])buscaReverseSessoes[c]=[];buscaReverseSessoes[c].push(nome);});
     }
@@ -5324,7 +5325,7 @@ function parseWorkbook(data,filename){
       var vinhetas2=[];
       if(Array.isArray(r['bumpers'])&&r['bumpers'].length){r['bumpers'].forEach(function(vc){var vcs=(vc||'').toString().trim();if(vcs&&vcs!=='-'&&!/^=/.test(vcs))vinhetas2.push(vcs);});}
       else{for(var vi=1;vi<=10;vi++){var vc2=(r['bumper_'+vi]||'').toString().trim();if(vc2&&vc2!=='-'&&!/^=/.test(vc2))vinhetas2.push(vc2);}}
-      var s={nome:nome,cinema:r['venue_name']||'',dia:fmtDateStr(r['date']),hora:fmtTimeStr(r['time']),filmes:codes,date:parseDate(r['date']),time:parseTime(r['time']),evento:evento,vinhetas:vinhetas2,convidados:(r['guests']||'').toString().trim(),apresentacao:(r['has_introduction']||'').toString().trim(),publico:(r['total_audience']||'').toString().trim(),renda:(r['total_revenue']||'').toString().trim(),ingressos:(r['reserved_tickets']||'').toString().trim(),leg_eletronica:(r['has_electronic_subtitles']||'').toString().trim(),acessibilidades:(r['available_accessibility']||'').toString().trim(),col_ag:(r['has_debate']||'').toString().trim(),name:(r['name']||'').toString().trim(),program_id:(r['program_id']||'').toString().trim(),subprogram_id:(r['subprogram_id']||'').toString().trim(),session_description:(r['session_description']||'').toString().trim()};
+      var s={nome:nome,cinema:r['venue_name']||'',dia:fmtDateStr(r['date']),hora:fmtTimeStr(r['time']),filmes:codes,date:parseDate(r['date']),time:parseTime(r['time']),evento:evento,vinhetas:vinhetas2,convidados:(r['guests']||'').toString().trim(),apresentacao:(r['has_introduction']||'').toString().trim(),publico:(r['total_audience']||'').toString().trim(),renda:(r['total_revenue']||'').toString().trim(),ingressos:(r['reserved_tickets']||'').toString().trim(),leg_eletronica:(r['has_electronic_subtitles']||'').toString().trim(),acessibilidades:(r['available_accessibility']||'').toString().trim(),col_ag:(r['has_debate']||'').toString().trim(),para_convidados:(r['for_guests']||'').toString().trim(),name:(r['name']||'').toString().trim(),program_id:(r['program_id']||'').toString().trim(),subprogram_id:(r['subprogram_id']||'').toString().trim(),session_description:(r['session_description']||'').toString().trim()};
       sessoesArr.push(s);sessoesMap[nome]=s;
       codes.forEach(function(c){if(!buscaReverseSessoes[c])buscaReverseSessoes[c]=[];buscaReverseSessoes[c].push(nome);});
     }
@@ -5591,10 +5592,10 @@ function renderFicha(nome,s){
   // extra panel (right side of header)
   function feRow(label,value){if(!value)return'';return'<div class="fe-row"><span class="fe-label">'+label+'</span><span class="fe-value accent">'+value+'</span></div>';}
   function feCheck(label,val){var checked=(val||'').toLowerCase()==='sim';return'<div class="fe-check"><span class="fe-box'+(checked?' checked':'')+'">'+( checked?'✕':'')+'</span><span>'+label+'</span></div>';}
-  var hasExtra=s.convidados||s.apresentacao||s.ingressos||s.leg_eletronica||s.col_ag||s.acessibilidades;
+  var hasExtra=s.convidados||s.apresentacao||s.ingressos||s.leg_eletronica||s.col_ag||s.acessibilidades||s.para_convidados;
   var extraHtml='';
   if(hasExtra){
-    var checkFields=(s.apresentacao||s.leg_eletronica||s.col_ag||s.acessibilidades)?'<div class="fe-checks">'+feCheck('Apresentação',s.apresentacao)+feCheck('Leg. elet.',s.leg_eletronica)+feCheck('Debate',s.col_ag)+feCheck('Acessibilidade',s.acessibilidades)+'</div>':'';
+    var checkFields=(s.apresentacao||s.leg_eletronica||s.col_ag||s.acessibilidades||s.para_convidados)?'<div class="fe-checks">'+feCheck('Apresentação',s.apresentacao)+feCheck('Leg. elet.',s.leg_eletronica)+feCheck('Debate',s.col_ag)+feCheck('Acessibilidade',s.acessibilidades)+feCheck('P/ convidados',s.para_convidados)+'</div>':'';
     var acessSet=[];
     if((s.acessibilidades||'').toLowerCase()==='sim'){
       films.forEach(function(f){
@@ -9244,7 +9245,7 @@ async function saveSessaoBordero(){
     time:s.time&&s.time.str&&s.time.str!=='?'?s.time.str:'',
     venue_name:s.cinema||'',program_id:s.program_id||'',subprogram_id:s.subprogram_id||'',
     session_description:s.session_description||'',films:s.filmes||[],bumpers:s.vinhetas||[],
-    guests:s.convidados||'',has_introduction:s.apresentacao||'',has_debate:s.col_ag||'',
+    guests:s.convidados||'',has_introduction:s.apresentacao||'',has_debate:s.col_ag||'',for_guests:s.para_convidados||'',
     has_electronic_subtitles:s.leg_eletronica||'',reserved_tickets:s.ingressos||'',
     available_accessibility:s.acessibilidades||'',
     total_audience:pub,total_revenue:renda,notes:notes
@@ -10120,9 +10121,11 @@ function _revRenderGradePages(evName,evBg,evText,msr,allPages,startPageNum){
         var durStr=totalSecs>0?(function(){var m=Math.round(totalSecs/60);return Math.floor(m/60)+'h'+String(m%60).padStart(2,'0');}()):'';
         var hasAcess=(s.acessibilidades||'').trim()&&!/^n[ãa]o$/i.test(s.acessibilidades||'');
         var hasDebate=(s.col_ag||'').toLowerCase().trim()==='sim';
+        var hasParaConvidados=(s.para_convidados||'').toLowerCase().trim()==='sim';
         var _acessH=hasAcess?'<span class="rev-grade-acess-icon" title="'+_revEsc(s.acessibilidades)+'"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="4" r="1"/><path d="m11 9 2 7h5l-1.5 3"/><path d="M9 9H7l1 7"/><path d="M13.5 19a4.5 4.5 0 1 1-9 0 4.5 4.5 0 0 1 9 0z"/></svg></span>':'';
         var _debateH=hasDebate?'<span class="rev-grade-debate-badge">DEBATE</span>':'';
-        var _indicH=_acessH+_debateH;
+        var _convH=hasParaConvidados?'<span class="rev-grade-convidados-badge">p/ convidados</span>':'';
+        var _indicH=_acessH+_debateH+_convH;
         if(filmsData.length===1){
           var fi=filmsData[0];
           var fEl=document.createElement('div');
@@ -12371,6 +12374,7 @@ function renderDash(){
         if(s.apresentacao&&s.apresentacao.toUpperCase()==='SIM')extras.push('Apresentação ✓');
         if(s.leg_eletronica&&s.leg_eletronica.toUpperCase()==='SIM')extras.push('Leg. elet. ✓');
         if(s.col_ag&&s.col_ag.toUpperCase()==='SIM')extras.push('Debate ✓');
+        if(s.para_convidados&&s.para_convidados.toUpperCase()==='SIM')extras.push('P/ convidados ✓');
         if((function(){var _a=(s.acessibilidades||'').trim();return _a&&!/^n[ãa]o$/i.test(_a);})())extras.push('<svg width="14" height="14" viewBox="0 0 24 24" style="stroke:currentColor;stroke-width:1.75;fill:none;stroke-linecap:round;stroke-linejoin:round;" xmlns="http://www.w3.org/2000/svg"><circle cx="11" cy="4" r="1"/><path d="m11 9 2 7h5l-1.5 3"/><path d="M9 9H7l1 7"/><path d="M13.5 19a4.5 4.5 0 1 1-9 0 4.5 4.5 0 0 1 9 0z"/></svg> '+s.acessibilidades);
         bodyHtml+='<div class="dsd-sess-row'+(hasAlert?' dsd-sess-alert':'')+'" style="cursor:pointer" onclick="goToFicha(\''+safe+'\')">'+
           '<span class="dsd-date">'+s.dia+'</span>'+
@@ -12844,7 +12848,7 @@ function renderDash(){
   html+=colBlock('kdm','KDM',kdmBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 21/05/2026 às 10:00';
+  var sysUpdate='última atualização do sistema · 21/05/2026 às 10:02';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -13198,10 +13202,10 @@ function _progRenderSessao(sessaoNome){
   var ratingBadge=_ratingMax?_catRatingBadge(_ratingMax):'';
   function feRow(label,value){if(!value)return'';return'<div class="fe-row"><span class="fe-label">'+label+'</span><span class="fe-value accent">'+esc(value)+'</span></div>';}
   function feCheck(label,val){var checked=(val||'').toLowerCase()==='sim';return'<div class="fe-check"><span class="fe-box'+(checked?' checked':'')+'">'+( checked?'✕':'')+'</span><span>'+label+'</span></div>';}
-  var hasExtra=s.convidados||s.apresentacao||s.ingressos||s.leg_eletronica||s.col_ag||s.acessibilidades;
+  var hasExtra=s.convidados||s.apresentacao||s.ingressos||s.leg_eletronica||s.col_ag||s.acessibilidades||s.para_convidados;
   var extraHtml='';
   if(hasExtra){
-    var checkFields=(s.apresentacao||s.leg_eletronica||s.col_ag||s.acessibilidades)?'<div class="fe-checks">'+feCheck('Apresentação',s.apresentacao)+feCheck('Leg. elet.',s.leg_eletronica)+feCheck('Debate',s.col_ag)+feCheck('Acessibilidade',s.acessibilidades)+'</div>':'';
+    var checkFields=(s.apresentacao||s.leg_eletronica||s.col_ag||s.acessibilidades||s.para_convidados)?'<div class="fe-checks">'+feCheck('Apresentação',s.apresentacao)+feCheck('Leg. elet.',s.leg_eletronica)+feCheck('Debate',s.col_ag)+feCheck('Acessibilidade',s.acessibilidades)+feCheck('P/ convidados',s.para_convidados)+'</div>':'';
     var acessSet2=[];
     if((s.acessibilidades||'').toLowerCase()==='sim'){
       films.forEach(function(f){if(f.acessibilidade){f.acessibilidade.split(/[,;\/\n]+/).forEach(function(a){var t=a.trim();if(t&&acessSet2.indexOf(t)<0)acessSet2.push(t);});}});
@@ -13556,6 +13560,7 @@ function openProgSessaoModal(sessaoNome,programId,subprogramId){
   document.getElementById('progSessaoLegEletronica').checked=s&&(s.leg_eletronica||'').toLowerCase()==='sim';
   document.getElementById('progSessaoDebate').checked=s&&(s.col_ag||'').toLowerCase()==='sim';
   document.getElementById('progSessaoAcessibilidade').checked=s&&(s.acessibilidades||'').toLowerCase()==='sim';
+  document.getElementById('progSessaoParaConvidados').checked=s&&(s.para_convidados||'').toLowerCase()==='sim';
   var tmplSel=document.getElementById('progVinTemplateApply');
   if(tmplSel){
     tmplSel.innerHTML='<option value="">— aplicar template de vinhetas —</option>'+tmplOpts;
@@ -13566,7 +13571,7 @@ function openProgSessaoModal(sessaoNome,programId,subprogramId){
   document.getElementById('progSessaoModalErr').style.display='none';
   _progSessaoVinOnly=!!(sessaoNome&&window._olgaHasRestricao('sessoes.somente_vinhetas'));
   _progRenderFilmsEdit();_progRenderBumpersEdit();
-  ['progSessaoName','progSessaoDate','progSessaoTime','progSessaoCinemaSelect','progSessaoSubprogramSelect','progSessaoDesc','progSessaoIngressos','progSessaoAcessibilidade','progSessaoApresentacao','progSessaoLegEletronica','progSessaoDebate','progFilmSearch'].forEach(function(fid){var el=document.getElementById(fid);if(el){el.disabled=_progSessaoVinOnly;el.style.opacity=_progSessaoVinOnly?'0.4':'';}});
+  ['progSessaoName','progSessaoDate','progSessaoTime','progSessaoCinemaSelect','progSessaoSubprogramSelect','progSessaoDesc','progSessaoIngressos','progSessaoAcessibilidade','progSessaoApresentacao','progSessaoLegEletronica','progSessaoDebate','progSessaoParaConvidados','progFilmSearch'].forEach(function(fid){var el=document.getElementById(fid);if(el){el.disabled=_progSessaoVinOnly;el.style.opacity=_progSessaoVinOnly?'0.4':'';}});
   document.getElementById('progSessaoModalTitle').textContent=_progSessaoVinOnly?'editar vinhetas · '+sessaoNome:'';
   document.getElementById('progSessaoModal').style.display='flex';
   _progRenderConvidadosTags();
@@ -13721,7 +13726,7 @@ async function saveProgSessaoModal(){
       time:ex.time&&ex.time.str&&ex.time.str!=='?'?ex.time.str:'',
       venue_name:ex.cinema||'',program_id:ex.program_id||'',subprogram_id:ex.subprogram_id||'',
       session_description:ex.session_description||'',films:ex.filmes||[],bumpers:_progSessaoBumpersArr,
-      guests:ex.convidados||'',has_introduction:ex.apresentacao||'',has_debate:ex.col_ag||'',
+      guests:ex.convidados||'',has_introduction:ex.apresentacao||'',has_debate:ex.col_ag||'',for_guests:ex.para_convidados||'',
       has_electronic_subtitles:ex.leg_eletronica||'',reserved_tickets:ex.ingressos||'',
       available_accessibility:ex.acessibilidades||'',
       total_audience:ex.publico||'',total_revenue:ex.renda||'',notes:ex.notes||''};
@@ -13750,6 +13755,7 @@ async function saveProgSessaoModal(){
     guests:_progSessaoConvidadosTags.join(', '),
     has_introduction:document.getElementById('progSessaoApresentacao').checked?'Sim':'Não',
     has_debate:document.getElementById('progSessaoDebate').checked?'Sim':'Não',
+    for_guests:document.getElementById('progSessaoParaConvidados').checked?'Sim':'Não',
     has_electronic_subtitles:document.getElementById('progSessaoLegEletronica').checked?'Sim':'Não',
     reserved_tickets:(document.getElementById('progSessaoIngressos').value||'').trim(),
     available_accessibility:document.getElementById('progSessaoAcessibilidade').checked?'Sim':'Não',
@@ -13787,7 +13793,7 @@ async function deleteProgSessao(nome){
 async function duplicateProgSessao(nome){
   var s=sessoesMap[nome];if(!s)return;
   var newNome=nome+'_copia';
-  var data={session_id:newNome,name:(s.name||nome)+' (cópia)',event_name:s.evento,date:s.date?s.date.toISOString().slice(0,10):'',time:s.time?s.time.str:'',venue_name:s.cinema,program_id:s.program_id||'',subprogram_id:s.subprogram_id||'',session_description:s.session_description||'',films:s.filmes.slice(),bumpers:s.vinhetas.slice(),guests:s.convidados||'',has_introduction:s.apresentacao||'Não',has_debate:s.col_ag||'Não',has_electronic_subtitles:s.leg_eletronica||'Não',reserved_tickets:s.ingressos||'',available_accessibility:s.acessibilidades||''};
+  var data={session_id:newNome,name:(s.name||nome)+' (cópia)',event_name:s.evento,date:s.date?s.date.toISOString().slice(0,10):'',time:s.time?s.time.str:'',venue_name:s.cinema,program_id:s.program_id||'',subprogram_id:s.subprogram_id||'',session_description:s.session_description||'',films:s.filmes.slice(),bumpers:s.vinhetas.slice(),guests:s.convidados||'',has_introduction:s.apresentacao||'Não',has_debate:s.col_ag||'Não',for_guests:s.para_convidados||'Não',has_electronic_subtitles:s.leg_eletronica||'Não',reserved_tickets:s.ingressos||'',available_accessibility:s.acessibilidades||''};
   try{await window._olgaSessoes.save(newNome,data);await window._olgaLoadFirestore();_progRender();}
   catch(e){alert('Erro ao duplicar: '+e.message);}
 }
@@ -16855,6 +16861,7 @@ window.addEventListener('popstate',function(e){
           <label class="prog-modal-check-row"><input type="checkbox" id="progSessaoLegEletronica"> Leg. eletrônica</label>
           <label class="prog-modal-check-row"><input type="checkbox" id="progSessaoDebate"> Debate</label>
           <label class="prog-modal-check-row"><input type="checkbox" id="progSessaoAcessibilidade"> Acessibilidade</label>
+          <label class="prog-modal-check-row"><input type="checkbox" id="progSessaoParaConvidados"> Sessão para convidados</label>
         </div>
       </div>
     </div>
@@ -17051,7 +17058,7 @@ window.addEventListener('popstate',function(e){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 21/05/2026 às 10:00</span></div>
+<div id="page-footer"><span>última atualização · 21/05/2026 às 10:02</span></div>
 
 </div>
 
@@ -17495,6 +17502,7 @@ function _mobRenderSessaoFicha(params){
     {label:'Leg. eletrônica', val:s.leg_eletronica},
     {label:'Debate', val:s.col_ag},
     {label:'Acessibilidade', val:s.acessibilidades},
+    {label:'P/ convidados', val:s.para_convidados},
   ];
   html+='<div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px;">';
   boxItems.forEach(function(b){
@@ -18315,7 +18323,7 @@ function _mobRenderProgSessao(params,noScroll){
   if(s.convidados)extraParts.push('Convidados: '+s.convidados);
   if(s.ingressos)extraParts.push('Ingressos reservados: '+s.ingressos);
   if(extraParts.length)html+='<div style="font-family:var(--mono);font-size:10px;color:var(--accent);background:rgba(255,186,32,0.07);border:1px solid rgba(255,186,32,0.2);border-radius:2px;padding:7px 10px;margin-bottom:10px;">'+extraParts.map(_mobEsc).join(' · ')+'</div>';
-  var boxItems=[{label:'Apresentação',val:s.apresentacao},{label:'Leg. eletrônica',val:s.leg_eletronica},{label:'Debate',val:s.col_ag},{label:'Acessibilidade',val:s.acessibilidades}];
+  var boxItems=[{label:'Apresentação',val:s.apresentacao},{label:'Leg. eletrônica',val:s.leg_eletronica},{label:'Debate',val:s.col_ag},{label:'Acessibilidade',val:s.acessibilidades},{label:'P/ convidados',val:s.para_convidados}];
   html+='<div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px;">';
   boxItems.forEach(function(b){
     var checked=b.val&&b.val.toLowerCase().indexOf('sim')!==-1;

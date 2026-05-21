@@ -10018,6 +10018,7 @@ function _revPaginateColumnsContent(itemFns,pageShellFn,startNum,msr){
 function _revRenderGradePages(evName,evBg,evText,msr,allPages,startPageNum){
   var pageNum=startPageNum;
   var GRADE_COL_H=540;
+  var HALF_H=Math.floor(GRADE_COL_H/2);
   var cinMap={};
   sessoesArr.forEach(function(s){
     if(s.evento!==evName)return;
@@ -10043,6 +10044,7 @@ function _revRenderGradePages(evName,evBg,evText,msr,allPages,startPageNum){
       return d;
     });
     if(!dates.length)return;
+    var curCol=0,curSlot=0,slots=[];
     function newGradePage(){
       var page=document.createElement('div');
       page.className='rev-page';
@@ -10064,19 +10066,27 @@ function _revRenderGradePages(evName,evBg,evText,msr,allPages,startPageNum){
       page.appendChild(rule);
       var colsWrap=document.createElement('div');
       colsWrap.className='rev-grade-cols';
-      var cols=[0,1,2].map(function(){
+      colsWrap.style.height=GRADE_COL_H+'px';
+      slots=[];
+      [0,1,2].forEach(function(){
         var col=document.createElement('div');
         col.className='rev-grade-col';
+        col.style.cssText='flex:1;min-width:0;position:relative;height:'+GRADE_COL_H+'px;';
+        var s0=document.createElement('div');
+        s0.style.cssText='position:absolute;top:0;left:0;right:0;';
+        var s1=document.createElement('div');
+        s1.style.cssText='position:absolute;top:'+HALF_H+'px;left:0;right:0;';
+        col.appendChild(s0);
+        col.appendChild(s1);
         colsWrap.appendChild(col);
-        return col;
+        slots.push(s0,s1);
       });
       page.appendChild(colsWrap);
       msr.appendChild(page);
       allPages.push(page);
-      return cols;
+      curCol=0;curSlot=0;
     }
-    var cols=newGradePage();
-    var curC=0;
+    newGradePage();
     dates.forEach(function(d){
       var block=document.createElement('div');
       block.className='rev-grade-day-block';
@@ -10141,12 +10151,19 @@ function _revRenderGradePages(evName,evBg,evText,msr,allPages,startPageNum){
         row.appendChild(cnt);
         block.appendChild(row);
       });
-      cols[curC].appendChild(block);
-      if(cols[curC].scrollHeight>GRADE_COL_H&&cols[curC].children.length>1){
-        cols[curC].removeChild(block);
-        curC++;
-        if(curC>=3){cols=newGradePage();curC=0;}
-        cols[curC].appendChild(block);
+      var slotEl=slots[curCol*2+curSlot];
+      slotEl.appendChild(block);
+      if(block.scrollHeight>HALF_H){
+        slotEl.removeChild(block);
+        curCol++;curSlot=0;
+        if(curCol>=3){newGradePage();}
+        slots[curCol*2+curSlot].appendChild(block);
+      }
+      if(curSlot===0){
+        curSlot=1;
+      } else {
+        curSlot=0;curCol++;
+        if(curCol>=3){newGradePage();}
       }
     });
   });
@@ -12816,7 +12833,7 @@ function renderDash(){
   html+=colBlock('kdm','KDM',kdmBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 20/05/2026 às 19:56';
+  var sysUpdate='última atualização do sistema · 21/05/2026 às 19:58';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -17023,7 +17040,7 @@ window.addEventListener('popstate',function(e){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 20/05/2026 às 19:56</span></div>
+<div id="page-footer"><span>última atualização · 21/05/2026 às 19:58</span></div>
 
 </div>
 

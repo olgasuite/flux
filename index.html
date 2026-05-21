@@ -12878,7 +12878,7 @@ function renderDash(){
   html+=colBlock('kdm','KDM',kdmBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 21/05/2026 às 10:06';
+  var sysUpdate='última atualização do sistema · 21/05/2026 às 10:08';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -13887,7 +13887,8 @@ var _EQUIPE_RESTRICOES=[
   {k:'catalogo.importar_acervo',label:'Catálogo · Ocultar botão "Importar do Acervo"'},
   {k:'catalogo.tmdb',label:'Catálogo · Ocultar importação do TMDB'},
   {k:'catalogo.batch_delete',label:'Catálogo · Ocultar botão "Excluir selecionados"'},
-  {k:'catalogo.filmfreeway',label:'Catálogo · Ocultar bloco FilmFreeway'},
+  {k:'catalogo.filmfreeway',label:'Catálogo · Ocultar botão e bloco FilmFreeway'},
+  {k:'catalogo.cinemateca',label:'Catálogo · Ocultar botão "Filmografia Brasileira"'},
   {k:'sessoes.btn_projecao',label:'Sessões · Ocultar botão "Ficha de Projeção"'},
   {k:'projecao.btn_programacao',label:'Projeção · Ocultar botão "Ficha de Programação"'}
 ];
@@ -15088,7 +15089,7 @@ function renderCatalogo(){
   var _catCanEdit=window._olgaUser&&window._olgaCanEdit('catalogo');
   if(_catCanEdit)html+='<button class="cat-edit-btn" style="margin-left:auto;" onclick="openCatCreate()">+ Novo filme</button>';
   if(_catCanEdit&&!window._olgaHasRestricao('catalogo.importar_acervo'))html+='<button class="cat-edit-btn" onclick="importCopiasToCatalog()">↓ Importar do Acervo</button>';
-  if(_catCanEdit)html+='<button class="cat-edit-btn" style="background:var(--accent-dim);border-color:var(--accent);color:var(--accent);" onclick="openFFImport()">↓ FilmFreeway</button>';
+  if(_catCanEdit&&!window._olgaHasRestricao('catalogo.filmfreeway'))html+='<button class="cat-edit-btn" style="background:var(--accent-dim);border-color:var(--accent);color:var(--accent);" onclick="openFFImport()">↓ FilmFreeway</button>';
   html+='</div>';
   // slots bar
   html+='<div class="cat-slots-bar" id="cat-slots-bar" style="display:'+((_catSlots.length)?'flex':'none')+'">';
@@ -15139,7 +15140,7 @@ function renderCatDetail(){
   var acervoBtn='<button class="cat-card-btn" style="margin-left:0;" onclick="goToBuscaCod(\''+_catCode.replace(/'/g,"\\'")+'\')">Ver no Acervo Técnico</button>';
   if(canEdit&&!_catEditing){
     var _tmdbDetailBtn=(!window._olgaHasRestricao||!window._olgaHasRestricao('catalogo.tmdb'))?'<button class="cat-edit-btn" onclick="importFromTMDB(\''+_catCode.replace(/'/g,"\\'")+'\',this)">↓ TMDB</button>':'';
-    var _cinDetailBtn='<button class="cat-edit-btn" onclick="importFromCinemateca(\''+_catCode.replace(/'/g,"\\'")+'\',this)">↓ Filmografia Brasileira</button>';
+    var _cinDetailBtn=(!window._olgaHasRestricao||!window._olgaHasRestricao('catalogo.cinemateca'))?'<button class="cat-edit-btn" onclick="importFromCinemateca(\''+_catCode.replace(/'/g,"\\'")+'\',this)">↓ Filmografia Brasileira</button>':'';
     html+='<div class="cat-actions">'+acervoBtn+_tmdbDetailBtn+_cinDetailBtn+'<button class="cat-edit-btn" onclick="duplicateCatFilm(\''+_catCode.replace(/\'/g,"\\\'")+'\')">⧉ Duplicar</button><button class="cat-edit-btn" onclick="startCatEdit()">✎ Editar</button><button class="cat-edit-btn" style="color:var(--warn);border-color:var(--warn);" onclick="deleteCatFilm(\''+_catCode.replace(/\'/g,"\\\'")+'\')">× Excluir</button></div>';
   }
   else if(_catEditing)
@@ -17124,7 +17125,7 @@ window.addEventListener('popstate',function(e){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 21/05/2026 às 10:06</span></div>
+<div id="page-footer"><span>última atualização · 21/05/2026 às 10:08</span></div>
 
 </div>
 

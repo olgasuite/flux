@@ -3094,6 +3094,11 @@ mark{background:rgba(255,186,32,0.28);color:var(--accent);border-radius:2px;padd
 .cat-sess-day{color:var(--text-muted);min-width:80px;}
 .cat-sess-cinema{color:var(--text-dim);flex:1;}
 .cat-sess-name{color:var(--text);font-family:var(--sans);}
+.cat-sess-badges{display:flex;align-items:center;gap:4px;flex-shrink:0;}
+.cat-sess-badge{font-family:var(--mono);font-size:8px;font-weight:700;letter-spacing:0.1em;padding:1px 5px;border-radius:2px;white-space:nowrap;border:1px solid;}
+.cat-sess-badge-debate{color:var(--text-muted);background:var(--surface2);border-color:var(--border2);}
+.cat-sess-badge-conv{color:var(--text-dim);background:var(--surface2);border-color:var(--border2);}
+.cat-sess-badge-acess{color:#5ddc8a;background:rgba(61,186,110,0.08);border-color:rgba(61,186,110,0.2);display:inline-flex;align-items:center;gap:3px;}
 .cat-input{width:100%;font-family:var(--sans);font-size:12px;background:var(--bg);color:var(--text);border:1px solid var(--border2);padding:6px 10px;outline:none;transition:border-color 0.12s;}
 .cat-input:focus{border-color:var(--accent);}
 .cat-textarea{width:100%;font-family:var(--sans);font-size:12px;background:var(--bg);color:var(--text);border:1px solid var(--border2);padding:8px 10px;outline:none;resize:vertical;min-height:90px;transition:border-color 0.12s;}
@@ -12879,7 +12884,7 @@ function renderDash(){
   html+=colBlock('kdm','KDM',kdmBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 21/05/2026 às 10:12';
+  var sysUpdate='última atualização do sistema · 21/05/2026 às 10:14';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -15258,11 +15263,23 @@ function renderCatDetail(){
   if(sessoes.length){
     var sh='<div class="cat-sess-list">';
     sessoes.forEach(function(s){
+      var _hasAcess=(s.acessibilidades||'').trim()&&!/^n[\u00e3a]o$/i.test(s.acessibilidades||'');
+      var _hasDebate=(s.col_ag||'').toLowerCase().trim()==='sim';
+      var _hasConv=(s.para_convidados||'').toLowerCase().trim()==='sim';
+      var _badges='';
+      if(_hasAcess||_hasDebate||_hasConv){
+        _badges='<span class="cat-sess-badges">';
+        if(_hasAcess)_badges+='<span class="cat-sess-badge cat-sess-badge-acess" title="'+s.acessibilidades+'"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="4" r="1"/><path d="m11 9 2 7h5l-1.5 3"/><path d="M9 9H7l1 7"/><path d="M13.5 19a4.5 4.5 0 1 1-9 0 4.5 4.5 0 0 1 9 0z"/></svg></span>';
+        if(_hasDebate)_badges+='<span class="cat-sess-badge cat-sess-badge-debate">DEBATE</span>';
+        if(_hasConv)_badges+='<span class="cat-sess-badge cat-sess-badge-conv">p/ convidados</span>';
+        _badges+='</span>';
+      }
       sh+='<div class="cat-sess-item" data-nome="'+s.nome.replace(/"/g,'&quot;')+'" onclick="goToFicha(this.dataset.nome)">'
         +'<span class="cat-sess-time">'+(s.time?s.time.str:'\u2014')+'</span>'
         +'<span class="cat-sess-day">'+s.dia+'</span>'
         +'<span class="cat-sess-cinema">'+(s.cinema||'\u2014')+'</span>'
         +'<span class="cat-sess-name">'+s.nome+'</span>'
+        +_badges
         +'</div>';
     });
     html+=catBlock('Sessões ('+sessoes.length+')',sh+'</div>');
@@ -17126,7 +17143,7 @@ window.addEventListener('popstate',function(e){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 21/05/2026 às 10:12</span></div>
+<div id="page-footer"><span>última atualização · 21/05/2026 às 10:14</span></div>
 
 </div>
 

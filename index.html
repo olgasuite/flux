@@ -1989,7 +1989,7 @@ mark{background:rgba(255,186,32,0.28);color:var(--accent);border-radius:2px;padd
 .rev-page-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:36px;}
 .rev-evento-pill{font-family:'IBM Plex Mono',monospace;font-size:8px;font-weight:600;letter-spacing:0.28em;text-transform:uppercase;padding:5px 12px;background:#111;color:#f8f7f4;display:inline-block;border-radius:9999px;}
 .rev-page-num{font-family:'IBM Plex Mono',monospace;font-size:9px;color:#999;letter-spacing:0.12em;margin-top:4px;}
-.rev-mostra-label{font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:600;letter-spacing:0.22em;text-transform:uppercase;color:#777;margin-bottom:10px;}
+.rev-mostra-label{font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:600;letter-spacing:0.22em;text-transform:uppercase;color:#777;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between;}
 .rev-mostra-rule{border:none;border-top:1px solid #333;margin:0 0 22px 0;}
 .rev-page-body{display:flex;gap:0;align-items:flex-start;}
 .rev-main{flex:1;min-width:0;padding-right:32px;}
@@ -2029,9 +2029,13 @@ mark{background:rgba(255,186,32,0.28);color:var(--accent);border-radius:2px;padd
 .rev-cover-mostra-item{flex:1;min-width:180px;}
 .rev-cover-mostra-name{font-family:'IBM Plex Sans',sans-serif;font-size:13px;font-weight:600;color:#111;margin-bottom:5px;}
 .rev-cover-sub-item{font-family:'IBM Plex Mono',monospace;font-size:8.5px;color:#777;letter-spacing:0.06em;line-height:1.9;}
-.rev-grade-acess-icon{display:inline-flex;align-items:center;margin-left:4px;opacity:0.55;vertical-align:middle;}
-.rev-grade-debate-badge{font-family:'IBM Plex Mono',monospace;font-size:6.5px;font-weight:700;letter-spacing:0.14em;color:#888;background:#eeebe5;padding:1px 4px;margin-left:4px;vertical-align:middle;border-radius:2px;}
-.rev-grade-convidados-badge{font-family:'IBM Plex Mono',monospace;font-size:6.5px;font-weight:700;letter-spacing:0.14em;color:#666;background:#e5eaee;padding:1px 4px;margin-left:4px;vertical-align:middle;border-radius:2px;}
+.rev-grade-acess-icon,.rev-grade-debate-badge,.rev-grade-convidados-badge{display:inline-flex;align-items:center;margin-left:4px;vertical-align:middle;}
+.rev-grade-acess-icon{opacity:0.55;}
+.rev-grade-debate-badge{opacity:0.5;color:#555;}
+.rev-grade-convidados-badge{opacity:0.45;color:#555;}
+.rev-mostra-label{display:flex;align-items:center;justify-content:space-between;}
+.rev-mostra-legend{display:inline-flex;align-items:center;gap:10px;font-family:'IBM Plex Mono',monospace;font-size:7px;letter-spacing:0.06em;color:#999;font-weight:400;text-transform:none;}
+.rev-mostra-legend-item{display:inline-flex;align-items:center;gap:3px;}
 @media print{.rev-page{page-break-after:always;border:none!important;}#revista-container{background:#fff;padding:0;}.rev-page{box-shadow:none;margin-bottom:0;}}
 .rev-sinopses-list{display:flex;gap:24px;align-items:flex-start;}
 .rev-sinopse-col{flex:1;min-width:0;}
@@ -3095,10 +3099,10 @@ mark{background:rgba(255,186,32,0.28);color:var(--accent);border-radius:2px;padd
 .cat-sess-cinema{color:var(--text-dim);flex:1;}
 .cat-sess-name{color:var(--text);font-family:var(--sans);}
 .cat-sess-badges{display:flex;align-items:center;gap:4px;flex-shrink:0;}
-.cat-sess-badge{font-family:var(--mono);font-size:8px;font-weight:700;letter-spacing:0.1em;padding:1px 5px;border-radius:2px;white-space:nowrap;border:1px solid;}
-.cat-sess-badge-debate{color:var(--text-muted);background:var(--surface2);border-color:var(--border2);}
+.cat-sess-badge{display:inline-flex;align-items:center;padding:2px 4px;border-radius:2px;border:1px solid;opacity:0.8;}
+.cat-sess-badge-debate{color:var(--text-dim);background:var(--surface2);border-color:var(--border2);}
 .cat-sess-badge-conv{color:var(--text-dim);background:var(--surface2);border-color:var(--border2);}
-.cat-sess-badge-acess{color:#5ddc8a;background:rgba(61,186,110,0.08);border-color:rgba(61,186,110,0.2);display:inline-flex;align-items:center;gap:3px;}
+.cat-sess-badge-acess{color:#5ddc8a;background:rgba(61,186,110,0.08);border-color:rgba(61,186,110,0.2);}
 .cat-input{width:100%;font-family:var(--sans);font-size:12px;background:var(--bg);color:var(--text);border:1px solid var(--border2);padding:6px 10px;outline:none;transition:border-color 0.12s;}
 .cat-input:focus{border-color:var(--accent);}
 .cat-textarea{width:100%;font-family:var(--sans);font-size:12px;background:var(--bg);color:var(--text);border:1px solid var(--border2);padding:8px 10px;outline:none;resize:vertical;min-height:90px;transition:border-color 0.12s;}
@@ -7788,8 +7792,10 @@ function goToFicha(nomeSessao){
 
 function goToProgFichaFromGrade(nomeSessao){
   var sess=sessoesMap[nomeSessao];
-  _progView={level:'sessao',programId:(sess&&sess.program_id)||null,sessaoNome:nomeSessao};
+  var pid=(sess&&sess.program_id)||null;
+  _progView={level:'sessao',programId:pid,sessaoNome:nomeSessao};
   _progSkipReset=true;
+  if(!_browserNav)history.pushState({olga:'programacao',progLevel:'sessao',progProgramId:pid,progSessaoNome:nomeSessao},'');
   switchMode('programacao',true);
 }
 /* ═══════════════ RECEPTIVO ═══════════════ */
@@ -9950,6 +9956,16 @@ function _revPaginateContent(items,shellFn,startNum,msr){
 }
 
 var _DIAS_REV=['DOM','SEG','TER','QUA','QUI','SEX','SÁB'];
+var _revDebateSvg='<svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 9a2 2 0 0 1-2 2H6l-4 4V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v5z"/><path d="M18 9h2a2 2 0 0 1 2 2v11l-4-4h-6a2 2 0 0 1-2-2v-1"/></svg>';
+var _revConvSvg='<svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>';
+var _revAcessSvg='<svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="4" r="1"/><path d="m11 9 2 7h5l-1.5 3"/><path d="M9 9H7l1 7"/><path d="M13.5 19a4.5 4.5 0 1 1-9 0 4.5 4.5 0 0 1 9 0z"/></svg>';
+function _revLegendHtml(){
+  return '<span class="rev-mostra-legend">'
+    +'<span class="rev-mostra-legend-item">'+_revDebateSvg+' debate</span>'
+    +'<span class="rev-mostra-legend-item">'+_revConvSvg+' sessão para convidados</span>'
+    +'<span class="rev-mostra-legend-item">'+_revAcessSvg+' acessível</span>'
+    +'</span>';
+}
 
 function _revGetSinopseItems(evName){
   var filmCodes=[],filmCodesSet={},filmSessoes={},filmMostras={};
@@ -10019,7 +10035,13 @@ function _revSinopseItemFns(sinopseItems){
           if(dia&&ddmm)parts.push(dia+' ('+ddmm+')');
           if(s.hora)parts.push(s.hora);
           if(s.cinema)parts.push(s.cinema);
-          html+='<div class="rev-sinopse-sess-row">'+_revEsc(parts.join('  '))+'</div>';
+          var _hAcess=(s.acessibilidades||'').trim()&&!/^n[ãa]o$/i.test(s.acessibilidades||'');
+          var _hDeb=(s.col_ag||'').toLowerCase().trim()==='sim';
+          var _hConv=(s.para_convidados||'').toLowerCase().trim()==='sim';
+          var _sb=(_hAcess?'<span class="rev-grade-acess-icon" title="'+_revEsc(s.acessibilidades)+'">'+_revAcessSvg+'</span>':'')
+            +(_hDeb?'<span class="rev-grade-debate-badge" title="debate">'+_revDebateSvg+'</span>':'')
+            +(_hConv?'<span class="rev-grade-convidados-badge" title="sessão para convidados">'+_revConvSvg+'</span>':'');
+          html+='<div class="rev-sinopse-sess-row" style="display:flex;align-items:center;gap:4px;">'+_revEsc(parts.join('  '))+_sb+'</div>';
         });
         html+='</div>';
       }
@@ -10096,7 +10118,7 @@ function _revRenderGradePages(evName,evBg,evText,msr,allPages,startPageNum){
       page.appendChild(hdr);
       var lbl=document.createElement('div');
       lbl.className='rev-mostra-label';
-      lbl.textContent='grade de programação';
+      lbl.innerHTML='grade de programação'+_revLegendHtml();
       page.appendChild(lbl);
       var rule=document.createElement('hr');
       rule.className='rev-mostra-rule';
@@ -10159,8 +10181,8 @@ function _revRenderGradePages(evName,evBg,evText,msr,allPages,startPageNum){
         var hasDebate=(s.col_ag||'').toLowerCase().trim()==='sim';
         var hasParaConvidados=(s.para_convidados||'').toLowerCase().trim()==='sim';
         var _acessH=hasAcess?'<span class="rev-grade-acess-icon" title="'+_revEsc(s.acessibilidades)+'"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="4" r="1"/><path d="m11 9 2 7h5l-1.5 3"/><path d="M9 9H7l1 7"/><path d="M13.5 19a4.5 4.5 0 1 1-9 0 4.5 4.5 0 0 1 9 0z"/></svg></span>':'';
-        var _debateH=hasDebate?'<span class="rev-grade-debate-badge">DEBATE</span>':'';
-        var _convH=hasParaConvidados?'<span class="rev-grade-convidados-badge">p/ convidados</span>':'';
+        var _debateH=hasDebate?'<span class="rev-grade-debate-badge" title="debate">'+_revDebateSvg+'</span>':'';
+        var _convH=hasParaConvidados?'<span class="rev-grade-convidados-badge" title="sessão para convidados">'+_revConvSvg+'</span>':'';
         var _indicH=_acessH+_debateH+_convH;
         if(filmsData.length===1){
           var fi=filmsData[0];
@@ -10460,7 +10482,7 @@ function renderRevista(){
       var colsEl=document.createElement('div');colsEl.className='rev-sinopses-list';
       cols.forEach(function(c){colsEl.appendChild(c);});
       var page=document.createElement('div');page.className='rev-page';
-      page.innerHTML='<div class="rev-page-header"><div class="rev-evento-pill" style="background:'+evBg+';color:'+evText+'">'+_revEsc(_revEventoLabel(evName))+'</div><div class="rev-page-num">'+pn+'</div></div><div class="rev-mostra-label">sinopses</div><hr class="rev-mostra-rule">';
+      page.innerHTML='<div class="rev-page-header"><div class="rev-evento-pill" style="background:'+evBg+';color:'+evText+'">'+_revEsc(_revEventoLabel(evName))+'</div><div class="rev-page-num">'+pn+'</div></div><div class="rev-mostra-label">sinopses'+_revLegendHtml()+'</div><hr class="rev-mostra-rule">';
       page.appendChild(colsEl);
       return{page:page,cols:cols};
     }
@@ -12884,7 +12906,7 @@ function renderDash(){
   html+=colBlock('kdm','KDM',kdmBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 21/05/2026 às 10:14';
+  var sysUpdate='última atualização do sistema · 21/05/2026 às 10:22';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -15270,8 +15292,8 @@ function renderCatDetail(){
       if(_hasAcess||_hasDebate||_hasConv){
         _badges='<span class="cat-sess-badges">';
         if(_hasAcess)_badges+='<span class="cat-sess-badge cat-sess-badge-acess" title="'+s.acessibilidades+'"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="4" r="1"/><path d="m11 9 2 7h5l-1.5 3"/><path d="M9 9H7l1 7"/><path d="M13.5 19a4.5 4.5 0 1 1-9 0 4.5 4.5 0 0 1 9 0z"/></svg></span>';
-        if(_hasDebate)_badges+='<span class="cat-sess-badge cat-sess-badge-debate">DEBATE</span>';
-        if(_hasConv)_badges+='<span class="cat-sess-badge cat-sess-badge-conv">p/ convidados</span>';
+        if(_hasDebate)_badges+='<span class="cat-sess-badge cat-sess-badge-debate" title="debate"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 9a2 2 0 0 1-2 2H6l-4 4V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v5z"/><path d="M18 9h2a2 2 0 0 1 2 2v11l-4-4h-6a2 2 0 0 1-2-2v-1"/></svg></span>';
+        if(_hasConv)_badges+='<span class="cat-sess-badge cat-sess-badge-conv" title="sessão para convidados"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span>';
         _badges+='</span>';
       }
       sh+='<div class="cat-sess-item" data-nome="'+s.nome.replace(/"/g,'&quot;')+'" onclick="goToFicha(this.dataset.nome)">'
@@ -16691,9 +16713,13 @@ window.addEventListener('popstate',function(e){
       document.getElementById('app').style.display='block';
       rebuildPillsForMode('catalogo');
     }
-    // always go back to search page (not detail)
-    _catView='search';_catCode=null;_catEditing=false;
-    renderCatalogo();
+    if(e.state&&e.state.catCode){
+      _catView='detail';_catCode=e.state.catCode;_catEditing=false;
+      renderCatDetail();
+    }else{
+      _catView='search';_catCode=null;_catEditing=false;
+      renderCatalogo();
+    }
   }else if(target==='programacao'){
     if(currentMode!=='programacao'){
       currentMode='programacao';
@@ -17143,7 +17169,7 @@ window.addEventListener('popstate',function(e){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 21/05/2026 às 10:14</span></div>
+<div id="page-footer"><span>última atualização · 21/05/2026 às 10:22</span></div>
 
 </div>
 

@@ -415,7 +415,7 @@ select:disabled{opacity:0.3;cursor:not-allowed;}
 .prog-sub-actions{display:flex;gap:2px;flex-shrink:0;}
 .prog-sub-desc{font-family:var(--sans);font-size:11px;color:var(--text-muted);padding:7px 12px;border-bottom:1px solid var(--border);line-height:1.5;}
 .prog-filter-bar{display:flex;align-items:center;gap:6px;flex-wrap:wrap;padding:8px 0 12px;}
-.prog-filter-bar select,.prog-filter-bar input{height:26px;padding:0 7px;border:1px solid var(--border);border-radius:4px;background:var(--surface);color:var(--text);font-family:var(--mono);font-size:10px;}
+.prog-filter-bar select,.prog-filter-bar input{height:28px;padding:0 7px;border:1px solid var(--border);border-radius:4px;background:var(--surface);color:var(--text);font-family:var(--mono);font-size:10px;}
 .prog-filter-bar input[type=text]{min-width:150px;}
 /* Session rows: 36px height compressed per DESIGN.md */
 .prog-sess-row{
@@ -4670,13 +4670,13 @@ html[data-theme]:not([data-theme="win98"]){--mono:var(--sans);}
 </div>
 <div class="mode-bar hidden" id="barSessoes">
   <div class="event-filters" id="sessoesEventFilters"></div>
-  <select id="sessoesComplexoSelect" style="min-width:150px;margin-left:8px;" onchange="_sessoesComplexo=this.value;sessoesCinemaFilter='';rebuildSessoesCinemaSelect();renderSessoes();">
+  <select id="sessoesComplexoSelect" style="min-width:150px;margin-left:8px;height:28px;" onchange="_sessoesComplexo=this.value;sessoesCinemaFilter='';rebuildSessoesCinemaSelect();renderSessoes();">
     <option value="">Todos os complexos</option>
   </select>
-  <select id="sessoesCinemaSelect" style="min-width:160px;margin-left:4px;" onchange="sessoesCinemaFilter=this.value;renderSessoes();">
+  <select id="sessoesCinemaSelect" style="min-width:160px;margin-left:4px;height:28px;" onchange="sessoesCinemaFilter=this.value;renderSessoes();">
     <option value="">Todas as salas</option>
   </select>
-  <input type="text" id="sessoesTituloInput" placeholder="Título do filme" style="height:28px;padding:0 8px;border:1px solid var(--border);border-radius:4px;background:var(--surface);color:var(--text);font-family:var(--mono);font-size:10px;min-width:150px;margin-left:4px;" oninput="_sessoesFiltroTitulo=this.value;renderSessoes();">
+  <input type="text" id="sessoesTituloInput" placeholder="Título do filme" style="height:28px;padding:0 8px;border:1px solid var(--border);border-radius:4px;background:var(--surface);color:var(--text);font-family:var(--mono);font-size:10px;min-width:150px;margin-left:4px;" oninput="_sessoesFiltroTitulo=this.value;var _s=this.selectionStart,_e=this.selectionEnd;renderSessoes();this.focus();this.setSelectionRange(_s,_e);">
   <input type="date" id="sessoesDataInput" style="height:28px;padding:0 6px;border:1px solid var(--border);border-radius:4px;background:var(--surface);color:var(--text);font-family:var(--mono);font-size:10px;margin-left:4px;" onchange="_sessoesFiltroData=this.value;renderSessoes();">
 </div>
 <div class="mode-bar hidden" id="barBusca">
@@ -6296,8 +6296,8 @@ function renderSessoes(){
     if(_sessoesComplexo&&_getSalaComplexo(s.cinema)!==_sessoesComplexo)return false;
     if(_sessoesFiltroTitulo){
       var t=_sessoesFiltroTitulo.toLowerCase();
-      var titles=s.filmes.map(function(c){var f=filmesMap[c];return(f&&f.titulo||c).toLowerCase();});
-      if(!titles.some(function(tt){return tt.indexOf(t)>=0;}))return false;
+      var _ss=function(v){return String(v||'').toLowerCase();};
+      if(!s.filmes.some(function(c){var f=filmesMap[c],cm=catalogoFilmesMap&&catalogoFilmesMap[c]||{};return _ss(f&&f.titulo).includes(t)||_ss(cm.title_pt).includes(t)||_ss(cm.original_title).includes(t)||_ss(cm.english_title).includes(t)||_ss(cm.system_name).includes(t)||_ss(f&&f.idioma).includes(t)||(cm.director&&cm.director.some(function(d){return _ss(d).includes(t);}));}))return false;
     }
     if(_sessoesFiltroData){var dk=s.date?s.date.toISOString().slice(0,10):'';if(dk!==_sessoesFiltroData)return false;}
     return true;
@@ -12878,7 +12878,7 @@ function renderDash(){
   html+=colBlock('kdm','KDM',kdmBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 21/05/2026 às 10:08';
+  var sysUpdate='última atualização do sistema · 21/05/2026 às 10:10';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -13135,8 +13135,8 @@ function _progApplyFilters(sessions){
   return sessions.filter(function(s){
     if(_progFiltroTitulo){
       var t=_progFiltroTitulo.toLowerCase();
-      var titles=s.filmes.map(function(c){var cm=catalogoFilmesMap&&catalogoFilmesMap[c];var f=filmesMap[c];return((cm&&cm.title_pt)||(f&&f.titulo)||c).toLowerCase();});
-      if(!titles.some(function(tt){return tt.indexOf(t)>=0;}))return false;
+      var _ss=function(v){return String(v||'').toLowerCase();};
+      if(!s.filmes.some(function(c){var f=filmesMap[c],cm=catalogoFilmesMap&&catalogoFilmesMap[c]||{};return _ss(f&&f.titulo).includes(t)||_ss(cm.title_pt).includes(t)||_ss(cm.original_title).includes(t)||_ss(cm.english_title).includes(t)||_ss(cm.system_name).includes(t)||_ss(f&&f.idioma).includes(t)||(cm.director&&cm.director.some(function(d){return _ss(d).includes(t);}));}))return false;
     }
     if(_progFiltroComplexo&&_getSalaComplexo(s.cinema)!==_progFiltroComplexo)return false;
     if(_progFiltroCinema&&s.cinema!==_progFiltroCinema)return false;
@@ -13179,7 +13179,7 @@ function _progRenderProgram(programId){
   if(prog.data.program_description)html+='<div class="prog-prog-desc">'+esc(prog.data.program_description)+'</div>';
   // Filter bar
   html+='<div class="prog-filter-bar">';
-  html+='<input type="text" placeholder="Título do filme" value="'+esc(_progFiltroTitulo)+'" oninput="_progFiltroTitulo=this.value;_progRender();">';
+  html+='<input type="text" placeholder="Título do filme" value="'+esc(_progFiltroTitulo)+'" oninput="_progFiltroTitulo=this.value;var _pos=this.selectionStart;_progRender();var _ni=document.querySelector(\'.prog-filter-bar input[type=text]\');if(_ni){_ni.focus();try{_ni.setSelectionRange(_pos,_pos);}catch(e){}}">';
   html+='<select onchange="_progFiltroComplexo=this.value;_progFiltroCinema=\'\';_progRender();"><option value="">Todos os complexos</option>';
   Array.from(filterCxs).sort().forEach(function(c){html+='<option value="'+esc(c)+'"'+( c===_progFiltroComplexo?' selected':'')+'>'+esc(c)+'</option>';});
   html+='</select>';
@@ -17125,7 +17125,7 @@ window.addEventListener('popstate',function(e){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 21/05/2026 às 10:08</span></div>
+<div id="page-footer"><span>última atualização · 21/05/2026 às 10:10</span></div>
 
 </div>
 

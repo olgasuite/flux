@@ -414,6 +414,9 @@ select:disabled{opacity:0.3;cursor:not-allowed;}
 .prog-sub-count{font-family:var(--mono);font-size:9px;font-weight:500;color:var(--text-muted);margin-left:auto;}
 .prog-sub-actions{display:flex;gap:2px;flex-shrink:0;}
 .prog-sub-desc{font-family:var(--sans);font-size:11px;color:var(--text-muted);padding:7px 12px;border-bottom:1px solid var(--border);line-height:1.5;}
+.prog-filter-bar{display:flex;align-items:center;gap:6px;flex-wrap:wrap;padding:8px 0 12px;}
+.prog-filter-bar select,.prog-filter-bar input{height:26px;padding:0 7px;border:1px solid var(--border);border-radius:4px;background:var(--surface);color:var(--text);font-family:var(--mono);font-size:10px;}
+.prog-filter-bar input[type=text]{min-width:150px;}
 /* Session rows: 36px height compressed per DESIGN.md */
 .prog-sess-row{
   display:flex;align-items:center;gap:8px;
@@ -4667,9 +4670,14 @@ html[data-theme]:not([data-theme="win98"]){--mono:var(--sans);}
 </div>
 <div class="mode-bar hidden" id="barSessoes">
   <div class="event-filters" id="sessoesEventFilters"></div>
-  <select id="sessoesCinemaSelect" style="min-width:180px;margin-left:8px;" onchange="sessoesCinemaFilter=this.value;renderSessoes();">
+  <select id="sessoesComplexoSelect" style="min-width:150px;margin-left:8px;" onchange="_sessoesComplexo=this.value;sessoesCinemaFilter='';rebuildSessoesCinemaSelect();renderSessoes();">
+    <option value="">Todos os complexos</option>
+  </select>
+  <select id="sessoesCinemaSelect" style="min-width:160px;margin-left:4px;" onchange="sessoesCinemaFilter=this.value;renderSessoes();">
     <option value="">Todas as salas</option>
   </select>
+  <input type="text" id="sessoesTituloInput" placeholder="Título do filme" style="height:28px;padding:0 8px;border:1px solid var(--border);border-radius:4px;background:var(--surface);color:var(--text);font-family:var(--mono);font-size:10px;min-width:150px;margin-left:4px;" oninput="_sessoesFiltroTitulo=this.value;renderSessoes();">
+  <input type="date" id="sessoesDataInput" style="height:28px;padding:0 6px;border:1px solid var(--border);border-radius:4px;background:var(--surface);color:var(--text);font-family:var(--mono);font-size:10px;margin-left:4px;" onchange="_sessoesFiltroData=this.value;renderSessoes();">
 </div>
 <div class="mode-bar hidden" id="barBusca">
   <div class="search-wrap">
@@ -5166,7 +5174,7 @@ var bilheteriaCinemaFilter='',bilheteriaDistribuidoraFilter='',bilheteriaFilmeFi
 var kdmComplexoFilter='',kdmSalaFilter='';
 var ingestDays=[],currentIngestDay=null,ingestCinemaFilter='',ingestHdFilter='',gradeCinemaFilter='',gradeCinemaComplexoFilter='';
 var grade2Days=[],grade2CurrentDay=null,grade2CinemaFilter='',grade2CinemaComplexoFilter='';
-var sessoesCinemaFilter='',_sessoesHidePast=true;
+var sessoesCinemaFilter='',_sessoesHidePast=true,_sessoesComplexo='',_sessoesFiltroTitulo='',_sessoesFiltroData='';
 var vinhetasCinemaFilter='',vinhetasDayFilter='';
 var dashCinemaFilter='__todos__',dashDayFilter=new Set(),dashStatusSelected=null,dashStatSelected=null;
 var dashKdmCinemaFilter='',dashKdmStatusSelected=null;
@@ -6243,13 +6251,25 @@ function sessoesSessoes(){
   return sessoesArr.filter(function(s){return!s.evento||activeEventsSessoes.has(s.evento);});
 }
 
+function rebuildSessoesComplexoSelect(){
+  var as=allowedSalas();
+  var cxs=new Set();
+  sessoesSessoes().forEach(function(s){if(s.cinema&&(!as||as.has(s.cinema)))cxs.add(_getSalaComplexo(s.cinema));});
+  var sel=document.getElementById('sessoesComplexoSelect');
+  var prev=sel.value;
+  sel.innerHTML='<option value="">Todos os complexos</option>';
+  Array.from(cxs).sort().forEach(function(c){var o=document.createElement('option');o.value=c;o.textContent=c;sel.appendChild(o);});
+  if(prev&&cxs.has(prev))sel.value=prev;
+  else{sel.value='';_sessoesComplexo='';}
+}
+
 function rebuildSessoesCinemaSelect(){
   var as=allowedSalas();
   var cs=new Set();
-  sessoesSessoes().forEach(function(s){if(s.cinema&&(!as||as.has(s.cinema)))cs.add(s.cinema);});
+  sessoesSessoes().forEach(function(s){if(s.cinema&&(!as||as.has(s.cinema))&&(!_sessoesComplexo||_getSalaComplexo(s.cinema)===_sessoesComplexo))cs.add(s.cinema);});
   var sel=document.getElementById('sessoesCinemaSelect');
   var prev=sel.value;
-  sel.innerHTML='<option value="">Todas as salas'+(as?' do complexo':'')+'</option>';
+  sel.innerHTML='<option value="">Todas as salas'+(_sessoesComplexo?' do complexo':as?' do complexo':'')+'</option>';
   Array.from(cs).sort().forEach(function(c){var o=document.createElement('option');o.value=c;o.textContent=c;sel.appendChild(o);});
   if(prev&&cs.has(prev))sel.value=prev;
   else{sel.value='';sessoesCinemaFilter='';}
@@ -6257,19 +6277,29 @@ function rebuildSessoesCinemaSelect(){
 
 function buildSessoesFilters(){
   buildPills(document.getElementById('sessoesEventFilters'),eventColors,activeEventsSessoes,function(){
+    rebuildSessoesComplexoSelect();
     rebuildSessoesCinemaSelect();
     renderSessoes();
   });
+  rebuildSessoesComplexoSelect();
   rebuildSessoesCinemaSelect();
 }
 
 function renderSessoes(){
+  rebuildSessoesComplexoSelect();
   rebuildSessoesCinemaSelect();
   var se=document.getElementById('sessoesEmpty'),sc=document.getElementById('sessoes-container');
   var filtered=sessoesArr.filter(function(s){
     if(s.evento&&!activeEventsSessoes.has(s.evento))return false;
     if(sessoesCinemaFilter&&s.cinema!==sessoesCinemaFilter)return false;
     var as=allowedSalas();if(as&&s.cinema&&!as.has(s.cinema))return false;
+    if(_sessoesComplexo&&_getSalaComplexo(s.cinema)!==_sessoesComplexo)return false;
+    if(_sessoesFiltroTitulo){
+      var t=_sessoesFiltroTitulo.toLowerCase();
+      var titles=s.filmes.map(function(c){var f=filmesMap[c];return(f&&f.titulo||c).toLowerCase();});
+      if(!titles.some(function(tt){return tt.indexOf(t)>=0;}))return false;
+    }
+    if(_sessoesFiltroData){var dk=s.date?s.date.toISOString().slice(0,10):'';if(dk!==_sessoesFiltroData)return false;}
     return true;
   });
   if(!filtered.length){sc.innerHTML='';se.style.display='flex';return;}
@@ -12848,7 +12878,7 @@ function renderDash(){
   html+=colBlock('kdm','KDM',kdmBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 21/05/2026 às 10:04';
+  var sysUpdate='última atualização do sistema · 21/05/2026 às 10:06';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -12957,16 +12987,18 @@ var _progSessaoEditNome=null,_progSessaoContextProgramId=null,_progSessaoContext
 var _progSessaoFilmsArr=[],_progSessaoBumpersArr=[],_progSessaoVinOnly=false;
 var _progSessaoConvidadosTags=[],_progSessaoEvento='';
 var _progVinTemplates=[];
+var _progFiltroTitulo='',_progFiltroComplexo='',_progFiltroCinema='',_progFiltroData='';
 
 function buildProgramacaoFilters(){
   buildPills(document.getElementById('programacaoEventFilters'),eventColors,activeEventsProgramacao,function(){
+    _progFiltroTitulo='';_progFiltroComplexo='';_progFiltroCinema='';_progFiltroData='';
     _progView={level:'landing',programId:null,sessaoNome:null};
     _progRender();
   });
 }
 
 function renderProgramacao(){
-  if(!_progSkipReset)_progView={level:'landing',programId:null,sessaoNome:null};
+  if(!_progSkipReset){_progView={level:'landing',programId:null,sessaoNome:null};_progFiltroTitulo='';_progFiltroComplexo='';_progFiltroCinema='';_progFiltroData='';}
   _progSkipReset=false;
   var c=document.getElementById('programacao-container');
   c.innerHTML='<div style="padding:40px;text-align:center;color:var(--text-muted);font-family:var(--mono);font-size:11px;">Carregando…</div>';
@@ -13099,6 +13131,20 @@ function _progGoOrphans(ev){
     .catch(function(e){alert('Erro ao criar mostra automática: '+e.message);});
 }
 
+function _progApplyFilters(sessions){
+  return sessions.filter(function(s){
+    if(_progFiltroTitulo){
+      var t=_progFiltroTitulo.toLowerCase();
+      var titles=s.filmes.map(function(c){var cm=catalogoFilmesMap&&catalogoFilmesMap[c];var f=filmesMap[c];return((cm&&cm.title_pt)||(f&&f.titulo)||c).toLowerCase();});
+      if(!titles.some(function(tt){return tt.indexOf(t)>=0;}))return false;
+    }
+    if(_progFiltroComplexo&&_getSalaComplexo(s.cinema)!==_progFiltroComplexo)return false;
+    if(_progFiltroCinema&&s.cinema!==_progFiltroCinema)return false;
+    if(_progFiltroData){var dk=s.date?s.date.toISOString().slice(0,10):'';if(dk!==_progFiltroData)return false;}
+    return true;
+  });
+}
+
 /* ── Program view ── */
 function _progRenderProgram(programId){
   var c=document.getElementById('programacao-container');
@@ -13115,6 +13161,12 @@ function _progRenderProgram(programId){
     var matchEvento=activeEventsProgramacao.has(s.evento||ev);
     return matchProg&&!s.subprogram_id&&matchEvento;
   });
+  // Gather all sessions in this program for filter option lists
+  var allProgSess=sessSemSub.slice();
+  subs.forEach(function(sub){sessoesArr.filter(function(s){return s.subprogram_id===sub.id&&activeEventsProgramacao.has(s.evento||ev);}).forEach(function(s){allProgSess.push(s);});});
+  var filterCxs=new Set(),filterSalas=new Set();
+  allProgSess.forEach(function(s){if(s.cinema){filterCxs.add(_getSalaComplexo(s.cinema));filterSalas.add(s.cinema);}});
+  var filtSalas=_progFiltroComplexo?new Set(allProgSess.filter(function(s){return s.cinema&&_getSalaComplexo(s.cinema)===_progFiltroComplexo;}).map(function(s){return s.cinema;})):filterSalas;
   var safePid=programId.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
   var html='<div class="prog-module-wrap">';
   html+='<div class="prog-view-header">';
@@ -13125,26 +13177,39 @@ function _progRenderProgram(programId){
   html+='</div>';
   html+='<div class="prog-prog-title">'+esc(prog.data.name||programId)+'</div>';
   if(prog.data.program_description)html+='<div class="prog-prog-desc">'+esc(prog.data.program_description)+'</div>';
+  // Filter bar
+  html+='<div class="prog-filter-bar">';
+  html+='<input type="text" placeholder="Título do filme" value="'+esc(_progFiltroTitulo)+'" oninput="_progFiltroTitulo=this.value;_progRender();">';
+  html+='<select onchange="_progFiltroComplexo=this.value;_progFiltroCinema=\'\';_progRender();"><option value="">Todos os complexos</option>';
+  Array.from(filterCxs).sort().forEach(function(c){html+='<option value="'+esc(c)+'"'+( c===_progFiltroComplexo?' selected':'')+'>'+esc(c)+'</option>';});
+  html+='</select>';
+  html+='<select onchange="_progFiltroCinema=this.value;_progRender();"><option value="">Todas as salas</option>';
+  Array.from(filtSalas).sort().forEach(function(c){html+='<option value="'+esc(c)+'"'+(c===_progFiltroCinema?' selected':'')+'>'+esc(c)+'</option>';});
+  html+='</select>';
+  html+='<input type="date" value="'+(_progFiltroData||'')+'" onchange="_progFiltroData=this.value;_progRender();">';
+  html+='</div>';
   // Subprogram boxes
   subs.forEach(function(sub){
     var sessSub=sessoesArr.filter(function(s){return s.subprogram_id===sub.id&&activeEventsProgramacao.has(s.evento||ev);});
+    var sessSubF=_progApplyFilters(sessSub);
     var safeSid=sub.id.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
-    html+='<div class="prog-sub-block"><div class="prog-sub-header"><span class="prog-sub-name">'+esc(sub.data.name||sub.id)+'</span><span class="prog-sub-count">'+sessSub.length+' '+(sessSub.length===1?'sessão':'sessões')+'</span>';
+    html+='<div class="prog-sub-block"><div class="prog-sub-header"><span class="prog-sub-name">'+esc(sub.data.name||sub.id)+'</span><span class="prog-sub-count">'+sessSubF.length+' '+(sessSubF.length===1?'sessão':'sessões')+'</span>';
     if(canEdit&&!vinOnly){html+='<div class="prog-sub-actions"><button class="prog-btn-icon" title="Editar" onclick="openProgSubprogramModal(\''+safeSid+'\',\''+safePid+'\')">✎</button><button class="prog-btn-icon" title="Duplicar" onclick="duplicateSubprogram(\''+safeSid+'\')">⧉</button><button class="prog-btn-icon prog-btn-del" title="Excluir" onclick="deleteSubprogram(\''+safeSid+'\',\''+esc(sub.data.name||sub.id)+'\')">×</button><button class="prog-btn-icon" title="Adicionar sessão" onclick="openProgSessaoModal(null,\''+safePid+'\',\''+safeSid+'\')">＋</button></div>';}
     html+='</div>';
     if(sub.data.subprogram_description)html+='<div class="prog-sub-desc">'+esc(sub.data.subprogram_description)+'</div>';
-    html+=_progRenderSessionsGrouped(sessSub,programId,canEdit,vinOnly);
+    html+=_progRenderSessionsGrouped(sessSubF,programId,canEdit,vinOnly);
     html+='</div>';
   });
   // Sessões sem submostra
   var totalSubs=subs.length;
-  if(sessSemSub.length||canEdit){
+  var sessSemSubF=_progApplyFilters(sessSemSub);
+  if(sessSemSubF.length||canEdit){
     html+='<div class="prog-sub-block'+(totalSubs?' prog-sub-block-nosub':'')+'"><div class="prog-sub-header">';
     html+=(totalSubs?'<span class="prog-sub-name" style="opacity:0.55;font-style:italic;">sem submostra</span>':'<span class="prog-sub-name">Sessões</span>');
-    html+='<span class="prog-sub-count">'+sessSemSub.length+' '+(sessSemSub.length===1?'sessão':'sessões')+'</span>';
+    html+='<span class="prog-sub-count">'+sessSemSubF.length+' '+(sessSemSubF.length===1?'sessão':'sessões')+'</span>';
     if(canEdit&&!vinOnly)html+='<div class="prog-sub-actions"><button class="prog-btn-icon" title="Adicionar sessão" onclick="openProgSessaoModal(null,\''+safePid+'\',\'\')">＋</button></div>';
     html+='</div>';
-    html+=_progRenderSessionsGrouped(sessSemSub,programId,canEdit,vinOnly);
+    html+=_progRenderSessionsGrouped(sessSemSubF,programId,canEdit,vinOnly);
     html+='</div>';
   }
   c.innerHTML=html+'</div>';
@@ -17059,7 +17124,7 @@ window.addEventListener('popstate',function(e){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 21/05/2026 às 10:04</span></div>
+<div id="page-footer"><span>última atualização · 21/05/2026 às 10:06</span></div>
 
 </div>
 

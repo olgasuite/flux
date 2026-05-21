@@ -10044,7 +10044,7 @@ function _revRenderGradePages(evName,evBg,evText,msr,allPages,startPageNum){
       return d;
     });
     if(!dates.length)return;
-    var curCol=0,curSlot=0,slots=[];
+    var curCol=0,curSlot=0,col0Tall=false,slots=[];
     function newGradePage(){
       var page=document.createElement('div');
       page.className='rev-page';
@@ -10084,7 +10084,7 @@ function _revRenderGradePages(evName,evBg,evText,msr,allPages,startPageNum){
       page.appendChild(colsWrap);
       msr.appendChild(page);
       allPages.push(page);
-      curCol=0;curSlot=0;
+      curCol=0;curSlot=0;col0Tall=false;
     }
     newGradePage();
     dates.forEach(function(d){
@@ -10151,18 +10151,29 @@ function _revRenderGradePages(evName,evBg,evText,msr,allPages,startPageNum){
         row.appendChild(cnt);
         block.appendChild(row);
       });
+      // Se slot1 está sendo tentado mas slot0 do mesmo col estourou: pula para próxima coluna
+      if(curSlot===1&&col0Tall){col0Tall=false;curSlot=0;curCol++;if(curCol>=3){newGradePage();}}
       var slotEl=slots[curCol*2+curSlot];
       slotEl.appendChild(block);
-      if(block.scrollHeight>HALF_H){
+      var overflows=block.scrollHeight>HALF_H;
+      if(overflows&&curSlot===0){
+        // Dia longo em slot0: fica aqui, mas bloqueia slot1 desta coluna
+        col0Tall=true;
+      } else if(overflows&&curSlot===1){
+        // Dia longo em slot1: remove e vai para slot0 da próxima coluna
         slotEl.removeChild(block);
-        curCol++;curSlot=0;
+        curSlot=0;curCol++;col0Tall=false;
         if(curCol>=3){newGradePage();}
-        slots[curCol*2+curSlot].appendChild(block);
+        slotEl=slots[curCol*2+curSlot];
+        slotEl.appendChild(block);
+        if(block.scrollHeight>HALF_H)col0Tall=true;
+        curSlot=1;
+        return;
       }
       if(curSlot===0){
         curSlot=1;
       } else {
-        curSlot=0;curCol++;
+        curSlot=0;curCol++;col0Tall=false;
         if(curCol>=3){newGradePage();}
       }
     });
@@ -12833,7 +12844,7 @@ function renderDash(){
   html+=colBlock('kdm','KDM',kdmBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 21/05/2026 às 19:58';
+  var sysUpdate='última atualização do sistema · 21/05/2026 às 10:00';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -17040,7 +17051,7 @@ window.addEventListener('popstate',function(e){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 21/05/2026 às 19:58</span></div>
+<div id="page-footer"><span>última atualização · 21/05/2026 às 10:00</span></div>
 
 </div>
 

@@ -1012,6 +1012,7 @@ td.cpl-cell{background:var(--cpl-bg);border-left:2px solid var(--cpl-border);pad
 #page-footer{position:fixed;bottom:0;left:0;right:0;z-index:100;height:20px;background:var(--surface);border-top:1px solid var(--border);display:flex;align-items:center;justify-content:flex-end;padding:0 var(--sp-md);pointer-events:none;}
 #page-footer span{font-family:var(--mono);font-size:8px;font-weight:500;color:var(--text-muted);letter-spacing:0.06em;}
 @media print{#page-footer{display:none!important;}}
+@media print{html{-webkit-filter:grayscale(1);filter:grayscale(1);}}
 body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden;}
 
 /* HEADER */
@@ -5872,9 +5873,12 @@ function printBusca(){
   hdr.textContent='OLGA · Busca · '+qStr+count+' filme'+(count!==1?'s':'')+' · '+new Date().toLocaleString('pt-BR');
   hdr.style.display='block';
   document.body.classList.add('print-busca');
+  window.addEventListener('afterprint',function _h(){
+    document.body.classList.remove('print-busca');
+    hdr.style.display='none';
+    window.removeEventListener('afterprint',_h);
+  });
   window.print();
-  document.body.classList.remove('print-busca');
-  hdr.style.display='none';
 }
 
 /* RELATÓRIO ACERVO TÉCNICO */
@@ -5943,8 +5947,11 @@ function _acervoRelRenderTabela(){
 
 function printAcervoRelatorio(){
   document.body.classList.add('print-acervo-rel');
+  window.addEventListener('afterprint',function _h(){
+    document.body.classList.remove('print-acervo-rel');
+    window.removeEventListener('afterprint',_h);
+  });
   window.print();
-  document.body.classList.remove('print-acervo-rel');
 }
 
 /* GRADE PRINT TABLE */
@@ -6083,10 +6090,13 @@ function printGradeTable(){
   pa.innerHTML='<div class="gpt-print-header">'+header+subHeader+'</div>'+wrap.querySelector('table').outerHTML;
   pa.style.display='block';
   document.body.classList.add('print-grade-table');
+  window.addEventListener('afterprint',function _h(){
+    document.body.classList.remove('print-grade-table');
+    pa.style.display='none';
+    pa.innerHTML='';
+    window.removeEventListener('afterprint',_h);
+  });
   window.print();
-  document.body.classList.remove('print-grade-table');
-  pa.style.display='none';
-  pa.innerHTML='';
 }
 
 function buildPills(container,evColors,activeSet,onToggle){
@@ -7595,8 +7605,11 @@ function openBorderoSessoesDay(dayKey,tipo){
 
 function printBordero(){
   document.body.classList.add('print-bordero');
+  window.addEventListener('afterprint',function _h(){
+    document.body.classList.remove('print-bordero');
+    window.removeEventListener('afterprint',_h);
+  });
   window.print();
-  document.body.classList.remove('print-bordero');
 }
 
 function openBorderoCinema(sala,tipo){
@@ -9240,8 +9253,11 @@ function _bilhRelRenderTabela(){
 
 function printBilhRelatorio(){
   document.body.classList.add('print-bilh-rel');
+  window.addEventListener('afterprint',function _h(){
+    document.body.classList.remove('print-bilh-rel');
+    window.removeEventListener('afterprint',_h);
+  });
   window.print();
-  document.body.classList.remove('print-bilh-rel');
 }
 
 /* ── Público e Renda por sessão ── */
@@ -10911,9 +10927,12 @@ function printVinhetas(){
   var pa=document.getElementById('vinhetasPrintArea');
   pa.innerHTML=html;pa.style.display='block';
   document.body.classList.add('print-vinhetas');
+  window.addEventListener('afterprint',function _h(){
+    document.body.classList.remove('print-vinhetas');
+    pa.style.display='none';pa.innerHTML='';
+    window.removeEventListener('afterprint',_h);
+  });
   window.print();
-  document.body.classList.remove('print-vinhetas');
-  pa.style.display='none';pa.innerHTML='';
 }
 
 function renderGrade(){
@@ -12906,7 +12925,7 @@ function renderDash(){
   html+=colBlock('kdm','KDM',kdmBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 21/05/2026 às 10:22';
+  var sysUpdate='última atualização do sistema · 21/05/2026 às 10:26';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -13373,8 +13392,11 @@ function _progRenderSessao(sessaoNome){
 
 function printProgFicha(){
   document.body.classList.add('print-prog-ficha');
+  window.addEventListener('afterprint',function _h(){
+    document.body.classList.remove('print-prog-ficha');
+    window.removeEventListener('afterprint',_h);
+  });
   window.print();
-  document.body.classList.remove('print-prog-ficha');
 }
 
 /* ── CRUD Programs ── */
@@ -17169,7 +17191,7 @@ window.addEventListener('popstate',function(e){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 21/05/2026 às 10:22</span></div>
+<div id="page-footer"><span>última atualização · 21/05/2026 às 10:26</span></div>
 
 </div>
 

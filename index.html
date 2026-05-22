@@ -5429,6 +5429,8 @@ function switchMode(mode,noPush){
   if(mode!=='busca'&&_fpOpen){_fpOpen=false;document.getElementById('filterPanel').classList.remove('open');document.getElementById('filterToggleBtn').classList.remove('active');}
   // reset catalogo search state when leaving the module
   if(currentMode==='catalogo'&&mode!=='catalogo'&&!_browserNav){_catResetState();}
+  // reset programacao filters and batch whenever entering the module from outside
+  if(mode==='programacao'&&currentMode!=='programacao'){_progFiltroTitulo='';_progFiltroComplexo='';_progFiltroCinema='';_progFiltroData='';_progBatchSelected.clear();_progBatchMode=false;_progBatchBumpers=[];}
   document.getElementById('landing').style.display='none';
   document.getElementById('app').style.display='block';
   ['projecao','ficha','grade','grade2','sessoes','busca','vinhetas','ingest','cinemas','kdm','dash','receptivo','bilheteria','equipe','catalogo','programacao','revista'].forEach(function(m){
@@ -12950,7 +12952,7 @@ function renderDash(){
   html+=colBlock('kdm','KDM',kdmBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 22/05/2026 às 10:54';
+  var sysUpdate='última atualização do sistema · 22/05/2026 às 10:56';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -17045,6 +17047,8 @@ window.addEventListener('popstate',function(e){
       rebuildPillsForMode('programacao');
     }
     var lvl=e.state&&e.state.progLevel;
+    _progFiltroTitulo='';_progFiltroComplexo='';_progFiltroCinema='';_progFiltroData='';
+    _progBatchSelected.clear();_progBatchMode=false;_progBatchBumpers=[];
     _progView={
       level:lvl||'landing',
       programId:(e.state&&e.state.progProgramId)||null,
@@ -17503,7 +17507,7 @@ window.addEventListener('popstate',function(e){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 22/05/2026 às 10:54</span></div>
+<div id="page-footer"><span>última atualização · 22/05/2026 às 10:56</span></div>
 
 </div>
 

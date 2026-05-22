@@ -1157,6 +1157,9 @@ select:disabled{opacity:0.35;cursor:not-allowed;}
 .prog-sess-cinema{font-family:var(--mono);font-size:9px;color:var(--text-dim);min-width:70px;flex-shrink:0;}
 .prog-sess-films{font-family:var(--sans);font-size:10px;color:var(--text-muted);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .prog-sess-actions{display:flex;gap:2px;margin-left:auto;flex-shrink:0;}
+.prog-sess-row-checked{background:var(--accent-dim)!important;}
+.prog-sess-chk{display:flex;align-items:center;flex-shrink:0;margin-right:2px;}
+.prog-batch-bar{position:fixed;bottom:0;left:0;right:0;z-index:200;background:var(--surface);border-top:1px solid var(--accent);padding:10px 28px;display:flex;align-items:center;justify-content:space-between;font-family:var(--mono);font-size:11px;}
 .prog-sess-display-name{font-family:var(--sans);font-size:18px;font-weight:600;color:var(--accent);margin-top:2px;line-height:1.2;}
 .prog-sess-display-name-ficha{font-family:var(--sans);font-size:18px;font-weight:600;color:var(--accent);margin-top:2px;line-height:1.2;}
 .prog-sess-desc-block{font-family:var(--sans);font-size:12px;color:var(--text-muted);line-height:1.6;padding:14px 16px;border-bottom:1px solid var(--border);background:var(--surface2);}
@@ -12925,7 +12928,7 @@ function renderDash(){
   html+=colBlock('kdm','KDM',kdmBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 21/05/2026 às 10:26';
+  var sysUpdate='última atualização do sistema · 21/05/2026 às 10:28';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -13035,6 +13038,7 @@ var _progSessaoFilmsArr=[],_progSessaoBumpersArr=[],_progSessaoVinOnly=false;
 var _progSessaoConvidadosTags=[],_progSessaoEvento='';
 var _progVinTemplates=[];
 var _progFiltroTitulo='',_progFiltroComplexo='',_progFiltroCinema='',_progFiltroData='';
+var _progBatchSelected=new Set(),_progBatchMode=false;
 
 function buildProgramacaoFilters(){
   buildPills(document.getElementById('programacaoEventFilters'),eventColors,activeEventsProgramacao,function(){
@@ -13192,6 +13196,138 @@ function _progApplyFilters(sessions){
   });
 }
 
+function _toggleProgBatchMode(){
+  _progBatchMode=!_progBatchMode;
+  if(!_progBatchMode)_progBatchSelected.clear();
+  _progRender();
+}
+
+function _progBatchToggle(nome){
+  if(_progBatchSelected.has(nome))_progBatchSelected.delete(nome);
+  else _progBatchSelected.add(nome);
+  _progRender();
+}
+
+function openProgBatchModal(){
+  if(!_progBatchSelected.size)return;
+  var selArr=Array.from(_progBatchSelected).sort();
+  var n=selArr.length;
+  var body=document.getElementById('progBatchModalBody');
+  var listHtml='<div style="font-family:var(--mono);font-size:10px;color:var(--text-dim);margin-bottom:4px;">'+n+' sess'+(n===1?'ão':'ões')+' selecionada'+(n===1?'':'s')+':</div>';
+  listHtml+='<div style="max-height:90px;overflow-y:auto;border:1px solid var(--border);padding:5px 10px;background:var(--surface2);display:flex;flex-direction:column;gap:2px;margin-bottom:2px;">';
+  selArr.forEach(function(nome){
+    var s=sessoesMap[nome];
+    listHtml+='<div style="font-family:var(--mono);font-size:9px;color:var(--text);">'+esc(nome)+(s&&s.cinema?'<span style="color:var(--text-dim);"> · '+esc(s.cinema)+'</span>':'')+'</div>';
+  });
+  listHtml+='</div>';
+  var progOpts='<option value="">— selecione —</option>';
+  _progData.programs.filter(function(p){return!p.data.auto;}).forEach(function(p){
+    progOpts+='<option value="'+esc(p.id)+'">'+esc(p.data.name||p.id)+'</option>';
+  });
+  var cinemas=Array.from(new Set(sessoesArr.map(function(s){return s.cinema;}).filter(Boolean))).sort();
+  var cinOpts='<option value="">— selecione —</option>';
+  cinemas.forEach(function(c){cinOpts+='<option value="'+esc(c)+'">'+esc(c)+'</option>';});
+  function bfRow(id,label,inputHtml){
+    return'<div style="display:flex;align-items:flex-start;gap:10px;padding:9px 0;border-bottom:1px solid var(--border);">'
+      +'<input type="checkbox" id="pb_chk_'+id+'" style="margin-top:3px;cursor:pointer;accent-color:var(--accent);flex-shrink:0;" onchange="_progBatchFieldToggle(\''+id+'\')">'
+      +'<div style="flex:1;min-width:0;">'
+      +'<label for="pb_chk_'+id+'" style="font-family:var(--mono);font-size:9px;letter-spacing:0.08em;text-transform:uppercase;color:var(--text-muted);display:block;margin-bottom:5px;cursor:pointer;">'+label+'</label>'
+      +'<div id="pb_fld_'+id+'" style="opacity:0.3;pointer-events:none;transition:opacity 0.1s;">'+inputHtml+'</div>'
+      +'</div>'
+      +'</div>';
+  }
+  var inp='class="prog-modal-input" style="width:100%;"';
+  var chkStyle='style="accent-color:var(--accent);cursor:pointer;"';
+  var chkLbl='style="display:inline-flex;align-items:center;gap:6px;font-family:var(--mono);font-size:10px;color:var(--text);cursor:pointer;"';
+  var formHtml='<div style="border-top:1px solid var(--border);">'
+    +bfRow('program','Mostra','<select id="pb_program" '+inp+' onchange="_progBatchSubUpdate()">'+progOpts+'</select>')
+    +bfRow('subprogram','Submostra','<select id="pb_subprogram" '+inp+'><option value="">Sem submostra</option></select>')
+    +bfRow('cinema','Sala','<select id="pb_cinema" '+inp+'>'+cinOpts+'</select>')
+    +bfRow('debate','Debate','<label '+chkLbl+'><input type="checkbox" id="pb_debate" '+chkStyle+'> Sim</label>')
+    +bfRow('for_guests','Para convidados','<label '+chkLbl+'><input type="checkbox" id="pb_for_guests" '+chkStyle+'> Sim</label>')
+    +bfRow('introduction','Apresentação','<label '+chkLbl+'><input type="checkbox" id="pb_introduction" '+chkStyle+'> Sim</label>')
+    +bfRow('leg_elet','Leg. eletrônica','<label '+chkLbl+'><input type="checkbox" id="pb_leg_elet" '+chkStyle+'> Sim</label>')
+    +bfRow('accessibility','Acessibilidade','<label '+chkLbl+'><input type="checkbox" id="pb_accessibility" '+chkStyle+'> Sim</label>')
+    +'</div>';
+  body.innerHTML=listHtml+formHtml;
+  var btn=document.getElementById('progBatchSaveBtn');
+  btn.disabled=false;btn.textContent='Aplicar em '+n+' sess'+(n===1?'ão':'ões');
+  document.getElementById('progBatchModal').style.display='block';
+}
+
+function _progBatchFieldToggle(id){
+  var chk=document.getElementById('pb_chk_'+id);
+  var fld=document.getElementById('pb_fld_'+id);
+  if(chk&&fld){fld.style.opacity=chk.checked?'1':'0.3';fld.style.pointerEvents=chk.checked?'auto':'none';}
+  if(id==='program'){_progBatchSubUpdate();}
+}
+
+function _progBatchSubUpdate(){
+  var progChk=document.getElementById('pb_chk_program');
+  var pid=progChk&&progChk.checked?document.getElementById('pb_program').value:_progView.programId;
+  var subSel=document.getElementById('pb_subprogram');
+  if(!subSel)return;
+  var subs=pid?_progData.subprograms.filter(function(s){return s.data.program_id===pid;}):[];
+  var opts='<option value="">Sem submostra</option>';
+  subs.forEach(function(s){opts+='<option value="'+esc(s.id)+'">'+esc(s.data.name||s.id)+'</option>';});
+  subSel.innerHTML=opts;
+}
+
+function closeProgBatchModal(){
+  document.getElementById('progBatchModal').style.display='none';
+}
+
+async function saveProgBatch(){
+  var get=function(id){return document.getElementById(id);};
+  var chk=function(id){return get('pb_chk_'+id)&&get('pb_chk_'+id).checked;};
+  var val=function(id){return get('pb_'+id)&&get('pb_'+id).value;};
+  var box=function(id){return get('pb_'+id)&&get('pb_'+id).checked;};
+  if(!chk('program')&&!chk('subprogram')&&!chk('cinema')&&!chk('debate')&&!chk('for_guests')&&!chk('introduction')&&!chk('leg_elet')&&!chk('accessibility')){
+    alert('Ative ao menos um campo para editar.');return;
+  }
+  var newPid=chk('program')?val('program'):'';
+  if(chk('program')&&!newPid){alert('Selecione uma mostra.');return;}
+  var btn=get('progBatchSaveBtn');
+  var selArr=Array.from(_progBatchSelected);
+  btn.disabled=true;btn.textContent='Salvando…';
+  try{
+    for(var i=0;i<selArr.length;i++){
+      var nome=selArr[i];
+      var s=sessoesMap[nome];
+      if(!s)continue;
+      var newProg=newPid?_progData.programs.find(function(p){return p.id===newPid;}):null;
+      var ev=newProg?newProg.data.event_id:(s.evento||'');
+      var data={
+        session_id:nome,name:s.name||'',event_name:ev,
+        date:s.date?s.date.toISOString().slice(0,10):'',
+        time:s.time&&s.time.str&&s.time.str!=='?'?s.time.str:'',
+        venue_name:chk('cinema')?val('cinema'):(s.cinema||''),
+        program_id:chk('program')?newPid:(s.program_id||''),
+        subprogram_id:chk('subprogram')?val('subprogram'):(s.subprogram_id||''),
+        session_description:s.session_description||'',films:s.filmes||[],bumpers:s.vinhetas||[],
+        guests:s.convidados||'',
+        has_introduction:chk('introduction')?(box('introduction')?'Sim':'Não'):(s.apresentacao||''),
+        has_debate:chk('debate')?(box('debate')?'Sim':'Não'):(s.col_ag||''),
+        for_guests:chk('for_guests')?(box('for_guests')?'Sim':'Não'):(s.para_convidados||''),
+        has_electronic_subtitles:chk('leg_elet')?(box('leg_elet')?'Sim':'Não'):(s.leg_eletronica||''),
+        reserved_tickets:s.ingressos||'',
+        available_accessibility:chk('accessibility')?(box('accessibility')?'Sim':'Não'):(s.acessibilidades||''),
+        total_audience:s.publico||'',total_revenue:s.renda||'',notes:s.notes||''
+      };
+      await window._olgaSessoes.save(s._docId||nome,data);
+    }
+    closeProgBatchModal();
+    _progBatchSelected.clear();
+    _progBatchMode=false;
+    await window._olgaLoadFirestore();
+    if(newPid)_progView={level:'program',programId:newPid,sessaoNome:null};
+    _progRender();
+  }catch(e){
+    alert('Erro ao salvar: '+e.message);
+    btn.disabled=false;btn.textContent='Aplicar em '+selArr.length+' sess'+(selArr.length===1?'ão':'ões');
+  }
+}
+
 /* ── Program view ── */
 function _progRenderProgram(programId){
   var c=document.getElementById('programacao-container');
@@ -13220,7 +13356,7 @@ function _progRenderProgram(programId){
   html+='<span class="prog-event-badge" style="background:'+evColor.bg+';color:'+evColor.text+';">'+esc(ev)+'</span>';
   if(prog.data.competitive)html+='<span class="prog-flag-badge prog-flag-comp">Competitivo</span>';
   if(prog.data.popular_vote)html+='<span class="prog-flag-badge prog-flag-pop">Voto popular</span>';
-  if(canEdit&&!vinOnly){html+='<div class="prog-header-actions"><button class="prog-btn-sm prog-btn-ghost" onclick="openProgSubprogramModal(null,\''+safePid+'\')">+ submostra</button><button class="prog-btn-sm prog-btn-ghost" onclick="openProgSessaoModal(null,\''+safePid+'\',\'\')">+ sessão</button><button class="prog-btn-sm prog-btn-ghost" onclick="openProgProgramModal(\''+safePid+'\',\''+esc(ev)+'\')">✎ editar mostra</button></div>';}
+  if(canEdit&&!vinOnly){html+='<div class="prog-header-actions"><button class="prog-btn-sm prog-btn-ghost" onclick="openProgSubprogramModal(null,\''+safePid+'\')">+ submostra</button><button class="prog-btn-sm prog-btn-ghost" onclick="openProgSessaoModal(null,\''+safePid+'\',\'\')">+ sessão</button><button class="prog-btn-sm prog-btn-ghost" onclick="openProgProgramModal(\''+safePid+'\',\''+esc(ev)+'\')">✎ editar mostra</button><button class="prog-btn-sm '+(_progBatchMode?'':'prog-btn-ghost')+'" onclick="_toggleProgBatchMode()">'+(_progBatchMode?'✕ cancelar':'selecionar')+'</button></div>';}
   html+='</div>';
   html+='<div class="prog-prog-title">'+esc(prog.data.name||programId)+'</div>';
   if(prog.data.program_description)html+='<div class="prog-prog-desc">'+esc(prog.data.program_description)+'</div>';
@@ -13259,6 +13395,15 @@ function _progRenderProgram(programId){
     html+=_progRenderSessionsGrouped(sessSemSubF,programId,canEdit,vinOnly);
     html+='</div>';
   }
+  if(_progBatchMode){
+    var _bCount=_progBatchSelected.size;
+    html+='<div class="prog-batch-bar">'
+      +'<span style="color:var(--text-dim);">'+_bCount+' sess'+(_bCount===1?'ão':'ões')+' selecionada'+(_bCount===1?'':'s')+'</span>'
+      +'<div style="display:flex;gap:8px;">'
+      +(_bCount>0?'<button class="prog-btn-sm" style="background:var(--accent);color:#000;border-color:var(--accent);" onclick="openProgBatchModal()">Editar selecionadas</button>':'')
+      +'</div>'
+      +'</div>';
+  }
   c.innerHTML=html+'</div>';
 }
 
@@ -13266,6 +13411,18 @@ function _progSessRowHtml(s,programId,canEdit,vinOnly){
   var filmTitles=s.filmes.map(function(cd){var cm=catalogoFilmesMap&&catalogoFilmesMap[cd];var f=filmesMap[cd];return(cm&&cm.title_pt)||(f&&f.titulo)||cd;}).filter(Boolean).join(' · ');
   var safe=(s.nome||'').replace(/\\/g,'\\\\').replace(/'/g,"\\'");
   var safePid=(programId||'').replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+  if(_progBatchMode){
+    var isChk=_progBatchSelected.has(s.nome);
+    return'<div class="prog-sess-row'+(isChk?' prog-sess-row-checked':'')+'" onclick="_progBatchToggle(\''+safe+'\')" style="cursor:pointer;">'
+      +'<span class="prog-sess-chk"><input type="checkbox"'+(isChk?' checked':'')+' onclick="event.stopPropagation();_progBatchToggle(\''+safe+'\')" style="cursor:pointer;accent-color:var(--accent);"></span>'
+      +'<span class="prog-sess-time">'+(s.time&&s.time.str&&s.time.str!=='?'?s.time.str:'—')+'</span>'
+      +'<span class="prog-sess-date">'+s.dia+'</span>'
+      +(s.name?'<span class="prog-sess-name">'+esc(s.name)+'</span>':'')
+      +'<span class="prog-sess-id">'+esc(s.nome)+'</span>'
+      +'<span class="prog-sess-cinema">'+esc(s.cinema||'—')+'</span>'
+      +(filmTitles?'<span class="prog-sess-films">'+esc(filmTitles.length>80?filmTitles.slice(0,80)+'…':filmTitles)+'</span>':'')
+      +'</div>';
+  }
   return'<div class="prog-sess-row" onclick="_progGoSessao(\''+safe+'\',\''+safePid+'\')">'
     +'<span class="prog-sess-time">'+(s.time&&s.time.str&&s.time.str!=='?'?s.time.str:'—')+'</span>'
     +'<span class="prog-sess-date">'+s.dia+'</span>'
@@ -16915,6 +17072,20 @@ window.addEventListener('popstate',function(e){
   </div>
 </div>
 
+<div id="progBatchModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:600;overflow-y:auto;padding:20px;">
+  <div style="background:var(--surface);border:1px solid var(--border);width:100%;max-width:480px;margin:auto;display:flex;flex-direction:column;">
+    <div style="padding:14px 22px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;">
+      <span style="font-family:var(--mono);font-size:11px;font-weight:600;letter-spacing:0.18em;text-transform:uppercase;color:var(--accent);">Editar sessões</span>
+      <button onclick="closeProgBatchModal()" style="background:none;border:none;color:var(--text-muted);font-size:18px;cursor:pointer;line-height:1;">×</button>
+    </div>
+    <div id="progBatchModalBody" style="padding:20px 22px;display:flex;flex-direction:column;gap:14px;"></div>
+    <div style="padding:14px 22px;border-top:1px solid var(--border);display:flex;gap:10px;justify-content:flex-end;">
+      <button onclick="closeProgBatchModal()" style="font-family:var(--mono);font-size:10px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;padding:7px 16px;background:transparent;color:var(--text-dim);border:1px solid var(--border);cursor:pointer;">Cancelar</button>
+      <button id="progBatchSaveBtn" onclick="saveProgBatch()" style="font-family:var(--mono);font-size:10px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;padding:7px 20px;background:var(--accent);color:#000;border:none;cursor:pointer;">Salvar</button>
+    </div>
+  </div>
+</div>
+
 <div id="progSessaoModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:500;overflow-y:auto;padding:20px;">
   <div style="background:var(--surface);border:1px solid var(--border);width:100%;max-width:600px;margin:auto;display:flex;flex-direction:column;">
     <div style="padding:14px 22px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;">
@@ -17191,7 +17362,7 @@ window.addEventListener('popstate',function(e){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 21/05/2026 às 10:26</span></div>
+<div id="page-footer"><span>última atualização · 21/05/2026 às 10:28</span></div>
 
 </div>
 

@@ -10851,10 +10851,13 @@ function renderRevista(){
     if(filmItemFns.length){
       if(paras.length>0){var sepEl=document.createElement('hr');sepEl.className='rev-films-sep';mainDiv.appendChild(sepEl);}
       var filmsDiv=document.createElement('div');filmsDiv.className='rev-films-list';mainDiv.appendChild(filmsDiv);
-      filmItemFns.forEach(function(fn){
-        var el=fn();
-        filmsDiv.appendChild(el);
-        if(editPage.scrollHeight>_REV_PAGE_H&&filmsDiv.children.length>1){filmsDiv.removeChild(el);remainingFilmEls.push(el);}
+      filmItemFns.forEach(function(item){
+        var fns=Array.isArray(item)?item:[item];
+        var els=fns.map(function(fn){return fn();});
+        els.forEach(function(el){filmsDiv.appendChild(el);});
+        if(editPage.scrollHeight>_REV_PAGE_H&&filmsDiv.children.length>els.length){
+          els.forEach(function(el){filmsDiv.removeChild(el);remainingFilmEls.push(el);});
+        }
       });
     }
 
@@ -13402,7 +13405,7 @@ function renderDash(){
   html+=colBlock('kdm','KDM',kdmBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 22/05/2026 às 11:30';
+  var sysUpdate='última atualização do sistema · 22/05/2026 às 11:32';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -17957,7 +17960,7 @@ window.addEventListener('popstate',function(e){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 22/05/2026 às 11:30</span></div>
+<div id="page-footer"><span>última atualização · 22/05/2026 às 11:32</span></div>
 
 </div>
 

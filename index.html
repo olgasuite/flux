@@ -4080,7 +4080,7 @@ html[data-theme]:not([data-theme="win98"]){--mono:var(--sans);}
       } catch(e){console.warn('catalogo load:',e);return{};}
     },
     save: async function(codigo, data) {
-      function fsStr(v){return{stringValue:v||''};}
+      function fsStr(v){if(Array.isArray(v))v=v[0]||'';return{stringValue:v||''};}
       function fsInt(v){return{integerValue:String(parseInt(v)||0)};}
       function fsArr(a){var arr=Array.isArray(a)?a:(a&&typeof a==='string'?a.split(',').map(function(s){return s.trim();}).filter(Boolean):[]);return{arrayValue:{values:arr.map(function(x){return fsStr(String(x));})}};}
       var crewF={};
@@ -16241,7 +16241,7 @@ function _cinToCatalog(cd){
       var pc=toArr(dataProd['País']);
       r.countries=uniq(pc.map(function(p){return _CIN_PAIS[p]||p;}));
     }
-    if(dataProd['Estado'])r.uf=dataProd['Estado'];
+    if(dataProd['Estado'])r.uf=Array.isArray(dataProd['Estado'])?(dataProd['Estado'][0]||''):dataProd['Estado'];
   }
 
   if(cd['Sinopse'])r.synopsis=cd['Sinopse'];

@@ -4058,7 +4058,7 @@ html[data-theme]:not([data-theme="win98"]){--mono:var(--sans);}
             keywords:fsa(r.keywords), producers:fsa(r.producers),
             copy_arrival_forecast:fss(r.copy_arrival_forecast), copy_notes:fss(r.copy_notes),
             selecao:fss(r.selecao), screener:fss(r.screener), trailer:fss(r.trailer),
-            uf:fss(r.uf),
+            uf:fsa(r.uf),
             film_color:fss(r.film_color), aspect_ratio:fss(r.aspect_ratio),
             shooting_format:fss(r.shooting_format), student_project:fss(r.student_project),
             ff_submission_id:fss(r.ff_submission_id), ff_link:fss(r.ff_link),
@@ -4103,7 +4103,7 @@ html[data-theme]:not([data-theme="win98"]){--mono:var(--sans);}
         production_company:fsArr(data.production_company),distribution_company:fsArr(data.distribution_company),
         awards:fsArr(data.awards),director_filmography:fsArr(data.director_filmography),
         keywords:fsArr(data.keywords||[]),producers:fsArr(data.producers||[]),
-        uf:fsStr(data.uf||''),
+        uf:fsArr(data.uf||[]),
         film_color:fsStr(data.film_color||''),aspect_ratio:fsStr(data.aspect_ratio||''),
         shooting_format:fsStr(data.shooting_format||''),student_project:fsStr(data.student_project||''),
         ff_submission_id:fsStr(data.ff_submission_id||''),ff_link:fsStr(data.ff_link||''),
@@ -12952,7 +12952,7 @@ function renderDash(){
   html+=colBlock('kdm','KDM',kdmBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 22/05/2026 às 10:58';
+  var sysUpdate='última atualização do sistema · 22/05/2026 às 11:00';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -15540,7 +15540,7 @@ function renderCatDetail(){
   var selOpts=['FEST','NÃO FEST','SUPLENTE','CONVIDADO','VISIONAMENTO'];
   html+=catBlock('Metadados',
     '<div class="cat-grid">'+catFld('Gênero',_catEditing?catTagInp('genre',meta.genre||[]):catTags(meta.genre||[]))+catFld('País(es)',_catEditing?catTagInp('countries',meta.countries||[]):catTags(meta.countries||[]))+'</div>'
-    +'<div class="cat-grid">'+catFld('UF (estado)',_catEditing?catInp('uf',meta.uf||'','text'):(meta.uf?'<span style="font-family:var(--mono);font-weight:700;color:var(--text);">'+meta.uf+'</span>':'\u2014'))+catFld('Empresa(s) Produtora(s)',_catEditing?catTagInp('production_company',toArr(meta.production_company)):catTags(toArr(meta.production_company)))+'</div>'
+    +'<div class="cat-grid">'+catFld('UF (estado)',_catEditing?catTagInp('uf',meta.uf||[]):catTags(meta.uf||[]))+catFld('Empresa(s) Produtora(s)',_catEditing?catTagInp('production_company',toArr(meta.production_company)):catTags(toArr(meta.production_company)))+'</div>'
     +'<div class="cat-grid">'+catFld('Distribuidora(s)',_catEditing?catTagInp('distribution_company',toArr(meta.distribution_company)):catTags(toArr(meta.distribution_company)))+catFld('Ano',_catEditing?catInp('year',meta.year||'','number'):(meta.year?String(meta.year):'\u2014'))+'</div>'
     +'<div class="cat-grid">'+catFld('Email de contato',_catEditing?catInp('contact_email',meta.contact_email||''):(meta.contact_email||'\u2014'))+catFld('Idioma original',_catEditing?catInp('original_language',meta.original_language||''):(meta.original_language||'\u2014'))+'</div>'
     +catFld('Palavras-chave',_catEditing?catTagInp('keywords',meta.keywords||[]):catTags(meta.keywords||[]))
@@ -15726,7 +15726,7 @@ async function doSaveCat(){
       contact_email:gv('contact_email'),year:parseInt(gv('year'))||null,
       copy_arrival_forecast:gv('copy_arrival_forecast'),copy_notes:gv('copy_notes'),
       screener:gv('screener'),trailer:gv('trailer'),selecao:selEl?selEl.value:'',
-      website:gv('website'),uf:gv('uf'),
+      website:gv('website'),uf:catGetTags('uf'),
       ff_school:gv('ff_school'),
       ff_other_credits:(document.getElementById('catf_ff_other_credits')||{value:''}).value.trim(),
       ff_student:(document.getElementById('catf_ff_student')&&document.getElementById('catf_ff_student').checked)?'Yes':'No',
@@ -16241,7 +16241,7 @@ function _cinToCatalog(cd){
       var pc=toArr(dataProd['País']);
       r.countries=uniq(pc.map(function(p){return _CIN_PAIS[p]||p;}));
     }
-    if(dataProd['Estado'])r.uf=Array.isArray(dataProd['Estado'])?(dataProd['Estado'][0]||''):dataProd['Estado'];
+    if(dataProd['Estado'])r.uf=toArr(dataProd['Estado']);
   }
 
   if(cd['Sinopse'])r.synopsis=cd['Sinopse'];
@@ -17507,7 +17507,7 @@ window.addEventListener('popstate',function(e){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 22/05/2026 às 10:58</span></div>
+<div id="page-footer"><span>última atualização · 22/05/2026 às 11:00</span></div>
 
 </div>
 
@@ -19262,7 +19262,7 @@ function _ffNormalizeRow(row){
     director:_ffSplitComma(row['Directors']),
     producers:_ffSplitComma(row['Producers']),
     countries:countries,
-    uf:uf,
+    uf:uf?[uf]:[],
     original_language:_ffTranslateLang(row['Language']),
     year:_ffYear(row['Completion Date']),
     film_type:_ffFilmType(row['Project Type']),

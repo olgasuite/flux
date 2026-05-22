@@ -5415,6 +5415,13 @@ function switchMode(mode,noPush){
     var src=activeEventsForMode(currentMode);
     var dst=activeEventsForMode(mode);
     if(src&&dst){dst.clear();src.forEach(function(e){dst.add(e);});}
+    if(currentMode==='sessoes'){
+      sessoesCinemaFilter='';_sessoesComplexo='';_sessoesFiltroTitulo='';_sessoesFiltroData='';
+      var _selCx=document.getElementById('sessoesComplexoSelect');if(_selCx)_selCx.value='';
+      var _selCin=document.getElementById('sessoesCinemaSelect');if(_selCin)_selCin.value='';
+      var _inpTit=document.getElementById('sessoesTituloInput');if(_inpTit)_inpTit.value='';
+      var _inpDt=document.getElementById('sessoesDataInput');if(_inpDt)_inpDt.value='';
+    }
   }
   currentMode=mode;
   if(!noPush&&!_browserNav)history.pushState({olga:mode},'');
@@ -6322,11 +6329,6 @@ function buildSessoesFilters(){
 }
 
 function renderSessoes(){
-  sessoesCinemaFilter='';_sessoesComplexo='';_sessoesFiltroTitulo='';_sessoesFiltroData='';
-  var _selCx=document.getElementById('sessoesComplexoSelect');if(_selCx)_selCx.value='';
-  var _selCin=document.getElementById('sessoesCinemaSelect');if(_selCin)_selCin.value='';
-  var _inpTit=document.getElementById('sessoesTituloInput');if(_inpTit)_inpTit.value='';
-  var _inpDt=document.getElementById('sessoesDataInput');if(_inpDt)_inpDt.value='';
   rebuildSessoesComplexoSelect();
   rebuildSessoesCinemaSelect();
   var se=document.getElementById('sessoesEmpty'),sc=document.getElementById('sessoes-container');
@@ -12948,7 +12950,7 @@ function renderDash(){
   html+=colBlock('kdm','KDM',kdmBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 22/05/2026 às 10:48';
+  var sysUpdate='última atualização do sistema · 22/05/2026 às 10:52';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -13090,15 +13092,20 @@ function _progRender(){
   else if(_progView.level==='sessao')_progRenderSessao(_progView.sessaoNome);
 }
 function _progBack(){
+  _progBatchSelected.clear();_progBatchMode=false;_progBatchBumpers=[];
+  _progFiltroTitulo='';_progFiltroComplexo='';_progFiltroCinema='';_progFiltroData='';
   if(_progView.level==='sessao'){_progView.level='program';_progView.sessaoNome=null;_progRender();}
   else{_progView={level:'landing',programId:null,sessaoNome:null};_progRender();}
 }
 function _progGoProgram(id){
+  _progBatchSelected.clear();_progBatchMode=false;_progBatchBumpers=[];
+  _progFiltroTitulo='';_progFiltroComplexo='';_progFiltroCinema='';_progFiltroData='';
   _progView={level:'program',programId:id,sessaoNome:null};
   if(!_browserNav)history.pushState({olga:'programacao',progLevel:'program',progProgramId:id},'');
   _progRender();
 }
 function _progGoSessao(nome,programId){
+  _progBatchSelected.clear();_progBatchMode=false;_progBatchBumpers=[];
   _progView={level:'sessao',programId:programId,sessaoNome:nome};
   if(!_browserNav)history.pushState({olga:'programacao',progLevel:'sessao',progProgramId:programId,progSessaoNome:nome},'');
   _progRender();
@@ -17494,7 +17501,7 @@ window.addEventListener('popstate',function(e){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 22/05/2026 às 10:48</span></div>
+<div id="page-footer"><span>última atualização · 22/05/2026 às 10:52</span></div>
 
 </div>
 

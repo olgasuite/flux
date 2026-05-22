@@ -10390,7 +10390,7 @@ function renderRevista(){
   }
 
   mostras.forEach(function(prog){
-    var sessoesMostra=sessoesArr.filter(function(s){return s.program_id===prog.id;});
+    var sessoesMostra=sessoesArr.filter(function(s){return s.program_id===prog.id&&s.evento===evName;});
     var mostraName=prog.data.name||prog.id;
 
     var cinemasVistos={},cinemasLista=[];
@@ -10826,11 +10826,11 @@ function openVinhetaModal(cod){
   function listOpts(arr){return arr.map(function(x){return'<option value="'+esc(x)+'">';}).join('');}
   var body=
     '<div style="display:flex;flex-direction:column;gap:12px;">'
-    +'<div class="prog-modal-field"><label class="prog-modal-label">Evento</label><select class="prog-modal-input" id="vm_event">'+evOpts+'</select></div>'
+    +'<div class="prog-modal-field"><label class="prog-modal-label">Evento</label><select class="prog-modal-input" id="vm_event" onchange="var _p=document.getElementById(\'vm_code_prefix\');if(_p)_p.textContent=this.value;">'+evOpts+'</select></div>'
     +'<div style="display:flex;gap:10px;">'
     +'<div class="prog-modal-field" style="flex:1;"><label class="prog-modal-label">Código'+(cod?'':' *')+'</label>'
     +(cod?'<input class="prog-modal-input" id="vm_code" value="'+esc(cod)+'" readonly style="opacity:0.6;">'
-        :'<input class="prog-modal-input" id="vm_code" autocomplete="off">')
+        :'<div style="display:flex;align-items:center;gap:4px;"><span id="vm_code_prefix" style="font-family:var(--mono);font-size:11px;color:var(--text-muted);white-space:nowrap;flex-shrink:0;"></span><input class="prog-modal-input" id="vm_code" autocomplete="off"></div>')
     +'</div>'
     +'<div class="prog-modal-field" style="flex:2;"><label class="prog-modal-label">Título *</label><input class="prog-modal-input" id="vm_nome" value="'+esc(v?v.nome:'')+'"></div>'
     +'</div>'
@@ -10853,14 +10853,16 @@ function closeVinhetaModal(){document.getElementById('vinhetaModal').style.displ
 
 async function saveVinhetaModal(){
   if(!window._olgaVinhetas)return;
-  var code=(document.getElementById('vm_code').value||'').trim();
+  var _rawVinCode=(document.getElementById('vm_code').value||'').trim();
+  var _evVin=(document.getElementById('vm_event').value||'').trim();
+  var code=(!_vinhetaEditCod&&_evVin)?_evVin+_rawVinCode:_rawVinCode;
   var nome=(document.getElementById('vm_nome').value||'').trim();
   if(!code){_vinhetaErr('Código obrigatório.');return;}
   if(!nome){_vinhetaErr('Título obrigatório.');return;}
   // Se criação, verificar duplicata
   if(!_vinhetaEditCod&&vinhetasArr.find(function(v){return v.codigo===code;})){_vinhetaErr('Código já existe: '+code);return;}
   var data={
-    event_name:(document.getElementById('vm_event').value||'').trim(),
+    event_name:_evVin,
     bumper_code:code,title:nome,
     projection_lens:(document.getElementById('vm_lente').value||'').trim(),
     audio_format:(document.getElementById('vm_som').value||'').trim(),
@@ -12928,7 +12930,7 @@ function renderDash(){
   html+=colBlock('kdm','KDM',kdmBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 21/05/2026 às 10:28';
+  var sysUpdate='última atualização do sistema · 21/05/2026 às 10:40';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -13114,7 +13116,7 @@ function _progRenderLanding(){
     html+='</div><div class="prog-cards-grid">';
     evProgs.forEach(function(p){
       var subCount=_progData.subprograms.filter(function(s){return s.data.program_id===p.id;}).length;
-      var sessCount=sessoesArr.filter(function(s){return s.program_id===p.id;}).length;
+      var sessCount=sessoesArr.filter(function(s){return s.program_id===p.id&&s.evento===ev;}).length;
       var safePid=p.id.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
       html+='<div class="prog-card" onclick="_progGoProgram(\''+safePid+'\')">';
       if(p.data.competitive||p.data.popular_vote){html+='<div class="prog-card-flags">';if(p.data.competitive)html+='<span class="prog-flag-badge prog-flag-comp">Competitivo</span>';if(p.data.popular_vote)html+='<span class="prog-flag-badge prog-flag-pop">Voto popular</span>';html+='</div>';}
@@ -13642,6 +13644,7 @@ function openProgProgramModal(id,eventId){
   document.getElementById('progProgramIdWrap').style.display=id?'none':'flex';
   document.getElementById('progProgramId').value='';
   document.getElementById('progProgramEventId').value=ev;
+  var _ppfx=document.getElementById('progProgramIdPrefix');if(_ppfx)_ppfx.textContent=ev||'';
   document.getElementById('progProgramName').value=d.name||'';
   document.getElementById('progProgramDesc').value=d.program_description||'';
   document.getElementById('progProgramCompetitive').checked=!!(d.competitive);
@@ -13663,9 +13666,12 @@ function _progRenderVinTemplatesList(ev){
   }).join('');
 }
 async function saveProgProgramModal(){
-  var id=_progProgramEditId||(document.getElementById('progProgramId').value||'').trim().replace(/[/\\. #[\]*?]/g,'_');
+  var evAtual=document.getElementById('progProgramEventId').value||'';
+  var _rawId=(document.getElementById('progProgramId').value||'').trim().replace(/[/\\. #[\]*?]/g,'_');
+  var id=_progProgramEditId||(evAtual?evAtual+_rawId:_rawId);
   if(!id){_progProgramErr('ID obrigatório.');return;}
   var existing=id?(_progData.programs.find(function(x){return x.id===id;})||{data:{}}):null;
+  if(!_progProgramEditId&&existing&&existing.data&&existing.data.name){_progProgramErr('ID "'+id+'" já existe.');return;}
   var data={
     event_id:document.getElementById('progProgramEventId').value||'',
     name:(document.getElementById('progProgramName').value||'').trim(),
@@ -13829,6 +13835,8 @@ function openProgSubprogramModal(id,programId){
   _progSubprogramEditId=id||null;_progSubprogramProgramId=programId;
   var sub=id?_progData.subprograms.find(function(x){return x.id===id;}):null;
   var d=sub?sub.data:{};
+  var _subProg=_progData.programs.find(function(p){return p.id===programId;});
+  var _spfx=document.getElementById('progSubprogramIdPrefix');if(_spfx)_spfx.textContent=(_subProg&&_subProg.data.event_id)||'';
   document.getElementById('progSubprogramModalTitle').textContent=id?'Editar submostra':'Nova submostra';
   document.getElementById('progSubprogramIdWrap').style.display=id?'none':'flex';
   document.getElementById('progSubprogramId').value='';
@@ -13839,10 +13847,13 @@ function openProgSubprogramModal(id,programId){
 }
 function closeProgSubprogramModal(){document.getElementById('progSubprogramModal').style.display='none';}
 async function saveProgSubprogramModal(){
-  var id=_progSubprogramEditId||(document.getElementById('progSubprogramId').value||'').trim().replace(/[/\\. #[\]*?]/g,'_');
-  if(!id){_progSubErr('ID obrigatório.');return;}
   var prog=_progData.programs.find(function(p){return p.id===_progSubprogramProgramId;});
-  var data={program_id:_progSubprogramProgramId||'',event_id:prog?prog.data.event_id:'',name:(document.getElementById('progSubprogramName').value||'').trim(),subprogram_description:(document.getElementById('progSubprogramDesc').value||'').trim()};
+  var _evSub=prog?prog.data.event_id:'';
+  var _rawSubId=(document.getElementById('progSubprogramId').value||'').trim().replace(/[/\\. #[\]*?]/g,'_');
+  var id=_progSubprogramEditId||(_evSub?_evSub+_rawSubId:_rawSubId);
+  if(!id){_progSubErr('ID obrigatório.');return;}
+  if(!_progSubprogramEditId&&_progData.subprograms.find(function(x){return x.id===id;})){_progSubErr('ID "'+id+'" já existe.');return;}
+  var data={program_id:_progSubprogramProgramId||'',event_id:_evSub,name:(document.getElementById('progSubprogramName').value||'').trim(),subprogram_description:(document.getElementById('progSubprogramDesc').value||'').trim()};
   if(!data.name){_progSubErr('Nome obrigatório.');return;}
   var btn=document.getElementById('progSubprogramModalSave');btn.disabled=true;btn.textContent='Salvando…';
   try{await window._olgaSubprograms.save(id,data);_progData.subprograms=await window._olgaSubprograms.list();closeProgSubprogramModal();_progRender();}
@@ -13896,6 +13907,7 @@ function openProgSessaoModal(sessaoNome,programId,subprogramId){
   document.getElementById('progSessaoSubprogramRow').style.display=subs.length?'':'none';
   document.getElementById('progSessaoSubprogramSelect').innerHTML=subOpts;
   document.getElementById('progSessaoIdWrap').style.display=sessaoNome?'none':'flex';
+  var _ssfx=document.getElementById('progSessaoIdPrefix');if(_ssfx)_ssfx.textContent=(!sessaoNome&&ev)?ev:'';
   document.getElementById('progSessaoId').value='';
   document.getElementById('progSessaoName').value=s?s.name||'':'';
   document.getElementById('progSessaoDate').value=s&&s.date?s.date.toISOString().slice(0,10):'';
@@ -14091,8 +14103,10 @@ async function saveProgSessaoModal(){
   }
   var prog=_progData.programs.find(function(p){return p.id===_progSessaoContextProgramId;});
   var ev=prog?prog.data.event_id:(sessoesMap[nome]?sessoesMap[nome].evento:'');
+  var _sessaoNomeReal=(!_progSessaoEditNome&&ev)?ev+nome:nome;
+  if(!_progSessaoEditNome&&sessoesMap[_sessaoNomeReal]){_progSessErr('ID "'+_sessaoNomeReal+'" já existe.');return;}
   var data={
-    session_id:nome,name:(document.getElementById('progSessaoName').value||'').trim(),
+    session_id:_sessaoNomeReal,name:(document.getElementById('progSessaoName').value||'').trim(),
     event_name:ev,date:document.getElementById('progSessaoDate').value,
     time:document.getElementById('progSessaoTime').value,
     venue_name:document.getElementById('progSessaoCinemaSelect').value||'',
@@ -14113,7 +14127,7 @@ async function saveProgSessaoModal(){
   };
   var btn=document.getElementById('progSessaoModalSave');btn.disabled=true;btn.textContent='Salvando…';
   try{
-    var _saveDocId=(sessoesMap[nome]&&sessoesMap[nome]._docId)||nome;
+    var _saveDocId=_progSessaoEditNome?((sessoesMap[nome]&&sessoesMap[nome]._docId)||nome):_sessaoNomeReal;
     await window._olgaSessoes.save(_saveDocId,data);
     window._logFirestoreEdit&&window._logFirestoreEdit('individual',nome,data,'programacao','sessoes');
     closeProgSessaoModal();
@@ -15721,9 +15735,15 @@ var _catCreateEvent='';
 
 function _catSuggestCode(ev){
   if(!ev)return'';
-  var evCode=ev.replace(/[^A-Za-z0-9]/g,'').toUpperCase();
-  var count=filmesArr.filter(function(f){return f.evento===ev;}).length;
-  return evCode+String(count+1).padStart(4,'0');
+  var maxN=0;
+  filmesArr.filter(function(f){return f.evento===ev;}).forEach(function(f){
+    var stripped=f.codigo.startsWith(ev)?f.codigo.slice(ev.length):f.codigo;
+    var n=parseInt(stripped,10);
+    if(!isNaN(n)&&n>maxN)maxN=n;
+  });
+  var n=maxN+1;
+  while(filmesMap[ev+String(n).padStart(4,'0')]||catalogoFilmesMap[ev+String(n).padStart(4,'0')]){n++;}
+  return String(n).padStart(4,'0');
 }
 async function deleteCatFilm(codigo){
   if(!confirm('Excluir o filme "'+codigo+'" do Catálogo e do Acervo Técnico?\n\nEsta ação não pode ser desfeita.'))return;
@@ -15768,7 +15788,8 @@ function renderCatCreate(){
   html+=catBlock('Identificação',
     catFld('Evento *','<select class="cat-input" id="catf_event" onchange="_catUpdateCodeSuggestion()">'+evOpts+'</select>')
     +catFld('Código *',
-      '<div style="display:flex;gap:8px;align-items:center;">'
+      '<div style="display:flex;gap:4px;align-items:center;">'
+      +'<span id="catf_code_prefix" style="font-family:var(--mono);font-size:11px;color:var(--text-muted);white-space:nowrap;flex-shrink:0;">'+esc(_catCreateEvent||'')+'</span>'
       +'<input class="cat-input" id="catf_code" value="'+esc(sugCode)+'" oninput="this.dataset.userModified=\'1\';_catCheckCodeDup()" style="flex:1;">'
       +'<span id="catc_code_status" style="font-family:var(--mono);font-size:9px;white-space:nowrap;flex-shrink:0;"></span>'
       +'</div>'
@@ -15861,6 +15882,7 @@ function _catUpdateCodeSuggestion(){
   _catCreateEvent=ev;
   var inp=document.getElementById('catf_code');if(!inp)return;
   if(!inp.dataset.userModified){inp.value=_catSuggestCode(ev);}
+  var pfx=document.getElementById('catf_code_prefix');if(pfx)pfx.textContent=ev||'';
   _catCheckCodeDup();
   // Atualizar datalist de status pelo evento selecionado
   var dl=document.getElementById('catf_status_list');
@@ -15872,7 +15894,9 @@ function _catUpdateCodeSuggestion(){
 function _catCheckCodeDup(){
   var codeEl=document.getElementById('catf_code');
   if(!codeEl)return;
-  var code=(codeEl.value||'').trim();
+  var rawCode=(codeEl.value||'').trim();
+  var ev=((document.getElementById('catf_event')||{value:''}).value||_catCreateEvent||'').trim();
+  var code=ev?ev+rawCode:rawCode;
   var st=document.getElementById('catc_code_status');if(!st)return;
   if(!code){st.textContent='';return;}
   if(filmesMap[code]||catalogoFilmesMap[code]){st.textContent='⚠ código já existe';st.style.color='var(--warn)';}
@@ -15889,19 +15913,20 @@ async function doCreateFilm(){
   if(msg){msg.className='cat-msg';msg.textContent='Validando…';}
   var code=(document.getElementById('catf_code').value||'').trim();
   var ev=(document.getElementById('catf_event').value||'').trim();
+  var _filmCode=ev?ev+code:code;
   var systemName=(document.getElementById('catf_system_name').value||'').trim();
   var titlePt=(document.getElementById('catf_title_pt')?document.getElementById('catf_title_pt').value||'':'').trim();
   if(!code){if(msg){msg.className='cat-msg err';msg.textContent='Código obrigatório.';}return;}
   if(!ev){if(msg){msg.className='cat-msg err';msg.textContent='Evento obrigatório.';}return;}
   if(!systemName){if(msg){msg.className='cat-msg err';msg.textContent='Nome no sistema obrigatório.';}return;}
-  if(filmesMap[code]||catalogoFilmesMap[code]){if(msg){msg.className='cat-msg err';msg.textContent='Código já existe: '+code;}return;}
+  if(filmesMap[_filmCode]||catalogoFilmesMap[_filmCode]){if(msg){msg.className='cat-msg err';msg.textContent='Código já existe: '+_filmCode;}return;}
   if(msg){msg.className='cat-msg';msg.textContent='Salvando…';}
   await _langEnsure();
   var selEl=document.getElementById('catf_selecao');
   var synEl=document.getElementById('catf_synopsis');
   var durHMMSS=_catMinToHMMSS((document.getElementById('catf_dcp_duration_min')||{value:''}).value);
   var catalogData={
-    festival_code:code,
+    festival_code:_filmCode,
     system_name:systemName,
     title_pt:titlePt,
     original_title:gv('original_title'),english_title:gv('english_title'),
@@ -15991,7 +16016,7 @@ async function doCreateFilm(){
     if(msg){msg.className='cat-msg';msg.textContent='Salvando…';}
   }
   var copiasData={
-    festival_code:code,event_name:ev,title:systemName||titlePt,
+    festival_code:_filmCode,event_name:ev,title:systemName||titlePt,
     original_language:catalogData.original_language||gv('original_language'),
     dcp_subtitle_code:cldrToDcnc(gv('dcp_subtitle_code'))||gv('dcp_subtitle_code'),
     vf_subtitle_code:cldrToDcnc(gv('vf_subtitle_code'))||gv('vf_subtitle_code'),
@@ -16004,14 +16029,14 @@ async function doCreateFilm(){
     accessibility_features:'',subtitle_status:''
   };
   try{
-    await window._olgaCatalogo.save(code,catalogData);
-    if(window._olgaCopias)await window._olgaCopias.save(code,copiasData);
-    catalogoFilmesMap[code]=catalogData;
+    await window._olgaCatalogo.save(_filmCode,catalogData);
+    if(window._olgaCopias)await window._olgaCopias.save(_filmCode,copiasData);
+    catalogoFilmesMap[_filmCode]=catalogData;
     if(msg){msg.className='cat-msg ok';msg.textContent='Criado ✓';}
     var _savedCatEvs=new Set(activeEventsCatalogo);
     await window._olgaLoadFirestore();
     activeEventsCatalogo=_savedCatEvs;
-    _catCode=code;_catView='detail';_catEditing=false;
+    _catCode=_filmCode;_catView='detail';_catEditing=false;
     setTimeout(function(){renderCatDetail();},400);
   }catch(e){if(msg){msg.className='cat-msg err';msg.textContent='Erro: '+e.message;}}
 }
@@ -17011,7 +17036,10 @@ window.addEventListener('popstate',function(e){
     <div style="padding:20px 22px;display:flex;flex-direction:column;gap:14px;overflow-y:auto;">
       <div id="progProgramIdWrap" class="prog-modal-field">
         <label class="prog-modal-label">ID <span style="color:var(--warn);">*</span></label>
-        <input id="progProgramId" type="text" class="prog-modal-input" placeholder="identificador único sem espaços">
+        <div style="display:flex;align-items:center;gap:4px;">
+          <span id="progProgramIdPrefix" style="font-family:var(--mono);font-size:11px;color:var(--text-muted);white-space:nowrap;flex-shrink:0;"></span>
+          <input id="progProgramId" type="text" class="prog-modal-input" placeholder="identificador único">
+        </div>
         <span style="font-family:var(--mono);font-size:9px;color:var(--text-muted);">Imutável após criação.</span>
       </div>
       <div class="prog-modal-field" style="display:none;">
@@ -17047,7 +17075,10 @@ window.addEventListener('popstate',function(e){
     <div style="padding:20px 22px;display:flex;flex-direction:column;gap:14px;overflow-y:auto;">
       <div id="progSubprogramIdWrap" class="prog-modal-field">
         <label class="prog-modal-label">ID <span style="color:var(--warn);">*</span></label>
-        <input id="progSubprogramId" type="text" class="prog-modal-input" placeholder="identificador único sem espaços">
+        <div style="display:flex;align-items:center;gap:4px;">
+          <span id="progSubprogramIdPrefix" style="font-family:var(--mono);font-size:11px;color:var(--text-muted);white-space:nowrap;flex-shrink:0;"></span>
+          <input id="progSubprogramId" type="text" class="prog-modal-input" placeholder="identificador único">
+        </div>
       </div>
       <div class="prog-modal-field">
         <label class="prog-modal-label">Nome da submostra <span style="color:var(--warn);">*</span></label>
@@ -17171,7 +17202,10 @@ window.addEventListener('popstate',function(e){
     <div style="padding:20px 22px;display:flex;flex-direction:column;gap:14px;">
       <div id="progSessaoIdWrap" class="prog-modal-field">
         <label class="prog-modal-label">session_id <span style="color:var(--warn);">*</span></label>
-        <input id="progSessaoId" type="text" class="prog-modal-input" placeholder="código único da sessão">
+        <div style="display:flex;align-items:center;gap:4px;">
+          <span id="progSessaoIdPrefix" style="font-family:var(--mono);font-size:11px;color:var(--text-muted);white-space:nowrap;flex-shrink:0;"></span>
+          <input id="progSessaoId" type="text" class="prog-modal-input" placeholder="código único da sessão">
+        </div>
       </div>
       <div class="prog-modal-field">
         <label class="prog-modal-label">Nome da sessão</label>
@@ -17438,7 +17472,7 @@ window.addEventListener('popstate',function(e){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 21/05/2026 às 10:28</span></div>
+<div id="page-footer"><span>última atualização · 21/05/2026 às 10:40</span></div>
 
 </div>
 
@@ -18592,7 +18626,7 @@ function _mobRenderProgramacao(params,noScroll){
     if(!evProgs.length&&!sessOrfas.length){html+='<div style="font-family:var(--mono);font-size:10px;color:var(--text-muted);padding:6px 14px;">Nenhuma mostra.</div>';return;}
     evProgs.forEach(function(p){
       var subCount=_progData.subprograms.filter(function(s){return s.data.program_id===p.id;}).length;
-      var sessCount=sessoesArr.filter(function(s){return s.program_id===p.id;}).length;
+      var sessCount=sessoesArr.filter(function(s){return s.program_id===p.id&&s.evento===ev;}).length;
       var safePid=p.id.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
       html+='<div class="mob-sessao-card" onclick="_mobIrProgPrograma(\''+safePid+'\',\''+_mobEsc(ev)+'\')" style="margin:4px 12px;">';
       html+='<div style="display:flex;justify-content:space-between;align-items:baseline;">';
@@ -18635,7 +18669,7 @@ function _mobRenderProgPrograma(params,noScroll){
     var autoP=_progData.programs.find(function(x){return x.data.event_id===ev&&x.data.auto;});
     sessoes=sessoesArr.filter(function(s){return s.evento===ev&&(!s.program_id||(autoP&&s.program_id===autoP.id));});
   }else{
-    sessoes=sessoesArr.filter(function(s){return s.program_id===programId;});
+    sessoes=sessoesArr.filter(function(s){return s.program_id===programId&&s.evento===ev;});
   }
   // Filtra por evento ativo
   if(filtroEvs)sessoes=sessoes.filter(function(s){return filtroEvs.has(s.evento);});

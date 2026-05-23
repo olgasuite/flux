@@ -13449,7 +13449,7 @@ function renderDash(){
   html+=colBlock('kdm','KDM',kdmBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 23/05/2026 às 11:58';
+  var sysUpdate='última atualização do sistema · 23/05/2026 às 12:00';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -18004,7 +18004,7 @@ window.addEventListener('popstate',function(e){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 23/05/2026 às 11:58</span></div>
+<div id="page-footer"><span>última atualização · 23/05/2026 às 12:00</span></div>
 
 </div>
 
@@ -18859,9 +18859,14 @@ function _mobRenderCinemas(params){
   var arr=cinemasArr||[];
   if(!arr.length){_mobSetContent('<div class="mob-empty">Nenhum cinema cadastrado.</div>');return;}
   var filtroComplexo=params.complexo||'';
-  // Determina estados ativos a partir dos cinemas associados aos eventos ativos
+  // Determina estados ativos a partir das sessões (primário) e do campo evento do cinema (fallback)
   var activeStates=new Set();
   if(filtroEvs){
+    var _cinEstMap={};
+    arr.forEach(function(c){if(c.sala&&c.estado)_cinEstMap[c.sala]=c.estado;});
+    (sessoesArr||[]).forEach(function(s){
+      if(s.evento&&filtroEvs.has(s.evento)&&s.cinema&&_cinEstMap[s.cinema])activeStates.add(_cinEstMap[s.cinema]);
+    });
     arr.forEach(function(c){
       var cEvs=c.evento?String(c.evento).split(';').map(function(e){return e.trim();}).filter(Boolean):[];
       if(cEvs.some(function(ev){return filtroEvs.has(ev);})){if(c.estado)activeStates.add(c.estado);}
@@ -18943,15 +18948,32 @@ function _mobRenderRevista(params){
   _mobSetContent(html);
 }
 window._mobAbrirRevista=function(ev){
-  document.getElementById('olga-mobile').style.display='none';
-  document.getElementById('olga-app').style.display='';
+  var mobileEl=document.getElementById('olga-mobile');
+  var appEl=document.getElementById('olga-app');
+  function restoreMobile(){
+    appEl.style.display='none';
+    mobileEl.style.display='flex';
+    window._mobileActive=true;
+  }
+  mobileEl.style.display='none';
+  appEl.style.display='';
   window._mobileActive=false;
   if(typeof applyModulePermissions==='function'&&window._olgaUser)applyModulePermissions(window._olgaUser.modulos);
   if(typeof switchMode==='function')switchMode('revista');
   setTimeout(function(){
     var sel=document.getElementById('revistaEventSelect');
     if(sel){sel.value=ev;if(typeof revistaSelectedEvent!=='undefined')revistaSelectedEvent=ev;if(typeof renderRevista==='function')renderRevista();}
-    setTimeout(function(){window.print();},1000);
+    setTimeout(function(){
+      var done=false;
+      function onAfterPrint(){
+        window.removeEventListener('afterprint',onAfterPrint);
+        if(!done){done=true;restoreMobile();}
+      }
+      window.addEventListener('afterprint',onAfterPrint);
+      window.print();
+      // fallback: afterprint pode não disparar em alguns browsers mobile
+      setTimeout(function(){if(!done){done=true;restoreMobile();}},4000);
+    },800);
   },300);
 };
 

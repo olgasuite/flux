@@ -13449,7 +13449,7 @@ function renderDash(){
   html+=colBlock('kdm','KDM',kdmBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 23/05/2026 às 11:56';
+  var sysUpdate='última atualização do sistema · 23/05/2026 às 11:58';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -18004,7 +18004,7 @@ window.addEventListener('popstate',function(e){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 23/05/2026 às 11:56</span></div>
+<div id="page-footer"><span>última atualização · 23/05/2026 às 11:58</span></div>
 
 </div>
 
@@ -18675,7 +18675,7 @@ window._mobReceptivoSection=function(sec,noPush){
         _mobSetContent(
           '<div style="padding:10px 14px;background:var(--surface);border-bottom:1px solid var(--border);display:flex;gap:8px;align-items:center;">'+
             '<input id="mobConvSearch" type="text" placeholder="Buscar por nome ou filme..." oninput="_mobFiltrarConvidados(this.value,false)" style="flex:1;font-family:var(--mono);font-size:11px;padding:6px 10px;background:var(--bg);color:var(--text);border:1px solid var(--border2);border-radius:2px;outline:none;">'+
-            '<button onclick="document.getElementById('+"'"+'mobConvSearch'+"'"+'').value='';_mobFiltrarConvidados('',true)" style="font-family:var(--mono);font-size:9px;font-weight:600;letter-spacing:0.06em;padding:5px 10px;border:1px solid var(--border2);border-radius:2px;background:var(--surface2);color:var(--text-muted);cursor:pointer;white-space:nowrap;">LISTAR TODOS</button>'+
+            '<button onclick="_mobConvListarTodos()" style="font-family:var(--mono);font-size:9px;font-weight:600;letter-spacing:0.06em;padding:5px 10px;border:1px solid var(--border2);border-radius:2px;background:var(--surface2);color:var(--text-muted);cursor:pointer;white-space:nowrap;">LISTAR TODOS</button>'+
           '</div>'+
           '<div id="mob-conv-list"><div class="mob-empty" style="font-size:9px;">Digite um nome para buscar.</div></div>'
         );
@@ -18823,6 +18823,11 @@ function _mobRenderConvidadoDetalhe(params){
 window._mobAbrirConvidadoDetalhe=function(guestId){
   _mobPush({view:'convidado-detalhe',params:{guestId:guestId}});
   _mobRenderConvidadoDetalhe({guestId:guestId});
+};
+window._mobConvListarTodos=function(){
+  var el=document.getElementById('mobConvSearch');
+  if(el)el.value='';
+  _mobFiltrarConvidados('',true);
 };
 window._mobFiltrarConvidados=function(term,showAll){
   var cards=window._mobConvCards||[];

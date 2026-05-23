@@ -13449,7 +13449,7 @@ function renderDash(){
   html+=colBlock('kdm','KDM',kdmBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 23/05/2026 às 12:08';
+  var sysUpdate='última atualização do sistema · 23/05/2026 às 12:10';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -18004,7 +18004,7 @@ window.addEventListener('popstate',function(e){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 23/05/2026 às 12:08</span></div>
+<div id="page-footer"><span>última atualização · 23/05/2026 às 12:10</span></div>
 
 </div>
 
@@ -18170,7 +18170,7 @@ function olgaMobileInit(){
   var nameEl=document.getElementById('mobUserName');
   if(nameEl)nameEl.textContent=u?u.name||u.email:'';
   var footerEl=document.getElementById('mobFooterText');
-  if(footerEl&&typeof sysUpdate!=='undefined')footerEl.textContent=sysUpdate.replace('última atualização do sistema · ','última atualização · ');
+  if(footerEl){var _wf=document.querySelector('#page-footer span');footerEl.textContent=_wf?_wf.textContent:'';}
   // inicializa eventos ativos — usa currentEventsFromDates se disponível, senão todos
   if(typeof currentEventsFromDates==='function'&&sessoesArr){
     var cur=currentEventsFromDates(sessoesArr);
@@ -18964,19 +18964,16 @@ window._mobAbrirRevista=function(ev){
   appEl.style.display='';
   window._mobileActive=false;
   if(typeof applyModulePermissions==='function'&&window._olgaUser)applyModulePermissions(window._olgaUser.modulos);
-  // Setar evento ANTES de switchMode para que buildRevistaEventSelect não o resete
+  if(typeof switchMode==='function')switchMode('revista');
+  // switchMode limpa activeEventsRevista e chama buildRevistaEventSelect que pode resetar revistaSelectedEvent.
+  // Forçar o evento DEPOIS de switchMode ter concluído.
   if(typeof activeEventsRevista!=='undefined')activeEventsRevista.add(ev);
   if(typeof revistaSelectedEvent!=='undefined')revistaSelectedEvent=ev;
-  if(typeof switchMode==='function')switchMode('revista');
-  // Forçar evento novamente caso buildRevistaEventSelect tenha resetado (ex: activeEventsRevista foi limpo dentro de switchMode)
-  if(typeof revistaSelectedEvent!=='undefined')revistaSelectedEvent=ev;
-  var _revSel=document.getElementById('revistaEventSelect');
-  if(_revSel)_revSel.value=ev;
+  var _sel=document.getElementById('revistaEventSelect');
+  if(_sel)_sel.value=ev;
+  // Disparar renderRevista com o evento já garantido
+  if(typeof renderRevista==='function')renderRevista();
   var container=document.getElementById('revista-container');
-  // Se switchMode já renderizou (dados em cache), páginas já estão no DOM
-  if(container&&!container.querySelector('.rev-page')){
-    if(typeof renderRevista==='function')renderRevista();
-  }
   var done=false;
   function doPrint(){
     if(done)return;done=true;
@@ -18986,14 +18983,16 @@ window._mobAbrirRevista=function(ev){
     window.print();
     setTimeout(function(){if(!doneP){doneP=true;restoreMobile();}},4000);
   }
-  if(container&&!container.querySelector('.rev-page')){
+  if(container&&container.querySelector('.rev-page')){
+    // renderRevista foi síncrono (dados em cache) — aguardar 400ms e imprimir
+    setTimeout(doPrint,400);
+  }else if(container){
+    // renderRevista é assíncrono (busca Firebase) — observar container até páginas aparecerem
     var obs=new MutationObserver(function(){
       if(container.querySelector('.rev-page')){obs.disconnect();setTimeout(doPrint,400);}
     });
     obs.observe(container,{childList:true});
     setTimeout(function(){obs.disconnect();if(!done)doPrint();},8000);
-  }else{
-    setTimeout(doPrint,400);
   }
 };
 

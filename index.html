@@ -13449,7 +13449,7 @@ function renderDash(){
   html+=colBlock('kdm','KDM',kdmBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 23/05/2026 às 12:00';
+  var sysUpdate='última atualização do sistema · 23/05/2026 às 12:04';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -18004,7 +18004,7 @@ window.addEventListener('popstate',function(e){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 23/05/2026 às 12:00</span></div>
+<div id="page-footer"><span>última atualização · 23/05/2026 às 12:04</span></div>
 
 </div>
 
@@ -18899,7 +18899,8 @@ function _mobRenderCinemas(params){
       if(c.servidor)specs.push('SRV: '+_mobEsc(c.servidor));
       var sessCount=sessoesArr.filter(function(s){return s.cinema===c.sala&&(!filtroEvs||filtroEvs.has(s.evento));}).length;
       var allEvs=(c.evento?String(c.evento).split(';').map(function(e){return e.trim();}).filter(Boolean):[]);
-      var evTags=allEvs.filter(function(ev){return eventColors[ev];}).map(function(ev){var col=eventColors[ev];return'<span style="font-family:var(--mono);font-size:8px;padding:1px 5px;border-radius:2px;background:'+(col?col.bg:'var(--surface2)')+';color:'+(col?col.text:'var(--text-dim)')+';">'+_mobEsc(ev)+'</span>';}).join(' ');
+      var userEvs2=window._olgaUser&&window._olgaUser.eventos&&window._olgaUser.eventos.length?new Set(window._olgaUser.eventos):null;
+      var evTags=allEvs.filter(function(ev){return eventColors[ev]&&(!userEvs2||userEvs2.has(ev));}).map(function(ev){var col=eventColors[ev];return'<span style="font-family:var(--mono);font-size:8px;padding:1px 5px;border-radius:2px;background:'+(col?col.bg:'var(--surface2)')+';color:'+(col?col.text:'var(--text-dim)')+';">'+_mobEsc(ev)+'</span>';}).join(' ');
       html+='<div style="padding:10px 16px;border-bottom:1px solid var(--border);font-family:var(--mono);">'+
         '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">'+
           '<span style="font-size:11px;font-weight:600;color:var(--text-dim);">'+_mobEsc(c.sala)+'</span>'+
@@ -18962,18 +18963,28 @@ window._mobAbrirRevista=function(ev){
   if(typeof switchMode==='function')switchMode('revista');
   setTimeout(function(){
     var sel=document.getElementById('revistaEventSelect');
-    if(sel){sel.value=ev;if(typeof revistaSelectedEvent!=='undefined')revistaSelectedEvent=ev;if(typeof renderRevista==='function')renderRevista();}
-    setTimeout(function(){
-      var done=false;
-      function onAfterPrint(){
-        window.removeEventListener('afterprint',onAfterPrint);
-        if(!done){done=true;restoreMobile();}
-      }
+    if(sel){sel.value=ev;if(typeof revistaSelectedEvent!=='undefined')revistaSelectedEvent=ev;}
+    if(typeof renderRevista==='function')renderRevista();
+    var container=document.getElementById('revista-container');
+    var done=false;
+    function doPrint(){
+      if(done)return;done=true;
+      var doneP=false;
+      function onAfterPrint(){window.removeEventListener('afterprint',onAfterPrint);if(!doneP){doneP=true;restoreMobile();}}
       window.addEventListener('afterprint',onAfterPrint);
       window.print();
-      // fallback: afterprint pode não disparar em alguns browsers mobile
-      setTimeout(function(){if(!done){done=true;restoreMobile();}},4000);
-    },800);
+      setTimeout(function(){if(!doneP){doneP=true;restoreMobile();}},4000);
+    }
+    // Aguarda as páginas aparecerem no DOM antes de imprimir (renderRevista pode ser assíncrono)
+    if(container&&!container.querySelector('.rev-page')){
+      var obs=new MutationObserver(function(){
+        if(container.querySelector('.rev-page')){obs.disconnect();setTimeout(doPrint,400);}
+      });
+      obs.observe(container,{childList:true});
+      setTimeout(function(){obs.disconnect();if(!done)doPrint();},8000);
+    }else{
+      setTimeout(doPrint,400);
+    }
   },300);
 };
 

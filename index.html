@@ -2024,6 +2024,11 @@ mark{background:rgba(255,186,32,0.28);color:var(--accent);border-radius:2px;padd
 .rev-sess-header:first-child{padding-top:6px;}
 .rev-sess-desc{font-family:'IBM Plex Sans',sans-serif;font-size:7.5px;font-weight:300;line-height:1.7;color:#555;padding:3px 0 5px 0;}
 .rev-cover-body{display:flex;flex-direction:column;justify-content:space-between;height:calc(100% - 52px);}
+.rev-index-body{padding-top:20px;display:flex;flex-direction:column;}
+.rev-index-row{display:flex;align-items:baseline;padding:11px 0;border-bottom:1px solid #ece8e0;}
+.rev-index-name{font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:600;letter-spacing:0.06em;color:#111;flex-shrink:0;}
+.rev-index-dots{flex:1;overflow:hidden;margin:0 8px 2px 8px;border-bottom:1px dotted #ccc;}
+.rev-index-num{font-family:'IBM Plex Mono',monospace;font-size:9px;color:#777;flex-shrink:0;min-width:18px;text-align:right;}
 .rev-cover-event{font-family:'IBM Plex Sans',sans-serif;font-size:40px;font-weight:700;line-height:1.04;color:#111;}
 .rev-cover-info-row{display:flex;gap:0;border-top:1px solid #ccc;border-bottom:1px solid #ccc;padding:15px 0;}
 .rev-cover-info-col{flex:1;min-width:0;padding-right:18px;}
@@ -9996,7 +10001,7 @@ function _revSessionItemFns(sessionGroups){
     g.sessions.forEach(function(sess){
       var sessGroup=[];
       if(sess.name){
-        (function(sn){sessGroup.push(function(){var el=document.createElement('div');el.className='rev-sess-header';el.textContent=sn;return el;});})(sess.name);
+        (function(sn){sessGroup.push(function(){var el=document.createElement('div');el.className='rev-sess-header';el.dataset.sessName=sn;el.textContent=sn;return el;});})(sess.name);
         if(sess.description){(function(sd){sessGroup.push(function(){var el=document.createElement('div');el.className='rev-sess-desc';el.textContent=sd;return el;});})(sess.description);}
       }
       sess.films.forEach(function(film){
@@ -10303,6 +10308,7 @@ function _revRenderGradePages(evName,evBg,evText,msr,allPages,startPageNum){
         } else if(sessName){
           var nameEl=document.createElement('div');
           nameEl.className='rev-grade-sess-label2';
+          nameEl.dataset.linkSess=sessName;
           nameEl.innerHTML=_revEsc(sessName+(durStr?' ('+durStr+')':''))+_indicH;
           cnt.appendChild(nameEl);
           filmsData.forEach(function(fi){
@@ -10367,7 +10373,7 @@ function _revBuildTabelaCell(td,sessions,mostraColor){
   (s.filmes||[]).forEach(function(cod){totalSecs+=_parseDurSecs((filmesMap[cod]||{}).duracao||'');});
   var sessLabel=s.name&&s.name.trim()?s.name.trim():'';
   var multiFilm=(s.filmes||[]).length>1;
-  if(sessLabel){var sn=document.createElement('span');sn.className='rev-tabela-sess-name';sn.textContent=sessLabel;td.appendChild(sn);}
+  if(sessLabel){var sn=document.createElement('span');sn.className='rev-tabela-sess-name';sn.dataset.linkSess=sessLabel;sn.textContent=sessLabel;td.appendChild(sn);}
   if(!multiFilm||!sessLabel){
     (s.filmes||[]).forEach(function(cod){
       var f=filmesMap[cod]||{},cat=catalogoFilmesMap[cod]||{};
@@ -10384,9 +10390,20 @@ function _revBuildTabelaCell(td,sessions,mostraColor){
   }
 }
 function _revApplyTabelaScale(page,wrap){
-  var _wrapH=wrap.scrollHeight,_fixedH=page.scrollHeight-_wrapH,_availH=_REV_PAGE_H-_fixedH;
-  if(_availH>0&&_wrapH>_availH){
-    var _f=_availH/_wrapH;
+  var _pageW=page.clientWidth;
+  var _wrapW=wrap.scrollWidth;
+  var _wrapH=wrap.scrollHeight;
+  var _fixedH=page.scrollHeight-_wrapH;
+  var _availH=_REV_PAGE_H-_fixedH;
+  if(_availH<=0)return;
+  var _fW=(_pageW>0&&_wrapW>_pageW)?(_pageW/_wrapW):1;
+  var _fH=(_wrapH>_availH)?(_availH/_wrapH):1;
+  var _f=Math.min(_fW,_fH);
+  if(_f>=1)return;
+  if(_fW<1){
+    wrap.style.transformOrigin='top left';
+    wrap.style.transform='scale('+_f.toFixed(4)+')';
+  } else {
     wrap.style.width=(100/_f).toFixed(2)+'%';
     var _wrapH2=wrap.scrollHeight,_f2=_availH/_wrapH2;
     wrap.style.transformOrigin='top left';
@@ -10738,6 +10755,13 @@ function renderRevista(){
   coverPg.dataset.isCover='1';
   msr.appendChild(coverPg);allPages.push(coverPg);pageNum++;
 
+  // Índice (preenchido após renderização completa)
+  var indexPg=document.createElement('div');indexPg.className='rev-page';indexPg.dataset.isIndex='1';
+  indexPg.innerHTML='<div class="rev-page-header"><div class="rev-evento-pill" style="background:'+evBg+';color:'+evText+'">'+_revEsc(_revEventoLabel(evName))+'</div><div class="rev-page-num">'+pageNum+'</div></div><div class="rev-mostra-label">índice</div><hr class="rev-mostra-rule">';
+  var indexBody=document.createElement('div');indexBody.className='rev-index-body';
+  indexPg.appendChild(indexBody);
+  msr.appendChild(indexPg);allPages.push(indexPg);pageNum++;
+
   function _editShell(label,pNum){
     var contentEl=document.createElement('div');contentEl.className='rev-curadorial-text';
     var page=document.createElement('div');page.className='rev-page';
@@ -10869,6 +10893,7 @@ function renderRevista(){
       var colsEl=document.createElement('div');colsEl.className='rev-sinopses-list';
       cols.forEach(function(c){colsEl.appendChild(c);});
       var page=document.createElement('div');page.className='rev-page';
+      page.dataset.isSinopses='1';
       page.innerHTML='<div class="rev-page-header"><div class="rev-evento-pill" style="background:'+evBg+';color:'+evText+'">'+_revEsc(_revEventoLabel(evName))+'</div><div class="rev-page-num">'+pn+'</div></div><div class="rev-mostra-label">sinopses'+_revLegendHtml()+'</div><hr class="rev-mostra-rule">';
       page.appendChild(colsEl);
       return{page:page,cols:cols};
@@ -10886,6 +10911,27 @@ function renderRevista(){
 
   // Tabela de programação por dia
   _revRenderTabelaDiaPages(evName,evBg,evText,mostras,msr,allPages,pageNum);
+
+  // Preencher índice com números de página corretos
+  var _idxSections=[
+    {key:'mostras',label:'Mostras',find:function(){return allPages.find(function(pg){return pg.dataset.mostraId;});}},
+    {key:'sinopses',label:'Sinopses',find:function(){return allPages.find(function(pg){return pg.dataset.isSinopses;});}},
+    {key:'grade',label:'Grade de programação',find:function(){return allPages.find(function(pg){return pg.dataset.gradeCinema;});}},
+    {key:'tabelaCinema',label:'Tabela de programação (por cinemas)',find:function(){return allPages.find(function(pg){return pg.dataset.pageCinema;});}},
+    {key:'tabelaDia',label:'Tabela de programação (por dia)',find:function(){return allPages.find(function(pg){return pg.dataset.pageDia;});}},
+  ];
+  _idxSections.forEach(function(sec){
+    var fp=sec.find();
+    if(!fp)return;
+    var numEl=fp.querySelector('.rev-page-num');
+    var num=numEl?numEl.textContent:'—';
+    var row=document.createElement('div');row.className='rev-index-row';
+    var nameSpan=document.createElement('span');nameSpan.className='rev-index-name';nameSpan.dataset.indexLink=sec.key;nameSpan.textContent=sec.label;
+    var dotsSpan=document.createElement('span');dotsSpan.className='rev-index-dots';
+    var numSpan=document.createElement('span');numSpan.className='rev-index-num';numSpan.dataset.indexLink=sec.key;numSpan.textContent=num;
+    row.appendChild(nameSpan);row.appendChild(dotsSpan);row.appendChild(numSpan);
+    indexBody.appendChild(row);
+  });
 
   allPages.forEach(function(pg){msr.removeChild(pg);});
   document.body.removeChild(msr);
@@ -10927,6 +10973,13 @@ function _revWireLinks(container){
       if(sid&&!submostraPage[sid])submostraPage[sid]=pg;
     });
   });
+  var sessPage={};
+  revPages.forEach(function(pg){
+    pg.querySelectorAll('.rev-sess-header[data-sess-name]').forEach(function(el){
+      var sn=el.dataset.sessName;
+      if(sn&&!sessPage[sn])sessPage[sn]=pg;
+    });
+  });
   function scrollTo(pg){pg.scrollIntoView({behavior:'smooth',block:'start'});}
   function wire(el,pg){
     if(!pg)return;
@@ -10964,6 +11017,19 @@ function _revWireLinks(container){
   });
   container.querySelectorAll('.rev-cover-sub-item[data-submostra-id]').forEach(function(el){
     wire(el,submostraPage[el.dataset.submostraId]);
+  });
+  container.querySelectorAll('.rev-tabela-sess-name[data-link-sess],.rev-grade-sess-label2[data-link-sess]').forEach(function(el){
+    wire(el,sessPage[el.dataset.linkSess]);
+  });
+  container.querySelectorAll('[data-index-link]').forEach(function(el){
+    var key=el.dataset.indexLink;
+    var target=null;
+    if(key==='mostras')target=revPages.find(function(pg){return pg.dataset.mostraId;});
+    else if(key==='sinopses')target=revPages.find(function(pg){return pg.dataset.isSinopses;});
+    else if(key==='grade')target=revPages.find(function(pg){return pg.dataset.gradeCinema;});
+    else if(key==='tabelaCinema')target=revPages.find(function(pg){return pg.dataset.pageCinema;});
+    else if(key==='tabelaDia')target=revPages.find(function(pg){return pg.dataset.pageDia;});
+    if(target)wire(el,target);
   });
   var coverPage=revPages.find(function(pg){return pg.dataset.isCover;});
   if(coverPage){
@@ -13381,7 +13447,7 @@ function renderDash(){
   html+=colBlock('kdm','KDM',kdmBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 22/05/2026 às 11:38';
+  var sysUpdate='última atualização do sistema · 22/05/2026 às 11:42';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -17936,7 +18002,7 @@ window.addEventListener('popstate',function(e){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 22/05/2026 às 11:38</span></div>
+<div id="page-footer"><span>última atualização · 22/05/2026 às 11:42</span></div>
 
 </div>
 

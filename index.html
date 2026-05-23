@@ -13449,7 +13449,7 @@ function renderDash(){
   html+=colBlock('kdm','KDM',kdmBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 23/05/2026 às 11:50';
+  var sysUpdate='última atualização do sistema · 23/05/2026 às 11:56';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -18004,7 +18004,7 @@ window.addEventListener('popstate',function(e){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 23/05/2026 às 11:50</span></div>
+<div id="page-footer"><span>última atualização · 23/05/2026 às 11:56</span></div>
 
 </div>
 
@@ -18661,16 +18661,24 @@ window._mobReceptivoSection=function(sec,noPush){
         var bMap={};bs.forEach(function(b){if(b.data.guest_id)bMap[b.data.guest_id]=hMap[b.data.hotel_id]||'';});
         var evColors=eventColors||{};
         var gs2=gs.filter(function(g){return!g.data.event_id||evColors[g.data.event_id];}).sort(function(a,b){return(a.data.name||'').localeCompare(b.data.name||'','pt-BR');});
-        var html='<div class="mob-section-title">Convidados · '+gs2.length+'</div>';
-        if(!gs2.length){html+='<div class="mob-empty">Nenhum convidado encontrado.</div>';}
-        else{html+=gs2.map(function(g){
+        window._mobConvCards=gs2.map(function(g){
           var d=g.data;var ev=d.event_id||'';var hotel=bMap[g.id]||'';
           var evCol=evColors[ev];
           var evPill=ev?pill(_re2(ev),evCol?evCol.bg:'var(--surface3)',evCol?evCol.text:'var(--text-dim)'):'';
-          var roles=(d.roles&&d.roles.length)?d.roles.map(function(ro){return pill(_re2(ro));}).join(' '):'';
-          return card(_re2(d.name||'—'),evPill,[roles||null,hotel?'Hotel · '+_re2(hotel):null],'_mobAbrirConvidadoDetalhe(\''+g.id+'\')');
-        }).join('');}
-        _mobSetContent(html);
+          var roles=(d.roles&&d.roles.length)?d.roles.map(function(ro){return pill(_re2(ro));}).join(' '):'';
+          var dFilmes=(d.filmes&&d.filmes.length)?d.filmes:(d.filme_id?[d.filme_id]:[]);
+          var filmeTitulos=dFilmes.map(function(cod){var f=filmesMap[cod]||{};return f.titulo||cod;}).filter(Boolean);
+          var filmeDisplay=filmeTitulos.length?filmeTitulos.join(', '):'';
+          var searchText=((d.name||'')+' '+filmeTitulos.join(' ')).toLowerCase();
+          return{name:searchText,html:card(_re2(d.name||'-'),evPill,[roles||null,filmeDisplay?_re2(filmeDisplay):null,hotel?'Hotel: '+_re2(hotel):null],'_mobAbrirConvidadoDetalhe(\''+g.id+'\')')};
+        });
+        _mobSetContent(
+          '<div style="padding:10px 14px;background:var(--surface);border-bottom:1px solid var(--border);display:flex;gap:8px;align-items:center;">'+
+            '<input id="mobConvSearch" type="text" placeholder="Buscar por nome ou filme..." oninput="_mobFiltrarConvidados(this.value,false)" style="flex:1;font-family:var(--mono);font-size:11px;padding:6px 10px;background:var(--bg);color:var(--text);border:1px solid var(--border2);border-radius:2px;outline:none;">'+
+            '<button onclick="document.getElementById('+"'"+'mobConvSearch'+"'"+'').value='';_mobFiltrarConvidados('',true)" style="font-family:var(--mono);font-size:9px;font-weight:600;letter-spacing:0.06em;padding:5px 10px;border:1px solid var(--border2);border-radius:2px;background:var(--surface2);color:var(--text-muted);cursor:pointer;white-space:nowrap;">LISTAR TODOS</button>'+
+          '</div>'+
+          '<div id="mob-conv-list"><div class="mob-empty" style="font-size:9px;">Digite um nome para buscar.</div></div>'
+        );
       }).catch(function(e){_mobSetContent('<div class="mob-empty">Erro: '+_re2(e.message)+'</div>');});
     },
     hoteis:function(){
@@ -18816,6 +18824,23 @@ window._mobAbrirConvidadoDetalhe=function(guestId){
   _mobPush({view:'convidado-detalhe',params:{guestId:guestId}});
   _mobRenderConvidadoDetalhe({guestId:guestId});
 };
+window._mobFiltrarConvidados=function(term,showAll){
+  var cards=window._mobConvCards||[];
+  var listEl=document.getElementById('mob-conv-list');
+  if(!listEl)return;
+  if(!showAll&&!(term||'').trim()){
+    listEl.innerHTML='<div class="mob-empty" style="font-size:9px;">Digite um nome para buscar.</div>';
+    return;
+  }
+  var t=(term||'').toLowerCase().trim();
+  var filtered=showAll?cards:cards.filter(function(c){return c.name.indexOf(t)!==-1;});
+  var count=filtered.length;
+  listEl.innerHTML=
+    '<div style="font-family:var(--mono);font-size:9px;color:var(--text-muted);padding:8px 16px;">'+
+      count+' convidado'+(count!==1?'s':'')+(t?' encontrado'+(count!==1?'s':'')+' para "'+t+'"':'')+
+    '</div>'+
+    (count?filtered.map(function(c){return c.html;}).join(''):'<div class="mob-empty">Nenhum resultado.</div>');
+};
 
 /* ── cinemas ────────────────────────────────────────────────────── */
 function olgaMobileCinemas(){
@@ -18823,17 +18848,36 @@ function olgaMobileCinemas(){
   _mobRenderCinemas({});
 }
 function _mobRenderCinemas(params){
+  params=params||{};
   if(!dataLoaded){_mobSetContent('<div class="mob-empty">Dados não carregados.</div>');return;}
   var filtroEvs=_mobActiveEvs;
   var arr=cinemasArr||[];
   if(!arr.length){_mobSetContent('<div class="mob-empty">Nenhum cinema cadastrado.</div>');return;}
-  var byComplexo={},complexoOrder=[];
-  arr.forEach(function(c){
-    var cx=c.complexo||c.sala;
-    if(!byComplexo[cx]){byComplexo[cx]=[];complexoOrder.push(cx);}
-    byComplexo[cx].push(c);
+  var filtroComplexo=params.complexo||'';
+  // Determina estados ativos a partir dos cinemas associados aos eventos ativos
+  var activeStates=new Set();
+  if(filtroEvs){
+    arr.forEach(function(c){
+      var cEvs=c.evento?String(c.evento).split(';').map(function(e){return e.trim();}).filter(Boolean):[];
+      if(cEvs.some(function(ev){return filtroEvs.has(ev);})){if(c.estado)activeStates.add(c.estado);}
+    });
+  }
+  var arrFiltrado=arr.filter(function(c){
+    if(!filtroEvs||activeStates.size===0)return true;
+    return c.estado&&activeStates.has(c.estado);
   });
-  var html=_mobEventFilterHtml(filtroEvs);
+  if(!arrFiltrado.length){_mobSetContent(_mobEventFilterHtml(filtroEvs)+'<div class="mob-empty">Nenhum cinema nos estados dos eventos ativos.</div>');return;}
+  var complexoSet=[];var complexoSeen=new Set();
+  arrFiltrado.forEach(function(c){var cx=c.complexo||c.sala;if(!complexoSeen.has(cx)){complexoSeen.add(cx);complexoSet.push(cx);}});
+  var arrFinal=filtroComplexo?arrFiltrado.filter(function(c){return(c.complexo||c.sala)===filtroComplexo;}):arrFiltrado;
+  var complexoSelect='<div style="padding:8px 14px;border-bottom:1px solid var(--border);">'+
+    '<select onchange="_mobCinemasSelComplexo(this.value)" style="width:100%;font-family:var(--mono);font-size:11px;padding:6px;background:var(--surface2);color:var(--text);border:1px solid var(--border2);border-radius:2px;cursor:pointer;">'+
+    '<option value="">Todos os complexos</option>'+
+    complexoSet.map(function(cx){return'<option value="'+_mobEsc(cx)+'"'+(cx===filtroComplexo?' selected':'')+'>'+_mobEsc(cx)+'</option>';}).join('')+
+    '</select></div>';
+  var byComplexo={},complexoOrder=[];
+  arrFinal.forEach(function(c){var cx=c.complexo||c.sala;if(!byComplexo[cx]){byComplexo[cx]=[];complexoOrder.push(cx);}byComplexo[cx].push(c);});
+  var html=_mobEventFilterHtml(filtroEvs)+complexoSelect;
   complexoOrder.forEach(function(cx){
     html+='<div class="mob-section-title">'+_mobEsc(cx)+'</div>';
     byComplexo[cx].forEach(function(c){
@@ -18858,6 +18902,11 @@ function _mobRenderCinemas(params){
   });
   _mobSetContent(html);
 }
+window._mobCinemasSelComplexo=function(cx){
+  var cur=_mobStack[_mobStack.length-1];
+  if(cur&&cur.view==='cinemas')cur.params.complexo=cx;
+  _mobRenderCinemas(cur?cur.params:{complexo:cx});
+};
 
 /* ── revista ────────────────────────────────────────────────────── */
 function olgaMobileRevista(){
@@ -18865,8 +18914,16 @@ function olgaMobileRevista(){
   _mobRenderRevista({});
 }
 function _mobRenderRevista(params){
-  var evs=Object.keys(eventColors||{}).filter(function(ev){return eventColors[ev];});
-  if(!evs.length){_mobSetContent('<div class="mob-empty">Nenhum evento disponível.</div>');return;}
+  var filtroEvs=_mobActiveEvs;
+  var u=window._olgaUser;
+  var userEvs=u&&u.eventos&&u.eventos.length?new Set(u.eventos):null;
+  var evs=Object.keys(eventColors||{}).filter(function(ev){
+    if(!eventColors[ev])return false;
+    if(userEvs&&!userEvs.has(ev))return false;
+    if(filtroEvs&&!filtroEvs.has(ev))return false;
+    return true;
+  });
+  if(!evs.length){_mobSetContent(_mobEventFilterHtml(filtroEvs)+'<div class="mob-empty">Nenhum evento disponível.</div>');return;}
   var html='<div style="padding:16px;">';
   html+='<div style="font-family:var(--mono);font-size:10px;color:var(--text-muted);line-height:1.6;margin-bottom:16px;">Selecione um evento para gerar e baixar a revista em PDF. O sistema sairá do modo mobile e abrirá o diálogo de impressão.</div>';
   html+=evs.map(function(ev){

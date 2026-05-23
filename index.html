@@ -18649,7 +18649,10 @@ window._mobReceptivoSection=function(sec,noPush){
   _mobSetContent('<div class="mob-empty">Carregando…</div>');
   function _re2(s){return(s||'').toString().replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
   function pill(txt,bg,color){return'<span style="font-family:var(--mono);font-size:8px;font-weight:600;padding:1px 6px;border-radius:2px;background:'+(bg||'var(--surface3)')+';color:'+(color||'var(--text-muted)')+';flex-shrink:0;white-space:nowrap;">'+txt+'</span>';}
-  function card(name,badge,lines,onclick){return'<div style="padding:10px 16px;border-bottom:1px solid var(--border);font-family:var(--mono);'+(onclick?'cursor:pointer;':'')+'"'+(onclick?' onclick="'+onclick+'"':'')+'>''<div style="display:flex;align-items:center;gap:6px;margin-bottom:'+(lines.filter(Boolean).length?'4':'0')+'px;">'+'<span style="font-size:11px;font-weight:600;color:var(--text-dim);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+name+'</span>'+(badge||'')+(onclick?'<svg style="width:12px;height:12px;stroke:var(--text-muted);stroke-width:2;fill:none;flex-shrink:0;" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>':'')+'</div>'+lines.filter(Boolean).map(function(l){return'<div style="font-size:9px;color:var(--text-muted);line-height:1.5;">'+l+'</div>';}).join('')+'</div>';}
+  function card(name,badge,lines,onclick){return'<div style="padding:10px 16px;border-bottom:1px solid var(--border);font-family:var(--mono);'+(onclick?'cursor:pointer;':'')+'"'+(onclick?' onclick="'+onclick+'"':'')+'>'+
+    '<div style="display:flex;align-items:center;gap:6px;margin-bottom:'+(lines.filter(Boolean).length?'4':'0')+'px;">'+
+    '<span style="font-size:11px;font-weight:600;color:var(--text-dim);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+name+'</span>'+(badge||'')+(onclick?'<svg style="width:12px;height:12px;stroke:var(--text-muted);stroke-width:2;fill:none;flex-shrink:0;" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>':'')+'</div>'+
+    lines.filter(Boolean).map(function(l){return'<div style="font-size:9px;color:var(--text-muted);line-height:1.5;">'+l+'</div>';}).join('')+'</div>';}
   var loadFns={
     convidados:function(){
       Promise.all([window._olgaGuests.list(),window._olgaHotels.list(),window._olgaBookings.list()]).then(function(r){

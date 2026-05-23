@@ -13449,7 +13449,7 @@ function renderDash(){
   html+=colBlock('kdm','KDM',kdmBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 23/05/2026 às 12:10';
+  var sysUpdate='última atualização do sistema · 23/05/2026 às 12:12';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -18004,7 +18004,7 @@ window.addEventListener('popstate',function(e){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 23/05/2026 às 12:10</span></div>
+<div id="page-footer"><span>última atualização · 23/05/2026 às 12:12</span></div>
 
 </div>
 
@@ -18057,6 +18057,13 @@ window.addEventListener('popstate',function(e){
 .mob-day-tab.active{background:var(--accent);color:var(--on-accent);border-color:var(--accent);}
 #mob-footer{flex-shrink:0;height:22px;background:var(--surface2);border-top:1px solid var(--border2);display:flex;align-items:center;justify-content:flex-end;padding:0 14px;}
 #mob-footer span{font-family:var(--mono);font-size:9px;font-weight:500;color:var(--text-dim);letter-spacing:0.06em;}
+#mob-revista-viewer{display:none;position:fixed;inset:0;z-index:10000;flex-direction:column;background:#1a1a1a;}
+#mob-revista-vhead{flex-shrink:0;height:46px;background:#111;display:flex;align-items:center;padding:0 14px;gap:10px;border-bottom:1px solid #333;}
+#mob-revista-vtitle{font-family:var(--mono);font-size:9px;font-weight:600;letter-spacing:0.18em;text-transform:uppercase;color:#f0ede8;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+#mob-revista-vhead button{font-family:var(--mono);font-size:9px;font-weight:600;letter-spacing:0.1em;color:#f0ede8;background:none;border:1px solid rgba(240,237,232,0.3);padding:5px 12px;cursor:pointer;border-radius:2px;flex-shrink:0;}
+#mob-revista-vscroll{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;padding:12px 0 24px;}
+.rev-vwrap{margin:0 auto 10px;position:relative;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,0.5);}
+.rev-vwrap:last-child{margin-bottom:0;}
 </style>
 
 <div id="olga-mobile">
@@ -18075,6 +18082,13 @@ window.addEventListener('popstate',function(e){
   </div>
   <div class="mob-content" id="mobContent"></div>
   <div id="mob-footer"><span id="mobFooterText"></span></div>
+  <div id="mob-revista-viewer">
+    <div id="mob-revista-vhead">
+      <span id="mob-revista-vtitle"></span>
+      <button onclick="window._mobFecharRevista()">✕ fechar</button>
+    </div>
+    <div id="mob-revista-vscroll"></div>
+  </div>
 </div>
 
 <script>
@@ -18341,7 +18355,7 @@ function olgaMobileHome(noStack){
     {mod:'grade',    icon:'layout-dashboard', label:'Grade',       sub:'Programação do dia',  fn:'olgaMobileGrade()'},
     {mod:'programacao',icon:'layout-list',   label:'Programação', sub:'Mostras e sessões',    fn:'olgaMobileProgramacao()'},
     {mod:'cinemas',    icon:'clapperboard',  label:'Cinemas',     sub:'Salas e complexos',    fn:'olgaMobileCinemas()'},
-    {mod:'catalogo',   icon:'book-open',     label:'Revista',     sub:'Download em PDF',      fn:'olgaMobileRevista()'},
+    {mod:'catalogo',   icon:'book-open',     label:'Revista',     sub:'Leitura digital',      fn:'olgaMobileRevista()'},
   ];
 
   // dedup por fn
@@ -18940,60 +18954,76 @@ function _mobRenderRevista(params){
   });
   if(!evs.length){_mobSetContent(_mobEventFilterHtml(filtroEvs)+'<div class="mob-empty">Nenhum evento disponível.</div>');return;}
   var html='<div style="padding:16px;">';
-  html+='<div style="font-family:var(--mono);font-size:10px;color:var(--text-muted);line-height:1.6;margin-bottom:16px;">Selecione um evento para gerar e baixar a revista em PDF. O sistema sairá do modo mobile e abrirá o diálogo de impressão.</div>';
   html+=evs.map(function(ev){
     var col=eventColors[ev];
     return'<div onclick="_mobAbrirRevista(\''+_mobEsc(ev)+'\')" style="display:flex;align-items:center;gap:12px;background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:14px 16px;margin-bottom:10px;cursor:pointer;">'+
       '<span style="font-family:var(--mono);font-size:11px;font-weight:600;padding:2px 8px;border-radius:2px;background:'+(col?col.bg:'var(--surface2)')+';color:'+(col?col.text:'var(--text)')+';">'+_mobEsc(ev)+'</span>'+
-      '<span style="flex:1;font-family:var(--mono);font-size:9px;color:var(--text-muted);">Baixar PDF</span>'+
-      _mobIcon('download')+
+      '<span style="flex:1;font-family:var(--mono);font-size:9px;color:var(--text-muted);">Abrir revista</span>'+
+      _mobIcon('chevron-right')+
     '</div>';
   }).join('');
   html+='</div>';
   _mobSetContent(html);
 }
 window._mobAbrirRevista=function(ev){
-  var mobileEl=document.getElementById('olga-mobile');
-  var appEl=document.getElementById('olga-app');
-  function restoreMobile(){
-    appEl.style.display='none';
-    mobileEl.style.display='flex';
-    window._mobileActive=true;
-  }
-  mobileEl.style.display='none';
-  appEl.style.display='';
-  window._mobileActive=false;
+  var viewer=document.getElementById('mob-revista-viewer');
+  var scroll=document.getElementById('mob-revista-vscroll');
+  var titleEl=document.getElementById('mob-revista-vtitle');
+  if(!viewer||!scroll)return;
+  if(titleEl)titleEl.textContent=ev;
+  scroll.innerHTML='<div style="font-family:var(--mono);font-size:10px;color:#888;text-align:center;padding:64px 20px;">carregando...</div>';
+  viewer.style.display='flex';
   if(typeof applyModulePermissions==='function'&&window._olgaUser)applyModulePermissions(window._olgaUser.modulos);
-  if(typeof switchMode==='function')switchMode('revista');
-  // switchMode limpa activeEventsRevista e chama buildRevistaEventSelect que pode resetar revistaSelectedEvent.
-  // Forçar o evento DEPOIS de switchMode ter concluído.
   if(typeof activeEventsRevista!=='undefined')activeEventsRevista.add(ev);
   if(typeof revistaSelectedEvent!=='undefined')revistaSelectedEvent=ev;
-  var _sel=document.getElementById('revistaEventSelect');
-  if(_sel)_sel.value=ev;
-  // Disparar renderRevista com o evento já garantido
   if(typeof renderRevista==='function')renderRevista();
-  var container=document.getElementById('revista-container');
+  var src=document.getElementById('revista-container');
+  var PAGE_W=794,PAGE_H=559;
   var done=false;
-  function doPrint(){
+  function paint(){
     if(done)return;done=true;
-    var doneP=false;
-    function onAfterPrint(){window.removeEventListener('afterprint',onAfterPrint);if(!doneP){doneP=true;restoreMobile();}}
-    window.addEventListener('afterprint',onAfterPrint);
-    window.print();
-    setTimeout(function(){if(!doneP){doneP=true;restoreMobile();}},4000);
+    var pages=src?Array.from(src.querySelectorAll('.rev-page')):[];
+    if(!pages.length){
+      scroll.innerHTML='<div style="font-family:var(--mono);font-size:10px;color:#888;text-align:center;padding:64px 20px;">sem conteúdo.</div>';
+      return;
+    }
+    function draw(){
+      var vw=viewer.clientWidth||window.innerWidth;
+      var scale=Math.min(1,(vw-20)/PAGE_W);
+      var pw=Math.round(PAGE_W*scale),ph=Math.round(PAGE_H*scale);
+      scroll.innerHTML='';
+      pages.forEach(function(pg){
+        var wrap=document.createElement('div');
+        wrap.className='rev-vwrap';
+        wrap.style.width=pw+'px';
+        wrap.style.height=ph+'px';
+        var clone=pg.cloneNode(true);
+        clone.style.cssText=(clone.getAttribute('style')||'')+';position:absolute;top:0;left:0;transform:scale('+scale+');transform-origin:top left;';
+        wrap.appendChild(clone);
+        scroll.appendChild(wrap);
+      });
+    }
+    draw();
+    if(window._revResizeFn)window.removeEventListener('resize',window._revResizeFn);
+    window._revResizeFn=draw;
+    window.addEventListener('resize',window._revResizeFn);
   }
-  if(container&&container.querySelector('.rev-page')){
-    // renderRevista foi síncrono (dados em cache) — aguardar 400ms e imprimir
-    setTimeout(doPrint,400);
-  }else if(container){
-    // renderRevista é assíncrono (busca Firebase) — observar container até páginas aparecerem
+  if(src&&src.querySelector('.rev-page')){
+    paint();
+  }else if(src){
     var obs=new MutationObserver(function(){
-      if(container.querySelector('.rev-page')){obs.disconnect();setTimeout(doPrint,400);}
+      if(src.querySelector('.rev-page')){obs.disconnect();paint();}
     });
-    obs.observe(container,{childList:true});
-    setTimeout(function(){obs.disconnect();if(!done)doPrint();},8000);
+    obs.observe(src,{childList:true});
+    setTimeout(function(){obs.disconnect();if(!done)paint();},8000);
+  }else{
+    paint();
   }
+};
+window._mobFecharRevista=function(){
+  var viewer=document.getElementById('mob-revista-viewer');
+  if(viewer)viewer.style.display='none';
+  if(window._revResizeFn){window.removeEventListener('resize',window._revResizeFn);window._revResizeFn=null;}
 };
 
 /* ── kdm ─────────────────────────────────────────────────────────── */

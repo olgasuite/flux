@@ -1102,7 +1102,12 @@ select:disabled{opacity:0.35;cursor:not-allowed;}
 #landing>*:not(.landing-bg){position:relative;z-index:1;}
 .landing-logo{display:flex;flex-direction:column;align-items:center;line-height:1;margin-top:16px;margin-bottom:20px;}
 .landing-logo-olga{font-family:var(--mono);font-size:72px;font-weight:700;color:var(--text);letter-spacing:0.1em;line-height:1;}
-.landing-logo-flux{font-family:var(--sans);font-size:42px;font-weight:300;color:#a78bfa;letter-spacing:0.2em;margin-top:4px;}
+.landing-logo-flux{font-family:var(--sans);font-size:42px;font-weight:300;color:#a78bfa;letter-spacing:0.2em;margin-top:-56px;position:relative;z-index:1;}
+.landing-olga-img{height:240px;width:auto;display:block;filter:invert(1);}
+[data-theme="light"] .landing-olga-img{filter:none;}
+[data-theme="gray"] .landing-olga-img{filter:none;}
+[data-theme="win98"] .landing-olga-img{filter:none;}
+[data-theme="terminal"] .landing-olga-img{filter:invert(1) sepia(1) saturate(5) hue-rotate(60deg);}
 [data-theme="win98"] .landing-bg{display:none;}
 /* PROGRAMAÇÃO */
 .prog-landing{padding:28px 32px 60px;}
@@ -3773,7 +3778,6 @@ html[data-theme]:not([data-theme="win98"]){--mono:var(--sans);}
   --text-dim:#111111;
   --text-muted:#333333;
 }
-[data-theme="win98"] .filter-label,
 [data-theme="win98"] .result-count,
 [data-theme="win98"] .file-name,
 [data-theme="win98"] .drop-sub,
@@ -3876,8 +3880,8 @@ html[data-theme]:not([data-theme="win98"]){--mono:var(--sans);}
 </style>
 <script type="module">
   import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
-  import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
-  import { getFirestore, collection, doc, getDoc, getDocs, setDoc, deleteDoc, addDoc, serverTimestamp, query, where, orderBy } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+  import { getAuth, connectAuthEmulator, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
+  import { getFirestore, connectFirestoreEmulator, collection, doc, getDoc, getDocs, setDoc, deleteDoc, addDoc, serverTimestamp, query, where, orderBy } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
 
   const firebaseConfig = {
     apiKey: "AIzaSyDIBhcsqlK3QebTmbWMNqsN_rPPybREj64",
@@ -3891,6 +3895,13 @@ html[data-theme]:not([data-theme="win98"]){--mono:var(--sans);}
   const app  = initializeApp(firebaseConfig);
   const auth = getAuth(app);
   const db   = getFirestore(app);
+
+  if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') {
+    connectAuthEmulator(auth, 'http://127.0.0.1:9099');
+    connectFirestoreEmulator(db, '127.0.0.1', 8080);
+    console.log('OLGA usando Firebase Emulators');
+  }
+
   const provider = new GoogleAuthProvider();
   provider.setCustomParameters({
   prompt: "select_account"
@@ -4278,17 +4289,18 @@ html[data-theme]:not([data-theme="win98"]){--mono:var(--sans);}
     var userEventos = window._olgaUser && window._olgaUser.eventos && window._olgaUser.eventos.length
       ? new Set(window._olgaUser.eventos)
       : null;
+    var _evFilter = userEventos ? Array.from(userEventos) : null;
     function allowedEvento(ev) {
       return !userEventos || userEventos.has(ev);
     }
 
     try {
       const [filmesSnap, sessoesSnap, cinemasSnap, vinhetasSnap, eventosSnap, kdmDoc, registrySnap] = await Promise.all([
-        getDocs(collection(db, 'copias')),
-        getDocs(collection(db, 'sessoes')),
+        _evFilter ? getDocs(query(collection(db, 'copias'),   where('event_name', 'in', _evFilter))) : getDocs(collection(db, 'copias')),
+        _evFilter ? getDocs(query(collection(db, 'sessoes'),  where('event_name', 'in', _evFilter))) : getDocs(collection(db, 'sessoes')),
         getDocs(collection(db, 'cinemas')),
-        getDocs(collection(db, 'vinhetas')),
-        getDocs(collection(db, 'eventos')),
+        _evFilter ? getDocs(query(collection(db, 'vinhetas'), where('event_name', 'in', _evFilter))) : getDocs(collection(db, 'vinhetas')),
+        _evFilter ? getDocs(query(collection(db, 'eventos'),  where('nome',       'in', _evFilter))) : getDocs(collection(db, 'eventos')),
         getDoc(doc(db, 'kdm_results', 'global')).catch(function(){return null;}),
         getDocs(collection(db, '_registry')).catch(function(){return{forEach:function(){}};})
       ]);
@@ -4594,7 +4606,8 @@ html[data-theme]:not([data-theme="win98"]){--mono:var(--sans);}
       if (userBar) {
         userBar.innerHTML =
           '<span class="userbar-name">' + perfil.name + '</span>' +
-          '<button class="userbar-btn" onclick="_olgaSignOut()">sair</button>';
+          '<button class="userbar-btn btn-sair" onclick="_olgaSignOut()">sair</button>' +
+          '<button class="userbar-reload" onclick="location.reload()" title="Atualizar (F5)">↻</button>';
       }
 
       // Aplicar restrições de módulos
@@ -4649,6 +4662,102 @@ html[data-theme]:not([data-theme="win98"]){--mono:var(--sans);}
     return docs;
   };
 </script>
+<style>
+/* ── NAV SIDEBAR ── */
+.nav-sidebar-toggle{display:inline-flex;align-items:center;padding:0 14px;font-family:var(--mono);font-size:16px;line-height:1;color:var(--text-dim);background:none;border:none;border-left:1px solid var(--border);cursor:pointer;height:100%;flex-shrink:0;transition:color 0.1s;}
+.nav-sidebar-toggle:hover{color:var(--text);}
+.nav-header-spacer{flex:1;}
+:root{--nav-sidebar-w:168px;--nav-sidebar-w-col:44px;}
+.nav-tabs{position:fixed;left:0;top:52px;bottom:20px;width:var(--nav-sidebar-w);z-index:150;flex-direction:column;align-items:stretch;flex:none;background:var(--surface);border-right:1px solid var(--border);overflow-y:auto;overflow-x:hidden;transition:width 0.2s ease;}
+html.nav-collapsed .nav-tabs{width:var(--nav-sidebar-w-col);}
+.nav-tab{height:40px;width:100%;flex-shrink:0;border-right:none;border-bottom:1px solid var(--border);border-top:none;justify-content:flex-start;}
+.nav-tab.active{border-bottom-color:var(--border);}
+#main-content{margin-left:var(--nav-sidebar-w);transition:margin-left 0.2s ease;}
+html.nav-collapsed #main-content{margin-left:var(--nav-sidebar-w-col);}
+html.nav-collapsed .nav-tabs .nav-tab{justify-content:center;padding:0;}
+html.nav-collapsed .nav-tabs .tab-icon{margin-right:0;}
+html.nav-collapsed .nav-tabs .nav-label{display:none;}
+html.nav-collapsed .nav-tabs .nav-group-arrow{display:none;}
+html.nav-collapsed .nav-tabs .nav-group-items{display:none!important;}
+[data-theme="win98"] .nav-tabs .tab-icon{display:inline-flex;}
+html[data-theme]:not([data-theme="win98"]) .nav-tabs .tab-icon{display:inline-flex!important;}
+[data-theme="win98"] .nav-tabs,[data-theme="doremi"] .nav-tabs{border-right-width:2px;}
+[data-theme="win98"] .nav-tabs .nav-tab,[data-theme="doremi"] .nav-tabs .nav-tab{border-right:none;}
+[data-theme="win98"] .nav-group-head,[data-theme="win98"] .nav-sub-tab,[data-theme="doremi"] .nav-group-head,[data-theme="doremi"] .nav-sub-tab{border-bottom-color:transparent;}
+#headerEventFilters{flex:1;display:flex;align-items:center;gap:5px;overflow-x:auto;padding:0 8px;flex-wrap:nowrap;}
+#headerEventFilters .event-pill{font-size:12px!important;padding:4px 13px!important;}
+#headerEventFilters .filter-label{font-size:12px!important;padding:4px 10px!important;}
+html{scrollbar-gutter:stable;background:var(--bg);}
+html:not([data-theme="win98"]):not([data-theme="doremi"]){scrollbar-color:var(--border) var(--surface);scrollbar-width:thin;}
+#page-footer::after{content:'';position:absolute;bottom:0;left:100%;width:calc(100vw - 100%);height:100%;background:inherit;border-top:inherit;pointer-events:none;z-index:1;}
+.mode-bar .event-filters{display:none!important;}
+header .logo{font-size:14px;box-sizing:border-box;min-width:calc(var(--nav-sidebar-w) - 24px);justify-content:center;}
+#headerEventFilters .event-pill:not(.active){opacity:0.65;}
+.nav-group{display:flex;flex-direction:column;}
+.nav-group-head{display:flex;height:40px;border-bottom:1px solid var(--border);flex-shrink:0;}
+.nav-group-head .nav-tab{flex:1;height:100%;width:auto;border-bottom:none!important;}
+.nav-group-arrow{display:flex;align-items:center;justify-content:center;flex-shrink:0;padding:0 10px;border:none;background:none;cursor:pointer;color:var(--text-dim);font-size:14px;transition:color 0.1s,transform 0.2s;transform-origin:center;}
+.nav-group-arrow:hover{color:var(--text);}
+.nav-group.expanded .nav-group-arrow{transform:rotate(90deg);}
+.nav-group-items{display:none;flex-direction:column;}
+.nav-group.expanded .nav-group-items{display:flex;}
+.nav-sub-tab{height:36px;width:100%;flex-shrink:0;display:flex;align-items:center;padding:0 8px 0 28px;font-family:var(--mono);font-size:12px;letter-spacing:0.06em;color:var(--text-dim);background:none;border:none;border-bottom:1px solid var(--border);cursor:pointer;white-space:nowrap;transition:color 0.1s,background 0.1s;}
+.nav-sub-tab:hover{color:var(--text);background:var(--surface2);}
+.nav-sub-tab.active{color:var(--accent);}
+.nav-sub-tab:disabled{opacity:0.38;cursor:default;}
+header::after{content:'';position:absolute;top:0;left:100%;width:calc(100vw - 100%);height:100%;background:inherit;border-bottom:inherit;pointer-events:none;z-index:1;}
+header .btn-sair{border-right:1px solid var(--border);justify-content:center;min-width:70px;}
+.userbar-reload{position:absolute;right:0;top:0;height:100%;width:calc(100vw - 100%);min-width:28px;display:inline-flex;align-items:center;justify-content:center;font-size:13px;color:var(--text-muted);background:inherit;border:none;cursor:pointer;z-index:2;transition:color 0.15s,background 0.15s;}
+.userbar-reload:hover{color:var(--text);filter:brightness(1.15);}
+header .nav-sidebar-toggle{font-size:21px;}
+header .theme-toggle{font-size:13px!important;}
+header .userbar-name,header .userbar-btn{font-size:13px;}
+#navSidebar .nav-tab{font-size:13px;}
+header .zoom-btn{font-size:20px;}
+header .zoom-level{font-size:13px;}
+.grade-wrap{scrollbar-width:none;-ms-overflow-style:none;}
+.grade-wrap::-webkit-scrollbar{display:none;}
+::-webkit-scrollbar{width:8px;height:8px;}
+::-webkit-scrollbar-track{background:var(--surface);}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px;}
+::-webkit-scrollbar-thumb:hover{background:var(--text-muted);}
+::-webkit-scrollbar-corner{background:var(--surface);}
+@media print{.nav-tabs{display:none!important;}#main-content{margin-left:0!important;}}
+</style>
+<script>
+(function(){
+  if(localStorage.getItem('navCollapsed')==='1')document.documentElement.classList.add('nav-collapsed');
+})();
+function _applyNavMargin(){
+  var mc=document.getElementById('main-content');
+  if(!mc)return;
+  var collapsed=document.documentElement.classList.contains('nav-collapsed');
+  var cs=getComputedStyle(document.documentElement);
+  var prop=collapsed?'--nav-sidebar-w-col':'--nav-sidebar-w';
+  var sidebarW=parseFloat(cs.getPropertyValue(prop))||148;
+  var z=parseFloat(mc.style.zoom)||1;
+  mc.style.marginLeft=(sidebarW/z)+'px';
+}
+function _toggleNav(){
+  var collapsed=document.documentElement.classList.toggle('nav-collapsed');
+  localStorage.setItem('navCollapsed',collapsed?'1':'0');
+  _applyNavMargin();
+}
+function _toggleNavGroup(name){
+  var g=document.getElementById('navGroup'+name);if(!g)return;
+  var expanded=g.classList.toggle('expanded');
+  localStorage.setItem('navGroup_'+name.toLowerCase(),expanded?'1':'0');
+}
+function _navToRecepSection(sec){switchMode('receptivo');openRecepSection(sec);}
+window.addEventListener('DOMContentLoaded',function(){
+  _applyNavMargin();
+  ['Projecao','Receptivo'].forEach(function(n){
+    if(localStorage.getItem('navGroup_'+n.toLowerCase())==='1'){
+      var g=document.getElementById('navGroup'+n);if(g)g.classList.add('expanded');
+    }
+  });
+});
+</script>
 </head>
 <body>
 
@@ -4669,34 +4778,59 @@ html[data-theme]:not([data-theme="win98"]){--mono:var(--sans);}
 <header>
   <button class="logo" onclick="goHome()" title="Página inicial">OLGA · Flux</button>
   <input type="file" id="fileInput" accept=".xlsx,.xls" style="display:none">
-  <nav class="nav-tabs">
-    <button class="nav-tab" id="tabDash" disabled onclick="switchMode('dash')"><span class="tab-icon"><i data-lucide="bar-chart-2"></i></span> Dashboard</button>
-    <button class="nav-tab" id="tabCatalogo" disabled onclick="switchMode('catalogo')"><span class="tab-icon"><i data-lucide="library"></i></span> Catálogo</button>
-    <button class="nav-tab" id="tabProgramacao" disabled onclick="switchMode('programacao')"><span class="tab-icon"><i data-lucide="layout-list"></i></span> Programação</button>
-    <button class="nav-tab" id="tabVinhetas" disabled onclick="switchMode('vinhetas')"><span class="tab-icon"><i data-lucide="film"></i></span> Vinhetas</button>
-    <button class="nav-tab" id="tabGrade" disabled onclick="switchMode('grade')"><span class="tab-icon"><i data-lucide="layout-dashboard"></i></span> Grade</button>
-    <button class="nav-tab" id="tabGrade2" disabled onclick="switchMode('grade2')" style="display:none"></button>
-    <button class="nav-tab" id="tabSessoes" disabled onclick="switchMode('sessoes')"><span class="tab-icon"><i data-lucide="calendar-clock"></i></span> Sessões</button>
-    <button class="nav-tab" id="tabProjecao" disabled onclick="switchMode('projecao')"><span class="tab-icon"><i data-lucide="projector"></i></span> Projeção</button>
-    <button class="nav-tab" id="tabFicha" disabled onclick="switchMode('ficha')" style="display:none"></button>
-    <button class="nav-tab" id="tabIngest" disabled onclick="switchMode('ingest')" style="display:none"></button>
-    <button class="nav-tab" id="tabKDM" disabled onclick="switchMode('kdm')"><span class="tab-icon"><i data-lucide="key"></i></span> KDM</button>
-    <button class="nav-tab" id="tabCinemas" disabled onclick="switchMode('cinemas')"><span class="tab-icon"><i data-lucide="clapperboard"></i></span> Cinemas</button>
-    <button class="nav-tab" id="tabBilheteria" disabled onclick="switchMode('bilheteria')"><span class="tab-icon"><i data-lucide="ticket"></i></span> Bilheteria</button>
-    <button class="nav-tab" id="tabBusca" onclick="switchMode('busca')" style="display:none"><span class="tab-icon"><i data-lucide="search"></i></span> Acervo</button>
-    <button class="nav-tab" id="tabReceptivo" disabled onclick="switchMode('receptivo')"><span class="tab-icon"><i data-lucide="users"></i></span> Receptivo</button>
-    <button class="nav-tab" id="tabRevista" disabled onclick="switchMode('revista')"><span class="tab-icon"><i data-lucide="book-open"></i></span> Revista</button>
-    <button class="nav-tab" id="tabEquipe" disabled onclick="switchMode('equipe')" style="display:none"><span class="tab-icon"><i data-lucide="shield"></i></span> Administração</button>
-  </nav>
+  <button class="nav-sidebar-toggle" id="navToggleBtn" onclick="_toggleNav()" title="Mostrar/ocultar módulos">&#9776;</button>
+  <div id="headerEventFilters"></div>
   <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" title="Alternar esquema de cores">Tema</button>
-  <button class="theme-toggle" onclick="_mobIrParaMobile()" title="Ativar modo mobile" style="margin-left:4px;">Mobile</button>
-  <div id="olga-userbar"></div>
   <div class="zoom-controls">
     <button class="zoom-btn" onclick="changeZoom(-1)" title="Diminuir zoom">−</button>
     <span class="zoom-level" id="zoomLabel" onclick="resetZoom()" title="Clique para resetar">100%</span>
     <button class="zoom-btn" onclick="changeZoom(+1)" title="Aumentar zoom">+</button>
   </div>
+  <button class="theme-toggle" onclick="_mobIrParaMobile()" title="Ativar modo mobile">Mobile</button>
+  <div id="olga-userbar"></div>
 </header>
+
+<nav class="nav-tabs" id="navSidebar">
+  <button class="nav-tab" id="tabDash" disabled onclick="switchMode('dash')"><span class="tab-icon"><i data-lucide="bar-chart-2"></i></span><span class="nav-label"> Dashboard</span></button>
+  <button class="nav-tab" id="tabCatalogo" disabled onclick="switchMode('catalogo')"><span class="tab-icon"><i data-lucide="library"></i></span><span class="nav-label"> Catálogo</span></button>
+  <button class="nav-tab" id="tabProgramacao" disabled onclick="switchMode('programacao')"><span class="tab-icon"><i data-lucide="layout-list"></i></span><span class="nav-label"> Programação</span></button>
+  <button class="nav-tab" id="tabVinhetas" disabled onclick="switchMode('vinhetas')"><span class="tab-icon"><i data-lucide="film"></i></span><span class="nav-label"> Vinhetas</span></button>
+  <button class="nav-tab" id="tabGrade" disabled onclick="switchMode('grade')"><span class="tab-icon"><i data-lucide="layout-dashboard"></i></span><span class="nav-label"> Grade</span></button>
+  <button class="nav-tab" id="tabGrade2" disabled onclick="switchMode('grade2')" style="display:none"></button>
+  <button class="nav-tab" id="tabSessoes" disabled onclick="switchMode('sessoes')"><span class="tab-icon"><i data-lucide="calendar-clock"></i></span><span class="nav-label"> Sessões</span></button>
+  <div class="nav-group" id="navGroupProjecao">
+    <div class="nav-group-head">
+      <button class="nav-tab nav-group-btn" id="tabProjecao" disabled onclick="switchMode('projecao')"><span class="tab-icon"><i data-lucide="projector"></i></span><span class="nav-label"> Projeção</span></button>
+      <button class="nav-group-arrow" onclick="_toggleNavGroup('Projecao')" title="Expandir">▸</button>
+    </div>
+    <div class="nav-group-items">
+      <button class="nav-sub-tab" id="navSubFicha" data-mode="ficha" disabled onclick="switchMode('ficha')">Ficha</button>
+      <button class="nav-sub-tab" id="navSubIngest" data-mode="ingest" disabled onclick="switchMode('ingest')">Ingest</button>
+      <button class="nav-sub-tab" id="navSubGrade2" data-mode="grade2" disabled onclick="switchMode('grade2')">Grade de Projeção</button>
+      <button class="nav-sub-tab" id="navSubAcervo" data-mode="busca" disabled onclick="switchMode('busca')">Acervo Técnico</button>
+    </div>
+  </div>
+  <button class="nav-tab" id="tabFicha" disabled onclick="switchMode('ficha')" style="display:none"></button>
+  <button class="nav-tab" id="tabIngest" disabled onclick="switchMode('ingest')" style="display:none"></button>
+  <button class="nav-tab" id="tabKDM" disabled onclick="switchMode('kdm')"><span class="tab-icon"><i data-lucide="key"></i></span><span class="nav-label"> KDM</span></button>
+  <button class="nav-tab" id="tabCinemas" disabled onclick="switchMode('cinemas')"><span class="tab-icon"><i data-lucide="clapperboard"></i></span><span class="nav-label"> Cinemas</span></button>
+  <button class="nav-tab" id="tabBilheteria" disabled onclick="switchMode('bilheteria')"><span class="tab-icon"><i data-lucide="ticket"></i></span><span class="nav-label"> Bilheteria</span></button>
+  <button class="nav-tab" id="tabBusca" onclick="switchMode('busca')" style="display:none"><span class="tab-icon"><i data-lucide="search"></i></span><span class="nav-label"> Acervo</span></button>
+  <div class="nav-group" id="navGroupReceptivo">
+    <div class="nav-group-head">
+      <button class="nav-tab nav-group-btn" id="tabReceptivo" disabled onclick="switchMode('receptivo')"><span class="tab-icon"><i data-lucide="users"></i></span><span class="nav-label"> Receptivo</span></button>
+      <button class="nav-group-arrow" onclick="_toggleNavGroup('Receptivo')" title="Expandir">▸</button>
+    </div>
+    <div class="nav-group-items">
+      <button class="nav-sub-tab" id="navSubConvidados" disabled onclick="_navToRecepSection('convidados')">Convidados</button>
+      <button class="nav-sub-tab" id="navSubHoteis" disabled onclick="_navToRecepSection('hoteis')">Hotéis</button>
+      <button class="nav-sub-tab" id="navSubVoos" disabled onclick="_navToRecepSection('voos')">Voos</button>
+      <button class="nav-sub-tab" id="navSubTransporte" disabled onclick="_navToRecepSection('transporte')">Transporte</button>
+    </div>
+  </div>
+  <button class="nav-tab" id="tabRevista" disabled onclick="switchMode('revista')"><span class="tab-icon"><i data-lucide="book-open"></i></span><span class="nav-label"> Revista</span></button>
+  <button class="nav-tab" id="tabEquipe" disabled onclick="switchMode('equipe')" style="display:none"><span class="tab-icon"><i data-lucide="shield"></i></span><span class="nav-label"> Administração</span></button>
+</nav>
 
 <div id="main-content">
 
@@ -4887,7 +5021,7 @@ html[data-theme]:not([data-theme="win98"]){--mono:var(--sans);}
 <div id="landing">
   <div class="landing-bg" aria-hidden="true"><canvas id="landingCanvas"></canvas></div>
   <div class="landing-logo">
-    <div class="landing-logo-olga">OLGA</div>
+    <div class="landing-logo-olga"><img src="OLGA2.png" alt="OLGA" class="landing-olga-img"></div>
     <div class="landing-logo-flux">Flux</div>
   </div>
   <div class="landing-badge">sistema de gestão de festivais de cinema</div>
@@ -5263,18 +5397,18 @@ var buscaFilters={
   mostra:new Set(),submostra:new Set()
 };
 var PALETTE=[
-  {bg:'#B985C2',text:'#1E293B'}, /* lilac */
-  {bg:'#CDB293',text:'#1E293B'}, /* sand */
-  {bg:'#96CC96',text:'#1E293B'}, /* mint */
-  {bg:'#98B3CC',text:'#1E293B'}, /* mist blue */
-  {bg:'#C79CCE',text:'#1E293B'},
-  {bg:'#D8BF9F',text:'#1E293B'},
-  {bg:'#A7D7A6',text:'#1E293B'},
-  {bg:'#AABFD4',text:'#1E293B'},
-  {bg:'#AE7DB8',text:'#F8FAFC'},
-  {bg:'#B99976',text:'#F8FAFC'},
-  {bg:'#6AA86E',text:'#F8FAFC'},
-  {bg:'#7695B1',text:'#F8FAFC'}
+  {bg:'#B88ED2',text:'#1E293B'}, /* violet */
+  {bg:'#D4C068',text:'#1E293B'}, /* amber */
+  {bg:'#62BEB5',text:'#1E293B'}, /* teal */
+  {bg:'#DC9494',text:'#1E293B'}, /* rose */
+  {bg:'#8EC480',text:'#1E293B'}, /* sage */
+  {bg:'#6898D4',text:'#1E293B'}, /* sky */
+  {bg:'#9050B0',text:'#F8FAFC'}, /* violet dark */
+  {bg:'#A87C1A',text:'#F8FAFC'}, /* amber dark */
+  {bg:'#3A9088',text:'#F8FAFC'}, /* teal dark */
+  {bg:'#BA5A5A',text:'#F8FAFC'}, /* rose dark */
+  {bg:'#4A9440',text:'#F8FAFC'}, /* sage dark */
+  {bg:'#3E6EA8',text:'#F8FAFC'}  /* sky dark */
 ];
 
 var fileInput=document.getElementById('fileInput');
@@ -5358,7 +5492,7 @@ function applyParsedData(d,filename){
     });
   }
   dataLoaded=true;
-  ['tabProjecao','tabFicha','tabGrade','tabGrade2','tabSessoes','tabVinhetas','tabIngest','tabCinemas','tabKDM','tabDash','tabReceptivo','tabBilheteria','tabCatalogo','tabProgramacao','tabRevista'].forEach(function(id){document.getElementById(id).disabled=false;});
+  ['tabProjecao','tabFicha','tabGrade','tabGrade2','tabSessoes','tabVinhetas','tabIngest','tabCinemas','tabKDM','tabDash','tabReceptivo','tabBilheteria','tabCatalogo','tabProgramacao','tabRevista','navSubFicha','navSubIngest','navSubGrade2','navSubAcervo','navSubConvidados','navSubHoteis','navSubVoos','navSubTransporte'].forEach(function(id){document.getElementById(id).disabled=false;});
   if(window._olgaUser&&window._olgaUser.role==='admin'){document.getElementById('tabEquipe').disabled=false;}
   ['modCardProjecao','modCardGrade','modCardSessoes','modCardVinhetas','modCardCinemas','modCardKDM','modCardDash','modCardReceptivo','modCardBilheteria','modCardCatalogo','modCardProgramacao','modCardRevista'].forEach(function(id){document.getElementById(id).classList.remove('disabled');});
   buildGradeDays();window._gradeYearsOpen=null;window._grade2YearsOpen=null;window._dashYearsOpen=null;buildFichaFilters();buildGradeFilters();buildGrade2Filters();buildSessoesFilters();buildProjecaoFilters();buildVinhetasFilters();buildBuscaFilters();buildIngestDays();buildIngestFilters();buildBuscaFilterPanel();buildCinemasFilters();buildDashFilters();buildCatalogoFilters();buildBilheteriaFilters();buildRevistaFilters();
@@ -5476,6 +5610,7 @@ function switchMode(mode,noPush){
     document.getElementById('bar'+cap).classList.toggle('hidden',m!==mode);
     document.getElementById(m+'-panel').classList.toggle('active',m===mode);
   });
+  (function(){var _ps=['ficha','ingest','grade2','busca'],_g=document.getElementById('navGroupProjecao');if(_g){_g.querySelector('.nav-tab').classList.toggle('active',mode==='projecao'||_ps.indexOf(mode)>-1);_g.querySelectorAll('[data-mode]').forEach(function(b){b.classList.toggle('active',b.dataset.mode===mode);});}})();
   rebuildPillsForMode(mode);
   if(mode==='projecao')renderProjecao();
   if(mode==='grade')renderGrade();
@@ -6166,11 +6301,18 @@ function buildPills(container,evColors,activeSet,onToggle){
   var events=Object.keys(evColors);
   var evLocked=!!(window._olgaHasRestricao&&window._olgaHasRestricao('eventos.locked'));
   var isWin98=(document.documentElement.getAttribute('data-theme')||'dark')==='win98';
-  function inactiveText(){return isWin98?'#000':'var(--text-muted)';}
-  function labelOnBg(){return isWin98?'#000080':'var(--surface2)';}
-  function labelOnText(){return isWin98?'#fff':'var(--text)';}
-  function labelOffBg(){return isWin98?'#d4d0c8':'var(--surface2)';}
-  function labelOffText(){return isWin98?'#000':'var(--text)';}
+  var _th=document.documentElement.getAttribute('data-theme')||'dark';
+  var isDarkPills=!isWin98&&_th!=='light'&&_th!=='gray';
+  function _h2r(h,a){var r=parseInt(h.slice(1,3),16),g=parseInt(h.slice(3,5),16),b=parseInt(h.slice(5,7),16);return 'rgba('+r+','+g+','+b+','+a+')';}
+  function setInactive(p,col){
+    if(isWin98){p.style.background='transparent';p.style.color='#000';p.style.borderColor='transparent';p.style.opacity='';}
+    else{p.style.background=_h2r(col.bg,isDarkPills?0.18:0.12);p.style.color=isDarkPills?col.bg:'var(--text-muted)';p.style.borderColor=_h2r(col.bg,isDarkPills?0.55:0.30);p.style.opacity='1';}
+  }
+  function setActive(p,col){p.style.background=col.bg;p.style.color=col.text;p.style.borderColor='transparent';p.style.opacity='';}
+  function labelOnBg(){return isWin98?'#000080':'transparent';}
+  function labelOnText(){return isWin98?'#fff':isDarkPills?'var(--accent)':'var(--text)';}
+  function labelOffBg(){return isWin98?'#d4d0c8':'transparent';}
+  function labelOffText(){return isWin98?'#000':'var(--text-dim)';}
   function allActive(){return events.every(function(ev){return activeSet.has(ev);});}
   function updateLbl(){
     var all=allActive();
@@ -6188,8 +6330,8 @@ function buildPills(container,evColors,activeSet,onToggle){
       var activate=!allActive();
       pills.forEach(function(p,i){
         var ev=events[i],col=evColors[ev];
-        if(activate){activeSet.add(ev);p.style.background=col.bg;p.style.color=col.text;p.style.borderColor='transparent';p.classList.add('active');}
-        else{activeSet.delete(ev);p.style.background='transparent';p.style.color=inactiveText();p.style.borderColor='transparent';p.classList.remove('active');}
+        if(activate){activeSet.add(ev);setActive(p,col);p.classList.add('active');}
+        else{activeSet.delete(ev);setInactive(p,col);p.classList.remove('active');}
       });
       lbl.blur();updateLbl();onToggle();
     });
@@ -6201,13 +6343,13 @@ function buildPills(container,evColors,activeSet,onToggle){
     var pill=document.createElement('button');
     pill.className='event-pill'+(isActive?' active':'');
     pill.textContent=ev;
-    if(isActive){pill.style.background=col.bg;pill.style.color=col.text;pill.style.borderColor='transparent';}
-    else{pill.style.background='transparent';pill.style.color=inactiveText();pill.style.borderColor='transparent';}
+    if(isActive){setActive(pill,col);}
+    else{setInactive(pill,col);}
     if(evLocked){pill.style.cursor='default';pill.style.opacity='0.75';}
     else{
       pill.addEventListener('click',function(){
-        if(activeSet.has(ev)){activeSet.delete(ev);pill.style.background='transparent';pill.style.color=inactiveText();pill.style.borderColor='transparent';pill.classList.remove('active');}
-        else{activeSet.add(ev);pill.style.background=col.bg;pill.style.color=col.text;pill.style.borderColor='transparent';pill.classList.add('active');}
+        if(activeSet.has(ev)){activeSet.delete(ev);setInactive(pill,col);pill.classList.remove('active');}
+        else{activeSet.add(ev);setActive(pill,col);pill.classList.add('active');}
         pill.blur();updateLbl();onToggle();
       });
     }
@@ -6237,7 +6379,7 @@ function rebuildSessionSelect(){
 }
 
 function buildFichaFilters(){
-  buildPills(document.getElementById('fichaEventFilters'),eventColors,activeEventsFicha,function(){
+  buildPills(document.getElementById('headerEventFilters'),eventColors,activeEventsFicha,function(){
     rebuildSessionSelect();
   });
   rebuildSessionSelect();
@@ -6277,7 +6419,7 @@ function rebuildGradeCinemaSelect(){
 }
 
 function buildGradeFilters(){
-  buildPills(document.getElementById('gradeEventFilters'),eventColors,activeEventsGrade,function(){
+  buildPills(document.getElementById('headerEventFilters'),eventColors,activeEventsGrade,function(){
     rebuildGradeComplexoSelect();
     rebuildGradeCinemaSelect();
     window._gradeYearsOpen=null;
@@ -6318,7 +6460,7 @@ function rebuildGrade2CinemaSelect(){
 }
 
 function buildGrade2Filters(){
-  buildPills(document.getElementById('grade2EventFilters'),eventColors,activeEventsGrade2,function(){
+  buildPills(document.getElementById('headerEventFilters'),eventColors,activeEventsGrade2,function(){
     rebuildGrade2ComplexoSelect();
     rebuildGrade2CinemaSelect();
     window._grade2YearsOpen=null;
@@ -6358,7 +6500,7 @@ function rebuildSessoesCinemaSelect(){
 }
 
 function buildSessoesFilters(){
-  buildPills(document.getElementById('sessoesEventFilters'),eventColors,activeEventsSessoes,function(){
+  buildPills(document.getElementById('headerEventFilters'),eventColors,activeEventsSessoes,function(){
     rebuildSessoesComplexoSelect();
     rebuildSessoesCinemaSelect();
     renderSessoes();
@@ -6637,7 +6779,7 @@ function _cleanBuscaSessaoFilter(){
 }
 function buildBuscaFilters(){
   _cleanBuscaSessaoFilter();
-  buildPills(document.getElementById('buscaEventFilters'),eventColors,activeEventsBusca,function(){
+  buildPills(document.getElementById('headerEventFilters'),eventColors,activeEventsBusca,function(){
     _cleanBuscaSessaoFilter();
     renderBuscaResults();buildBuscaFilterPanel();
   });
@@ -6687,7 +6829,7 @@ function rebuildIngestHdSelect(){
 }
 
 function buildIngestFilters(){
-  buildPills(document.getElementById('ingestEventFilters'),eventColors,activeEventsIngest,function(){
+  buildPills(document.getElementById('headerEventFilters'),eventColors,activeEventsIngest,function(){
     rebuildIngestCinemaSelect();
     ingestHdFilter='';
     window._ingestYearsOpen=null;
@@ -6751,7 +6893,7 @@ function _cinemaMatchesEventoFilter(c){
 }
 
 function buildCinemasFilters(){
-  buildPills(document.getElementById('cinemasEventFilters'),eventColors,activeEventsCinemas,function(){
+  buildPills(document.getElementById('headerEventFilters'),eventColors,activeEventsCinemas,function(){
     rebuildCinemasEventoSelect();
     rebuildCinemasEstadoSelect();
     rebuildCinemasComplexoSelect();
@@ -7943,6 +8085,7 @@ function _recepAllowedEvs(){
 
 function renderReceptivo(){
   _recepSection='';_recepEvFilter='';
+  var _br=document.getElementById('barReceptivo');if(_br)_br.innerHTML='';
   var SVG_USERS='<svg width="26" height="26" viewBox="0 0 24 24" style="stroke:currentColor;stroke-width:1.5;fill:none;stroke-linecap:round;stroke-linejoin:round;"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><polyline points="16 11 18 13 22 9"/></svg>';
   var SVG_HOTEL='<svg width="26" height="26" viewBox="0 0 24 24" style="stroke:currentColor;stroke-width:1.5;fill:none;stroke-linecap:round;stroke-linejoin:round;"><path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z"/><path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2"/><path d="M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2"/><path d="M10 6h4"/><path d="M10 10h4"/><path d="M10 14h4"/><path d="M10 18h4"/></svg>';
   var SVG_FLIGHT='<svg width="26" height="26" viewBox="0 0 24 24" style="stroke:currentColor;stroke-width:1.5;fill:none;stroke-linecap:round;stroke-linejoin:round;"><path d="M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.5-.1 1 .3 1.3L9 12l-2 3H4l-1 1 3 2 2 3 1-1v-3l3-2 3.5 5.3c.3.4.8.5 1.3.3l.5-.2c.4-.3.6-.7.5-1.2z"/></svg>';
@@ -8401,17 +8544,15 @@ function _renderConvidados(){
       '<td>'+(canEdit?'<button class="recep-row-btn" onclick="openGuestModal(\''+sid+'\')">editar</button>':'')+'<button class="recep-row-btn" onclick="dupeGuest(\''+sid+'\')">duplicar</button></td>'+
     '</tr>';
   }).join('');
+  document.getElementById('barReceptivo').innerHTML=
+    '<button class="recep-back-btn" onclick="renderReceptivo()">← Receptivo</button>'+
+    '<span class="recep-bar-title">Convidados</span>'+
+    '<button class="recep-print-btn" onclick="_recepPrint()">imprimir</button>'+
+    (canEdit?'<button id="recepSyncPessoasBtn" class="recep-print-btn" onclick="window._recepSyncTodasPessoas()" title="Sincroniza diretores, equipe técnica e elenco de todos os filmes do catálogo para o banco de pessoas">sincronizar equipe e elenco</button>':'')+
+    (canEdit?'<button class="recep-print-btn" onclick="openImportPessoasModal()">importar pessoa</button>':'')+
+    (canEdit?'<button id="recepBulkDelBtn" class="recep-btn-del" style="display:none;" onclick="_recepDeleteSelected()">excluir 0 selecionados</button>':'')+
+    (canEdit?'<button class="recep-add-btn" onclick="openGuestModal(null)">+ Convidado</button>':'');
   document.getElementById('receptivo-container').innerHTML=
-    '<div class="recep-bar">'+
-      '<button class="recep-back-btn" onclick="renderReceptivo()">← Receptivo</button>'+
-      '<span class="recep-bar-title">Convidados</span>'+
-      '<div id="recepPills" style="display:contents;"></div>'+
-      '<button class="recep-print-btn" onclick="_recepPrint()">imprimir</button>'+
-      (canEdit?'<button id="recepSyncPessoasBtn" class="recep-print-btn" onclick="window._recepSyncTodasPessoas()" title="Sincroniza diretores, equipe técnica e elenco de todos os filmes do catálogo para o banco de pessoas">sincronizar equipe e elenco</button>':'')+
-      (canEdit?'<button class="recep-print-btn" onclick="openImportPessoasModal()">importar pessoa</button>':'')+
-      (canEdit?'<button id="recepBulkDelBtn" class="recep-btn-del" style="display:none;" onclick="_recepDeleteSelected()">excluir 0 selecionados</button>':'')+
-      (canEdit?'<button class="recep-add-btn" onclick="openGuestModal(null)">+ Convidado</button>':'')+
-    '</div>'+
     '<div class="recep-pres-legend">'+
       '<span><span class="recep-pres-dot recep-pres-green"></span>presente</span>'+
       '<span><span class="recep-pres-dot recep-pres-yellow"></span>chegada</span>'+
@@ -8438,7 +8579,7 @@ function _renderConvidados(){
       '<th>Filmes · Mostras</th>'+
       '<th></th></tr></thead>'+
     '<tbody>'+(rows||'<tr><td colspan="8" class="recep-empty">Nenhum convidado encontrado.</td></tr>')+'</tbody></table>';
-  buildPills(document.getElementById('recepPills'),eventColors,activeEventsReceptivo,function(){_renderConvidados();});
+  buildPills(document.getElementById('headerEventFilters'),eventColors,activeEventsReceptivo,function(){_renderConvidados();});
 }
 
 function _recepOnSearch(inp){
@@ -8664,14 +8805,12 @@ function _renderHoteis(){
     '<td>'+cnt+'</td>'+
     '<td>'+(canEdit?'<button class="recep-row-btn" onclick="openHotelModal(\''+hid+'\')">editar</button><button class="recep-row-btn del" onclick="deleteHotel(\''+hid+'\')">excluir</button>':'')+'<button class="recep-row-btn" onclick="dupeHotel(\''+hid+'\')">duplicar</button></td>'+
   '</tr>';}).join('');
+  document.getElementById('barReceptivo').innerHTML=
+    '<button class="recep-back-btn" onclick="renderReceptivo()">← Receptivo</button>'+
+    '<span class="recep-bar-title">Hotéis</span>'+
+    '<button class="recep-print-btn" onclick="_recepPrint()">imprimir</button>'+
+    (canEdit?'<button class="recep-add-btn" onclick="openHotelModal(null)">+ Hotel</button>':'');
   document.getElementById('receptivo-container').innerHTML=
-    '<div class="recep-bar">'+
-      '<button class="recep-back-btn" onclick="renderReceptivo()">← Receptivo</button>'+
-      '<span class="recep-bar-title">Hotéis</span>'+
-      '<div id="recepPills" style="display:contents;"></div>'+
-      '<button class="recep-print-btn" onclick="_recepPrint()">imprimir</button>'+
-      (canEdit?'<button class="recep-add-btn" onclick="openHotelModal(null)">+ Hotel</button>':'')+
-    '</div>'+
     '<table class="recep-table"><thead><tr>'+
       _recepSortTh('Nome','nome','hoteis')+
       _recepSortTh('Evento','evento','hoteis')+
@@ -8679,7 +8818,7 @@ function _renderHoteis(){
       _recepSortTh('Contato','contato','hoteis')+
       '<th>Reservas</th><th></th></tr></thead>'+
     '<tbody>'+(rows||'<tr><td colspan="6" class="recep-empty">Nenhum hotel cadastrado.</td></tr>')+'</tbody></table>';
-  buildPills(document.getElementById('recepPills'),eventColors,activeEventsReceptivo,function(){_renderHoteis();});
+  buildPills(document.getElementById('headerEventFilters'),eventColors,activeEventsReceptivo,function(){_renderHoteis();});
 }
 function openHotelModal(id,tmplData){
   _recepEditId=id;
@@ -8789,14 +8928,12 @@ function _renderVoos(){
     '<td>'+_re(fd.datetime?fd.datetime.replace('T',' '):'—')+'</td>'+
     '<td>'+(canEdit?'<button class="recep-row-btn" onclick="openVooModal(\''+fid+'\',null)">editar</button><button class="recep-row-btn del" onclick="deleteVoo(\''+fid+'\',null)">excluir</button>':'')+'<button class="recep-row-btn" onclick="dupeVoo(\''+fid+'\',null)">duplicar</button></td>'+
   '</tr>';}).join('');
+  document.getElementById('barReceptivo').innerHTML=
+    '<button class="recep-back-btn" onclick="renderReceptivo()">← Receptivo</button>'+
+    '<span class="recep-bar-title">Voos</span>'+
+    '<button class="recep-print-btn" onclick="_recepPrint()">imprimir</button>'+
+    (canEdit?'<button class="recep-add-btn" onclick="openVooModal(null,null)">+ Voo</button>':'');
   document.getElementById('receptivo-container').innerHTML=
-    '<div class="recep-bar">'+
-      '<button class="recep-back-btn" onclick="renderReceptivo()">← Receptivo</button>'+
-      '<span class="recep-bar-title">Voos</span>'+
-      '<div id="recepPills" style="display:contents;"></div>'+
-      '<button class="recep-print-btn" onclick="_recepPrint()">imprimir</button>'+
-      (canEdit?'<button class="recep-add-btn" onclick="openVooModal(null,null)">+ Voo</button>':'')+
-    '</div>'+
     '<table class="recep-table"><thead><tr>'+
       _recepSortTh('Convidado','convidado','voos')+
       _recepSortTh('Tipo','tipo','voos')+
@@ -8805,7 +8942,7 @@ function _renderVoos(){
       _recepSortTh('Data/Hora','data','voos')+
       '<th></th></tr></thead>'+
     '<tbody>'+(rows||'<tr><td colspan="6" class="recep-empty">Nenhum voo registrado.</td></tr>')+'</tbody></table>';
-  buildPills(document.getElementById('recepPills'),eventColors,activeEventsReceptivo,function(){_renderVoos();});
+  buildPills(document.getElementById('headerEventFilters'),eventColors,activeEventsReceptivo,function(){_renderVoos();});
 }
 function openVooModal(id,guestId,tmplData){
   _recepEditId=id;var parentGid=guestId||_recepParentId;
@@ -8871,16 +9008,14 @@ function _renderTransporte(){
     '<td><span class="'+sc+'">'+_re(td.status||'pendente')+'</span></td>'+
     '<td>'+(canEdit?'<button class="recep-row-btn" onclick="openTransferModal(\''+tid+'\',null)">editar</button><button class="recep-row-btn del" onclick="deleteTransfer(\''+tid+'\',null)">excluir</button>':'')+'<button class="recep-row-btn" onclick="dupeTransfer(\''+tid+'\',null)">duplicar</button></td>'+
   '</tr>';}).join('');
+  document.getElementById('barReceptivo').innerHTML=
+    '<button class="recep-back-btn" onclick="renderReceptivo()">← Receptivo</button>'+
+    '<span class="recep-bar-title">Transporte</span>'+
+    '<input type="date" class="recep-input" style="width:130px;font-size:10px;padding:3px 7px;" value="'+_re(_recepTransDate)+'" onchange="_recepTransDate=this.value;_renderTransporte()" title="Filtrar por data">'+
+    (function(){var vs=[...new Set(_recepTransfers.map(function(t){return t.data.vehicle_type;}).filter(Boolean))].sort();return'<select class="recep-select" style="width:100px;font-size:10px;padding:3px 7px;" onchange="_recepTransVeh=this.value;_renderTransporte()"><option value="">Todos veículos</option>'+vs.map(function(v){return'<option value="'+_re(v)+'"'+(_recepTransVeh===v?' selected':'')+'>'+_re(v)+'</option>';}).join('')+'</select>';})()+
+    '<button class="recep-print-btn" onclick="_recepPrint()">imprimir</button>'+
+    (canEdit?'<button class="recep-add-btn" onclick="openTransferModal(null,null)">+ Transfer</button>':'');
   document.getElementById('receptivo-container').innerHTML=
-    '<div class="recep-bar">'+
-      '<button class="recep-back-btn" onclick="renderReceptivo()">← Receptivo</button>'+
-      '<span class="recep-bar-title">Transporte</span>'+
-      '<div id="recepPills" style="display:contents;"></div>'+
-      '<input type="date" class="recep-input" style="width:130px;font-size:10px;padding:3px 7px;" value="'+_re(_recepTransDate)+'" onchange="_recepTransDate=this.value;_renderTransporte()" title="Filtrar por data">'+
-      (function(){var vs=[...new Set(_recepTransfers.map(function(t){return t.data.vehicle_type;}).filter(Boolean))].sort();return'<select class="recep-select" style="width:100px;font-size:10px;padding:3px 7px;" onchange="_recepTransVeh=this.value;_renderTransporte()"><option value="">Todos veículos</option>'+vs.map(function(v){return'<option value="'+_re(v)+'"'+(_recepTransVeh===v?' selected':'')+'>'+_re(v)+'</option>';}).join('')+'</select>';})()+
-      '<button class="recep-print-btn" onclick="_recepPrint()">imprimir</button>'+
-      (canEdit?'<button class="recep-add-btn" onclick="openTransferModal(null,null)">+ Transfer</button>':'')+
-    '</div>'+
     '<table class="recep-table"><thead><tr>'+
       _recepSortTh('Convidado','convidado','transporte')+
       _recepSortTh('Tipo','tipo','transporte')+
@@ -8890,7 +9025,7 @@ function _renderTransporte(){
       _recepSortTh('Status','status','transporte')+
       '<th></th></tr></thead>'+
     '<tbody>'+(rows||'<tr><td colspan="7" class="recep-empty">Nenhum transfer registrado.</td></tr>')+'</tbody></table>';
-  buildPills(document.getElementById('recepPills'),eventColors,activeEventsReceptivo,function(){_renderTransporte();});
+  buildPills(document.getElementById('headerEventFilters'),eventColors,activeEventsReceptivo,function(){_renderTransporte();});
 }
 function openTransferModal(id,guestId,tmplData){
   _recepEditId=id;var parentGid=guestId||_recepParentId;
@@ -9061,7 +9196,7 @@ function rebuildBilheteriaFilmeSelect(){
 }
 
 function buildBilheteriaFilters(){
-  buildPills(document.getElementById('bilheteriaEventFilters'),eventColors,activeEventsBilheteria,function(){
+  buildPills(document.getElementById('headerEventFilters'),eventColors,activeEventsBilheteria,function(){
     rebuildBilheteriaComplexoSelect();
     rebuildBilheteriaDistribuidoraSelect();
     rebuildBilheteriaFilmeSelect();
@@ -9577,7 +9712,7 @@ function importCinemasCert(sala){
 }
 
 function buildKDMFilters(){
-  buildPills(document.getElementById('kdmEventFilters'),eventColors,activeEventsKDM,function(){
+  buildPills(document.getElementById('headerEventFilters'),eventColors,activeEventsKDM,function(){
     rebuildKDMComplexoSelect();
     renderKDM();
   });
@@ -9913,7 +10048,7 @@ function _revEventoLabel(eventId){
 }
 
 function buildRevistaFilters(){
-  buildPills(document.getElementById('revistaEventFilters'),eventColors,activeEventsRevista,function(){
+  buildPills(document.getElementById('headerEventFilters'),eventColors,activeEventsRevista,function(){
     buildRevistaEventSelect();
     renderRevista();
   });
@@ -10362,14 +10497,14 @@ function _revRenderGradePages(evName,evBg,evText,msr,allPages,startPageNum){
 }
 
 var _REV_TABELA_PALETTE=[
-  '#c5d8ea','#c5e8d0','#e8dac5','#e8e8c5','#d8c5e8','#c5e8e4',
-  '#e8c5d8','#c5dde8','#e8c5c5','#d4e8c5','#e8d4c5','#c5c5e8'
+  '#D4C4EB','#ECE09A','#A8DAD6','#EBBEBE','#B8E0AA','#A8C4EC',
+  '#C2A4E0','#E4D480','#8ECECC','#E4AAAA','#A4D898','#90B8E8'
 ];
 
 function _revBuildTabelaCell(td,sessions,mostraColor){
   var s=sessions[0];
   var bg=s.program_id?(mostraColor[s.program_id]||'#e8e8e8'):'#e8e8e8';
-  td.style.background=bg;
+  td.style.setProperty('background',bg,'important');
   var totalSecs=0;
   (s.filmes||[]).forEach(function(cod){totalSecs+=_parseDurSecs((filmesMap[cod]||{}).duracao||'');});
   var sessLabel=s.name&&s.name.trim()?s.name.trim():'';
@@ -11046,7 +11181,7 @@ function _revEsc(s){
 }
 
 function buildProjecaoFilters(){
-  buildPills(document.getElementById('projecaoEventFilters'),eventColors,activeEventsProjecao,function(){
+  buildPills(document.getElementById('headerEventFilters'),eventColors,activeEventsProjecao,function(){
     renderProjecao();
   });
 }
@@ -11097,7 +11232,7 @@ function renderProjecao(){
         '<div class="proj-card-icon"><svg width="26" height="26" viewBox="0 0 24 24" style="stroke:currentColor;stroke-width:1.5;fill:none;stroke-linecap:round;stroke-linejoin:round;" xmlns="http://www.w3.org/2000/svg"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></div>'+
         '<div class="proj-card-name">Acervo Técnico</div>'+
         '<div class="proj-card-desc">Busca e filtragem de filmes na base de dados por qualquer campo técnico</div>'+
-        '<div class="proj-card-detail">'+detail(filmesArr.filter(function(f){return _isFest(f.codigo);}).length,'filme no acervo','filmes no acervo')+'</div>'+
+        '<div class="proj-card-detail">'+detail(filmesArr.filter(function(f){return _isFest(f.codigo)&&(!f.evento||activeEventsProjecao.has(f.evento));}).length,'filme no acervo','filmes no acervo')+'</div>'+
         '<div class="proj-card-arrow">Abrir Acervo →</div>'+
       '</button>'+
     '</div>'+
@@ -11157,7 +11292,7 @@ function rebuildVinhetasDaySelect(){
 }
 
 function buildVinhetasFilters(){
-  buildPills(document.getElementById('vinhetasEventFilters'),eventColors,activeEventsVinhetas,function(){
+  buildPills(document.getElementById('headerEventFilters'),eventColors,activeEventsVinhetas,function(){
     vinhetasCinemaFilter='';vinhetasDayFilter='';
     rebuildVinhetasCinemaSelect();rebuildVinhetasDaySelect();
     _rebuildVinhetasTemplatesSel();
@@ -11631,6 +11766,10 @@ function activeEventsForMode(m){
   if(m==='grade2')return activeEventsGrade2;if(m==='sessoes')return activeEventsSessoes;
   if(m==='projecao')return activeEventsProjecao;if(m==='vinhetas')return activeEventsVinhetas;if(m==='catalogo')return activeEventsCatalogo;if(m==='programacao')return activeEventsProgramacao;if(m==='kdm')return activeEventsKDM;if(m==='bilheteria')return activeEventsBilheteria;if(m==='revista')return activeEventsRevista;return null;
 }
+function buildReceptivoFilters(){
+  var hef=document.getElementById('headerEventFilters');
+  if(hef)hef.innerHTML='';
+}
 function rebuildPillsForMode(m){
   if(m==='grade')buildGradeFilters();else if(m==='grade2')buildGrade2Filters();
   else if(m==='sessoes')buildSessoesFilters();
@@ -11644,6 +11783,7 @@ function rebuildPillsForMode(m){
   else if(m==='kdm')buildKDMFilters();
   else if(m==='bilheteria')buildBilheteriaFilters();
   else if(m==='revista')buildRevistaFilters();
+  else if(m==='receptivo')buildReceptivoFilters();
 }
 
 /* BUSCA ADITIVA */
@@ -12854,7 +12994,7 @@ function renderDashDayTabs(){
 }
 
 function buildDashFilters(){
-  buildPills(document.getElementById('dashEventFilters'),eventColors,activeEventsDash,function(){
+  buildPills(document.getElementById('headerEventFilters'),eventColors,activeEventsDash,function(){
     dashDayFilter.clear();dashStatusSelected=null;dashStatSelected=null;dashKdmStatusSelected=null;window._dashYearsOpen=null;
     rebuildDashCinemaSelect();renderDash();
   });
@@ -13449,7 +13589,7 @@ function renderDash(){
   html+=colBlock('kdm','KDM',kdmBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 23/05/2026 às 12:12';
+  var sysUpdate='última atualização do sistema · 24/05/2026 às 13:12';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -13563,7 +13703,7 @@ var _progFiltroTitulo='',_progFiltroComplexo='',_progFiltroCinema='',_progFiltro
 var _progBatchSelected=new Set(),_progBatchMode=false,_progBatchBumpers=[];
 
 function buildProgramacaoFilters(){
-  buildPills(document.getElementById('programacaoEventFilters'),eventColors,activeEventsProgramacao,function(){
+  buildPills(document.getElementById('headerEventFilters'),eventColors,activeEventsProgramacao,function(){
     _progFiltroTitulo='';_progFiltroComplexo='';_progFiltroCinema='';_progFiltroData='';
     _progView={level:'landing',programId:null,sessaoNome:null};
     _progRender();
@@ -15514,45 +15654,7 @@ function catStatusCls(st){
   return'';
 }
 function buildCatalogoFilters(){
-  var bar=document.getElementById('catEventFilters');if(!bar)return;
-  var events=Object.keys(eventColors);
-  var isWin98=(document.documentElement.getAttribute('data-theme')||'dark')==='win98';
-  var allActive=function(){return events.every(function(ev){return activeEventsCatalogo.has(ev);});};
-  var lbl=document.createElement('button');
-  lbl.className='filter-label';lbl.textContent='EVENTO:';
-  lbl.style.cssText='cursor:pointer;padding:3px 8px;transition:background 0.15s,color 0.15s;font-family:var(--mono);font-size:9px;font-weight:600;letter-spacing:0.12em;text-transform:uppercase;border-radius:2px;white-space:nowrap;border:none;outline:none;';
-  var updateLbl=function(){
-    var all=allActive();
-    if(isWin98){
-      lbl.style.background=all?'#000080':'#d4d0c8';
-      lbl.style.color=all?'#fff':'#000';
-      lbl.style.border='1px solid #808080';
-    }else{
-      lbl.style.background='var(--surface2)';
-      lbl.style.color='var(--text)';
-    }
-    lbl.title=all?'Desmarcar todos':'Marcar todos';
-  };
-  var evLocked=!!(window._olgaHasRestricao&&window._olgaHasRestricao('eventos.locked'));
-  if(evLocked){lbl.style.cursor='default';lbl.style.opacity='0.5';lbl.title='Seleção de eventos bloqueada';}
-  else lbl.addEventListener('click',function(){
-    var activate=!allActive();
-    events.forEach(function(ev){if(activate)activeEventsCatalogo.add(ev);else activeEventsCatalogo.delete(ev);});
-    lbl.blur();updateLbl();buildCatalogoFilters();renderCatalogo();
-  });
-  bar.innerHTML='';bar.appendChild(lbl);updateLbl();
-  events.forEach(function(ev){
-    var col=eventColors[ev]||null;var isActive=activeEventsCatalogo.has(ev);
-    var style=isActive&&col
-      ?'background:'+col.bg+';color:'+col.text+';border-color:transparent;'
-      :'background:transparent;color:'+(isWin98?'#000':'var(--text-muted)')+';border-color:transparent;';
-    var pill=document.createElement('button');
-    pill.className='event-pill'+(isActive?' active':'');
-    pill.setAttribute('data-ev',ev);pill.style.cssText=style;pill.textContent=ev;
-    if(!evLocked)pill.addEventListener('click',function(){catToggleEvent(this.getAttribute('data-ev'));});
-    else{pill.style.cursor='default';pill.style.opacity='0.75';}
-    bar.appendChild(pill);
-  });
+  buildPills(document.getElementById('headerEventFilters'),eventColors,activeEventsCatalogo,function(){renderCatalogo();});
 }
 function catToggleEvent(ev){
   if(activeEventsCatalogo.has(ev))activeEventsCatalogo.delete(ev);else activeEventsCatalogo.add(ev);
@@ -17399,7 +17501,9 @@ var zoomIdx=ZOOM_STEPS.indexOf(100);
 function applyZoom(idx){
   zoomIdx=Math.max(0,Math.min(ZOOM_STEPS.length-1,idx));
   var pct=ZOOM_STEPS[zoomIdx];
-  document.getElementById('main-content').style.zoom=(pct/100);
+  var mc=document.getElementById('main-content');
+  mc.style.zoom=(pct/100);
+  if(typeof _applyNavMargin==='function')_applyNavMargin();
   document.getElementById('zoomLabel').textContent=pct+'%';
   try{localStorage.setItem('olga-zoom',zoomIdx);}catch(e){}
 }
@@ -17467,6 +17571,8 @@ function applyTheme(theme){
   // re-render grades so block colors follow the new theme
   if(typeof renderGrade==='function'&&document.getElementById('gradeWrap')&&dataLoaded)renderGrade();
   if(typeof renderGrade2==='function'&&document.getElementById('grade2Wrap')&&dataLoaded)renderGrade2();
+  // rebuild pills so inline styles match the new theme
+  if(dataLoaded&&currentMode&&typeof rebuildPillsForMode==='function')rebuildPillsForMode(currentMode);
   window._drawLandingWaves();
 }
 (function(){
@@ -18004,7 +18110,7 @@ window.addEventListener('popstate',function(e){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 23/05/2026 às 12:12</span></div>
+<div id="page-footer"><span>última atualização · 24/05/2026 às 13:12</span></div>
 
 </div>
 

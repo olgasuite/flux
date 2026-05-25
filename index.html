@@ -1101,7 +1101,7 @@ select:disabled{opacity:0.35;cursor:not-allowed;}
 .landing-bg canvas{display:block;width:100%;height:100%;}
 #landing>*:not(.landing-bg){position:relative;z-index:1;}
 .landing-logo{display:flex;flex-direction:column;align-items:center;line-height:1;margin-top:16px;margin-bottom:20px;}
-.landing-logo-olga{font-family:var(--mono);font-size:72px;font-weight:700;color:var(--text);letter-spacing:0.1em;line-height:1;margin-left:-20px;}
+.landing-logo-olga{font-family:var(--mono);font-size:72px;font-weight:700;color:var(--text);letter-spacing:0.1em;line-height:1;}
 .landing-logo-flux{font-family:var(--sans);font-size:42px;font-weight:300;color:#a78bfa;letter-spacing:0.2em;margin-top:0;position:relative;z-index:1;}
 .landing-olga-img{height:75px;width:auto;display:block;filter:invert(1);}
 [data-theme="light"] .landing-olga-img{filter:none;}
@@ -2658,6 +2658,19 @@ mark{background:rgba(255,186,32,0.28);color:var(--accent);border-radius:2px;padd
   background:#d4d0c8;
   box-shadow:inset -1px -1px 0 #404040,inset 1px 1px 0 #fff,inset -2px -2px 0 #808080,inset 2px 2px 0 #dfdfdf;
   display:block;width:16px;height:16px;
+  background-repeat:no-repeat;background-position:center;background-size:8px 8px;
+}
+[data-theme="win98"] ::-webkit-scrollbar-button:vertical:decrement{
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='8'%3E%3Cpolygon points='4,1 7,7 1,7' fill='%23404040'/%3E%3C/svg%3E");
+}
+[data-theme="win98"] ::-webkit-scrollbar-button:vertical:increment{
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='8'%3E%3Cpolygon points='4,7 1,1 7,1' fill='%23404040'/%3E%3C/svg%3E");
+}
+[data-theme="win98"] ::-webkit-scrollbar-button:horizontal:decrement{
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='8'%3E%3Cpolygon points='1,4 7,1 7,7' fill='%23404040'/%3E%3C/svg%3E");
+}
+[data-theme="win98"] ::-webkit-scrollbar-button:horizontal:increment{
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='8'%3E%3Cpolygon points='7,4 1,7 1,1' fill='%23404040'/%3E%3C/svg%3E");
 }
 [data-theme="win98"] ::-webkit-scrollbar-corner{background:#c8c4bc;}
 
@@ -4835,12 +4848,13 @@ window.addEventListener('DOMContentLoaded',function(){
 <div id="main-content">
 
 <div class="mode-bar hidden" id="barProgramacao">
-  <div class="event-filters" id="programacaoEventFilters"></div>
+  <div id="progBarDynamic" style="display:flex;align-items:center;gap:8px;flex:1;min-width:0;flex-wrap:wrap;"></div>
 </div>
 <div class="mode-bar hidden" id="barProjecao">
   <div class="event-filters" id="projecaoEventFilters"></div>
 </div>
 <div class="mode-bar hidden" id="barFicha">
+  <button class="recep-back-btn" onclick="switchMode('projecao')">← Projeção</button>
   <select id="sessionSelect" disabled><option value="">— selecionar sessão —</option></select>
   <div class="event-filters" id="fichaEventFilters"></div>
   <button class="print-btn" id="printBtn" disabled onclick="window.print()">⎙ Imprimir</button>
@@ -4857,6 +4871,7 @@ window.addEventListener('DOMContentLoaded',function(){
   <button class="print-btn" onclick="openGradePrintModal()" style="margin-left:6px;">⎙ Tabela</button>
 </div>
 <div class="mode-bar hidden" id="barGrade2">
+  <button class="recep-back-btn" onclick="switchMode('projecao')">← Projeção</button>
   <div class="day-tabs" id="grade2DayTabs"></div>
   <div class="event-filters" id="grade2EventFilters"></div>
   <select id="grade2ComplexoSelect" style="min-width:160px;margin-left:4px;" onchange="grade2CinemaComplexoFilter=this.value;grade2CinemaFilter='';rebuildGrade2CinemaSelect();renderGrade2();">
@@ -4878,6 +4893,7 @@ window.addEventListener('DOMContentLoaded',function(){
   <input type="date" id="sessoesDataInput" style="height:28px;padding:0 6px;border:1px solid var(--border);border-radius:4px;background:var(--surface);color:var(--text);font-family:var(--mono);font-size:10px;margin-left:4px;" onchange="_sessoesFiltroData=this.value;renderSessoes();">
 </div>
 <div class="mode-bar hidden" id="barBusca">
+  <button class="recep-back-btn" onclick="switchMode('projecao')">← Projeção</button>
   <div class="search-wrap">
     <input type="text" id="searchInput" placeholder="título, código, CPL, idioma…" disabled>
     <button class="search-clear" id="searchClear">×</button>
@@ -4934,6 +4950,7 @@ window.addEventListener('DOMContentLoaded',function(){
   </div>
 </div>
 <div class="mode-bar hidden" id="barIngest">
+  <button class="recep-back-btn" onclick="switchMode('projecao')">← Projeção</button>
   <div class="day-tabs" id="ingestDayTabs"></div>
   <select id="ingestCinemaSelect" style="min-width:180px;margin-left:8px;" onchange="ingestCinemaFilter=this.value;ingestHdFilter='';renderIngest();"><option value="">Todos os cinemas</option></select>
   <select id="ingestHdSelect" style="min-width:120px;margin-left:8px;" onchange="ingestHdFilter=this.value;renderIngest();"><option value="">Todos os HDs</option></select>
@@ -13589,7 +13606,7 @@ function renderDash(){
   html+=colBlock('kdm','KDM',kdmBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 24/05/2026 às 13:28';
+  var sysUpdate='última atualização do sistema · 24/05/2026 às 13:38';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -13736,6 +13753,15 @@ function _progBack(){
   if(_progView.level==='sessao'){_progView.level='program';_progView.sessaoNome=null;_progRender();}
   else{_progView={level:'landing',programId:null,sessaoNome:null};_progRender();}
 }
+function _progBarEvChange(){
+  var ev=(document.getElementById('progBarEvSel')||{}).value||'';
+  var sel=document.getElementById('progBarMostraSel');if(!sel)return;
+  sel.innerHTML='<option value="">— selecionar mostra —</option>';
+  _progData.programs.filter(function(p){return!p.data.auto&&(ev?p.data.event_id===ev:activeEventsProgramacao.has(p.data.event_id));}).forEach(function(p){sel.innerHTML+='<option value="'+esc(p.id)+'">'+esc(p.data.name||p.id)+'</option>';});
+}
+function _progBarMostraChange(){
+  var id=(document.getElementById('progBarMostraSel')||{}).value;if(id)_progGoProgram(id);
+}
 function _progGoProgram(id){
   _progBatchSelected.clear();_progBatchMode=false;_progBatchBumpers=[];
   _progFiltroTitulo='';_progFiltroComplexo='';_progFiltroCinema='';_progFiltroData='';
@@ -13801,6 +13827,15 @@ function _progRenderLanding(){
     html+='</div></div>';
   });
   c.innerHTML=html+'</div>';
+  (function(){
+    var evs=Object.keys(eventColors).filter(function(ev){return activeEventsProgramacao.has(ev);});
+    var bHtml='<select id="progBarEvSel" onchange="_progBarEvChange()" style="height:28px;padding:0 8px;border:1px solid var(--border);background:var(--surface);color:var(--text);font-family:var(--mono);font-size:10px;"><option value="">Todos os eventos</option>';
+    evs.forEach(function(ev){bHtml+='<option value="'+esc(ev)+'">'+esc(ev)+'</option>';});
+    bHtml+='</select><select id="progBarMostraSel" onchange="_progBarMostraChange()" style="min-width:180px;height:28px;padding:0 8px;border:1px solid var(--border);background:var(--surface);color:var(--text);font-family:var(--mono);font-size:10px;"><option value="">— selecionar mostra —</option>';
+    _progData.programs.filter(function(p){return!p.data.auto&&activeEventsProgramacao.has(p.data.event_id);}).forEach(function(p){bHtml+='<option value="'+esc(p.id)+'">'+esc(p.data.name||p.id)+'</option>';});
+    bHtml+='</select>';
+    document.getElementById('progBarDynamic').innerHTML=bHtml;
+  })();
 }
 
 function _progRenderSessionsGrouped(sessions,programId,canEdit,vinOnly){
@@ -14096,13 +14131,12 @@ function _progRenderProgram(programId){
   allProgSess.forEach(function(s){if(s.cinema){filterCxs.add(_getSalaComplexo(s.cinema));filterSalas.add(s.cinema);}});
   var filtSalas=_progFiltroComplexo?new Set(allProgSess.filter(function(s){return s.cinema&&_getSalaComplexo(s.cinema)===_progFiltroComplexo;}).map(function(s){return s.cinema;})):filterSalas;
   var safePid=programId.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+  var bHtml='<button class="prog-back-btn" onclick="_progBack()">← Programação</button>';
+  bHtml+='<span class="prog-event-badge" style="background:'+evColor.bg+';color:'+evColor.text+';">'+esc(ev)+'</span>';
+  if(prog.data.competitive)bHtml+='<span class="prog-flag-badge prog-flag-comp">Competitivo</span>';
+  if(prog.data.popular_vote)bHtml+='<span class="prog-flag-badge prog-flag-pop">Voto popular</span>';
+  if(canEdit&&!vinOnly){bHtml+='<div class="prog-header-actions"><button class="prog-btn-sm prog-btn-ghost" onclick="openProgSubprogramModal(null,\''+safePid+'\')">+ submostra</button><button class="prog-btn-sm prog-btn-ghost" onclick="openProgSessaoModal(null,\''+safePid+'\',\'\')">+ sessão</button><button class="prog-btn-sm prog-btn-ghost" onclick="openProgProgramModal(\''+safePid+'\',\''+esc(ev)+'\')">✎ editar mostra</button><button class="prog-btn-sm '+(_progBatchMode?'':'prog-btn-ghost')+'" onclick="_toggleProgBatchMode()">'+(_progBatchMode?'✕ cancelar':'selecionar')+'</button></div>';}
   var html='<div class="prog-module-wrap">';
-  html+='<div class="prog-view-header">';
-  html+='<span class="prog-event-badge" style="background:'+evColor.bg+';color:'+evColor.text+';">'+esc(ev)+'</span>';
-  if(prog.data.competitive)html+='<span class="prog-flag-badge prog-flag-comp">Competitivo</span>';
-  if(prog.data.popular_vote)html+='<span class="prog-flag-badge prog-flag-pop">Voto popular</span>';
-  if(canEdit&&!vinOnly){html+='<div class="prog-header-actions"><button class="prog-btn-sm prog-btn-ghost" onclick="openProgSubprogramModal(null,\''+safePid+'\')">+ submostra</button><button class="prog-btn-sm prog-btn-ghost" onclick="openProgSessaoModal(null,\''+safePid+'\',\'\')">+ sessão</button><button class="prog-btn-sm prog-btn-ghost" onclick="openProgProgramModal(\''+safePid+'\',\''+esc(ev)+'\')">✎ editar mostra</button><button class="prog-btn-sm '+(_progBatchMode?'':'prog-btn-ghost')+'" onclick="_toggleProgBatchMode()">'+(_progBatchMode?'✕ cancelar':'selecionar')+'</button></div>';}
-  html+='</div>';
   html+='<div class="prog-prog-title">'+esc(prog.data.name||programId)+'</div>';
   if(prog.data.program_description)html+='<div class="prog-prog-desc">'+esc(prog.data.program_description)+'</div>';
   // Filter bar
@@ -14150,6 +14184,7 @@ function _progRenderProgram(programId){
       +'</div>';
   }
   c.innerHTML=html+'</div>';
+  document.getElementById('progBarDynamic').innerHTML=bHtml;
 }
 
 function _progSessRowHtml(s,programId,canEdit,vinOnly){
@@ -14261,13 +14296,12 @@ function _progRenderSessao(sessaoNome){
   }).join('');
   var safeNome=sessaoNome.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
   var safePid=(_progView.programId||'').replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+  var bHtml='<button class="prog-back-btn" onclick="_progBack()">← Mostra</button>';
+  if(prog)bHtml+='<span class="prog-breadcrumb">'+esc(prog.data.name||prog.id)+'</span>';
+  if(canEdit||vinOnly)bHtml+='<button class="prog-btn-sm" style="margin-left:auto;" onclick="openProgSessaoModal(\''+safeNome+'\',\''+safePid+'\',null)">'+(vinOnly?'✎ editar vinhetas':'✎ editar sessão')+'</button>';
+  bHtml+='<button class="prog-btn-sm"'+((canEdit||vinOnly)?'':' style="margin-left:auto;"')+' onclick="printProgFicha()">⎙ imprimir</button>';
+  if(!window._olgaHasRestricao('sessoes.btn_projecao'))bHtml+='<button class="prog-btn-sm" onclick="_goToFichaFromProg(\''+safeNome+'\')">ficha de projeção →</button>';
   var html='<div class="prog-module-wrap">';
-  html+='<div class="prog-view-header">';
-  if(prog)html+='<span class="prog-breadcrumb">'+esc(prog.data.name||prog.id)+'</span>';
-  if(canEdit||vinOnly)html+='<button class="prog-btn-sm" style="margin-left:auto;" onclick="openProgSessaoModal(\''+safeNome+'\',\''+safePid+'\',null)">'+(vinOnly?'✎ editar vinhetas':'✎ editar sessão')+'</button>';
-  html+='<button class="prog-btn-sm"'+((canEdit||vinOnly)?'':' style="margin-left:auto;"')+' onclick="printProgFicha()">⎙ imprimir</button>';
-  if(!window._olgaHasRestricao('sessoes.btn_projecao'))html+='<button class="prog-btn-sm" onclick="_goToFichaFromProg(\''+safeNome+'\')">ficha de projeção →</button>';
-  html+='</div>';
   html+='<div class="ficha"><div class="ficha-header"><div class="ficha-header-main">';
   html+='<div class="ficha-session-wrap">';
   html+='<div class="ficha-session-name">'+esc(sessaoNome)+'</div>';
@@ -14290,6 +14324,7 @@ function _progRenderSessao(sessaoNome){
   html+='<div class="film-table-wrap"><table><thead><tr><th>#</th><th>Título PT</th><th>Duração</th><th class="center">Idioma</th><th>Legendas</th><th class="center">KDM</th><th class="center" title="Acessibilidade"><svg width="13" height="13" viewBox="0 0 24 24" style="stroke:currentColor;stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round;vertical-align:middle;"><circle cx="11" cy="4" r="1"/><path d="m11 9 2 7h5l-1.5 3"/><path d="M9 9H7l1 7"/><path d="M13.5 19a4.5 4.5 0 1 1-9 0 4.5 4.5 0 0 1 9 0z"/></svg></th><th>País</th></tr></thead><tbody>'+(rows||'<tr><td colspan="8" style="text-align:center;color:var(--text-muted);padding:24px">Nenhum filme encontrado para esta sessão.</td></tr>')+'</tbody></table></div>';
   html+='<div class="ficha-footer"><div class="footer-total">Duração total dos filmes: <strong>'+totalDur+'</strong>'+(totalVinSecs>0?' &nbsp;·&nbsp; Vinhetas: <strong>'+Math.floor(totalVinSecs/3600)+'h'+String(Math.floor((totalVinSecs%3600)/60)).padStart(2,'0')+'</strong>':'')+'</div><div class="footer-stamp">OLGA · '+new Date().toLocaleString('pt-BR')+'</div></div></div>';
   c.innerHTML=html+'</div>';
+  document.getElementById('progBarDynamic').innerHTML=bHtml;
 }
 
 function printProgFicha(){
@@ -18110,7 +18145,7 @@ window.addEventListener('popstate',function(e){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 24/05/2026 às 13:28</span></div>
+<div id="page-footer"><span>última atualização · 24/05/2026 às 13:38</span></div>
 
 </div>
 

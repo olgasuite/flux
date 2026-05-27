@@ -3972,6 +3972,19 @@ html[data-theme]:not([data-theme="win98"]){--mono:var(--sans);}
 
   const githubProvider = new GithubAuthProvider();
 
+  // API de solicitações de acesso
+  window._olgaSolicitacoes = {
+    list: async function() {
+      var snap = await getDocs(collection(db, '_solicitacoes'));
+      var arr = [];
+      snap.forEach(function(d) { arr.push({ id: d.id, data: d.data() }); });
+      return arr;
+    },
+    remove: async function(id) {
+      await deleteDoc(doc(db, '_solicitacoes', id));
+    }
+  };
+
   // API de gestão de usuários exposta ao escopo global
   window._olgaUsuarios = {
     list: async function() {
@@ -15737,14 +15750,13 @@ function renderEquipe(){
     window._olgaUsuarios.list(),
     window._olgaEventos ? window._olgaEventos.list() : Promise.resolve([]),
     window._olgaTemplates ? window._olgaTemplates.list() : Promise.resolve([]),
-    getDocs(collection(db,'_solicitacoes')).catch(function(){return{docs:[]};})
+    window._olgaSolicitacoes ? window._olgaSolicitacoes.list() : Promise.resolve([])
   ]).then(function(results){
     _equipeNeedsReload=false;
     _equipeUsers=results[0].sort(function(a,b){return a.id.localeCompare(b.id);});
     _adminEventos=results[1];
     _equipeTemplates=results[2];
-    var solSnap=results[3];
-    _equipeSolicitacoes=(solSnap.docs||[]).map(function(d){return{id:d.id,data:d.data()};}).filter(function(s){return s.data.status==='pendente';});
+    _equipeSolicitacoes=(results[3]||[]).filter(function(s){return s.data.status==='pendente';});
     window._olgaEventosCache=results[1].map(function(e){return{nome:e.data.nome||e.id};});
     renderEquipeTable();
   }).catch(function(e){
@@ -16514,7 +16526,7 @@ window.saveEquipeUser=async function(){
     await window._olgaUsuarios.save(email,data);
     window._logFirestoreEdit&&window._logFirestoreEdit('individual',email,data,'equipe','usuarios');
     if(_solicitacaoToApprove){
-      try{ await deleteDoc(doc(db,'_solicitacoes',_solicitacaoToApprove)); }catch(e2){}
+      try{ await window._olgaSolicitacoes.remove(_solicitacaoToApprove); }catch(e2){}
       _solicitacaoToApprove=null;
     }
     closeEquipeModal();
@@ -16552,7 +16564,7 @@ window.aprovarSolicitacao=function(docId,email){
 window.recusarSolicitacao=async function(docId){
   if(!confirm('Recusar solicitação de acesso?'))return;
   try{
-    await deleteDoc(doc(db,'_solicitacoes',docId));
+    await window._olgaSolicitacoes.remove(docId);
     _equipeSolicitacoes=_equipeSolicitacoes.filter(function(s){return s.id!==docId;});
     renderEquipeTable();
   }catch(e){alert('Erro: '+e.message);}

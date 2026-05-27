@@ -4341,21 +4341,43 @@ html[data-theme]:not([data-theme="win98"]){--mono:var(--sans);}
     });
   };
 
-  window._olgaCriarConta = function() {
-    var email = document.getElementById('login-email').value.trim();
-    var senha = document.getElementById('login-senha').value;
-    var err = document.getElementById('auth-error');
+  window._olgaAbrirCadastro = function() {
+    var m = document.getElementById('cadastro-modal');
+    if (m) { m.style.display = 'flex'; }
+    ['cad-email','cad-senha','cad-senha2'].forEach(function(id){ var el=document.getElementById(id); if(el) el.value=''; });
+    var ce = document.getElementById('cad-error'); if(ce) ce.textContent='';
+  };
+
+  window._olgaFecharCadastro = function() {
+    var m = document.getElementById('cadastro-modal'); if(m) m.style.display='none';
+  };
+
+  window._olgaCriarConta = async function() {
+    var email  = document.getElementById('cad-email').value.trim();
+    var senha  = document.getElementById('cad-senha').value;
+    var senha2 = document.getElementById('cad-senha2').value;
+    var err    = document.getElementById('cad-error');
     if (!email || !senha) { err.textContent = 'Preencha email e senha.'; return; }
     if (senha.length < 6) { err.textContent = 'A senha precisa ter ao menos 6 caracteres.'; return; }
-    createUserWithEmailAndPassword(auth, email, senha).catch(function(e) {
+    if (senha !== senha2) { err.textContent = 'As senhas não conferem.'; return; }
+    try {
+      await createUserWithEmailAndPassword(auth, email, senha);
+      try { await addDoc(collection(db, '_solicitacoes'), { email: email, provider: 'email', status: 'pendente', createdAt: serverTimestamp() }); } catch(e2) {}
+      await signOut(auth);
+      window._olgaFecharCadastro();
+      var ae = document.getElementById('auth-error');
+      ae.style.color = 'var(--ok, #4ade80)';
+      ae.textContent = 'Conta criada! Aguarde a ativação pelo administrador.';
+    } catch(e) {
       err.textContent = e.code === 'auth/email-already-in-use' ? 'Este email já tem uma conta. Faça login.' : 'Erro: ' + e.message;
-    });
+    }
   };
 
   window._olgaResetSenha = function() {
     var email = document.getElementById('login-email').value.trim();
     var err = document.getElementById('auth-error');
     if (!email) { err.textContent = 'Digite seu email para redefinir a senha.'; return; }
+    err.style.color = '';
     sendPasswordResetEmail(auth, email).then(function() {
       err.style.color = 'var(--ok, #4ade80)';
       err.textContent = 'Email de redefinição enviado para ' + email;
@@ -4363,24 +4385,6 @@ html[data-theme]:not([data-theme="win98"]){--mono:var(--sans);}
       err.style.color = 'var(--warn)';
       err.textContent = 'Erro: ' + e.message;
     });
-  };
-
-  window._olgaToggleCadastro = function(modo) {
-    var btnLogin   = document.getElementById('btn-login-email');
-    var btnCadastro = document.getElementById('btn-cadastro');
-    var btnReset   = document.getElementById('btn-reset');
-    var linkCadastro = document.getElementById('link-cadastro');
-    var linkLogin  = document.getElementById('link-login');
-    document.getElementById('auth-error').textContent = '';
-    if (modo === 'cadastro') {
-      btnLogin.style.display = 'none'; btnReset.style.display = 'none';
-      btnCadastro.style.display = 'block';
-      linkCadastro.style.display = 'none'; linkLogin.style.display = 'block';
-    } else {
-      btnLogin.style.display = 'block'; btnReset.style.display = 'block';
-      btnCadastro.style.display = 'none';
-      linkCadastro.style.display = 'block'; linkLogin.style.display = 'none';
-    }
   };
 
   window._olgaSignOut = function() {
@@ -4981,18 +4985,37 @@ window.addEventListener('DOMContentLoaded',function(){
 </head>
 <body>
 
+<div id="cadastro-modal" style="display:none;position:fixed;inset:0;z-index:100000;background:rgba(0,0,0,0.55);align-items:center;justify-content:center;font-family:var(--sans);">
+  <div style="background:var(--surface);border:1px solid var(--border);border-radius:0.5rem;padding:28px 28px 24px;width:280px;display:flex;flex-direction:column;gap:16px;box-shadow:0 8px 32px rgba(0,0,0,0.3);">
+    <div style="display:flex;align-items:center;justify-content:space-between;">
+      <div style="font-size:13px;font-weight:600;letter-spacing:-0.01em;color:var(--text);">Criar conta</div>
+      <button onclick="_olgaFecharCadastro()" style="background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:18px;padding:0;line-height:1;transition:color 0.1s;" onmouseover="this.style.color=getComputedStyle(document.documentElement).getPropertyValue('--text')" onmouseout="this.style.color=getComputedStyle(document.documentElement).getPropertyValue('--text-muted')">×</button>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:8px;">
+      <input id="cad-email" type="email" placeholder="email" onkeydown="if(event.key==='Enter')document.getElementById('cad-senha').focus()" style="background:var(--surface2);border:1px solid var(--border);border-radius:0.25rem;color:var(--text);padding:10px 12px;font-family:var(--mono);font-size:11px;outline:none;width:100%;box-sizing:border-box;" onfocus="this.style.borderColor=getComputedStyle(document.documentElement).getPropertyValue('--border2')" onblur="this.style.borderColor=getComputedStyle(document.documentElement).getPropertyValue('--border')">
+      <input id="cad-senha" type="password" placeholder="senha (mín. 6 caracteres)" onkeydown="if(event.key==='Enter')document.getElementById('cad-senha2').focus()" style="background:var(--surface2);border:1px solid var(--border);border-radius:0.25rem;color:var(--text);padding:10px 12px;font-family:var(--mono);font-size:11px;outline:none;width:100%;box-sizing:border-box;" onfocus="this.style.borderColor=getComputedStyle(document.documentElement).getPropertyValue('--border2')" onblur="this.style.borderColor=getComputedStyle(document.documentElement).getPropertyValue('--border')">
+      <input id="cad-senha2" type="password" placeholder="confirmar senha" onkeydown="if(event.key==='Enter')_olgaCriarConta()" style="background:var(--surface2);border:1px solid var(--border);border-radius:0.25rem;color:var(--text);padding:10px 12px;font-family:var(--mono);font-size:11px;outline:none;width:100%;box-sizing:border-box;" onfocus="this.style.borderColor=getComputedStyle(document.documentElement).getPropertyValue('--border2')" onblur="this.style.borderColor=getComputedStyle(document.documentElement).getPropertyValue('--border')">
+      <button onclick="_olgaCriarConta()" style="background:var(--surface2);border:1px solid var(--border);border-radius:0.25rem;color:var(--text);padding:10px;cursor:pointer;font-family:var(--sans);font-size:11px;font-weight:600;letter-spacing:0.06em;width:100%;transition:border-color 0.15s,background 0.15s;" onmouseover="this.style.borderColor=getComputedStyle(document.documentElement).getPropertyValue('--border2');this.style.background=getComputedStyle(document.documentElement).getPropertyValue('--surface3')" onmouseout="this.style.borderColor=getComputedStyle(document.documentElement).getPropertyValue('--border');this.style.background=getComputedStyle(document.documentElement).getPropertyValue('--surface2')">Criar conta</button>
+    </div>
+    <div id="cad-error" style="font-size:9px;font-family:var(--mono);color:var(--warn);letter-spacing:0.04em;min-height:14px;text-align:center;"></div>
+    <div style="font-size:9px;font-family:var(--mono);color:var(--text-muted);text-align:center;letter-spacing:0.03em;line-height:1.5;">Após criar sua conta, aguarde a ativação pelo administrador para ter acesso ao sistema.</div>
+  </div>
+</div>
+
 <div id="olga-login" style="display:flex;position:fixed;inset:0;z-index:99999;background:var(--bg);flex-direction:column;align-items:center;justify-content:center;gap:32px;font-family:var(--sans);">
   <div style="text-align:center;">
     <div style="font-size:24px;font-weight:600;letter-spacing:-0.02em;color:var(--text);font-family:var(--sans);">OLGA · <span style="color:#a78bfa;font-weight:300;">Flux</span></div>
     <div style="font-size:10px;font-weight:700;color:var(--text-muted);letter-spacing:0.18em;margin-top:6px;text-transform:uppercase;font-family:var(--sans);">Sistema de Gestão de Festivais de Cinema</div>
   </div>
-  <div style="display:flex;flex-direction:column;align-items:center;gap:16px;width:260px;">
+  <div style="display:flex;flex-direction:column;align-items:center;gap:14px;width:260px;">
     <div style="display:flex;flex-direction:column;gap:8px;width:100%;">
       <input id="login-email" type="email" placeholder="email" onkeydown="if(event.key==='Enter')document.getElementById('login-senha').focus()" style="background:var(--surface2);border:1px solid var(--border);border-radius:0.25rem;color:var(--text);padding:10px 12px;font-family:var(--mono);font-size:11px;outline:none;width:100%;box-sizing:border-box;" onfocus="this.style.borderColor=getComputedStyle(document.documentElement).getPropertyValue('--border2')" onblur="this.style.borderColor=getComputedStyle(document.documentElement).getPropertyValue('--border')">
       <input id="login-senha" type="password" placeholder="senha" onkeydown="if(event.key==='Enter')_olgaSignInEmail()" style="background:var(--surface2);border:1px solid var(--border);border-radius:0.25rem;color:var(--text);padding:10px 12px;font-family:var(--mono);font-size:11px;outline:none;width:100%;box-sizing:border-box;" onfocus="this.style.borderColor=getComputedStyle(document.documentElement).getPropertyValue('--border2')" onblur="this.style.borderColor=getComputedStyle(document.documentElement).getPropertyValue('--border')">
-      <button id="btn-login-email" onclick="_olgaSignInEmail()" style="background:var(--surface2);border:1px solid var(--border);border-radius:0.25rem;color:var(--text);padding:10px;cursor:pointer;font-family:var(--sans);font-size:11px;font-weight:600;letter-spacing:0.06em;width:100%;transition:border-color 0.15s,background 0.15s;" onmouseover="this.style.borderColor=getComputedStyle(document.documentElement).getPropertyValue('--border2');this.style.background=getComputedStyle(document.documentElement).getPropertyValue('--surface3')" onmouseout="this.style.borderColor=getComputedStyle(document.documentElement).getPropertyValue('--border');this.style.background=getComputedStyle(document.documentElement).getPropertyValue('--surface2')">Entrar</button>
-      <button id="btn-cadastro" onclick="_olgaCriarConta()" style="display:none;background:var(--surface2);border:1px solid var(--border);border-radius:0.25rem;color:var(--text);padding:10px;cursor:pointer;font-family:var(--sans);font-size:11px;font-weight:600;letter-spacing:0.06em;width:100%;transition:border-color 0.15s,background 0.15s;" onmouseover="this.style.borderColor=getComputedStyle(document.documentElement).getPropertyValue('--border2');this.style.background=getComputedStyle(document.documentElement).getPropertyValue('--surface3')" onmouseout="this.style.borderColor=getComputedStyle(document.documentElement).getPropertyValue('--border');this.style.background=getComputedStyle(document.documentElement).getPropertyValue('--surface2')">Criar conta</button>
-      <button id="btn-reset" onclick="_olgaResetSenha()" style="background:none;border:none;color:var(--text-muted);padding:2px;cursor:pointer;font-family:var(--mono);font-size:9px;letter-spacing:0.06em;width:100%;text-align:center;">esqueci minha senha</button>
+      <button onclick="_olgaSignInEmail()" style="background:var(--surface2);border:1px solid var(--border);border-radius:0.25rem;color:var(--text);padding:10px;cursor:pointer;font-family:var(--sans);font-size:11px;font-weight:600;letter-spacing:0.06em;width:100%;transition:border-color 0.15s,background 0.15s;" onmouseover="this.style.borderColor=getComputedStyle(document.documentElement).getPropertyValue('--border2');this.style.background=getComputedStyle(document.documentElement).getPropertyValue('--surface3')" onmouseout="this.style.borderColor=getComputedStyle(document.documentElement).getPropertyValue('--border');this.style.background=getComputedStyle(document.documentElement).getPropertyValue('--surface2')">Entrar</button>
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <button onclick="_olgaResetSenha()" style="background:none;border:none;color:var(--text-muted);padding:0;cursor:pointer;font-family:var(--mono);font-size:9px;letter-spacing:0.04em;">esqueci minha senha</button>
+        <button onclick="_olgaAbrirCadastro()" style="background:none;border:none;color:var(--text-muted);padding:0;cursor:pointer;font-family:var(--mono);font-size:9px;letter-spacing:0.04em;text-decoration:underline;">criar conta</button>
+      </div>
     </div>
     <div style="display:flex;align-items:center;gap:10px;width:100%;">
       <div style="flex:1;height:1px;background:var(--border);"></div>
@@ -5006,10 +5029,6 @@ window.addEventListener('DOMContentLoaded',function(){
       <button onclick="_olgaSignInGitHub()" title="Entrar com GitHub" style="display:flex;align-items:center;justify-content:center;width:48px;height:48px;background:var(--surface2);border:1px solid var(--border);border-radius:0.25rem;cursor:pointer;transition:border-color 0.15s,background 0.15s;" onmouseover="this.style.borderColor=getComputedStyle(document.documentElement).getPropertyValue('--border2');this.style.background=getComputedStyle(document.documentElement).getPropertyValue('--surface3')" onmouseout="this.style.borderColor=getComputedStyle(document.documentElement).getPropertyValue('--border');this.style.background=getComputedStyle(document.documentElement).getPropertyValue('--surface2')">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
       </button>
-    </div>
-    <div style="font-size:9px;font-family:var(--mono);color:var(--text-muted);letter-spacing:0.06em;">
-      <span id="link-cadastro">não tem conta? <span onclick="_olgaToggleCadastro('cadastro')" style="cursor:pointer;text-decoration:underline;color:var(--text);">criar conta</span></span>
-      <span id="link-login" style="display:none;">já tem conta? <span onclick="_olgaToggleCadastro('login')" style="cursor:pointer;text-decoration:underline;color:var(--text);">entrar</span></span>
     </div>
   </div>
   <div id="auth-error" style="font-size:10px;font-family:var(--mono);color:var(--warn);letter-spacing:0.04em;max-width:320px;text-align:center;min-height:16px;"></div>
@@ -5740,7 +5759,9 @@ function applyParsedData(d,filename){
   eventosFS.forEach(function(ev){
     if(ev.nome&&d.events.indexOf(ev.nome)===-1)d.events.push(ev.nome);
   });
-  var events=d.events.slice().sort(function(a,b){
+  var _olgaEvSet = window._olgaUser && window._olgaUser.eventos && window._olgaUser.eventos.length
+    ? new Set(window._olgaUser.eventos) : null;
+  var events=d.events.slice().filter(function(ev){return !_olgaEvSet||_olgaEvSet.has(ev);}).sort(function(a,b){
     var da=evFirstDate[a],db=evFirstDate[b];
     if(da&&db)return da-db;
     if(da)return -1;
@@ -15676,6 +15697,7 @@ async function duplicateProgSessao(nome){
 
 var _equipeUsers=[], _equipeEditId=null, _equipeDeleteId=null, _adminEventos=[], _equipeEventoFiltro='';
 var _equipeNeedsReload=true;
+var _equipeSolicitacoes=[], _solicitacaoToApprove=null;
 function _equipeInvalidateRender(){_equipeNeedsReload=true;renderEquipe();}
 var _EQUIPE_MODULOS=['projecao','grade','sessoes','busca','vinhetas','cinemas','kdm','dash','receptivo','bilheteria','catalogo','programacao'];
 var _EQUIPE_ROLES=['admin','editor','viewer'];
@@ -15714,12 +15736,15 @@ function renderEquipe(){
   Promise.all([
     window._olgaUsuarios.list(),
     window._olgaEventos ? window._olgaEventos.list() : Promise.resolve([]),
-    window._olgaTemplates ? window._olgaTemplates.list() : Promise.resolve([])
+    window._olgaTemplates ? window._olgaTemplates.list() : Promise.resolve([]),
+    getDocs(collection(db,'_solicitacoes')).catch(function(){return{docs:[]};})
   ]).then(function(results){
     _equipeNeedsReload=false;
     _equipeUsers=results[0].sort(function(a,b){return a.id.localeCompare(b.id);});
     _adminEventos=results[1];
     _equipeTemplates=results[2];
+    var solSnap=results[3];
+    _equipeSolicitacoes=(solSnap.docs||[]).map(function(d){return{id:d.id,data:d.data()};}).filter(function(s){return s.data.status==='pendente';});
     window._olgaEventosCache=results[1].map(function(e){return{nome:e.data.nome||e.id};});
     renderEquipeTable();
   }).catch(function(e){
@@ -15913,7 +15938,35 @@ function renderEquipeTable(){
     '<div id="colExportMsg" style="font-family:var(--mono);font-size:10px;color:var(--text-muted);margin-top:8px;"></div>'+
     '</div>'
   ):'';
+  var solHtml='';
+  if(_equipeSolicitacoes.length){
+    var solRows=_equipeSolicitacoes.map(function(s){
+      var d=s.data;
+      var ts=d.createdAt&&d.createdAt.toDate?d.createdAt.toDate().toLocaleString('pt-BR'):'—';
+      return '<tr>'+
+        '<td style="padding:10px 12px;font-family:var(--mono);font-size:12px;color:var(--text);">'+esc(d.email||'—')+'</td>'+
+        '<td style="padding:10px 12px;font-family:var(--mono);font-size:10px;color:var(--text-muted);">'+esc(ts)+'</td>'+
+        '<td style="padding:10px 12px;text-align:right;white-space:nowrap;">'+
+          '<button onclick="aprovarSolicitacao(\''+esc(s.id)+'\',\''+esc(d.email||'')+'\')\" style="'+_equipeBtn('ok')+'">aprovar</button> '+
+          '<button onclick="recusarSolicitacao(\''+esc(s.id)+'\')" style="'+_equipeBtn('del')+'">recusar</button>'+
+        '</td>'+
+      '</tr>';
+    }).join('');
+    solHtml='<div style="margin-bottom:32px;">'+
+      secHdr('Solicitações de acesso · <span style="color:var(--warn);">'+_equipeSolicitacoes.length+' pendente'+ (_equipeSolicitacoes.length!==1?'s':'')+'</span>')+
+      '<table style="width:100%;border-collapse:collapse;border:1px solid var(--border);">'+
+        '<thead><tr style="background:var(--surface2);border-bottom:1px solid var(--warn);">'+
+          '<th style="'+_equipeTh()+'">Email</th>'+
+          '<th style="'+_equipeTh()+'">Solicitado em</th>'+
+          '<th style="'+_equipeTh()+'text-align:right">Ações</th>'+
+        '</tr></thead>'+
+        '<tbody>'+solRows+'</tbody>'+
+      '</table>'+
+    '</div>';
+  }
+
   el.innerHTML=
+    solHtml+
     secHdr('Usuários')+
     '<div style="text-align:right;margin-bottom:8px;"><button onclick="openEquipeNewUser()" style="'+btnStyle+'color:var(--accent);border-color:rgba(255,186,32,0.35);">+ Novo usuário</button></div>'+
     filtroHtml+usuariosHtml+
@@ -15987,6 +16040,7 @@ function _equipeBtn(t){
   var base='font-family:var(--mono);font-size:9px;font-weight:600;letter-spacing:0.07em;text-transform:uppercase;padding:3px 9px;border:1px solid;border-radius:2px;background:transparent;cursor:pointer;';
   if(t==='dup')return base+'color:var(--accent);border-color:rgba(255,186,32,0.3);';
   if(t==='del')return base+'color:var(--warn);border-color:rgba(255,180,171,0.25);';
+  if(t==='ok')return base+'color:var(--ok,#4ade80);border-color:rgba(61,186,110,0.3);';
   return base+'color:var(--text-dim);border-color:var(--border);';
 }
 
@@ -16429,6 +16483,7 @@ window.equipeAddEv=function(){
 
 window.closeEquipeModal=function(){
   document.getElementById('equipeModal').style.display='none';
+  _solicitacaoToApprove=null;
 };
 
 window.saveEquipeUser=async function(){
@@ -16458,6 +16513,10 @@ window.saveEquipeUser=async function(){
   try{
     await window._olgaUsuarios.save(email,data);
     window._logFirestoreEdit&&window._logFirestoreEdit('individual',email,data,'equipe','usuarios');
+    if(_solicitacaoToApprove){
+      try{ await deleteDoc(doc(db,'_solicitacoes',_solicitacaoToApprove)); }catch(e2){}
+      _solicitacaoToApprove=null;
+    }
     closeEquipeModal();
     _equipeInvalidateRender();
   }catch(e){errEl.textContent='Erro ao salvar: '+e.message;errEl.style.display='block';}
@@ -16479,6 +16538,24 @@ window.confirmEquipeDelete=async function(){
     _equipeInvalidateRender();
   }catch(e){alert('Erro ao excluir: '+e.message);}
   btn.disabled=false;btn.textContent='Excluir';
+};
+
+window.aprovarSolicitacao=function(docId,email){
+  _solicitacaoToApprove=docId;
+  _openEquipeForm(null,null);
+  setTimeout(function(){
+    var el=document.getElementById('eq_email');
+    if(el){el.value=email;}
+  },50);
+};
+
+window.recusarSolicitacao=async function(docId){
+  if(!confirm('Recusar solicitação de acesso?'))return;
+  try{
+    await deleteDoc(doc(db,'_solicitacoes',docId));
+    _equipeSolicitacoes=_equipeSolicitacoes.filter(function(s){return s.id!==docId;});
+    renderEquipeTable();
+  }catch(e){alert('Erro: '+e.message);}
 };
 
 /* ============================================================

@@ -4825,7 +4825,23 @@ html[data-theme]:not([data-theme="win98"]){--mono:var(--sans);}
         return;
       }
 
-      // Login autorizado
+      // Login autorizado — resetar estado de navegação da sessão anterior
+      currentMode = null;
+      dataLoaded = false;
+      ['projecao','ficha','grade','grade2','sessoes','busca','vinhetas','ingest','cinemas','kdm','dash','receptivo','bilheteria','equipe','catalogo','programacao','revista'].forEach(function(m){
+        var cap=m==='grade2'?'Grade2':m==='projecao'?'Projecao':m==='sessoes'?'Sessoes':m==='vinhetas'?'Vinhetas':m==='programacao'?'Programacao':m==='kdm'?'KDM':m.charAt(0).toUpperCase()+m.slice(1);
+        var panel=document.getElementById(m+'-panel');
+        var tab=document.getElementById('tab'+cap);
+        var bar=document.getElementById('bar'+cap);
+        if(panel)panel.classList.remove('active');
+        if(tab)tab.classList.remove('active');
+        if(bar)bar.classList.add('hidden');
+      });
+      var _landingEl=document.getElementById('landing');
+      var _appEl=document.getElementById('app');
+      if(_landingEl)_landingEl.style.display='';
+      if(_appEl)_appEl.style.display='none';
+
       window._olgaUser = perfil;
       loginScreen.style.display = 'none';
 

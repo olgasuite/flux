@@ -4426,11 +4426,14 @@ html[data-theme]:not([data-theme="win98"]){--mono:var(--sans);}
       programacao:'modCardProgramacao'
     };
 
+    var groupMap = { projecao: 'navGroupProjecao', receptivo: 'navGroupReceptivo' };
     ALL.forEach(function(m) {
       var visible = !allowed || allowed.has(m);
-      var tabEl  = document.getElementById(tabMap[m]);
-      var cardEl = document.getElementById(cardMap[m]);
-      if (tabEl)  tabEl.style.display  = visible ? '' : 'none';
+      var tabEl   = document.getElementById(tabMap[m]);
+      var cardEl  = document.getElementById(cardMap[m]);
+      var groupEl = groupMap[m] ? document.getElementById(groupMap[m]) : null;
+      if (groupEl) groupEl.style.display = visible ? '' : 'none';
+      else if (tabEl) tabEl.style.display = visible ? '' : 'none';
       if (cardEl) cardEl.style.display = visible ? '' : 'none';
     });
     // auto-fill grid handles columns — just ensure background stays correct

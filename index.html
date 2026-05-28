@@ -14578,7 +14578,7 @@ function renderDash(){
   html+=colBlock('kdm','KDM',kdmBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 28/05/2026 às 10:56';
+  var sysUpdate='última atualização do sistema · 28/05/2026 às 10:58';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -19354,7 +19354,7 @@ window.addEventListener('popstate',function(e){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 28/05/2026 às 10:56</span></div>
+<div id="page-footer"><span>última atualização · 28/05/2026 às 10:58</span></div>
 
 </div>
 
@@ -21582,19 +21582,24 @@ function _ffBuildTitleDupMap(rows){
 }
 
 /* ── eventos ativos para o usuário (como selecionado por ele) ── */
-function _ffGetUserEventos(){
-  // activeEventsCatalogo = events the user has toggled ON in the catalog view
-  if(typeof activeEventsCatalogo!=='undefined'&&activeEventsCatalogo.size){
-    return Array.from(activeEventsCatalogo).sort(function(a,b){return a.localeCompare(b,'pt-BR');});
-  }
-  // fallback: cache do Firestore filtrado por permissão
-  var cache=(window._olgaEventosCache||[]).map(function(e){return e.nome;}).filter(Boolean);
-  if(cache.length)return cache;
-  // último fallback: eventColors filtrado pelo usuário
+function _getImportEventos(target){
   var userEvs=window._olgaUser&&window._olgaUser.eventos&&window._olgaUser.eventos.length
     ?new Set(window._olgaUser.eventos):null;
-  return Object.keys(eventColors||{}).filter(function(e){return!userEvs||userEvs.has(e);});
+  function filterUser(arr){return userEvs?arr.filter(function(e){return userEvs.has(e);}):arr;}
+  // usar o set de eventos ativos do módulo destino
+  var activeSet=target==='triagem'
+    ?(typeof activeEventsTriagem!=='undefined'?activeEventsTriagem:null)
+    :(typeof activeEventsCatalogo!=='undefined'?activeEventsCatalogo:null);
+  if(activeSet&&activeSet.size){
+    return filterUser(Array.from(activeSet)).sort(function(a,b){return a.localeCompare(b,'pt-BR');});
+  }
+  // fallback: cache do Firestore
+  var cache=(window._olgaEventosCache||[]).map(function(e){return e.nome;}).filter(Boolean);
+  if(cache.length)return filterUser(cache);
+  // último fallback: eventColors
+  return filterUser(Object.keys(eventColors||{}));
 }
+function _ffGetUserEventos(){return _getImportEventos(_ffImportTarget||'catalogo');}
 function _ffUpdateImportBtn(){
   var evEl=document.getElementById('ffEvtInput');
   var btn=document.getElementById('ffImportBtn');
@@ -21699,8 +21704,9 @@ function _ffRenderPreview(rows){
   _ffNormalized=rows.map(function(r){var d=_ffNormalizeRow(r);d._raw=r;return d;});
   _ffDupCatalog=new Set();
   _ffDupMap=_ffBuildTitleDupMap(rows);
+  var _ffTgtMap=_ffImportTarget==='triagem'?triagemFilmesMap:catalogoFilmesMap;
   _ffNormalized.forEach(function(d){
-    if(catalogoFilmesMap&&catalogoFilmesMap[d.festival_code])_ffDupCatalog.add(d.festival_code);
+    if(_ffTgtMap&&_ffTgtMap[d.festival_code])_ffDupCatalog.add(d.festival_code);
   });
   _ffDisplayOrder=rows.map(function(_,i){return i;});
   _ffSortCol=null;_ffSortAsc=true;
@@ -22237,11 +22243,12 @@ function _sfdRenderPreview(rows){
   _sfdNormalized=rows.map(function(r){var d=_sfdNormalizeRow(r);d._raw=r;return d;});
   _sfdDupCatalog=new Set();
   _sfdDupMap=_sfdBuildTitleDupMap(rows);
-  _sfdNormalized.forEach(function(d){if(catalogoFilmesMap&&catalogoFilmesMap[d.festival_code])_sfdDupCatalog.add(d.festival_code);});
+  var _sfdTgtMap=_sfdImportTarget==='triagem'?triagemFilmesMap:catalogoFilmesMap;
+  _sfdNormalized.forEach(function(d){if(_sfdTgtMap&&_sfdTgtMap[d.festival_code])_sfdDupCatalog.add(d.festival_code);});
   _sfdDisplayOrder=rows.map(function(_,i){return i;});
   _sfdSortCol=null;_sfdSortAsc=true;
   var sectionLabel=_sfdSectionMap[_sfdSheetName]||_sfdSheetName;
-  var evts=(typeof _ffGetUserEventos==='function')?_ffGetUserEventos():[];
+  var evts=_getImportEventos(_sfdImportTarget||'catalogo');
   var evtHtml='<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">'
     +'<span class="ffim-opt-label">Evento <span style="color:var(--text-muted);font-size:10px;">(obrigatório)</span></span>';
   if(evts.length===0){

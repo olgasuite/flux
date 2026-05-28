@@ -4251,6 +4251,7 @@ html[data-theme]:not([data-theme="win98"]){--mono:var(--sans);}
             ff_duration:fss(r.ff_duration),
             ff_student:fss(r.ff_student), ff_school:fss(r.ff_school),
             ff_first_time:fss(r.ff_first_time), ff_other_credits:fss(r.ff_other_credits),
+            student_project:fss(r.student_project), sfd_school:fss(r.sfd_school),
             crew:r.crew?{
               cinematography:fsa(r.crew.cinematography), screenplay:fsa(r.crew.screenplay),
               editing:fsa(r.crew.editing), sound:fsa(r.crew.sound),
@@ -4310,6 +4311,7 @@ html[data-theme]:not([data-theme="win98"]){--mono:var(--sans);}
         ff_duration:fsStr(data.ff_duration||''),
         ff_student:fsStr(data.ff_student||''),ff_school:fsStr(data.ff_school||''),
         ff_first_time:fsStr(data.ff_first_time||''),ff_other_credits:fsStr(data.ff_other_credits||''),
+        student_project:fsStr(data.student_project||''),sfd_school:fsStr(data.sfd_school||''),
         runtime:data.runtime?fsInt(data.runtime):{integerValue:'0'},
         crew:{mapValue:{fields:crewF}},
         cinemateca_raw:fsStr(data.cinemateca_raw?JSON.stringify(data.cinemateca_raw):'')
@@ -4359,6 +4361,7 @@ html[data-theme]:not([data-theme="win98"]){--mono:var(--sans);}
             ff_duration:fss(r.ff_duration), ff_student:fss(r.ff_student),
             ff_school:fss(r.ff_school), ff_first_time:fss(r.ff_first_time),
             ff_other_credits:fss(r.ff_other_credits),
+            student_project:fss(r.student_project), sfd_school:fss(r.sfd_school),
             crew:r.crew?{
               cinematography:fsa(r.crew.cinematography), screenplay:fsa(r.crew.screenplay),
               editing:fsa(r.crew.editing), sound:fsa(r.crew.sound),
@@ -4411,6 +4414,7 @@ html[data-theme]:not([data-theme="win98"]){--mono:var(--sans);}
         ff_duration:fsStr(data.ff_duration||''), ff_student:fsStr(data.ff_student||''),
         ff_school:fsStr(data.ff_school||''), ff_first_time:fsStr(data.ff_first_time||''),
         ff_other_credits:fsStr(data.ff_other_credits||''),
+        student_project:fsStr(data.student_project||''),sfd_school:fsStr(data.sfd_school||''),
         crew:{mapValue:{fields:crewF}},
         import_raw:fsStr(data.import_raw?JSON.stringify(data.import_raw):''),
         import_source:fsStr(data.import_source||''),
@@ -14574,7 +14578,7 @@ function renderDash(){
   html+=colBlock('kdm','KDM',kdmBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 28/05/2026 às 10:52';
+  var sysUpdate='última atualização do sistema · 28/05/2026 às 10:56';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -16202,8 +16206,7 @@ function openEventoModal(id){
   _eventoEditId=id||null;
   var ev=id?(_adminEventos.find(function(e){return e.id===id;})):null;
   var d=ev?ev.data:{};
-  // estados disponíveis: únicos de cinemasArr
-  var todosEstados=(function(){var s=new Set();(cinemasArr||[]).forEach(function(c){if(c.estado)s.add(c.estado);});return Array.from(s).sort();})();
+  var todosEstados=['AC','AL','AP','AM','BA','CE','DF','ES','GO','MA','MT','MS','MG','PA','PB','PR','PE','PI','RJ','RN','RS','RO','RR','SC','SP','SE','TO'];
   var selEstados=d.estados||[];
   var estadosHtml=todosEstados.length?todosEstados.map(function(e){
     var chk=selEstados.indexOf(e)!==-1?'checked':'';
@@ -16727,7 +16730,7 @@ window.recusarSolicitacao=async function(docId){
    CATÁLOGO MODULE — JS
    ============================================================ */
 var _catView='search',_catCode=null,_catEditing=false,catQuery='';
-var _catSearch={texto:'',texto_neg:false,director:'',director_neg:false,selecao:'',selecao_neg:false,ftype:'',ftype_neg:false,kdm:'',kdm_neg:false,stat:'',stat_neg:false,idioma:'',idioma_neg:false,genre:'',genre_neg:false,pais:'',pais_neg:false,prod:'',prod_neg:false,dist:'',dist_neg:false,syn:'',syn_neg:false,scr:'',scr_neg:false,email:'',email_neg:false,program_id:'',program_id_neg:false,subprogram_id:'',subprogram_id_neg:false,sessao_cat:'',sessao_cat_neg:false};
+var _catSearch={texto:'',texto_neg:false,director:'',director_neg:false,selecao:'',selecao_neg:false,ftype:'',ftype_neg:false,kdm:'',kdm_neg:false,stat:'',stat_neg:false,idioma:'',idioma_neg:false,genre:'',genre_neg:false,pais:'',pais_neg:false,prod:'',prod_neg:false,dist:'',dist_neg:false,syn:'',syn_neg:false,scr:'',scr_neg:false,email:'',email_neg:false,keywords:'',keywords_neg:false,uf:'',ff_student:'',ff_first_time:'',escola:'',program_id:'',program_id_neg:false,subprogram_id:'',subprogram_id_neg:false,sessao_cat:'',sessao_cat_neg:false};
 var _catSlots=[],_catShowAll=false,_catRan=false;
 var _catSortKey='title',_catSortDir='asc';
 
@@ -16757,10 +16760,10 @@ function _catReadForm(){
   function v(id){var el=document.getElementById('catsf_'+id);return el?(el.value||'').trim():'';}
   function neg(id){var el=document.getElementById('catneg_'+id);return el?el.classList.contains('neg'):false;}
   function pres(id){var a=document.querySelector('.cat-pres-btn[data-field="'+id+'"].active-pos');var b=document.querySelector('.cat-pres-btn[data-field="'+id+'"].active-neg');return a?'sim':b?'nao':'';}
-  _catSearch={texto:v('texto'),texto_neg:neg('texto'),director:v('director'),director_neg:neg('director'),selecao:v('selecao'),selecao_neg:neg('selecao'),ftype:v('ftype'),ftype_neg:neg('ftype'),kdm:v('kdm'),kdm_neg:neg('kdm'),stat:v('stat'),stat_neg:neg('stat'),idioma:v('idioma'),idioma_neg:neg('idioma'),genre:v('genre'),genre_neg:neg('genre'),pais:v('pais'),pais_neg:neg('pais'),prod:v('prod'),prod_neg:neg('prod'),dist:v('dist'),dist_neg:neg('dist'),syn:v('syn'),syn_neg:neg('syn'),scr:v('scr'),scr_neg:neg('scr'),email:v('email'),email_neg:neg('email'),keywords:v('keywords'),keywords_neg:neg('keywords'),program_id:v('program_id'),program_id_neg:neg('program_id'),subprogram_id:v('subprogram_id'),subprogram_id_neg:neg('subprogram_id'),sessao_cat:v('sessao_cat'),sessao_cat_neg:neg('sessao_cat')};
+  _catSearch={texto:v('texto'),texto_neg:neg('texto'),director:v('director'),director_neg:neg('director'),selecao:v('selecao'),selecao_neg:neg('selecao'),ftype:v('ftype'),ftype_neg:neg('ftype'),kdm:v('kdm'),kdm_neg:neg('kdm'),stat:v('stat'),stat_neg:neg('stat'),idioma:v('idioma'),idioma_neg:neg('idioma'),genre:v('genre'),genre_neg:neg('genre'),pais:v('pais'),pais_neg:neg('pais'),prod:v('prod'),prod_neg:neg('prod'),dist:v('dist'),dist_neg:neg('dist'),syn:v('syn'),syn_neg:neg('syn'),scr:v('scr'),scr_neg:neg('scr'),email:v('email'),email_neg:neg('email'),keywords:v('keywords'),keywords_neg:neg('keywords'),uf:v('uf'),ff_student:v('ff_student'),ff_first_time:v('ff_first_time'),escola:v('escola'),program_id:v('program_id'),program_id_neg:neg('program_id'),subprogram_id:v('subprogram_id'),subprogram_id_neg:neg('subprogram_id'),sessao_cat:v('sessao_cat'),sessao_cat_neg:neg('sessao_cat')};
 }
 function _catHasCriteria(s){
-  return s.texto||s.director||s.selecao||s.ftype||s.kdm||s.stat||s.idioma||s.genre||s.pais||s.prod||s.dist||s.syn||s.scr||s.email||s.keywords||s.program_id||s.subprogram_id||s.sessao_cat;
+  return s.texto||s.director||s.selecao||s.ftype||s.kdm||s.stat||s.idioma||s.genre||s.pais||s.prod||s.dist||s.syn||s.scr||s.email||s.keywords||s.uf||s.ff_student||s.ff_first_time||s.escola||s.program_id||s.subprogram_id||s.sessao_cat;
 }
 function _catSlotDesc(s){
   var parts=[];
@@ -16819,6 +16822,10 @@ function _catMatch(f,s){
   if(s.scr){var scrMatch=s.scr==='*'?!!(meta.screener):strMatch(meta.screener,s.scr);if(!check(scrMatch,s.scr_neg))return false;}
   if(s.email){var emailMatch=s.email==='*'?!!(meta.contact_email):strMatch(meta.contact_email,s.email);if(!check(emailMatch,s.email_neg))return false;}
   if(s.keywords){if(!check(arrMatch(meta.keywords,s.keywords),s.keywords_neg))return false;}
+  if(s.uf){var ufMatch=arrMatch(meta.uf,s.uf);if(!ufMatch)return false;}
+  if(s.ff_student){var _sv=(meta.ff_student||'').toLowerCase();var _spv=(meta.student_project||'').toLowerCase();var isYes=_sv.indexOf('yes')>=0||_sv.indexOf('sim')>=0||_spv.indexOf('yes')>=0||_spv.indexOf('sim')>=0;if(s.ff_student==='sim'&&!isYes)return false;if(s.ff_student==='nao'&&isYes)return false;}
+  if(s.ff_first_time){var fv=(meta.ff_first_time||'').toLowerCase();var isFY=fv.indexOf('yes')>=0||fv.indexOf('sim')>=0;if(s.ff_first_time==='sim'&&!isFY)return false;if(s.ff_first_time==='nao'&&isFY)return false;}
+  if(s.escola){var eq=s.escola.toLowerCase();var escolaNome=(meta.ff_school||meta.sfd_school||'').toLowerCase();if(!escolaNome.includes(eq))return false;}
   if(s.program_id){var hasProg=sessoesArr.some(function(sess){return sess.program_id===s.program_id&&sess.filmes&&sess.filmes.indexOf(f.codigo)>=0;});if(!check(hasProg,s.program_id_neg))return false;}
   if(s.subprogram_id){var hasSub=sessoesArr.some(function(sess){return sess.subprogram_id===s.subprogram_id&&sess.filmes&&sess.filmes.indexOf(f.codigo)>=0;});if(!check(hasSub,s.subprogram_id_neg))return false;}
   if(s.sessao_cat){var hasSessao=sessoesArr.some(function(sess){return sess.nome===s.sessao_cat&&sess.filmes&&sess.filmes.indexOf(f.codigo)>=0;});if(!check(hasSessao,s.sessao_cat_neg))return false;}
@@ -16937,7 +16944,7 @@ function addCatSlot(){
   _catReadForm();
   if(!_catHasCriteria(_catSearch))return;
   _catSlots.push(JSON.parse(JSON.stringify(_catSearch)));
-  _catSearch={texto:'',texto_neg:false,director:'',director_neg:false,selecao:'',selecao_neg:false,ftype:'',ftype_neg:false,kdm:'',kdm_neg:false,stat:'',stat_neg:false,idioma:'',idioma_neg:false,genre:'',genre_neg:false,pais:'',pais_neg:false,prod:'',prod_neg:false,dist:'',dist_neg:false,syn:'',syn_neg:false,scr:'',scr_neg:false,email:'',email_neg:false,keywords:'',keywords_neg:false,program_id:'',program_id_neg:false,subprogram_id:'',subprogram_id_neg:false,sessao_cat:'',sessao_cat_neg:false};
+  _catSearch={texto:'',texto_neg:false,director:'',director_neg:false,selecao:'',selecao_neg:false,ftype:'',ftype_neg:false,kdm:'',kdm_neg:false,stat:'',stat_neg:false,idioma:'',idioma_neg:false,genre:'',genre_neg:false,pais:'',pais_neg:false,prod:'',prod_neg:false,dist:'',dist_neg:false,syn:'',syn_neg:false,scr:'',scr_neg:false,email:'',email_neg:false,keywords:'',keywords_neg:false,uf:'',ff_student:'',ff_first_time:'',escola:'',program_id:'',program_id_neg:false,subprogram_id:'',subprogram_id_neg:false,sessao_cat:'',sessao_cat_neg:false};
   _catRan=true;_catShowAll=false;
   renderCatalogo();
 }
@@ -16951,7 +16958,7 @@ function catShowAll(){
   renderCatalogo();
 }
 function _catResetState(){
-  _catSearch={texto:'',texto_neg:false,director:'',director_neg:false,selecao:'',selecao_neg:false,ftype:'',ftype_neg:false,kdm:'',kdm_neg:false,stat:'',stat_neg:false,idioma:'',idioma_neg:false,genre:'',genre_neg:false,pais:'',pais_neg:false,prod:'',prod_neg:false,dist:'',dist_neg:false,syn:'',syn_neg:false,scr:'',scr_neg:false,email:'',email_neg:false,keywords:'',keywords_neg:false,program_id:'',program_id_neg:false,subprogram_id:'',subprogram_id_neg:false,sessao_cat:'',sessao_cat_neg:false};
+  _catSearch={texto:'',texto_neg:false,director:'',director_neg:false,selecao:'',selecao_neg:false,ftype:'',ftype_neg:false,kdm:'',kdm_neg:false,stat:'',stat_neg:false,idioma:'',idioma_neg:false,genre:'',genre_neg:false,pais:'',pais_neg:false,prod:'',prod_neg:false,dist:'',dist_neg:false,syn:'',syn_neg:false,scr:'',scr_neg:false,email:'',email_neg:false,keywords:'',keywords_neg:false,uf:'',ff_student:'',ff_first_time:'',escola:'',program_id:'',program_id_neg:false,subprogram_id:'',subprogram_id_neg:false,sessao_cat:'',sessao_cat_neg:false};
   _catSlots=[];_catRan=false;_catShowAll=false;_catView='search';_catCode=null;
 }
 function clearCatSearch(){_catResetState();renderCatalogo();}
@@ -17091,6 +17098,20 @@ function renderCatalogo(){
   html+='<div class="cat-sf-cell"><div class="cat-sf-lbl">Email de contato</div><div class="cat-sf-wrap">'+_catInp('email','endereço ou * para qualquer valor',s.email)+_catNegBtn('email')+'</div></div>';
   html+='<div class="cat-sf-cell"><div class="cat-sf-lbl">Palavras-chave</div><div class="cat-sf-wrap">'+_catInp('keywords','busca nas palavras-chave',s.keywords)+_catNegBtn('keywords')+'</div></div>';
   html+='</div>';
+  // row 5: UF + projeto estudantil + primeiro longa
+  (function(){
+    var _ufVals=Array.from(new Set(Object.values(catalogoFilmesMap).reduce(function(acc,m){return acc.concat(Array.isArray(m.uf)?m.uf:[]);},[])).values()).filter(Boolean).sort();
+    var _ufSel='<select class="cat-sf-inp" id="catsf_uf"><option value="">—</option>'+_ufVals.map(function(u){return'<option value="'+u+'"'+(s.uf===u?' selected':'')+'>'+u+'</option>';}).join('')+'</select>';
+    var _studSel='<select class="cat-sf-inp" id="catsf_ff_student"><option value="">—</option><option value="sim"'+(s.ff_student==='sim'?' selected':'')+'>Sim</option><option value="nao"'+(s.ff_student==='nao'?' selected':'')+'>Não</option></select>';
+    var _firstSel='<select class="cat-sf-inp" id="catsf_ff_first_time"><option value="">—</option><option value="sim"'+(s.ff_first_time==='sim'?' selected':'')+'>Sim</option><option value="nao"'+(s.ff_first_time==='nao'?' selected':'')+'>Não</option></select>';
+    html+='<div class="cat-sf-row">';
+    var _escolaInp='<input class="cat-sf-inp" id="catsf_escola" type="text" placeholder="nome da escola ou instituição" value="'+(s.escola||'').replace(/"/g,'&quot;')+'" onkeydown="if(event.key===\'Enter\')runCatSearch()">';
+    html+='<div class="cat-sf-cell narrow"><div class="cat-sf-lbl">UF</div><div class="cat-sf-wrap">'+_ufSel+'</div></div>';
+    html+='<div class="cat-sf-cell narrow"><div class="cat-sf-lbl">Proj. estudantil</div><div class="cat-sf-wrap">'+_studSel+'</div></div>';
+    html+='<div class="cat-sf-cell narrow"><div class="cat-sf-lbl">Primeiro longa/curta</div><div class="cat-sf-wrap">'+_firstSel+'</div></div>';
+    html+='<div class="cat-sf-cell"><div class="cat-sf-lbl">Escola/instituição</div><div class="cat-sf-wrap">'+_escolaInp+'</div></div>';
+    html+='</div>';
+  })();
   // Filtros de Programação (colapsável)
   var _progMap={};sessoesArr.forEach(function(sess){if(!sess.program_id||!activeEventsCatalogo.has(sess.evento))return;if(!_progMap[sess.program_id]){var p=(_progData&&_progData.programs)?_progData.programs.find(function(x){return x.id===sess.program_id;}):null;_progMap[sess.program_id]=p&&p.data&&p.data.name?p.data.name:sess.program_id;}});
   var _subMap={};sessoesArr.forEach(function(sess){if(!sess.subprogram_id||!activeEventsCatalogo.has(sess.evento))return;if(!_subMap[sess.subprogram_id]){var sub=(_progData&&_progData.subprograms)?_progData.subprograms.find(function(x){return x.id===sess.subprogram_id;}):null;_subMap[sess.subprogram_id]=sub&&sub.data&&sub.data.name?sub.data.name:sess.subprogram_id;}});
@@ -17268,10 +17289,16 @@ function renderCatDetail(){
       +catFld('Projeto estudantil','<label style="display:flex;align-items:center;gap:8px;cursor:pointer;"><input type="checkbox" id="catf_ff_student" '+(meta.ff_student==='Yes'||meta.ff_student==='Sim'?'checked':'')+' style="accent-color:var(--accent);width:15px;height:15px;"><span style="font-family:var(--sans);font-size:12px;color:var(--text-dim);">Sim</span></label>')
       +catFld('Primeiro longa/curta','<label style="display:flex;align-items:center;gap:8px;cursor:pointer;"><input type="checkbox" id="catf_ff_first_time" '+(meta.ff_first_time==='Yes'||meta.ff_first_time==='Sim'?'checked':'')+' style="accent-color:var(--accent);width:15px;height:15px;"><span style="font-family:var(--sans);font-size:12px;color:var(--text-dim);">Sim</span></label>')
       +'</div>'
-      +catFld('Escola/instituição',catInp('ff_school',meta.ff_school||''))
+      +catFld('Escola/instituição (FF)',catInp('ff_school',meta.ff_school||''))
+      +catFld('Escola/instituição (SFD)',catInp('sfd_school',meta.sfd_school||''))
       +catFld('Outros créditos','<textarea class="cat-textarea" id="catf_ff_other_credits" rows="3" placeholder="ex: Dir. de Fotografia: Nome">'+((meta.ff_other_credits||'').replace(/</g,'&lt;'))+'</textarea>')
     :'')
-    +((!_catEditing&&(meta.ff_student==='Yes'||meta.ff_student==='Sim')&&meta.ff_school)?catFld('Escola/instituição',meta.ff_school):'')
+    +(function(){
+      var _ffIsYes=meta.ff_student==='Yes'||meta.ff_student==='Sim';
+      var _sfdIsYes=(meta.student_project||'').toLowerCase().indexOf('yes')>=0||(meta.student_project||'').toLowerCase().indexOf('sim')>=0;
+      var _escola=meta.ff_school||meta.sfd_school||'';
+      return(!_catEditing&&(_ffIsYes||_sfdIsYes)&&_escola)?catFld('Escola/instituição',_escola):'';
+    }())
     +(!_catEditing&&(meta.ff_student||meta.ff_first_time)?(function(){
       var parts=[];
       if(meta.ff_student){var s=meta.ff_student;var yes=s.toLowerCase().indexOf('yes')>=0||s.toLowerCase().indexOf('sim')>=0;parts.push('<span style="display:inline-flex;align-items:center;gap:6px;"><span style="display:inline-flex;align-items:center;justify-content:center;width:14px;height:14px;border:1px solid var(--border2);border-radius:2px;font-size:10px;">'+(yes?'✓':'')+'</span> Projeto estudantil</span>');}
@@ -19327,7 +19354,7 @@ window.addEventListener('popstate',function(e){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 28/05/2026 às 10:52</span></div>
+<div id="page-footer"><span>última atualização · 28/05/2026 às 10:56</span></div>
 
 </div>
 
@@ -22112,7 +22139,8 @@ function _sfdNormalizeRow(row){
     film_type:'curta',
     genre:_sfdGenres(row['CATEGORIES'],row['GENRES']),
     contact_email:email,
-    student_project:_sfdClean(row['SCHOOL FILM']),
+    student_project:(function(){var v=_sfdClean(row['SCHOOL FILM'])||'';return/^(yes|no|sim|n[aã]o|s|n)$/i.test(v.trim())?(v||''):(v?'Yes':'');}()),
+    sfd_school:(function(){var v=_sfdClean(row['SCHOOL FILM'])||'';return/^(yes|no|sim|n[aã]o|s|n)$/i.test(v.trim())?'':v;}()),
     distribution_company:_sfdClean(row['DISTRIBUTION/SALES COMPANY'])?[_sfdClean(row['DISTRIBUTION/SALES COMPANY'])]:[],
     production_company:_sfdClean(row['PRODUCTION NAME'])?[_sfdClean(row['PRODUCTION NAME'])]:[],
     shooting_format:_sfdClean(row['SHOOTING FORMAT']),
@@ -22390,14 +22418,14 @@ function triagemToggleEvent(ev){
 }
 
 /* ── estado ── */
-var _triagemSearch={texto:'',texto_neg:false,director:'',director_neg:false,selecao:'',selecao_neg:false,ftype:'',ftype_neg:false,idioma:'',idioma_neg:false,genre:'',genre_neg:false,pais:'',pais_neg:false,prod:'',prod_neg:false,source:'',importado:''};
+var _triagemSearch={texto:'',texto_neg:false,director:'',director_neg:false,selecao:'',selecao_neg:false,ftype:'',ftype_neg:false,idioma:'',idioma_neg:false,genre:'',genre_neg:false,pais:'',pais_neg:false,prod:'',prod_neg:false,source:'',importado:'',uf:'',ff_student:'',ff_first_time:'',escola:''};
 var _triagemView='search',_triagemCode=null,_triagemEditing=false,_triagemOriginalData=null;
 var _triagemRan=false,_triagemShowAll=false;
 var _triagemSortKey='code',_triagemSortDir='asc';
 var _TRIAGEM_SELECAO_OPTS=['FEST','NÃO FEST','SUPLENTE','CONVIDADO','VISIONAMENTO'];
 
 function _triagemResetState(){
-  _triagemSearch={texto:'',texto_neg:false,director:'',director_neg:false,selecao:'',selecao_neg:false,ftype:'',ftype_neg:false,idioma:'',idioma_neg:false,genre:'',genre_neg:false,pais:'',pais_neg:false,prod:'',prod_neg:false,source:'',importado:''};
+  _triagemSearch={texto:'',texto_neg:false,director:'',director_neg:false,selecao:'',selecao_neg:false,ftype:'',ftype_neg:false,idioma:'',idioma_neg:false,genre:'',genre_neg:false,pais:'',pais_neg:false,prod:'',prod_neg:false,source:'',importado:'',uf:'',ff_student:'',ff_first_time:'',escola:''};
   _triagemView='search';_triagemCode=null;_triagemEditing=false;_triagemRan=false;_triagemShowAll=false;
 }
 
@@ -22409,11 +22437,12 @@ function _triagemReadForm(){
     selecao:v('selecao'),selecao_neg:neg('selecao'),ftype:v('ftype'),ftype_neg:neg('ftype'),
     idioma:v('idioma'),idioma_neg:neg('idioma'),genre:v('genre'),genre_neg:neg('genre'),
     pais:v('pais'),pais_neg:neg('pais'),prod:v('prod'),prod_neg:neg('prod'),
-    source:v('source'),importado:v('importado')
+    source:v('source'),importado:v('importado'),
+    uf:v('uf'),ff_student:v('ff_student'),ff_first_time:v('ff_first_time'),escola:v('escola')
   };
 }
 
-function _triagemHasCriteria(s){return s.texto||s.director||s.selecao||s.ftype||s.idioma||s.genre||s.pais||s.prod||s.source||s.importado;}
+function _triagemHasCriteria(s){return s.texto||s.director||s.selecao||s.ftype||s.idioma||s.genre||s.pais||s.prod||s.source||s.importado||s.uf||s.ff_student||s.ff_first_time||s.escola;}
 
 function _triagemMatch(cod,s){
   var meta=triagemFilmesMap[cod]||{};
@@ -22430,6 +22459,10 @@ function _triagemMatch(cod,s){
   if(s.source){var q=t(s.source);if(!t(meta.import_source||'').includes(q))return false;}
   if(s.importado==='sim'&&!meta.importado_catalogo)return false;
   if(s.importado==='nao'&&meta.importado_catalogo)return false;
+  if(s.uf){var ufArr=Array.isArray(meta.uf)?meta.uf:(meta.uf?[meta.uf]:[]);if(!ufArr.some(function(u){return t(u)===t(s.uf);}))return false;}
+  if(s.ff_student){var _sv=t(meta.ff_student||'');var _spv=t(meta.student_project||'');var isYes=_sv.indexOf('yes')>=0||_sv.indexOf('sim')>=0||_spv.indexOf('yes')>=0||_spv.indexOf('sim')>=0;if(s.ff_student==='sim'&&!isYes)return false;if(s.ff_student==='nao'&&isYes)return false;}
+  if(s.ff_first_time){var fv=t(meta.ff_first_time||'');var isFY=fv.indexOf('yes')>=0||fv.indexOf('sim')>=0;if(s.ff_first_time==='sim'&&!isFY)return false;if(s.ff_first_time==='nao'&&isFY)return false;}
+  if(s.escola){var eq=t(s.escola);var escolaNome=t((meta.ff_school||meta.sfd_school||''));if(!escolaNome.includes(eq))return false;}
   return true;
 }
 
@@ -22490,6 +22523,19 @@ function renderTriagem(){
   html+='<div class="cat-sf-cell"><div class="cat-sf-lbl">Gênero</div><div class="cat-sf-wrap">'+_trInp('genre','ex: drama',s.genre)+_trNeg('genre')+'</div></div>';
   html+='<div class="cat-sf-cell"><div class="cat-sf-lbl">País</div><div class="cat-sf-wrap">'+_trInp('pais','ex: Brasil',s.pais)+_trNeg('pais')+'</div></div>';
   html+='<div class="cat-sf-cell"><div class="cat-sf-lbl">Produtora</div><div class="cat-sf-wrap">'+_trInp('prod','nome da produtora',s.prod)+_trNeg('prod')+'</div></div>';
+  html+='</div>';
+  html+='<div class="cat-sf-row">';
+  (function(){
+    var _ufVals=Array.from(new Set(Object.values(triagemFilmesMap).reduce(function(acc,m){return acc.concat(Array.isArray(m.uf)?m.uf:[]);},[])).values()).filter(Boolean).sort();
+    var _ufSel='<select class="cat-sf-inp" id="trsf_uf"><option value="">—</option>'+_ufVals.map(function(u){return'<option value="'+u+'"'+(s.uf===u?' selected':'')+'>'+u+'</option>';}).join('')+'</select>';
+    var _studSel='<select class="cat-sf-inp" id="trsf_ff_student"><option value="">—</option><option value="sim"'+(s.ff_student==='sim'?' selected':'')+'>Sim</option><option value="nao"'+(s.ff_student==='nao'?' selected':'')+'>Não</option></select>';
+    var _firstSel='<select class="cat-sf-inp" id="trsf_ff_first_time"><option value="">—</option><option value="sim"'+(s.ff_first_time==='sim'?' selected':'')+'>Sim</option><option value="nao"'+(s.ff_first_time==='nao'?' selected':'')+'>Não</option></select>';
+    var _trEscolaInp='<input class="cat-sf-inp" id="trsf_escola" type="text" placeholder="nome da escola ou instituição" value="'+(s.escola||'').replace(/"/g,'&quot;')+'" onkeydown="if(event.key===\'Enter\')runTriagemSearch()">';
+    html+='<div class="cat-sf-cell narrow"><div class="cat-sf-lbl">UF</div><div class="cat-sf-wrap">'+_ufSel+'</div></div>';
+    html+='<div class="cat-sf-cell narrow"><div class="cat-sf-lbl">Proj. estudantil</div><div class="cat-sf-wrap">'+_studSel+'</div></div>';
+    html+='<div class="cat-sf-cell narrow"><div class="cat-sf-lbl">Primeiro longa/curta</div><div class="cat-sf-wrap">'+_firstSel+'</div></div>';
+    html+='<div class="cat-sf-cell"><div class="cat-sf-lbl">Escola/instituição</div><div class="cat-sf-wrap">'+_trEscolaInp+'</div></div>';
+  })();
   html+='</div>';
   html+='</div>';
   html+='<div class="cat-sf-actions">';
@@ -22614,6 +22660,22 @@ function renderTriagemDetail(){
       ?'<select class="cat-input" id="catf_selecao"><option value="">— aguardando —</option>'+_TRIAGEM_SELECAO_OPTS.map(function(o){return'<option value="'+o+'"'+(meta.selecao===o?' selected':'')+'>'+o+'</option>';}).join('')+'</select>'
       :(meta.selecao?selBadge:'<span style="color:var(--text-muted);font-style:italic;">Aguardando decisão</span>'))
   );
+  (function(){
+    var _ffIsYes=(meta.ff_student||'').toLowerCase().indexOf('yes')>=0||(meta.ff_student||'').toLowerCase().indexOf('sim')>=0;
+    var _sfdIsYes=(meta.student_project||'').toLowerCase().indexOf('yes')>=0||(meta.student_project||'').toLowerCase().indexOf('sim')>=0;
+    var _isStudent=_ffIsYes||_sfdIsYes;
+    var _escola=meta.ff_school||meta.sfd_school||'';
+    if(_isStudent||_triagemEditing){
+      html+=catBlock('Dados estudantis',
+        catFld('Proj. estudantil',_triagemEditing
+          ?'<label style="display:flex;align-items:center;gap:8px;cursor:pointer;"><input type="checkbox" id="catf_tr_student" '+(_isStudent?'checked':'')+' style="accent-color:var(--accent);width:15px;height:15px;"><span style="font-size:12px;color:var(--text-dim);">Sim</span></label>'
+          :(_isStudent?'Sim':'Não'))
+        +catFld('Escola/instituição',_triagemEditing
+          ?catInp('sfd_school',_escola)
+          :(_escola||'—'))
+      );
+    }
+  })();
   if(meta.synopsis||_triagemEditing)
     html+=catBlock('Sinopse',_triagemEditing?'<textarea class="cat-textarea" id="catf_synopsis" rows="5">'+esc(meta.synopsis||'')+'</textarea>':esc(meta.synopsis||'—'));
   if(meta.import_raw)html+=_triagemRenderRaw(meta.import_raw,meta.import_source);
@@ -22667,6 +22729,7 @@ async function doSaveTriagemFilm(){
       year:parseInt(gv('year'))||null,runtime:parseInt(gv('runtime'))||null,
       synopsis:gv('synopsis'),
       selecao:selEl?selEl.value:'',
+      sfd_school:gv('sfd_school'),
       director:window._catGetTagValues?window._catGetTagValues('director'):[],
       genre:window._catGetTagValues?window._catGetTagValues('genre'):[],
       countries:window._catGetTagValues?window._catGetTagValues('countries'):[],

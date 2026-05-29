@@ -14603,7 +14603,7 @@ function renderDash(){
   html+=colBlock('kdm','KDM',kdmBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 29/05/2026 às 11:28';
+  var sysUpdate='última atualização do sistema · 29/05/2026 às 11:30';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -17185,6 +17185,7 @@ function renderCatalogo(){
   if(_catCanEdit&&!window._olgaHasRestricao('catalogo.filmfreeway'))html+='<button class="cat-edit-btn" style="background:var(--accent-dim);border-color:var(--accent);color:var(--accent);" onclick="openFFImport()">↓ FilmFreeway</button>';
   if(_catCanEdit&&!window._olgaHasRestricao('catalogo.sfd'))html+='<button class="cat-edit-btn" style="background:var(--accent-dim);border-color:var(--accent);color:var(--accent);" onclick="openSFDImport()">↓ Short Film Depot</button>';
   if(_catCanEdit)html+='<button class="cat-edit-btn" style="background:rgba(80,200,120,0.12);border-color:rgba(80,200,120,0.55);color:var(--ok);" onclick="importarDaTriagem()">↓ Importar da Triagem</button>';
+  if(_catCanEdit)html+='<button class="cat-edit-btn" title="Copia campos FilmFreeway/Short Film Depot de filmes da Triagem para o Catálogo (útil para filmes importados antes da última atualização)" onclick="ressincronizarPlataformasDaTriagem()">↻ Sincronizar plataformas</button>';
   html+='</div>';
   // dashboard — filtrado pelos eventos ativos
   (function(){
@@ -19431,7 +19432,7 @@ window.addEventListener('popstate',function(e){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 29/05/2026 às 11:28</span></div>
+<div id="page-footer"><span>última atualização · 29/05/2026 às 11:30</span></div>
 
 </div>
 
@@ -23273,6 +23274,48 @@ async function importarDaTriagem(){
   alert(ok+' filme'+(ok!==1?'s':'')+' importado'+(ok!==1?'s':'')+' para o Catálogo.'+(erros.length?'\n\nErros:\n'+erros.slice(0,5).join('\n'):''));
   // recarregar para popular filmesArr e refletir a inclusão na listagem
   if(typeof window._olgaLoadFirestore==='function'){try{await window._olgaLoadFirestore();}catch(e){}}
+  if(currentMode==='catalogo')renderCatalogo();
+}
+
+/* ── ressincronizar campos de plataforma (FF/SFD) da Triagem para o Catálogo ── */
+async function ressincronizarPlataformasDaTriagem(){
+  if(!window._olgaTriagem||!window._olgaCatalogo){alert('APIs não disponíveis.');return;}
+  // se a Triagem não estiver carregada, carrega agora
+  if(!Object.keys(triagemFilmesMap).length){
+    try{triagemFilmesMap=await window._olgaTriagem.load()||{};}catch(e){alert('Erro ao carregar Triagem: '+e.message);return;}
+  }
+  var pfFields=['ff_submission_id','ff_link','ff_rating','ff_category','ff_duration','ff_student','ff_school','ff_first_time','ff_other_credits','sfd_section','sfd_category','sfd_first_time','sfd_screening_format','sfd_ref','shooting_format','student_project','sfd_school','import_source'];
+  var candidatos=[];
+  Object.keys(catalogoFilmesMap).forEach(function(cod){
+    var cat=catalogoFilmesMap[cod];
+    var tri=triagemFilmesMap[cod];
+    if(!tri)return;
+    // tem ao menos um campo de plataforma na Triagem que falta (ou difere) no Catálogo?
+    var precisa=false;
+    pfFields.forEach(function(f){
+      var vTri=tri[f]||'';
+      var vCat=cat[f]||'';
+      if(vTri&&vTri!==vCat)precisa=true;
+    });
+    if(precisa)candidatos.push(cod);
+  });
+  if(!candidatos.length){alert('Nenhum filme precisa de ressincronização.\n\nTodos os filmes do Catálogo que vieram da Triagem já têm os dados de plataforma atualizados.');return;}
+  if(!confirm('Ressincronizar '+candidatos.length+' filme'+(candidatos.length!==1?'s':'')+' do Catálogo com os dados de plataforma da Triagem?\n\nIsso só atualiza os campos do painel FilmFreeway/Short Film Depot; demais campos permanecem como estão.'))return;
+  var ok=0,erros=[];
+  for(var i=0;i<candidatos.length;i++){
+    var cod=candidatos[i];
+    try{
+      var cat=catalogoFilmesMap[cod];
+      var tri=triagemFilmesMap[cod];
+      var patch={};
+      pfFields.forEach(function(f){if(tri[f])patch[f]=tri[f];});
+      var newData=Object.assign({},cat,patch);
+      await window._olgaCatalogo.save(cod,newData);
+      catalogoFilmesMap[cod]=newData;
+      ok++;
+    }catch(e){erros.push(cod+': '+e.message);}
+  }
+  alert(ok+' filme'+(ok!==1?'s':'')+' ressincronizado'+(ok!==1?'s':'')+'.'+(erros.length?'\n\nErros:\n'+erros.slice(0,5).join('\n'):''));
   if(currentMode==='catalogo')renderCatalogo();
 }
 </script>

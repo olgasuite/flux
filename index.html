@@ -4253,6 +4253,9 @@ html[data-theme]:not([data-theme="win98"]){--mono:var(--sans);}
             ff_student:fss(r.ff_student), ff_school:fss(r.ff_school),
             ff_first_time:fss(r.ff_first_time), ff_other_credits:fss(r.ff_other_credits),
             student_project:fss(r.student_project), sfd_school:fss(r.sfd_school),
+            sfd_section:fss(r.sfd_section), sfd_category:fss(r.sfd_category),
+            sfd_first_time:fss(r.sfd_first_time), sfd_screening_format:fss(r.sfd_screening_format),
+            sfd_ref:fss(r.sfd_ref), import_source:fss(r.import_source),
             crew:r.crew?{
               cinematography:fsa(r.crew.cinematography), screenplay:fsa(r.crew.screenplay),
               editing:fsa(r.crew.editing), sound:fsa(r.crew.sound),
@@ -4313,6 +4316,9 @@ html[data-theme]:not([data-theme="win98"]){--mono:var(--sans);}
         ff_student:fsStr(data.ff_student||''),ff_school:fsStr(data.ff_school||''),
         ff_first_time:fsStr(data.ff_first_time||''),ff_other_credits:fsStr(data.ff_other_credits||''),
         student_project:fsStr(data.student_project||''),sfd_school:fsStr(data.sfd_school||''),
+        sfd_section:fsStr(data.sfd_section||''),sfd_category:fsStr(data.sfd_category||''),
+        sfd_first_time:fsStr(data.sfd_first_time||''),sfd_screening_format:fsStr(data.sfd_screening_format||''),
+        sfd_ref:fsStr(data.sfd_ref||''),import_source:fsStr(data.import_source||''),
         runtime:data.runtime?fsInt(data.runtime):{integerValue:'0'},
         crew:{mapValue:{fields:crewF}},
         cinemateca_raw:fsStr(data.cinemateca_raw?JSON.stringify(data.cinemateca_raw):'')
@@ -14597,7 +14603,7 @@ function renderDash(){
   html+=colBlock('kdm','KDM',kdmBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 28/05/2026 às 11:26';
+  var sysUpdate='última atualização do sistema · 29/05/2026 às 11:28';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -17371,6 +17377,25 @@ function renderCatDetail(){
     if(meta.ff_submission_id)ffHtml+=catFld('ID da submissão','<span style="font-family:var(--mono);font-size:11px;color:var(--text-dim);">'+meta.ff_submission_id+'</span>'+(meta.ff_link?'  <a href="'+meta.ff_link.replace(/"/g,'&quot;')+'" target="_blank" style="font-family:var(--mono);font-size:10px;color:var(--accent);margin-left:8px;">↗ filmfreeway.com</a>':''));
     html+=catBlock('FilmFreeway',ffHtml);
   }
+  if(!_catEditing&&(meta.sfd_section||meta.sfd_category||meta.sfd_screening_format||meta.sfd_first_time||meta.sfd_ref)){
+    var sfdHtml='<div class="cat-grid">';
+    if(meta.sfd_section)sfdHtml+=catFld('Seção',esc(meta.sfd_section));
+    if(meta.sfd_category)sfdHtml+=catFld('Categoria',esc(meta.sfd_category));
+    sfdHtml+='</div>';
+    if(meta.sfd_screening_format||meta.shooting_format){
+      sfdHtml+='<div class="cat-grid">';
+      if(meta.sfd_screening_format)sfdHtml+=catFld('Formato de exibição',esc(meta.sfd_screening_format));
+      if(meta.shooting_format)sfdHtml+=catFld('Formato de captação',esc(meta.shooting_format));
+      sfdHtml+='</div>';
+    }
+    if(meta.sfd_first_time){
+      var sfdYes=String(meta.sfd_first_time).toLowerCase();
+      var isSfdYes=sfdYes.indexOf('yes')>=0||sfdYes.indexOf('sim')>=0;
+      sfdHtml+=catFld('Primeiro longa/curta','<span style="display:inline-flex;align-items:center;gap:6px;font-family:var(--mono);font-size:11px;color:var(--text-dim);"><span style="display:inline-flex;align-items:center;justify-content:center;width:14px;height:14px;border:1px solid var(--border2);border-radius:2px;font-size:10px;">'+(isSfdYes?'✓':'')+'</span>'+esc(meta.sfd_first_time)+'</span>');
+    }
+    if(meta.sfd_ref)sfdHtml+=catFld('REF. da inscrição','<span style="font-family:var(--mono);font-size:11px;color:var(--text-dim);">'+esc(meta.sfd_ref)+'</span>');
+    html+=catBlock('Short Film Depot',sfdHtml);
+  }
   var sessoes=sessoesArr.filter(function(s){return s.filmes&&s.filmes.indexOf(_catCode)!==-1;})
     .sort(function(a,b){return(a.date&&b.date?a.date-b.date:0)||(a.time&&b.time?(a.time.h*60+a.time.m)-(b.time.h*60+b.time.m):0);});
   if(sessoes.length){
@@ -19406,7 +19431,7 @@ window.addEventListener('popstate',function(e){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 28/05/2026 às 11:26</span></div>
+<div id="page-footer"><span>última atualização · 29/05/2026 às 11:28</span></div>
 
 </div>
 
@@ -23219,7 +23244,8 @@ async function importarDaTriagem(){
     var ev=m.evento||'';
     try{
       var catData=Object.assign({},m,{selecao:'FEST'});
-      delete catData.import_raw;delete catData.import_source;delete catData.importado_catalogo;delete catData.importado_em;delete catData.evento;
+      // preserva campos FF/SFD e import_source para os painéis no Catálogo; descarta apenas o raw e o controle interno da Triagem
+      delete catData.import_raw;delete catData.importado_catalogo;delete catData.importado_em;delete catData.evento;
       await window._olgaCatalogo.save(cod,catData);
       catalogoFilmesMap[cod]=catData;
       // cria registro em `copias` para que o filme apareça na listagem do Catálogo

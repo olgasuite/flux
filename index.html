@@ -5840,9 +5840,15 @@ var filmesMap={},filmesArr=[],sessoesArr=[],sessoesMap={};
 var buscaReverseSessoes={},eventColors={};
 var revistaSelectedEvent='';
 var vinhetasArr=[],vinhetaReverseSessoes={},currentVinhetaDetail=null;
-var activeEventsGrade=new Set(),activeEventsBusca=new Set(),activeEventsIngest=new Set(),activeEventsFicha=new Set(),activeEventsCinemas=new Set(),activeEventsDash=new Set(),activeEventsGrade2=new Set(),activeEventsSessoes=new Set(),activeEventsProjecao=new Set(),activeEventsVinhetas=new Set();
-var activeEventsCatalogo=new Set(),activeEventsProgramacao=new Set(),activeEventsKDM=new Set(),activeEventsBilheteria=new Set(),activeEventsReceptivo=new Set(),activeEventsRevista=new Set(),activeEventsTriagem=new Set();
-var activeEventsLanding=new Set();
+// Estado único e global da seleção de eventos do usuário na sessão.
+// Todos os identificadores activeEventsX abaixo são apenas aliases — apontam para o MESMO Set.
+// Assim, toggle em um módulo se propaga imediatamente para todos os outros (regra: o estado
+// inicial é definido no login conforme prioridade do evento; depois, só muda quando o usuário
+// interage com o seletor; ao sair do sistema, retorna à regra inicial na próxima entrada).
+var _userEvSel=new Set();
+var activeEventsGrade=_userEvSel,activeEventsBusca=_userEvSel,activeEventsIngest=_userEvSel,activeEventsFicha=_userEvSel,activeEventsCinemas=_userEvSel,activeEventsDash=_userEvSel,activeEventsGrade2=_userEvSel,activeEventsSessoes=_userEvSel,activeEventsProjecao=_userEvSel,activeEventsVinhetas=_userEvSel;
+var activeEventsCatalogo=_userEvSel,activeEventsProgramacao=_userEvSel,activeEventsKDM=_userEvSel,activeEventsBilheteria=_userEvSel,activeEventsReceptivo=_userEvSel,activeEventsRevista=_userEvSel,activeEventsTriagem=_userEvSel;
+var activeEventsLanding=_userEvSel;
 var catalogoFilmesMap={};
 var triagemFilmesMap={};
 var days=[],currentDay=null,buscaQuery='',dataLoaded=false,currentMode=null;
@@ -5961,16 +5967,13 @@ function applyParsedData(d,filename){
   events.forEach(function(ev,i){eventColors[ev]=PALETTE[i%PALETTE.length];});
   var currentEvs=currentEventsFromDates(d.sessoesArr);
   var initEvs=currentEvs.size>0?currentEvs:new Set(events);
-  // Só inicializar os sets na primeira carga. Nas recargas (dataLoaded já true), preservar estado atual.
+  // Estado único: _userEvSel. Primeira carga (login) recebe a regra de prioridade;
+  // recargas só removem eventos que sumiram do banco — nada é adicionado automaticamente.
   if(!dataLoaded){
-    activeEventsGrade=new Set(initEvs);activeEventsBusca=new Set(initEvs);activeEventsIngest=new Set(initEvs);activeEventsFicha=new Set(initEvs);activeEventsCinemas=new Set(initEvs);activeEventsDash=new Set(initEvs);activeEventsGrade2=new Set(initEvs);activeEventsSessoes=new Set(initEvs);activeEventsProjecao=new Set(initEvs);activeEventsVinhetas=new Set(initEvs);activeEventsCatalogo=new Set(initEvs);activeEventsProgramacao=new Set(initEvs);activeEventsKDM=new Set(initEvs);activeEventsBilheteria=new Set(initEvs);activeEventsReceptivo=new Set(initEvs);activeEventsRevista=new Set(initEvs);activeEventsTriagem=new Set(initEvs);activeEventsLanding=new Set(initEvs);
+    _userEvSel.clear();initEvs.forEach(function(e){_userEvSel.add(e);});
   } else {
     var evSet=new Set(events);
-    var allSets=[activeEventsGrade,activeEventsBusca,activeEventsIngest,activeEventsFicha,activeEventsCinemas,activeEventsDash,activeEventsGrade2,activeEventsSessoes,activeEventsProjecao,activeEventsVinhetas,activeEventsCatalogo,activeEventsProgramacao,activeEventsKDM,activeEventsBilheteria,activeEventsReceptivo,activeEventsRevista,activeEventsTriagem,activeEventsLanding];
-    // Remover eventos que não existem mais no banco
-    allSets.forEach(function(st){st.forEach(function(ev){if(!evSet.has(ev))st.delete(ev);});});
-    // Recargas preservam a seleção atual do usuário — nada é adicionado automaticamente.
-    // Eventos novos só ficam ativos ao serem marcados manualmente no seletor de eventos.
+    Array.from(_userEvSel).forEach(function(ev){if(!evSet.has(ev))_userEvSel.delete(ev);});
   }
   dataLoaded=true;
   ['tabProjecao','tabFicha','tabGrade','tabGrade2','tabSessoes','tabVinhetas','tabIngest','tabCinemas','tabKDM','tabDash','tabReceptivo','tabBilheteria','tabCatalogo','tabTriagem','tabProgramacao','tabRevista','navSubFicha','navSubIngest','navSubGrade2','navSubAcervo','navSubConvidados','navSubHoteis','navSubVoos','navSubTransporte'].forEach(function(id){document.getElementById(id).disabled=false;});
@@ -7522,7 +7525,13 @@ function renderCinemas(){
 }
 
 function openCinemaDetail(sala){
-  if(!_browserNav)history.pushState({olga:'_cinemaDetail',sala:sala},'');
+  // navegar de um detalhe de sala para outro substitui a entrada do histórico
+  // (assim "voltar" do navegador sempre retorna à lista de cinemas, não à sala anterior)
+  if(!_browserNav){
+    var st={olga:'_cinemaDetail',sala:sala};
+    if(currentCinemaDetail)history.replaceState(st,'');
+    else history.pushState(st,'');
+  }
   currentCinemaDetail=sala;
   var all=getAllCinemas();
   var c=all.map[sala]||{complexo:sala,sala:sala,servidor:'',serial:'',projetor:'',assentos:'',proporcao:'',som:'',obs:'',cineassista:'',evento:''};
@@ -8490,7 +8499,12 @@ function renderDayTabs(){
 }
 
 function goToFicha(nomeSessao){
-  if(!_browserNav)history.pushState({olga:'ficha',session:nomeSessao},'');
+  // entrar pela primeira vez na Ficha: push; trocar de sessão dentro da Ficha: replace
+  if(!_browserNav){
+    var st={olga:'ficha',session:nomeSessao};
+    if(currentMode==='ficha')history.replaceState(st,'');
+    else history.pushState(st,'');
+  }
   switchMode('ficha',true);
   // ensure the session's event is active so rebuildSessionSelect doesn't clear it
   var sess=sessoesMap[nomeSessao];
@@ -8507,9 +8521,14 @@ function goToFicha(nomeSessao){
 function goToProgFichaFromGrade(nomeSessao){
   var sess=sessoesMap[nomeSessao];
   var pid=(sess&&sess.program_id)||null;
+  var wasInProgSessao=(currentMode==='programacao'&&_progView.level==='sessao');
   _progView={level:'sessao',programId:pid,sessaoNome:nomeSessao};
   _progSkipReset=true;
-  if(!_browserNav)history.pushState({olga:'programacao',progLevel:'sessao',progProgramId:pid,progSessaoNome:nomeSessao},'');
+  if(!_browserNav){
+    var st={olga:'programacao',progLevel:'sessao',progProgramId:pid,progSessaoNome:nomeSessao};
+    if(wasInProgSessao)history.replaceState(st,'');
+    else history.pushState(st,'');
+  }
   switchMode('programacao',true);
 }
 /* ═══════════════ RECEPTIVO ═══════════════ */
@@ -8527,7 +8546,12 @@ function _recepErr(e){document.getElementById('receptivo-container').innerHTML='
 function _recepNow(){var d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')+'T12:00';}
 
 function _recepPush(state){
-  if(!_recepHandlingPop)history.pushState({olga:'receptivo',recep:state},'');
+  if(_recepHandlingPop)return;
+  // dentro do Receptivo: substitui a entrada do histórico; ao entrar de fora: cria nova
+  var newSt={olga:'receptivo',recep:state};
+  var curSt=history.state;
+  if(curSt&&curSt.olga==='receptivo')history.replaceState(newSt,'');
+  else history.pushState(newSt,'');
 }
 window.addEventListener('popstate',function(ev){
   if(!ev.state||ev.state.olga!=='receptivo')return;
@@ -10966,9 +10990,14 @@ function _revSessionItemFns(sessionGroups){
     }
     g.sessions.forEach(function(sess){
       var sessGroup=[];
-      if(sess.name){
+      // Quando a sessão tem apenas um filme, omitir o nome da sessão (evita repetição
+      // com o título do filme). A descrição permanece, pois traz contexto curatorial.
+      var singleFilm=sess.films.length===1;
+      if(sess.name&&!singleFilm){
         (function(sn){sessGroup.push(function(){var el=document.createElement('div');el.className='rev-sess-header';el.dataset.sessName=sn;el.textContent=sn;return el;});})(sess.name);
-        if(sess.description){(function(sd){sessGroup.push(function(){var el=document.createElement('div');el.className='rev-sess-desc';el.textContent=sd;return el;});})(sess.description);}
+      }
+      if(sess.description){
+        (function(sd){sessGroup.push(function(){var el=document.createElement('div');el.className='rev-sess-desc';el.textContent=sd;return el;});})(sess.description);
       }
       sess.films.forEach(function(film){
         (function(fl){sessGroup.push(function(){
@@ -11346,16 +11375,19 @@ function _revBuildTabelaCell(td,sessions,mostraColor){
   var totalSecs=0;
   (s.filmes||[]).forEach(function(cod){totalSecs+=_parseDurSecs((filmesMap[cod]||{}).duracao||'');});
   var sessLabel=s.name&&s.name.trim()?s.name.trim():'';
-  var multiFilm=(s.filmes||[]).length>1;
-  if(sessLabel){var sn=document.createElement('span');sn.className='rev-tabela-sess-name';sn.dataset.linkSess=sessLabel;sn.textContent=sessLabel;td.appendChild(sn);}
-  if(!multiFilm||!sessLabel){
+  var nFilms=(s.filmes||[]).length;
+  var multiFilm=nFilms>1;
+  // Quando há apenas um filme, mostra só o título do filme — o nome da sessão fica omitido
+  // (evita repetição quando o nome da sessão é praticamente igual ao do único filme).
+  if(sessLabel&&multiFilm){var sn=document.createElement('span');sn.className='rev-tabela-sess-name';sn.dataset.linkSess=sessLabel;sn.textContent=sessLabel;td.appendChild(sn);}
+  if(nFilms===1||!sessLabel){
     (s.filmes||[]).forEach(function(cod){
       var f=filmesMap[cod]||{},cat=catalogoFilmesMap[cod]||{};
       var titulo=cat.title_pt||cat.title||f.titulo||cod;
       var span=document.createElement('span');span.className='rev-tabela-film';span.dataset.filmCode=cod;span.textContent=titulo;td.appendChild(span);
     });
   }
-  if(!(s.filmes&&s.filmes.length)&&!sessLabel){var dash=document.createElement('span');dash.className='rev-tabela-film';dash.textContent='—';td.appendChild(dash);}
+  if(!nFilms&&!sessLabel){var dash=document.createElement('span');dash.className='rev-tabela-film';dash.textContent='—';td.appendChild(dash);}
   if(totalSecs>0){
     var durSpan=document.createElement('span');durSpan.className='rev-tabela-dur';
     var tm2=Math.round(totalSecs/60);
@@ -12256,8 +12288,14 @@ function renderVinhetas(){
 }
 
 function openVinhetaDetail(cod){
+  // navegar de um detalhe de vinheta para outro substitui a entrada do histórico
+  var wasOnDetail=!!currentVinhetaDetail;
   currentVinhetaDetail=cod;
-  if(!_browserNav)history.pushState({olga:'vinhetas'},'');
+  if(!_browserNav){
+    var st={olga:'vinhetas',vinheta:cod};
+    if(wasOnDetail)history.replaceState(st,'');
+    else history.pushState(st,'');
+  }
   var vc=document.getElementById('vinhetas-container');
   var vd=document.getElementById('vinhetaDetailWrap');
   var ve=document.getElementById('vinhetasEmpty');
@@ -12605,8 +12643,12 @@ function efv(v){return(!v||v==='-'||v==='0')?'—':v;}// expand field value
 
 /* EVENT FILTER SYNC */
 function syncEventFiltersFrom(src){
+  // Como agora há um único Set global, basta refletir nele.
+  // (mantida a função por compatibilidade; pode receber um set externo de "conjunto salvo" e propagar.)
+  if(src===_userEvSel)return;
   var evs=Array.from(src);
-  [activeEventsGrade,activeEventsBusca,activeEventsIngest,activeEventsFicha,activeEventsCinemas,activeEventsDash,activeEventsGrade2,activeEventsSessoes,activeEventsProjecao,activeEventsVinhetas,activeEventsProgramacao,activeEventsKDM,activeEventsCatalogo,activeEventsTriagem,activeEventsRevista].forEach(function(s){s.clear();evs.forEach(function(e){s.add(e);});});
+  _userEvSel.clear();
+  evs.forEach(function(e){_userEvSel.add(e);});
 }
 function activeEventsForMode(m){
   if(m==='grade')return activeEventsGrade;if(m==='busca')return activeEventsBusca;
@@ -14669,7 +14711,7 @@ function renderDash(){
   html+=colBlock('kdm','KDM',kdmBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 29/05/2026 às 12:12';
+  var sysUpdate='última atualização do sistema · 29/05/2026 às 12:22';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -14837,14 +14879,27 @@ function _progBarMostraChange(){
 function _progGoProgram(id){
   _progBatchSelected.clear();_progBatchMode=false;_progBatchBumpers=[];
   _progFiltroTitulo='';_progFiltroComplexo='';_progFiltroCinema='';_progFiltroData='';
+  // se já estávamos dentro de uma mostra/sessão da Programação, substitui a entrada
+  var wasInside=(_progView.level==='program'||_progView.level==='sessao');
   _progView={level:'program',programId:id,sessaoNome:null};
-  if(!_browserNav)history.pushState({olga:'programacao',progLevel:'program',progProgramId:id},'');
+  if(!_browserNav){
+    var st={olga:'programacao',progLevel:'program',progProgramId:id};
+    if(wasInside)history.replaceState(st,'');
+    else history.pushState(st,'');
+  }
   _progRender();
 }
 function _progGoSessao(nome,programId){
   _progBatchSelected.clear();_progBatchMode=false;_progBatchBumpers=[];
+  // navegar de uma sessão para outra dentro de uma mostra substitui a entrada;
+  // a primeira sessão aberta (vinda da mostra) cria nova entrada para preservar o "voltar pra mostra"
+  var wasInSessao=(_progView.level==='sessao');
   _progView={level:'sessao',programId:programId,sessaoNome:nome};
-  if(!_browserNav)history.pushState({olga:'programacao',progLevel:'sessao',progProgramId:programId,progSessaoNome:nome},'');
+  if(!_browserNav){
+    var st={olga:'programacao',progLevel:'sessao',progProgramId:programId,progSessaoNome:nome};
+    if(wasInSessao)history.replaceState(st,'');
+    else history.pushState(st,'');
+  }
   _progRender();
 }
 
@@ -19932,7 +19987,7 @@ window.addEventListener('popstate',function(e){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 29/05/2026 às 12:12</span></div>
+<div id="page-footer"><span>última atualização · 29/05/2026 às 12:22</span></div>
 
 </div>
 

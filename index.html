@@ -14582,7 +14582,7 @@ function renderDash(){
   html+=colBlock('kdm','KDM',kdmBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 28/05/2026 às 11:02';
+  var sysUpdate='última atualização do sistema · 28/05/2026 às 11:04';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -19358,7 +19358,7 @@ window.addEventListener('popstate',function(e){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 28/05/2026 às 11:02</span></div>
+<div id="page-footer"><span>última atualização · 28/05/2026 às 11:04</span></div>
 
 </div>
 
@@ -21614,12 +21614,13 @@ function _ffUpdateImportBtn(){
   var prefix=evEl&&evEl.value.trim()?evEl.value.trim().toUpperCase().replace(/[^A-Z0-9]/g,''):'';
   var info=document.getElementById('ffIdInfo');
   if(info)info.textContent=prefix?'O ID de cada filme no sistema será: '+prefix+'+ Tracking Number (FilmFreeway)':'';
-  // Recomputa duplicatas com o prefixo correto
+  // Recomputa duplicatas com o prefixo correto, contra o map do destino
   if(prefix&&_ffNormalized.length){
+    var _ffTgtMap=_ffImportTarget==='triagem'?triagemFilmesMap:catalogoFilmesMap;
     _ffDupCatalog=new Set();
     _ffNormalized.forEach(function(d){
       var ext=d._raw['Tracking Number']?_ffClean(d._raw['Tracking Number']):'';
-      if(ext&&catalogoFilmesMap&&(catalogoFilmesMap[prefix+ext]||catalogoFilmesMap[ext]))_ffDupCatalog.add(ext);
+      if(ext&&_ffTgtMap&&(_ffTgtMap[prefix+ext]||_ffTgtMap[ext]))_ffDupCatalog.add(ext);
     });
     _ffRenderTbody(null);
   }
@@ -22315,12 +22316,13 @@ function _sfdUpdateImportBtn(){
   var prefix=evEl&&evEl.value.trim()?evEl.value.trim().toUpperCase().replace(/[^A-Z0-9]/g,''):'';
   var info=document.getElementById('sfdIdInfo');
   if(info)info.textContent=prefix?'O ID de cada filme no sistema será: '+prefix+'+ REF. (Short Film Depot)':'';
-  // Recomputa duplicatas com o prefixo correto
+  // Recomputa duplicatas com o prefixo correto, contra o map do destino
   if(prefix&&_sfdNormalized.length){
+    var _sfdTgtMap=_sfdImportTarget==='triagem'?triagemFilmesMap:catalogoFilmesMap;
     _sfdDupCatalog=new Set();
     _sfdNormalized.forEach(function(d){
       var ext=d.sfd_ref||d.festival_code||'';
-      if(ext&&catalogoFilmesMap&&(catalogoFilmesMap[prefix+ext]||catalogoFilmesMap[ext]))_sfdDupCatalog.add(ext);
+      if(ext&&_sfdTgtMap&&(_sfdTgtMap[prefix+ext]||_sfdTgtMap[ext]))_sfdDupCatalog.add(ext);
     });
     _sfdRenderTbody(null);
   }
@@ -22650,7 +22652,6 @@ function renderTriagem(){
   html+='<div class="cat-sf-actions">';
   html+='<button class="cat-run-btn" onclick="runTriagemSearch()">⊞ Buscar</button>';
   html+='<button class="cat-clear-btn" onclick="clearTriagemForm()">↺ Limpar</button>';
-  html+='<button class="cat-all-btn" onclick="triagemShowAll()">Mostrar todos</button>';
   if(canEdit)html+='<button class="cat-edit-btn" style="margin-left:auto;" onclick="openTriagemCreate()">+ Novo</button>';
   if(canEdit)html+='<button class="cat-edit-btn" style="background:var(--accent-dim);border-color:var(--accent);color:var(--accent);" onclick="openFFImportTriagem()">↓ FilmFreeway</button>';
   if(canEdit)html+='<button class="cat-edit-btn" style="background:var(--accent-dim);border-color:var(--accent);color:var(--accent);" onclick="openSFDImportTriagem()">↓ Short Film Depot</button>';
@@ -22711,6 +22712,7 @@ function _trSortHeader(){
 function _trBuildCards(codes){
   if(!codes.length)return'<div class="cat-no-results">Nenhum resultado.</div>';
   var canEdit=_triagemCanEdit();
+  var itemGrid='grid-template-columns:96px 1fr 160px 110px 110px 24px;';
   var html='<div class="cat-list">';
   codes.forEach(function(cod){
     var meta=triagemFilmesMap[cod]||{};
@@ -22721,7 +22723,7 @@ function _trBuildCards(codes){
     var cbEnabled=canEdit&&!meta.importado_catalogo;
     html+=(canEdit?'<div class="cat-item-wrap">':'')
       +(cbEnabled?'<label class="batch-cb-wrap" onclick="event.stopPropagation()"><input type="checkbox" class="batch-cb" data-codigo="'+cod.replace(/"/g,'&quot;')+'" onchange="_trToggleSel(this)"'+(_triagemBatchSel.has(cod)?' checked':'')+'/></label>':(canEdit?'<span class="batch-cb-wrap" style="opacity:0.2;"><input type="checkbox" disabled title="Importado para o Catálogo"></span>':''))
-      +'<button class="cat-item has-meta" data-cod="'+cod.replace(/"/g,'&quot;')+'" onclick="openTriagemDetail(this.dataset.cod)">'
+      +'<button class="cat-item has-meta" style="'+itemGrid+'" data-cod="'+cod.replace(/"/g,'&quot;')+'" onclick="openTriagemDetail(this.dataset.cod)">'
       +'<span class="cat-item-code">'+esc(cod)+'</span>'
       +'<span class="cat-item-title">'+esc(title)+'</span>'
       +(dir?'<span class="cat-item-dir">'+esc(dir)+'</span>':'<span class="cat-item-dir dim">—</span>')

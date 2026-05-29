@@ -4255,7 +4255,8 @@ html[data-theme]:not([data-theme="win98"]){--mono:var(--sans);}
             student_project:fss(r.student_project), sfd_school:fss(r.sfd_school),
             sfd_section:fss(r.sfd_section), sfd_category:fss(r.sfd_category),
             sfd_first_time:fss(r.sfd_first_time), sfd_screening_format:fss(r.sfd_screening_format),
-            sfd_ref:fss(r.sfd_ref), import_source:fss(r.import_source),
+            sfd_ref:fss(r.sfd_ref), sfd_film_id:fss(r.sfd_film_id), sfd_id:fss(r.sfd_id),
+            import_source:fss(r.import_source),
             crew:r.crew?{
               cinematography:fsa(r.crew.cinematography), screenplay:fsa(r.crew.screenplay),
               editing:fsa(r.crew.editing), sound:fsa(r.crew.sound),
@@ -4318,7 +4319,8 @@ html[data-theme]:not([data-theme="win98"]){--mono:var(--sans);}
         student_project:fsStr(data.student_project||''),sfd_school:fsStr(data.sfd_school||''),
         sfd_section:fsStr(data.sfd_section||''),sfd_category:fsStr(data.sfd_category||''),
         sfd_first_time:fsStr(data.sfd_first_time||''),sfd_screening_format:fsStr(data.sfd_screening_format||''),
-        sfd_ref:fsStr(data.sfd_ref||''),import_source:fsStr(data.import_source||''),
+        sfd_ref:fsStr(data.sfd_ref||''),sfd_film_id:fsStr(data.sfd_film_id||''),sfd_id:fsStr(data.sfd_id||''),
+        import_source:fsStr(data.import_source||''),
         runtime:data.runtime?fsInt(data.runtime):{integerValue:'0'},
         crew:{mapValue:{fields:crewF}},
         cinemateca_raw:fsStr(data.cinemateca_raw?JSON.stringify(data.cinemateca_raw):'')
@@ -4371,7 +4373,8 @@ html[data-theme]:not([data-theme="win98"]){--mono:var(--sans);}
             student_project:fss(r.student_project), sfd_school:fss(r.sfd_school),
             sfd_section:fss(r.sfd_section), sfd_category:fss(r.sfd_category),
             sfd_first_time:fss(r.sfd_first_time), sfd_screening_format:fss(r.sfd_screening_format),
-            sfd_ref:fss(r.sfd_ref), shooting_format:fss(r.shooting_format),
+            sfd_ref:fss(r.sfd_ref), sfd_film_id:fss(r.sfd_film_id), sfd_id:fss(r.sfd_id),
+            shooting_format:fss(r.shooting_format),
             evento:fss(r.evento),
             crew:r.crew?{
               cinematography:fsa(r.crew.cinematography), screenplay:fsa(r.crew.screenplay),
@@ -4435,7 +4438,8 @@ html[data-theme]:not([data-theme="win98"]){--mono:var(--sans);}
         student_project:fsStr(data.student_project||''),sfd_school:fsStr(data.sfd_school||''),
         sfd_section:fsStr(data.sfd_section||''),sfd_category:fsStr(data.sfd_category||''),
         sfd_first_time:fsStr(data.sfd_first_time||''),sfd_screening_format:fsStr(data.sfd_screening_format||''),
-        sfd_ref:fsStr(data.sfd_ref||''),shooting_format:fsStr(data.shooting_format||''),
+        sfd_ref:fsStr(data.sfd_ref||''),sfd_film_id:fsStr(data.sfd_film_id||''),sfd_id:fsStr(data.sfd_id||''),
+        shooting_format:fsStr(data.shooting_format||''),
         director_filmography:fsArr(data.director_filmography||[]),
         evento:fsStr(data.evento||''),
         crew:{mapValue:{fields:crewF}},
@@ -14603,7 +14607,7 @@ function renderDash(){
   html+=colBlock('kdm','KDM',kdmBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 29/05/2026 às 11:30';
+  var sysUpdate='última atualização do sistema · 29/05/2026 às 11:32';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -15900,12 +15904,14 @@ var _EQUIPE_RESTRICOES=[
   {k:'vinhetas.templates',label:'Vinhetas · Ocultar atalho de templates de vinheta'},
   {k:'sessoes.somente_vinhetas',label:'Sessões · Edição restrita a vinhetas (sem criar, duplicar, deletar)'},
   {k:'acervo.sem_catalogo',label:'Acervo Técnico · Ocultar botão "Ver no Catálogo"'},
-  {k:'catalogo.importar_acervo',label:'Catálogo · Ocultar botão "Importar do Acervo"'},
   {k:'catalogo.tmdb',label:'Catálogo · Ocultar importação do TMDB'},
   {k:'catalogo.batch_delete',label:'Catálogo · Ocultar botão "Excluir selecionados"'},
   {k:'catalogo.filmfreeway',label:'Catálogo · Ocultar botão e bloco FilmFreeway'},
   {k:'catalogo.sfd',label:'Catálogo · Ocultar botão Short Film Depot'},
   {k:'catalogo.cinemateca',label:'Catálogo · Ocultar botão "Filmografia Brasileira"'},
+  {k:'catalogo.triagem',label:'Catálogo · Ocultar botão "Importar da Triagem"'},
+  {k:'triagem.filmfreeway',label:'Triagem · Ocultar botão FilmFreeway'},
+  {k:'triagem.sfd',label:'Triagem · Ocultar botão Short Film Depot'},
   {k:'sessoes.btn_projecao',label:'Sessões · Ocultar botão "Ficha de Projeção"'},
   {k:'projecao.btn_programacao',label:'Projeção · Ocultar botão "Ficha de Programação"'}
 ];
@@ -17180,12 +17186,13 @@ function renderCatalogo(){
   html+='<button class="cat-clear-btn" onclick="clearCatResults()">✕ Limpar resultados</button>';
   html+='<button class="cat-all-btn" onclick="catShowAll()">Mostrar todos</button>';
   var _catCanEdit=window._olgaUser&&window._olgaCanEdit('catalogo');
+  var _isAdmin=window._olgaUser&&window._olgaUser.role==='admin';
   if(_catCanEdit)html+='<button class="cat-edit-btn" style="margin-left:auto;" onclick="openCatCreate()">+ Novo filme</button>';
-  if(_catCanEdit&&!window._olgaHasRestricao('catalogo.importar_acervo'))html+='<button class="cat-edit-btn" onclick="importCopiasToCatalog()">↓ Importar do Acervo</button>';
+  if(_isAdmin)html+='<button class="cat-edit-btn" onclick="importCopiasToCatalog()">↓ Importar do Acervo</button>';
   if(_catCanEdit&&!window._olgaHasRestricao('catalogo.filmfreeway'))html+='<button class="cat-edit-btn" style="background:var(--accent-dim);border-color:var(--accent);color:var(--accent);" onclick="openFFImport()">↓ FilmFreeway</button>';
   if(_catCanEdit&&!window._olgaHasRestricao('catalogo.sfd'))html+='<button class="cat-edit-btn" style="background:var(--accent-dim);border-color:var(--accent);color:var(--accent);" onclick="openSFDImport()">↓ Short Film Depot</button>';
-  if(_catCanEdit)html+='<button class="cat-edit-btn" style="background:rgba(80,200,120,0.12);border-color:rgba(80,200,120,0.55);color:var(--ok);" onclick="importarDaTriagem()">↓ Importar da Triagem</button>';
-  if(_catCanEdit)html+='<button class="cat-edit-btn" title="Copia campos FilmFreeway/Short Film Depot de filmes da Triagem para o Catálogo (útil para filmes importados antes da última atualização)" onclick="ressincronizarPlataformasDaTriagem()">↻ Sincronizar plataformas</button>';
+  if(_catCanEdit&&!window._olgaHasRestricao('catalogo.triagem'))html+='<button class="cat-edit-btn" style="background:rgba(80,200,120,0.12);border-color:rgba(80,200,120,0.55);color:var(--ok);" onclick="importarDaTriagem()">↓ Importar da Triagem</button>';
+  if(_isAdmin)html+='<button class="cat-edit-btn" title="Copia campos FilmFreeway/Short Film Depot de filmes da Triagem para o Catálogo (útil para filmes importados antes da última atualização)" onclick="ressincronizarPlataformasDaTriagem()">↻ Sincronizar plataformas</button>';
   html+='</div>';
   // dashboard — filtrado pelos eventos ativos
   (function(){
@@ -17378,7 +17385,7 @@ function renderCatDetail(){
     if(meta.ff_submission_id)ffHtml+=catFld('ID da submissão','<span style="font-family:var(--mono);font-size:11px;color:var(--text-dim);">'+meta.ff_submission_id+'</span>'+(meta.ff_link?'  <a href="'+meta.ff_link.replace(/"/g,'&quot;')+'" target="_blank" style="font-family:var(--mono);font-size:10px;color:var(--accent);margin-left:8px;">↗ filmfreeway.com</a>':''));
     html+=catBlock('FilmFreeway',ffHtml);
   }
-  if(!_catEditing&&(meta.sfd_section||meta.sfd_category||meta.sfd_screening_format||meta.sfd_first_time||meta.sfd_ref)){
+  if(!_catEditing&&(meta.sfd_section||meta.sfd_category||meta.sfd_screening_format||meta.sfd_film_id||meta.sfd_id||meta.sfd_ref)){
     var sfdHtml='<div class="cat-grid">';
     if(meta.sfd_section)sfdHtml+=catFld('Seção',esc(meta.sfd_section));
     if(meta.sfd_category)sfdHtml+=catFld('Categoria',esc(meta.sfd_category));
@@ -17389,10 +17396,11 @@ function renderCatDetail(){
       if(meta.shooting_format)sfdHtml+=catFld('Formato de captação',esc(meta.shooting_format));
       sfdHtml+='</div>';
     }
-    if(meta.sfd_first_time){
-      var sfdYes=String(meta.sfd_first_time).toLowerCase();
-      var isSfdYes=sfdYes.indexOf('yes')>=0||sfdYes.indexOf('sim')>=0;
-      sfdHtml+=catFld('Primeiro longa/curta','<span style="display:inline-flex;align-items:center;gap:6px;font-family:var(--mono);font-size:11px;color:var(--text-dim);"><span style="display:inline-flex;align-items:center;justify-content:center;width:14px;height:14px;border:1px solid var(--border2);border-radius:2px;font-size:10px;">'+(isSfdYes?'✓':'')+'</span>'+esc(meta.sfd_first_time)+'</span>');
+    if(meta.sfd_film_id||meta.sfd_id){
+      sfdHtml+='<div class="cat-grid">';
+      if(meta.sfd_film_id)sfdHtml+=catFld('FILM ID','<span style="font-family:var(--mono);font-size:11px;color:var(--text-dim);">'+esc(meta.sfd_film_id)+'</span>');
+      if(meta.sfd_id)sfdHtml+=catFld('SFD ID','<span style="font-family:var(--mono);font-size:11px;color:var(--text-dim);">'+esc(meta.sfd_id)+'</span>');
+      sfdHtml+='</div>';
     }
     if(meta.sfd_ref)sfdHtml+=catFld('REF. da inscrição','<span style="font-family:var(--mono);font-size:11px;color:var(--text-dim);">'+esc(meta.sfd_ref)+'</span>');
     html+=catBlock('Short Film Depot',sfdHtml);
@@ -19432,7 +19440,7 @@ window.addEventListener('popstate',function(e){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 29/05/2026 às 11:30</span></div>
+<div id="page-footer"><span>última atualização · 29/05/2026 às 11:32</span></div>
 
 </div>
 
@@ -22239,6 +22247,8 @@ function _sfdNormalizeRow(row){
     selecao:'FEST',
     sfd_section:section,
     sfd_ref:ref,
+    sfd_film_id:_sfdClean(row['FILM ID']),
+    sfd_id:_sfdClean(row['SFD ID']),
     sfd_category:_sfdClean(row['CATEGORIES']),
     sfd_first_time:_sfdClean(row['FIRST MOVIE']),
     sfd_screening_format:_sfdClean(row['SCREENING FORMAT (AT FESTIVALS)']),
@@ -22781,10 +22791,16 @@ function renderTriagem(){
   html+='<button class="cat-add-btn" onclick="addTriagemSlot()">+ Adicionar ao conjunto</button>';
   html+='<button class="cat-clear-btn" onclick="clearTriagemForm()">↺ Limpar busca</button>';
   html+='<button class="cat-clear-btn" onclick="clearTriagemResults()">✕ Limpar resultados</button>';
-  if(canEdit)html+='<button class="cat-edit-btn" style="margin-left:auto;" onclick="openTriagemCreate()">+ Novo</button>';
-  if(canEdit)html+='<button class="cat-edit-btn" style="background:var(--accent-dim);border-color:var(--accent);color:var(--accent);" onclick="openFFImportTriagem()">↓ FilmFreeway</button>';
-  if(canEdit)html+='<button class="cat-edit-btn" style="background:var(--accent-dim);border-color:var(--accent);color:var(--accent);" onclick="openSFDImportTriagem()">↓ Short Film Depot</button>';
   html+='</div>';
+  // segunda linha: ações de criação/importação
+  var _hasTrActions=canEdit;
+  if(_hasTrActions){
+    html+='<div class="cat-sf-actions" style="border-top:none;padding-top:0;">';
+    html+='<button class="cat-edit-btn" onclick="openTriagemCreate()">+ Novo filme</button>';
+    if(!window._olgaHasRestricao('triagem.filmfreeway'))html+='<button class="cat-edit-btn" style="background:var(--accent-dim);border-color:var(--accent);color:var(--accent);" onclick="openFFImportTriagem()">↓ FilmFreeway</button>';
+    if(!window._olgaHasRestricao('triagem.sfd'))html+='<button class="cat-edit-btn" style="background:var(--accent-dim);border-color:var(--accent);color:var(--accent);" onclick="openSFDImportTriagem()">↓ Short Film Depot</button>';
+    html+='</div>';
+  }
   html+='<div class="cat-slots-bar" id="tr-slots-bar" style="display:'+(_triagemSlots.length?'flex':'none')+';">';
   html+=_triagemSlots.map(function(sl,i){return'<span class="cat-slot-chip">'+esc(_triagemSlotDesc(sl))+'<button class="cat-slot-rm" onclick="removeTriagemSlot('+i+')">×</button></span>';}).join('');
   html+='</div>';
@@ -23284,7 +23300,7 @@ async function ressincronizarPlataformasDaTriagem(){
   if(!Object.keys(triagemFilmesMap).length){
     try{triagemFilmesMap=await window._olgaTriagem.load()||{};}catch(e){alert('Erro ao carregar Triagem: '+e.message);return;}
   }
-  var pfFields=['ff_submission_id','ff_link','ff_rating','ff_category','ff_duration','ff_student','ff_school','ff_first_time','ff_other_credits','sfd_section','sfd_category','sfd_first_time','sfd_screening_format','sfd_ref','shooting_format','student_project','sfd_school','import_source'];
+  var pfFields=['ff_submission_id','ff_link','ff_rating','ff_category','ff_duration','ff_student','ff_school','ff_first_time','ff_other_credits','sfd_section','sfd_category','sfd_first_time','sfd_screening_format','sfd_ref','sfd_film_id','sfd_id','shooting_format','student_project','sfd_school','import_source'];
   var candidatos=[];
   Object.keys(catalogoFilmesMap).forEach(function(cod){
     var cat=catalogoFilmesMap[cod];

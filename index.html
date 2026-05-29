@@ -13344,6 +13344,11 @@ function _buildBatchForm(){
   function inp(id,label,ph,full){
     return'<div class="batch-fld'+(full?' batch-full':'')+'"><div class="batch-fld-label">'+label+'</div><input class="batch-fld-inp" id="bf_'+id+'" placeholder="'+ph+'"></div>';
   }
+  function inpList(id,label,ph,opts){
+    var dl='dl_bf_'+id;
+    var optHtml=opts.map(function(v){return'<option value="'+esc(v)+'">';}).join('');
+    return'<div class="batch-fld"><div class="batch-fld-label">'+label+'</div><input class="batch-fld-inp" id="bf_'+id+'" list="'+dl+'" placeholder="'+ph+'" autocomplete="off"><datalist id="'+dl+'">'+optHtml+'</datalist></div>';
+  }
   function tagInp(id,label,full){
     return'<div class="batch-fld'+(full?' batch-full':'')+'"><div class="batch-fld-label">'+label+'</div>'+catTagInp('bf_'+id,[])+_batchModeToggle(id)+'</div>';
   }
@@ -13354,6 +13359,7 @@ function _buildBatchForm(){
     var o=opts.map(function(v){return'<option value="'+v+'">'+v+'</option>';}).join('');
     return'<div class="batch-fld"><div class="batch-fld-label">'+label+'</div><select class="batch-fld-inp" id="bf_'+id+'"><option value="">— não alterar</option>'+o+'</select></div>';
   }
+  var statusVals=[...new Set((filmesArr||[]).map(function(f){return f.status;}).filter(Boolean))].sort();
   return inp('title_pt','Título PT','deixe vazio para não alterar')
     +inp('original_title','Título Original','deixe vazio para não alterar')
     +inp('english_title','Título EN','deixe vazio para não alterar')
@@ -13362,8 +13368,9 @@ function _buildBatchForm(){
     +tagInp('genre','Gênero')
     +tagInp('countries','País')
     +inp('film_type','Metragem','curta / média / longa')
-    +inp('content_rating','Classificação etária','deixe vazio para não alterar')
+    +sel('content_rating','Classificação etária',['L','10','12','14','16','18'])
     +sel('selecao','Seleção',['FEST','NÃO FEST','SUPLENTE','CONVIDADO','VISIONAMENTO'])
+    +inpList('status_dcp','Status DCP','deixe vazio para não alterar',statusVals)
     +ta('synopsis','Sinopse')
     +tagInp('production_company','Produtora',true)
     +tagInp('distribution_company','Distribuidora',true)
@@ -13396,6 +13403,8 @@ async function executeBatchSave(){
   // Ler campos simples
   var simples=['title_pt','original_title','english_title','year','film_type','content_rating','selecao','screener','contact_email','synopsis'];
   var arrays=['director','genre','countries','production_company','distribution_company','awards','director_filmography','keywords'];
+  // Status DCP é separado — vai pra `copias`, não `filmes`
+  var statusDcpVal=_bfVal('status_dcp');
 
   for(var i=0;i<codes.length;i++){
     var cod=codes[i];
@@ -13424,13 +13433,28 @@ async function executeBatchSave(){
           patch[f]=tags;
         }
       });
-      if(!Object.keys(patch).length)continue;
-      var newData=Object.assign({},existing,patch,{festival_code:cod});
-      arrays.forEach(function(f){if(!Array.isArray(newData[f])){var v=newData[f];newData[f]=v?String(v).split(',').map(function(s){return s.trim();}).filter(Boolean):[];}});
-      await window._olgaCatalogo.save(cod,newData);
-      catalogoFilmesMap[cod]=newData;
-      var logFields=Object.assign({},patch,allChanged);
-      if(window._logFirestoreEdit)window._logFirestoreEdit('lote',cod,logFields,'catalogo','filmes');
+      var hasCatalogChanges=Object.keys(patch).length>0;
+      if(hasCatalogChanges){
+        var newData=Object.assign({},existing,patch,{festival_code:cod});
+        arrays.forEach(function(f){if(!Array.isArray(newData[f])){var v=newData[f];newData[f]=v?String(v).split(',').map(function(s){return s.trim();}).filter(Boolean):[];}});
+        await window._olgaCatalogo.save(cod,newData);
+        catalogoFilmesMap[cod]=newData;
+        var logFields=Object.assign({},patch,allChanged);
+        if(window._logFirestoreEdit)window._logFirestoreEdit('lote',cod,logFields,'catalogo','filmes');
+      }
+      // Status DCP — salva em copias (acervo técnico)
+      if(statusDcpVal&&window._olgaCopias){
+        var copiaCurr=filmesMap[cod];
+        if(copiaCurr){
+          var prevStatus=copiaCurr.status||'';
+          if(prevStatus!==statusDcpVal){
+            await window._olgaCopias.save(cod,{status:statusDcpVal},{status:prevStatus});
+            copiaCurr.status=statusDcpVal;
+            if(window._logFirestoreEdit)window._logFirestoreEdit('lote',cod,{status:statusDcpVal},'catalogo','copias');
+          }
+        }
+      }
+      if(!hasCatalogChanges&&!statusDcpVal)continue;
     }catch(e){errors.push(cod+': '+e.message);}
   }
   // Log lote global
@@ -13441,6 +13465,7 @@ async function executeBatchSave(){
       var hasVal=Array.isArray(v)?v.length>0:!!v;
       if(hasVal)acc[f]=v;return acc;
     },{});
+    if(statusDcpVal)batchFields.status_dcp=statusDcpVal;
     window._logFirestoreEdit('lote',batchIds,batchFields,'catalogo','filmes');
   }
   if(errors.length)prog.textContent='Concluído com erros: '+errors.join('; ');
@@ -14635,7 +14660,7 @@ function renderDash(){
   html+=colBlock('kdm','KDM',kdmBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 29/05/2026 às 11:52';
+  var sysUpdate='última atualização do sistema · 29/05/2026 às 12:04';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -17246,7 +17271,7 @@ function renderCatalogo(){
     });
     var evTags=Array.from(activeEventsCatalogo).sort().join(', ');
     if(total>0){
-      function _pl(n,s,p){return n+' '+(n===1?s:p);}
+      function _pl(n,s,p){return n===1?s:p;}
       var pieces=[];
       pieces.push('<span><strong style="color:var(--text);font-size:13px;">'+total+'</strong> '+_pl(total,'filme','filmes')+' no catálogo</span>');
       if(counts['FEST'])pieces.push('<span><strong style="color:var(--ok);font-size:13px;">'+counts['FEST']+'</strong> '+_pl(counts['FEST'],'selecionado','selecionados')+' para o festival</span>');
@@ -17357,14 +17382,12 @@ function renderCatDetail(){
   );
   if(_catEditing||catHasCrew(crew)||dirArr.length||(meta.producers&&meta.producers.length)){
     var crewViewPairs=[
-      ['P',toArr(meta.producers)],
       ['F',crewArr(crew.cinematography)],['R',crewArr(crew.screenplay)],
       ['M',crewArr(crew.editing)],['S',crewArr(crew.sound)],
       ['A',crewArr(crew.art_direction)],['Fg',crewArr(crew.costume_design)]
     ];
     html+=catBlock('Equipe',_catEditing
-      ?catFld('P · Produção',catTagInp('producers',toArr(meta.producers)))
-       +'<div class="cat-grid">'+catFld('F · Fotografia',catTagInp('crew_cinematography',crewArr(crew.cinematography)))+catFld('R · Roteiro',catTagInp('crew_screenplay',crewArr(crew.screenplay)))+'</div>'
+      ?'<div class="cat-grid">'+catFld('F · Fotografia',catTagInp('crew_cinematography',crewArr(crew.cinematography)))+catFld('R · Roteiro',catTagInp('crew_screenplay',crewArr(crew.screenplay)))+'</div>'
        +'<div class="cat-grid">'+catFld('M · Montagem',catTagInp('crew_editing',crewArr(crew.editing)))+catFld('S · Som',catTagInp('crew_sound',crewArr(crew.sound)))+'</div>'
        +'<div class="cat-grid">'+catFld('A · Arte',catTagInp('crew_art_direction',crewArr(crew.art_direction)))+catFld('Fg · Figurino',catTagInp('crew_costume_design',crewArr(crew.costume_design)))+'</div>'
        +catFld('E · Elenco',catTagInp('crew_cast',crewArr(crew.cast)))
@@ -17956,6 +17979,7 @@ var _catBulkEvent='';
 var _catBulkRows=50;
 var _catBulkLastN=null;
 var _catBulkSaving=false;
+var _catBulkJustSaved=false;
 
 function openCatCreateBulk(){
   _catView='create-bulk';_catCode=null;_catEditing=false;_catBulkSaving=false;
@@ -18128,10 +18152,11 @@ function renderCatCreateBulk(){
 }
 
 function _catConfirmLeaveBulk(){
-  // se houve algum input preenchido, pede confirmação
-  var hasData=false;
-  document.querySelectorAll('.cbulk-inp').forEach(function(inp){if((inp.value||'').trim())hasData=true;});
-  if(hasData&&!confirm('Sair sem salvar? Os dados preenchidos serão perdidos.'))return;
+  if(_catBulkJustSaved){renderCatalogo();return;}
+  // considera só inputs ainda ativos (linhas salvas têm inputs disabled)
+  var hasUnsavedData=false;
+  document.querySelectorAll('.cbulk-inp:not(:disabled)').forEach(function(inp){if((inp.value||'').trim())hasUnsavedData=true;});
+  if(hasUnsavedData&&!confirm('Sair sem salvar? Os dados preenchidos serão perdidos.'))return;
   renderCatalogo();
 }
 
@@ -18156,7 +18181,17 @@ async function _catBulkSaveAll(){
   var seen=new Set(),dup='';
   rows.forEach(function(r){if(seen.has(r.full))dup=r.full;else seen.add(r.full);});
   if(dup){if(msg){msg.className='cat-msg err';msg.textContent='Códigos duplicados na lista: '+dup;}return;}
-  if(!confirm('Criar '+rows.length+' filme'+(rows.length!==1?'s':'')+' no evento '+ev+'?\n\nIDs TMDB e Filmografia BR serão consultados para enriquecer os dados (pode demorar).'))return;
+  // contagem de linhas com consulta externa (só pra alertar sobre demora)
+  var _withTmdb=rows.filter(function(r){return r.data.tmdb_id;}).length;
+  var _withCin=rows.filter(function(r){return r.data.cinemateca_id;}).length;
+  var _aviso='Criar '+rows.length+' filme'+(rows.length!==1?'s':'')+' no evento '+ev+'?';
+  if(_withTmdb||_withCin){
+    _aviso+='\n\nConsultas online serão feitas apenas onde o ID estiver preenchido:';
+    if(_withTmdb)_aviso+='\n· '+_withTmdb+' '+(_withTmdb===1?'consulta':'consultas')+' ao TMDB';
+    if(_withCin)_aviso+='\n· '+_withCin+' '+(_withCin===1?'consulta':'consultas')+' à Filmografia Brasileira';
+    _aviso+='\n\nIsso pode levar alguns segundos por consulta. As linhas sem ID serão criadas direto.';
+  }
+  if(!confirm(_aviso))return;
   _catBulkSaving=true;
   var saveBtn=document.getElementById('cbulkSaveBtn');
   if(saveBtn){saveBtn.disabled=true;saveBtn.textContent='Salvando…';}
@@ -18266,13 +18301,15 @@ async function _catBulkSaveAll(){
     msg.className=erros.length?'cat-msg err':'cat-msg ok';
     msg.textContent='Concluído: '+ok+' criado'+(ok!==1?'s':'')+(erros.length?' · '+erros.length+' erro'+(erros.length!==1?'s':''):'');
   }
-  // recarrega Firestore para refletir os novos filmes na listagem
-  if(ok>0){
-    var _savedCatEvs=new Set(activeEventsCatalogo);
-    try{await window._olgaLoadFirestore();}catch(e){}
-    activeEventsCatalogo=_savedCatEvs;
-  }
+  // recarrega Firestore para refletir os novos filmes na listagem do Catálogo
+  // (activeEventsCatalogo é preservado automaticamente porque applyParsedData não altera seleção em recargas)
+  if(ok>0){try{await window._olgaLoadFirestore();}catch(e){}}
   if(erros.length)alert('Erros encontrados:\n\n'+erros.slice(0,10).join('\n')+(erros.length>10?'\n…':''));
+  // se tudo foi criado sem erros, fecha o painel automaticamente e volta para o Catálogo
+  if(ok>0&&!erros.length){
+    _catBulkJustSaved=true;
+    setTimeout(function(){_catBulkJustSaved=false;renderCatalogo();},1200);
+  }
 }
 
 
@@ -18644,7 +18681,7 @@ function _showCinMerge(codigo,atual,novo,btn,rawCd,fonte){
   };
   document.getElementById('_cinMergeCancel').onclick=function(){
     document.getElementById('_cinMergeModal').style.display='none';
-    if(btn){btn.disabled=false;btn.textContent='↓ Cinemateca';}
+    if(btn){btn.disabled=false;btn.textContent='↓ Filmografia Brasileira';}
   };
 }
 
@@ -18662,7 +18699,7 @@ async function importFromCinemateca(codigo,btn){
     _showCinMerge(codigo,catalogData,_cinToCatalog(cd),btn,cd,'Filmografia Brasileira');
   }catch(e){
     alert('Erro ao consultar Filmografia Brasileira: '+e.message);
-    if(btn){btn.disabled=false;btn.textContent='↓ Cinemateca';}
+    if(btn){btn.disabled=false;btn.textContent='↓ Filmografia Brasileira';}
   }
 }
 
@@ -19823,7 +19860,7 @@ window.addEventListener('popstate',function(e){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 29/05/2026 às 11:52</span></div>
+<div id="page-footer"><span>última atualização · 29/05/2026 às 12:04</span></div>
 
 </div>
 

@@ -14711,7 +14711,7 @@ function renderDash(){
   html+=colBlock('kdm','KDM',kdmBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 29/05/2026 às 12:22';
+  var sysUpdate='última atualização do sistema · 29/05/2026 às 12:24';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -17505,7 +17505,7 @@ function renderCatDetail(){
   html+=catBlock('Técnico',
     '<div class="cat-grid">'+catFld('Legendas',legDisplay)+'</div>'
     +'<div class="cat-grid">'+catFld('Metragem',_catEditing?catInp('film_type',meta.film_type||''):(meta.film_type||'\u2014'))+catFld('Classificação etária',_catEditing?'<select class="cat-input" id="catf_content_rating"><option value="">—</option>'+['L','10','12','14','16','18'].map(function(r){return'<option value="'+r+'"'+(meta.content_rating===r?' selected':'')+'>'+r+'</option>';}).join('')+'</select>':_catRatingBadge(meta.content_rating))+'</div>'
-    +'<div class="cat-grid">'+catFld('Duração',dur||copia.duracao||'\u2014')+catFld('Acessibilidade',copia.acessibilidade||'\u2014')+'</div>'
+    +'<div class="cat-grid">'+catFld('Duração',_catEditing?'<input class="cat-input" id="catf_runtime" type="number" min="0" placeholder="minutos" value="'+esc(meta.runtime||'')+'">':(dur||copia.duracao||'\u2014'))+catFld('Acessibilidade',copia.acessibilidade||'\u2014')+'</div>'
   );
   if(_catEditing||catHasCrew(crew)||dirArr.length||(meta.producers&&meta.producers.length)){
     var crewViewPairs=[
@@ -17773,13 +17773,32 @@ async function doSaveCat(){
             cast:catGetTags('crew_cast')}
     };
     if(catalogoFilmesMap[_catCode]&&catalogoFilmesMap[_catCode].cinemateca_raw)data.cinemateca_raw=catalogoFilmesMap[_catCode].cinemateca_raw;
-    if(catalogoFilmesMap[_catCode]&&catalogoFilmesMap[_catCode].runtime)data.runtime=catalogoFilmesMap[_catCode].runtime;
+    // Duração: lê do novo input catf_runtime; cai para o valor anterior se vazio.
+    var _runtimeInp=document.getElementById('catf_runtime');
+    var _runtimeNew=_runtimeInp?parseInt(_runtimeInp.value):NaN;
+    if(!isNaN(_runtimeNew)&&_runtimeNew>0){data.runtime=_runtimeNew;}
+    else if(_runtimeInp&&_runtimeInp.value===''){data.runtime=null;}
+    else if(catalogoFilmesMap[_catCode]&&catalogoFilmesMap[_catCode].runtime){data.runtime=catalogoFilmesMap[_catCode].runtime;}
     await window._olgaCatalogo.save(_catCode,data,_catOriginalData);
     window._logFirestoreEdit&&window._logFirestoreEdit('individual',_catCode,data,'catalogo','filmes');
     catalogoFilmesMap[_catCode]=data;
     (function(){var _ev=(filmesArr||[]).find(function(f){return f.codigo===_catCode;});if(_ev&&_ev.evento)_syncPessoasDeFilme(_catCode,data,_ev.evento).catch(function(e){console.warn('pessoas sync:',e);});})();
     var _cf=filmesMap[_catCode];
-    if(_cf&&window._olgaCopias){try{await window._olgaCopias.save(_catCode,{festival_code:_catCode,event_name:_cf.evento||'',title:_cf.titulo||'',original_language:data.original_language||'',dcp_subtitle_code:_cf.legenda||'',vf_subtitle_code:_cf.vf||'',projection_lens:_cf.lente||'',audio_format:_cf.som||'',status:_cf.status||'',notes:_cf.obs||'',dcp_creator:_cf.col_k||'',has_kdm:_cf.kdm||'',subtitle_status:_cf.col_n||'',cpl_id:_cf.cpl||'',ov_cpl_id:_cf.cplOV||'',dcp_resolution:_cf.resolucao||'',dcp_duration:_cf.duracao||'',dcp_size:_cf.gb||'',dcp_fps:_cf.fps||'',storage_location:_cf.hd||'',dcp_uuid:_cf.dcp_uuid||'',accessibility_features:_cf.acessibilidade||'',dcp_link:_cf.dcp_link||'',file_link:_cf.file_link||''});_cf.idioma=data.original_language||'';}catch(e){}}
+    if(_cf&&window._olgaCopias){
+      try{
+        // sincronizar duração: runtime (minutos) → dcp_duration (H:MM:SS) se a duração mudou no Catálogo
+        var _dcpDur=_cf.duracao||'';
+        if(typeof data.runtime==='number'&&data.runtime>0){
+          var _hmms=_catMinToHMMSS(data.runtime);
+          if(_hmms)_dcpDur=_hmms;
+        }else if(data.runtime===null){
+          _dcpDur='';
+        }
+        await window._olgaCopias.save(_catCode,{festival_code:_catCode,event_name:_cf.evento||'',title:_cf.titulo||'',original_language:data.original_language||'',dcp_subtitle_code:_cf.legenda||'',vf_subtitle_code:_cf.vf||'',projection_lens:_cf.lente||'',audio_format:_cf.som||'',status:_cf.status||'',notes:_cf.obs||'',dcp_creator:_cf.col_k||'',has_kdm:_cf.kdm||'',subtitle_status:_cf.col_n||'',cpl_id:_cf.cpl||'',ov_cpl_id:_cf.cplOV||'',dcp_resolution:_cf.resolucao||'',dcp_duration:_dcpDur,dcp_size:_cf.gb||'',dcp_fps:_cf.fps||'',storage_location:_cf.hd||'',dcp_uuid:_cf.dcp_uuid||'',accessibility_features:_cf.acessibilidade||'',dcp_link:_cf.dcp_link||'',file_link:_cf.file_link||''});
+        _cf.idioma=data.original_language||'';
+        _cf.duracao=_dcpDur;
+      }catch(e){}
+    }
     _catEditing=false;
     if(msg){msg.className='cat-msg ok';msg.textContent='Salvo ✓';}
     setTimeout(function(){renderCatDetail();},700);
@@ -18990,7 +19009,15 @@ async function doSaveAcervoEdit(){
     await window._olgaCopias.save(f.codigo,data,_acervoOriginalData);
     window._logFirestoreEdit&&window._logFirestoreEdit('individual',f.codigo,data,'acervo','copias');
     if(window._olgaCatalogo&&catalogoFilmesMap[f.codigo]){
-      try{var _cm=Object.assign({},catalogoFilmesMap[f.codigo]);_cm.original_language=data.original_language;await window._olgaCatalogo.save(f.codigo,_cm);catalogoFilmesMap[f.codigo]=_cm;}catch(e){}
+      try{
+        var _cm=Object.assign({},catalogoFilmesMap[f.codigo]);
+        _cm.original_language=data.original_language;
+        // sincronizar duração: dcp_duration (H:MM:SS) → runtime (minutos)
+        var _dcpSecs=_parseDurSecs(data.dcp_duration);
+        if(_dcpSecs>0){_cm.runtime=Math.round(_dcpSecs/60);} else if(!data.dcp_duration){_cm.runtime=null;}
+        await window._olgaCatalogo.save(f.codigo,_cm);
+        catalogoFilmesMap[f.codigo]=_cm;
+      }catch(e){}
     }
     // Atualizar memória
     var m=filmesMap[f.codigo];
@@ -19987,7 +20014,7 @@ window.addEventListener('popstate',function(e){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 29/05/2026 às 12:22</span></div>
+<div id="page-footer"><span>última atualização · 29/05/2026 às 12:24</span></div>
 
 </div>
 

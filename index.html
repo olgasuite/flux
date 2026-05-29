@@ -14711,7 +14711,7 @@ function renderDash(){
   html+=colBlock('kdm','KDM',kdmBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 29/05/2026 às 12:24';
+  var sysUpdate='última atualização do sistema · 29/05/2026 às 12:26';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -17373,6 +17373,7 @@ function renderCatalogo(){
   if(_catCanEdit&&!window._olgaHasRestricao('catalogo.triagem'))_catActions2+='<button class="cat-edit-btn" style="background:rgba(80,200,120,0.12);border-color:rgba(80,200,120,0.55);color:var(--ok);" onclick="importarDaTriagem()">↓ Importar da Triagem</button>';
   if(_isAdmin)_catActions2+='<button class="cat-edit-btn" onclick="importCopiasToCatalog()">↓ Importar do Acervo</button>';
   if(_isAdmin)_catActions2+='<button class="cat-edit-btn" title="Copia campos FilmFreeway/Short Film Depot de filmes da Triagem para o Catálogo (útil para filmes importados antes da última atualização)" onclick="ressincronizarPlataformasDaTriagem()">↻ Sincronizar plataformas</button>';
+  if(_isAdmin)_catActions2+='<button class="cat-edit-btn" title="Preenche o campo de duração vazio (runtime ↔ dcp_duration) usando o valor do outro campo. Conflitos são listados sem alteração." onclick="ressincronizarDuracoes()">↻ Sincronizar durações</button>';
   if(_catActions2)html+='<div class="cat-sf-actions" style="border-top:none;padding-top:0;">'+_catActions2+'</div>';
   // dashboard — filtrado pelos eventos ativos
   (function(){
@@ -20014,7 +20015,7 @@ window.addEventListener('popstate',function(e){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 29/05/2026 às 12:24</span></div>
+<div id="page-footer"><span>última atualização · 29/05/2026 às 12:26</span></div>
 
 </div>
 
@@ -23919,6 +23920,70 @@ async function ressincronizarPlataformasDaTriagem(){
     }catch(e){erros.push(cod+': '+e.message);}
   }
   alert(ok+' filme'+(ok!==1?'s':'')+' ressincronizado'+(ok!==1?'s':'')+'.'+(erros.length?'\n\nErros:\n'+erros.slice(0,5).join('\n'):''));
+  if(currentMode==='catalogo')renderCatalogo();
+}
+
+/* ── ressincronizar durações entre catalogo.runtime e copias.dcp_duration ── */
+async function ressincronizarDuracoes(){
+  if(!window._olgaCatalogo){alert('API do catálogo não disponível.');return;}
+  if(!window._olgaCopias){alert('API de cópias não disponível.');return;}
+  // Reúne pares (codigo, runtime, dcp_duration) cruzando catalogo + copias
+  var paresCopiarParaCopias=[]; // têm runtime mas dcp_duration vazio
+  var paresCopiarParaCatalogo=[]; // têm dcp_duration mas runtime vazio
+  var conflitos=[]; // ambos preenchidos mas divergem em > 1 min
+  Object.keys(catalogoFilmesMap).forEach(function(cod){
+    var meta=catalogoFilmesMap[cod];
+    var copia=filmesMap[cod];
+    var rt=parseInt(meta.runtime,10)||0;
+    var dcpSecs=copia?(_parseDurSecs(copia.duracao||'')||0):0;
+    var dcpMin=Math.round(dcpSecs/60);
+    if(rt>0&&dcpSecs===0&&copia){
+      paresCopiarParaCopias.push({cod:cod,runtime:rt});
+    }else if(dcpSecs>0&&rt===0){
+      paresCopiarParaCatalogo.push({cod:cod,runtime:dcpMin,dcpDuration:copia.duracao});
+    }else if(rt>0&&dcpSecs>0&&Math.abs(rt-dcpMin)>1){
+      conflitos.push({cod:cod,runtime:rt,dcpDuration:copia.duracao,dcpMin:dcpMin});
+    }
+  });
+  var totalAcao=paresCopiarParaCopias.length+paresCopiarParaCatalogo.length;
+  if(!totalAcao&&!conflitos.length){alert('Nenhuma duração precisa ser sincronizada. Todos os filmes já estão alinhados entre runtime (catálogo) e dcp_duration (cópias).');return;}
+  var resumo='Sincronização de durações:\n\n';
+  if(paresCopiarParaCopias.length)resumo+='· '+paresCopiarParaCopias.length+' filme(s) terão dcp_duration preenchido a partir de runtime\n';
+  if(paresCopiarParaCatalogo.length)resumo+='· '+paresCopiarParaCatalogo.length+' filme(s) terão runtime preenchido a partir de dcp_duration\n';
+  if(conflitos.length)resumo+='· '+conflitos.length+' filme(s) têm valores divergentes nos dois campos — NÃO serão alterados (ver console).\n';
+  resumo+='\nProsseguir?';
+  if(!confirm(resumo))return;
+  if(conflitos.length){
+    console.warn('Conflitos de duração (não alterados):');
+    conflitos.forEach(function(c){console.warn('  '+c.cod+': runtime='+c.runtime+'min vs dcp_duration='+c.dcpDuration+' ('+c.dcpMin+'min)');});
+  }
+  var ok=0,erros=[];
+  // 1) preencher dcp_duration a partir de runtime
+  for(var i=0;i<paresCopiarParaCopias.length;i++){
+    var item=paresCopiarParaCopias[i];
+    try{
+      var hmms=_catMinToHMMSS(item.runtime);
+      var copia=filmesMap[item.cod];
+      await window._olgaCopias.save(item.cod,{dcp_duration:hmms},{dcp_duration:copia.duracao||''});
+      copia.duracao=hmms;
+      ok++;
+    }catch(e){erros.push(item.cod+': '+e.message);}
+  }
+  // 2) preencher runtime a partir de dcp_duration
+  for(var j=0;j<paresCopiarParaCatalogo.length;j++){
+    var item2=paresCopiarParaCatalogo[j];
+    try{
+      var meta=catalogoFilmesMap[item2.cod];
+      var newMeta=Object.assign({},meta,{runtime:item2.runtime});
+      await window._olgaCatalogo.save(item2.cod,newMeta);
+      catalogoFilmesMap[item2.cod]=newMeta;
+      ok++;
+    }catch(e){erros.push(item2.cod+': '+e.message);}
+  }
+  var msg=ok+' filme(s) sincronizado(s).';
+  if(conflitos.length)msg+='\n'+conflitos.length+' conflito(s) listados no console (não alterados).';
+  if(erros.length)msg+='\n\nErros:\n'+erros.slice(0,5).join('\n')+(erros.length>5?'\n…':'');
+  alert(msg);
   if(currentMode==='catalogo')renderCatalogo();
 }
 </script>

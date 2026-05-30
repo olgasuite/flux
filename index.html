@@ -11209,19 +11209,59 @@ function _revPaginateColumnsContent(itemFns,pageShellFn,startNum,msr){
   msr.appendChild(curShell.page);
   pages.push(curShell.page);shells.push(curShell);
   var curP=0,curC=0;
+  function advanceCol(){
+    curC++;
+    if(curC>=3){
+      var ns=pageShellFn(pNum++);
+      msr.appendChild(ns.page);
+      pages.push(ns.page);shells.push(ns);
+      curP++;curC=0;
+    }
+  }
+  function _revFitTextInCol(textEl,colEl){
+    var full=textEl.textContent;
+    if(colEl.scrollHeight<=_REV_COL_H||!full)return null;
+    var lo=0,hi=full.length;
+    while(lo<hi){
+      var mid=Math.ceil((lo+hi)/2);
+      textEl.textContent=full.substring(0,mid);
+      if(colEl.scrollHeight<=_REV_COL_H)lo=mid;else hi=mid-1;
+    }
+    if(lo===0){textEl.textContent=full;return null;}
+    var cut=lo;
+    while(cut>0&&!/\s/.test(full.charAt(cut)))cut--;
+    if(cut===0)cut=lo;
+    textEl.textContent=full.substring(0,cut).replace(/\s+$/,'');
+    return full.substring(cut).replace(/^\s+/,'');
+  }
   itemFns.forEach(function(itemFn){
     var el=itemFn();
-    shells[curP].cols[curC].appendChild(el);
-    if(shells[curP].cols[curC].scrollHeight>_REV_COL_H&&shells[curP].cols[curC].children.length>1){
-      shells[curP].cols[curC].removeChild(el);
-      curC++;
-      if(curC>=3){
-        var ns=pageShellFn(pNum++);
-        msr.appendChild(ns.page);
-        pages.push(ns.page);shells.push(ns);
-        curP++;curC=0;
-      }
-      shells[curP].cols[curC].appendChild(el);
+    var col=shells[curP].cols[curC];
+    col.appendChild(el);
+    if(col.scrollHeight>_REV_COL_H&&col.children.length>1){
+      col.removeChild(el);
+      advanceCol();
+      col=shells[curP].cols[curC];
+      col.appendChild(el);
+    }
+    // Se ainda transborda (sozinho na coluna), divide o texto da sinopse em continuações
+    var guard=0;
+    while(col.scrollHeight>_REV_COL_H&&guard++<20){
+      var textEl=el.querySelector('.rev-sinopse-text');
+      if(!textEl)break;
+      var tail=_revFitTextInCol(textEl,col);
+      if(tail===null||!tail)break;
+      advanceCol();
+      col=shells[curP].cols[curC];
+      var cont=document.createElement('div');
+      cont.className='rev-sinopse-entry';
+      if(el.dataset.filmCode)cont.dataset.filmCode=el.dataset.filmCode;
+      var ctext=document.createElement('div');
+      ctext.className='rev-sinopse-text';
+      ctext.textContent=tail;
+      cont.appendChild(ctext);
+      col.appendChild(cont);
+      el=cont;
     }
   });
   return{pages:pages,nextNum:pNum};
@@ -14764,7 +14804,7 @@ function renderDash(){
   html+=colBlock('kdm','KDM',kdmBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 29/05/2026 às 12:36';
+  var sysUpdate='última atualização do sistema · 29/05/2026 às 12:38';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -20104,7 +20144,7 @@ window.addEventListener('popstate',function(e){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 29/05/2026 às 12:36</span></div>
+<div id="page-footer"><span>última atualização · 29/05/2026 às 12:38</span></div>
 
 </div>
 

@@ -11082,8 +11082,10 @@ function _revSessionItemFns(sessionGroups){
           return wrap;
         });})(sess.name,sess.description,sess.instances);
       } else {
-        if(sess.name&&!singleFilm){
+        if(sess.name){
           (function(sn){sessGroup.push(function(){var el=document.createElement('div');el.className='rev-sess-header';el.dataset.sessName=sn;el.textContent=sn;return el;});})(sess.name);
+        } else if(!singleFilm){
+          sessGroup.push(function(){var el=document.createElement('div');el.className='rev-sess-header';el.textContent='VÁRIOS';return el;});
         }
         if(sess.description){
           (function(sd){sessGroup.push(function(){var el=document.createElement('div');el.className='rev-sess-desc';el.textContent=sd;return el;});})(sess.description);
@@ -11460,32 +11462,38 @@ function _revRenderGradePages(evName,evBg,evText,msr,allPages,startPageNum){
         var _debateH=hasDebate?'<span class="rev-grade-debate-badge" title="debate">'+_revDebateSvg+'</span>':'';
         var _convH=hasParaConvidados?'<span class="rev-grade-convidados-badge" title="sessão para convidados">'+_revConvSvg+'</span>':'';
         var _indicH=_acessH+_debateH+_convH;
-        if(filmsData.length===1){
+        if(sessName){
+          var nameEl=document.createElement('div');
+          nameEl.className='rev-grade-sess-label2';
+          nameEl.dataset.linkSess=sessName;
+          nameEl.innerHTML=_revEsc(sessName+(durStr?' ('+durStr+')':''))+_indicH;
+          cnt.appendChild(nameEl);
+          if(filmsData.length>1){
+            filmsData.forEach(function(fi){
+              var fEl=document.createElement('div');
+              fEl.className='rev-grade-sess-films2';
+              fEl.dataset.filmCode=fi.code;
+              fEl.textContent=fi.title+(fi.dur?' ('+fi.dur+')':'');
+              cnt.appendChild(fEl);
+            });
+          }
+        } else if(filmsData.length===1){
           var fi=filmsData[0];
           var fEl=document.createElement('div');
           fEl.className='rev-grade-sess-film2';
           fEl.dataset.filmCode=fi.code;
           fEl.innerHTML=_revEsc(fi.title+(fi.dur?' ('+fi.dur+')':''))+_indicH;
           cnt.appendChild(fEl);
-        } else if(sessName){
-          var nameEl=document.createElement('div');
-          nameEl.className='rev-grade-sess-label2';
-          nameEl.dataset.linkSess=sessName;
-          nameEl.innerHTML=_revEsc(sessName+(durStr?' ('+durStr+')':''))+_indicH;
-          cnt.appendChild(nameEl);
+        } else if(filmsData.length>1){
+          var variosEl=document.createElement('div');
+          variosEl.className='rev-grade-sess-label2';
+          variosEl.innerHTML=_revEsc('VÁRIOS'+(durStr?' ('+durStr+')':''))+_indicH;
+          cnt.appendChild(variosEl);
           filmsData.forEach(function(fi){
             var fEl=document.createElement('div');
             fEl.className='rev-grade-sess-films2';
             fEl.dataset.filmCode=fi.code;
             fEl.textContent=fi.title+(fi.dur?' ('+fi.dur+')':'');
-            cnt.appendChild(fEl);
-          });
-        } else {
-          filmsData.forEach(function(fi,idx){
-            var fEl=document.createElement('div');
-            fEl.className='rev-grade-sess-films2';
-            fEl.dataset.filmCode=fi.code;
-            fEl.innerHTML=_revEsc(fi.title+(fi.dur?' ('+fi.dur+')':''))+(idx===0?_indicH:'');
             cnt.appendChild(fEl);
           });
         }
@@ -11546,20 +11554,17 @@ function _revBuildTabelaCell(td,sessions,mostraColor){
   (s.filmes||[]).forEach(function(cod){totalSecs+=_parseDurSecs((filmesMap[cod]||{}).duracao||'');});
   var sessLabel=s.name&&s.name.trim()?s.name.trim():'';
   var nFilms=(s.filmes||[]).length;
-  var multiFilm=nFilms>1;
-  var noFilms=nFilms===0;
-  // Quando há apenas um filme, mostra só o título do filme — o nome da sessão fica omitido
-  // (evita repetição quando o nome da sessão é praticamente igual ao do único filme).
-  // Quando não há filmes mas tem nome, mostra o nome (sessão sem filmes mas com identificação).
-  if(sessLabel&&(multiFilm||noFilms)){var sn=document.createElement('span');sn.className='rev-tabela-sess-name';sn.dataset.linkSess=sessLabel;sn.textContent=sessLabel;td.appendChild(sn);}
-  if(nFilms===1||(multiFilm&&!sessLabel)){
-    (s.filmes||[]).forEach(function(cod){
-      var f=filmesMap[cod]||{},cat=catalogoFilmesMap[cod]||{};
-      var titulo=cat.title_pt||cat.title||f.titulo||cod;
-      var span=document.createElement('span');span.className='rev-tabela-film';span.dataset.filmCode=cod;span.textContent=titulo;td.appendChild(span);
-    });
+  if(sessLabel){
+    var sn=document.createElement('span');sn.className='rev-tabela-sess-name';sn.dataset.linkSess=sessLabel;sn.textContent=sessLabel;td.appendChild(sn);
+  }else if(nFilms===1){
+    var _cod=s.filmes[0];var _f=filmesMap[_cod]||{},_cat=catalogoFilmesMap[_cod]||{};
+    var _titulo=_cat.title_pt||_cat.title||_f.titulo||_cod;
+    var _span=document.createElement('span');_span.className='rev-tabela-film';_span.dataset.filmCode=_cod;_span.textContent=_titulo;td.appendChild(_span);
+  }else if(nFilms>1){
+    var _sn2=document.createElement('span');_sn2.className='rev-tabela-sess-name';_sn2.textContent='VÁRIOS';td.appendChild(_sn2);
+  }else{
+    var _dash=document.createElement('span');_dash.className='rev-tabela-film';_dash.textContent='—';td.appendChild(_dash);
   }
-  if(noFilms&&!sessLabel){var dash=document.createElement('span');dash.className='rev-tabela-film';dash.textContent='—';td.appendChild(dash);}
   if(totalSecs>0){
     var durSpan=document.createElement('span');durSpan.className='rev-tabela-dur';
     var tm2=Math.round(totalSecs/60);
@@ -14932,7 +14937,7 @@ function renderDash(){
   html+=colBlock('kdm','KDM',kdmBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 30/05/2026 às 13:02';
+  var sysUpdate='última atualização do sistema · 30/05/2026 às 13:08';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -15790,6 +15795,13 @@ function _progNextId(base,hasFn){
   var n=2;while(hasFn(b+'.'+n))n++;
   return b+'.'+n;
 }
+function _progPromptSuffix(label,base,suggested){
+  var inp=prompt(label+'\nPrefixo fixo: '+base+'.\nDigite o sufixo:',String(suggested));
+  if(inp===null)return null;
+  var suf=String(inp).trim().replace(/^\.+/,'');
+  if(!suf)return null;
+  return base+'.'+suf;
+}
 function _progSessionDocData(s,overrides){
   var data={session_id:s.nome,name:s.name||s.nome,event_name:s.evento,date:s.date?s.date.toISOString().slice(0,10):'',time:s.time?s.time.str:'',venue_name:s.cinema,program_id:s.program_id||'',subprogram_id:s.subprogram_id||'',session_description:s.session_description||'',films:(s.filmes||[]).slice(),bumpers:(s.vinhetas||[]).slice(),guests:s.convidados||'',has_introduction:s.apresentacao||'Não',has_debate:s.col_ag||'Não',for_guests:s.para_convidados||'Não',has_electronic_subtitles:s.leg_eletronica||'Não',reserved_tickets:s.ingressos||'',available_accessibility:s.acessibilidades||''};
   if(overrides)for(var k in overrides)data[k]=overrides[k];
@@ -15800,9 +15812,10 @@ async function duplicateProgram(id){
   var progIds={};_progData.programs.forEach(function(x){progIds[x.id]=1;});
   var subIds={};_progData.subprograms.forEach(function(x){subIds[x.id]=1;});
   var sessIds={};Object.keys(sessoesMap).forEach(function(k){sessIds[k]=1;});
-  var sugId=_progNextId(id,function(_id){return!!progIds[_id];});
-  var newId=prompt('ID para a mostra duplicada:',sugId);
-  if(!newId)return;newId=newId.trim();if(!newId)return;
+  var _progBase=String(id).replace(/\.(\d+)$/,'');
+  var _progSugSuf=2;while(progIds[_progBase+'.'+_progSugSuf])_progSugSuf++;
+  var newId=_progPromptSuffix('Sufixo para o ID da mostra duplicada',_progBase,_progSugSuf);
+  if(!newId)return;
   if(progIds[newId]){alert('ID já existe: '+newId);return;}
   try{
     var _dupData=Object.assign({},p.data,{auto:false});
@@ -16007,9 +16020,10 @@ async function duplicateSubprogram(id){
   var sub=_progData.subprograms.find(function(x){return x.id===id;});if(!sub)return;
   var subIds={};_progData.subprograms.forEach(function(x){subIds[x.id]=1;});
   var sessIds={};Object.keys(sessoesMap).forEach(function(k){sessIds[k]=1;});
-  var sugSubId=_progNextId(id,function(_id){return!!subIds[_id];});
-  var newSubId=prompt('ID para a submostra duplicada:',sugSubId);
-  if(!newSubId)return;newSubId=newSubId.trim();if(!newSubId)return;
+  var _subBase=String(id).replace(/\.(\d+)$/,'');
+  var _subSugSuf=2;while(subIds[_subBase+'.'+_subSugSuf])_subSugSuf++;
+  var newSubId=_progPromptSuffix('Sufixo para o ID da submostra duplicada',_subBase,_subSugSuf);
+  if(!newSubId)return;
   if(subIds[newSubId]){alert('ID já existe: '+newSubId);return;}
   try{
     var _sdupData=Object.assign({},sub.data);
@@ -16328,8 +16342,8 @@ async function duplicateProgSessao(nome){
   var s=sessoesMap[nome];if(!s)return;
   var base=nome.replace(/\.(\d+)$/,'');
   var n=2;while(sessoesMap[base+'.'+n])n++;
-  var newNome=prompt('Código para a sessão duplicada:',base+'.'+n);
-  if(!newNome)return;newNome=newNome.trim();if(!newNome)return;
+  var newNome=_progPromptSuffix('Sufixo para o código da sessão duplicada',base,n);
+  if(!newNome)return;
   if(sessoesMap[newNome]){alert('Código já existe: '+newNome);return;}
   var data={session_id:newNome,name:(s.name||nome),event_name:s.evento,date:s.date?s.date.toISOString().slice(0,10):'',time:s.time?s.time.str:'',venue_name:s.cinema,program_id:s.program_id||'',subprogram_id:s.subprogram_id||'',session_description:s.session_description||'',films:s.filmes.slice(),bumpers:s.vinhetas.slice(),guests:s.convidados||'',has_introduction:s.apresentacao||'Não',has_debate:s.col_ag||'Não',for_guests:s.para_convidados||'Não',has_electronic_subtitles:s.leg_eletronica||'Não',reserved_tickets:s.ingressos||'',available_accessibility:s.acessibilidades||''};
   try{await window._olgaSessoes.save(newNome,data);await window._olgaSessoes.reload();_progRender();}
@@ -20333,7 +20347,7 @@ window.addEventListener('popstate',function(e){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 30/05/2026 às 13:02</span></div>
+<div id="page-footer"><span>última atualização · 30/05/2026 às 13:08</span></div>
 
 </div>
 

@@ -4180,7 +4180,39 @@ html[data-theme]:not([data-theme="win98"]){--mono:var(--sans);}
       await setDoc(doc(db, '_registry', col), patch, {merge:true});
       if(!_usedIds[col])_usedIds[col]={};
       _usedIds[col][id] = true;
+    },
+    unregister: async function(col, id) {
+      try{
+        var ref=doc(db,'_registry',col);
+        var snap=await getDoc(ref);
+        if(snap.exists()){
+          var used=Object.assign({},snap.data().used||{});
+          if(used[id]){delete used[id];await setDoc(ref,{used:used});}
+        }
+      }catch(e){}
+      if(_usedIds[col])delete _usedIds[col][id];
     }
+  };
+
+  // Limpa tombstones de sessões cujos códigos não estão mais em uso na coleção `sessoes`.
+  // Retorna {removed:[...], kept:N, totalBefore:N}.
+  window._olgaCleanupSessoesRegistry = async function(){
+    var ref=doc(db,'_registry','sessoes');
+    var snap=await getDoc(ref);
+    if(!snap.exists())return{removed:[],kept:0,totalBefore:0};
+    var used=Object.assign({},snap.data().used||{});
+    var totalBefore=Object.keys(used).length;
+    var sessSnap=await getDocs(collection(db,'sessoes'));
+    var alive={};
+    sessSnap.forEach(function(d){
+      alive[d.id]=true;
+      var sid=d.data()&&d.data().session_id;if(sid)alive[String(sid).trim()]=true;
+    });
+    var removed=[];
+    Object.keys(used).forEach(function(k){if(!alive[k]){removed.push(k);delete used[k];}});
+    if(removed.length)await setDoc(ref,{used:used});
+    if(_usedIds.sessoes)removed.forEach(function(k){delete _usedIds.sessoes[k];});
+    return{removed:removed,kept:Object.keys(used).length,totalBefore:totalBefore};
   };
 
   // ── Receptivo APIs ────────────────────────────────────────────
@@ -10948,7 +10980,10 @@ function _revFmtDur(val){
 function _revGetSessionGroups(sessoes){
   var groups={},order=[],seenSigs={};
   sessoes.forEach(function(s){
-    if(!s.filmes||!s.filmes.length)return;
+    var sName=(s.name||'').trim();
+    var sDesc=(s.session_description||'').trim();
+    var hasFilmes=!!(s.filmes&&s.filmes.length);
+    if(!hasFilmes&&!sName)return;
     var sid=s.subprogram_id||'';
     if(!groups[sid]){
       var subName='',subDesc='';
@@ -10956,17 +10991,17 @@ function _revGetSessionGroups(sessoes){
       groups[sid]={name:subName,description:subDesc,sessions:[]};
       order.push(sid);
     }
-    var films=s.filmes.filter(function(cod){return _isFest(cod);}).map(function(cod){
+    var films=(s.filmes||[]).filter(function(cod){return _isFest(cod);}).map(function(cod){
       var f=filmesMap[cod]||{},cat=catalogoFilmesMap[cod]||{};
       var t=(cat.title_pt)||(cat.title)||(f.titulo)||cod;
       var o=cat.original_title||'';
       return{code:cod,titulo:t,original:(o&&o!==t)?o:'',director:Array.isArray(cat.director)?cat.director.join(', '):(cat.director||''),countries:Array.isArray(cat.countries)?cat.countries.join(', '):(cat.countries||''),year:cat.year||''};
     });
-    if(!films.length)return;
-    var sig=films.map(function(f){return f.code;}).slice().sort().join('|');
+    if(!films.length&&!sName)return;
+    var sig=films.length?films.map(function(f){return f.code;}).slice().sort().join('|'):('NAMED|'+sName+'|'+sDesc);
     if(seenSigs[sig])return;
     seenSigs[sig]=true;
-    groups[sid].sessions.push({name:(s.name||'').trim(),description:(s.session_description||'').trim(),films:films,date:s.date,hora:s.hora||''});
+    groups[sid].sessions.push({name:sName,description:sDesc,films:films,date:s.date,hora:s.hora||''});
   });
   order.forEach(function(sid){
     groups[sid].sessions.sort(function(a,b){
@@ -11020,6 +11055,18 @@ function _revSessionItemFns(sessionGroups){
 
 var _REV_PAGE_H=559;
 var _REV_COL_H=395;
+var _REV_ORPHAN_CLASSES=['rev-submostra-header','rev-submostra-desc','rev-sess-header','rev-sess-desc'];
+function _revStripOrphanHeaders(contentEl){
+  var orphans=[];
+  while(contentEl.lastElementChild){
+    var last=contentEl.lastElementChild;
+    var match=false;
+    for(var i=0;i<_REV_ORPHAN_CLASSES.length;i++){if(last.classList.contains(_REV_ORPHAN_CLASSES[i])){match=true;break;}}
+    if(!match)break;
+    orphans.unshift(last);contentEl.removeChild(last);
+  }
+  return orphans;
+}
 function _revPaginateContent(items,shellFn,startNum,msr){
   var pNum=startNum,pages=[];
   var shell=shellFn(pNum++);
@@ -11032,16 +11079,7 @@ function _revPaginateContent(items,shellFn,startNum,msr){
     els.forEach(function(el){cur.contentEl.appendChild(el);});
     if(cur.page.scrollHeight>_REV_PAGE_H&&cur.contentEl.children.length>els.length){
       els.forEach(function(el){cur.contentEl.removeChild(el);});
-      var orphans=[];
-      var ch=cur.contentEl.children;
-      var last=ch[ch.length-1];
-      if(last&&(last.classList.contains('rev-submostra-desc')||last.classList.contains('rev-sess-desc'))){
-        orphans.unshift(last);cur.contentEl.removeChild(last);
-        last=ch[ch.length-1];
-      }
-      if(last&&(last.classList.contains('rev-submostra-header')||last.classList.contains('rev-sess-header'))){
-        orphans.unshift(last);cur.contentEl.removeChild(last);
-      }
+      var orphans=_revStripOrphanHeaders(cur.contentEl);
       var ns=shellFn(pNum++);
       msr.appendChild(ns.page);
       pages.push(ns);
@@ -11866,14 +11904,29 @@ function renderRevista(){
     if(filmItemFns.length){
       if(paras.length>0){var sepEl=document.createElement('hr');sepEl.className='rev-films-sep';mainDiv.appendChild(sepEl);}
       var filmsDiv=document.createElement('div');filmsDiv.className='rev-films-list';mainDiv.appendChild(filmsDiv);
+      var _overflowed=false;
       filmItemFns.forEach(function(item){
         var fns=Array.isArray(item)?item:[item];
         var els=fns.map(function(fn){return fn();});
+        if(_overflowed){
+          els.forEach(function(el){remainingFilmEls.push(el);});
+          return;
+        }
         els.forEach(function(el){filmsDiv.appendChild(el);});
         if(editPage.scrollHeight>_REV_PAGE_H&&filmsDiv.children.length>els.length){
-          els.forEach(function(el){filmsDiv.removeChild(el);remainingFilmEls.push(el);});
+          els.forEach(function(el){filmsDiv.removeChild(el);});
+          var orphans=_revStripOrphanHeaders(filmsDiv);
+          _overflowed=true;
+          orphans.forEach(function(el){remainingFilmEls.push(el);});
+          els.forEach(function(el){remainingFilmEls.push(el);});
         }
       });
+      // Caso o último item tenha coubdo mas tenha deixado headers órfãos no final
+      // (ex: subheader sem sessões depois), puxar pra continuação
+      if(!_overflowed){
+        var trailOrphans=_revStripOrphanHeaders(filmsDiv);
+        trailOrphans.forEach(function(el){remainingFilmEls.push(el);});
+      }
     }
 
     // Páginas de continuação: texto overflow → depois filmes restantes
@@ -14711,7 +14764,7 @@ function renderDash(){
   html+=colBlock('kdm','KDM',kdmBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 29/05/2026 às 12:26';
+  var sysUpdate='última atualização do sistema · 29/05/2026 às 12:36';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -16010,7 +16063,16 @@ async function saveProgSessaoModal(){
     await window._olgaSessoes.reload();
     // Voltar para a view do program onde a sessão foi criada/editada
     if(_progSessaoContextProgramId){
-      _progView={level:'program',programId:_progSessaoContextProgramId,sessaoNome:null};
+      var _pHas=_progData.programs.some(function(p){return p.id===_progSessaoContextProgramId;});
+      if(!_pHas&&window._olgaPrograms){
+        try{
+          _progData.programs=await window._olgaPrograms.list();
+          if(window._olgaSubprograms)_progData.subprograms=await window._olgaSubprograms.list();
+          _pHas=_progData.programs.some(function(p){return p.id===_progSessaoContextProgramId;});
+        }catch(_e){}
+      }
+      if(_pHas)_progView={level:'program',programId:_progSessaoContextProgramId,sessaoNome:null};
+      else _progView={level:'landing',programId:null,sessaoNome:null};
     }
     _progRender();
   }catch(e){_progSessErr('Erro: '+e.message);}
@@ -16023,8 +16085,12 @@ async function deleteProgSessao(nome){
   if(!confirm('Excluir a sessão "'+label+'"?\nEsta ação não pode ser desfeita.'))return;
   try{
     var _delSessNome=(sessoesMap[nome]&&sessoesMap[nome].nome)||nome;
-    if(window._olgaRegistry)await window._olgaRegistry.register('sessoes',_delSessNome);
+    var _delSessDocId=(sessoesMap[nome]&&sessoesMap[nome]._docId)||nome;
     await window._olgaSessoes.remove(nome);
+    if(window._olgaRegistry){
+      await window._olgaRegistry.unregister('sessoes',_delSessNome);
+      if(_delSessDocId&&_delSessDocId!==_delSessNome)await window._olgaRegistry.unregister('sessoes',_delSessDocId);
+    }
     window._logFirestoreEdit&&window._logFirestoreEdit('delete',nome,{},'programacao','sessoes');
     await window._olgaSessoes.reload();
     _progRender();
@@ -16033,7 +16099,9 @@ async function deleteProgSessao(nome){
 
 async function duplicateProgSessao(nome){
   var s=sessoesMap[nome];if(!s)return;
-  var newNome=nome+'_copia';
+  var newNome=prompt('Código para a sessão duplicada:',nome+'_copia');
+  if(!newNome)return;newNome=newNome.trim();if(!newNome)return;
+  if(sessoesMap[newNome]){alert('Código já existe: '+newNome);return;}
   var data={session_id:newNome,name:(s.name||nome)+' (cópia)',event_name:s.evento,date:s.date?s.date.toISOString().slice(0,10):'',time:s.time?s.time.str:'',venue_name:s.cinema,program_id:s.program_id||'',subprogram_id:s.subprogram_id||'',session_description:s.session_description||'',films:s.filmes.slice(),bumpers:s.vinhetas.slice(),guests:s.convidados||'',has_introduction:s.apresentacao||'Não',has_debate:s.col_ag||'Não',for_guests:s.para_convidados||'Não',has_electronic_subtitles:s.leg_eletronica||'Não',reserved_tickets:s.ingressos||'',available_accessibility:s.acessibilidades||''};
   try{await window._olgaSessoes.save(newNome,data);await window._olgaSessoes.reload();_progRender();}
   catch(e){alert('Erro ao duplicar: '+e.message);}
@@ -16283,6 +16351,14 @@ function renderEquipeTable(){
       '<button onclick="exportColCSV()" style="'+btnStyle+'color:var(--accent);border-color:rgba(255,186,32,0.35);align-self:flex-end;margin-bottom:0;">Exportar CSV</button>'+
     '</div>'+
     '<div id="colExportMsg" style="font-family:var(--mono);font-size:10px;color:var(--text-muted);margin-top:8px;"></div>'+
+    '</div>'+
+    '<div class="log-export-section">'+
+    '<div class="log-export-title">Liberar códigos de sessões deletadas</div>'+
+    '<div style="font-family:var(--mono);font-size:10px;color:var(--text-muted);margin-bottom:8px;">Remove do registry os códigos de sessões que já não existem na coleção <code>sessoes</code>, permitindo reuso.</div>'+
+    '<div class="log-export-row">'+
+      '<button onclick="cleanupSessoesRegistry()" style="'+btnStyle+'color:var(--accent);border-color:rgba(255,186,32,0.35);align-self:flex-end;margin-bottom:0;">Limpar registry de sessões</button>'+
+    '</div>'+
+    '<div id="cleanupRegistryMsg" style="font-family:var(--mono);font-size:10px;color:var(--text-muted);margin-top:8px;"></div>'+
     '</div>'
   ):'';
   var solHtml='';
@@ -16380,6 +16456,19 @@ async function exportColCSV(){
     document.body.appendChild(a);a.click();document.body.removeChild(a);
     URL.revokeObjectURL(url);
     if(msg)msg.textContent=docs.length+' documento'+(docs.length!==1?'s':'')+' exportado'+(docs.length!==1?'s':'')+'.';
+  }catch(e){if(msg)msg.textContent='Erro: '+e.message;}
+}
+async function cleanupSessoesRegistry(){
+  var msg=document.getElementById('cleanupRegistryMsg');
+  if(!window._olgaCleanupSessoesRegistry){if(msg)msg.textContent='API não disponível.';return;}
+  if(!confirm('Liberar códigos de todas as sessões que já foram deletadas?\nIsso vai permitir reuso desses códigos.'))return;
+  if(msg)msg.textContent='Processando…';
+  try{
+    var r=await window._olgaCleanupSessoesRegistry();
+    if(msg){
+      if(!r.removed.length)msg.textContent='Nada a limpar. '+r.kept+' código'+(r.kept!==1?'s':'')+' em uso permanecem no registry.';
+      else msg.textContent=r.removed.length+' código'+(r.removed.length!==1?'s':'')+' liberado'+(r.removed.length!==1?'s':'')+'. '+r.kept+' em uso permanece'+(r.kept!==1?'m':'')+'.';
+    }
   }catch(e){if(msg)msg.textContent='Erro: '+e.message;}
 }
 function _equipeTh(){return 'font-family:var(--mono);font-size:9px;font-weight:600;letter-spacing:0.15em;text-transform:uppercase;color:var(--accent);padding:9px 12px;text-align:left;white-space:nowrap;';}
@@ -20015,7 +20104,7 @@ window.addEventListener('popstate',function(e){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 29/05/2026 às 12:26</span></div>
+<div id="page-footer"><span>última atualização · 29/05/2026 às 12:36</span></div>
 
 </div>
 

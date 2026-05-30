@@ -11605,7 +11605,7 @@ function _revRenderTabelaPages(evName,evBg,evText,mostras,msr,allPages,startPage
   });
   var cinemas=Object.keys(cinMap).sort(function(a,b){return a.localeCompare(b,'pt-BR');});
 
-  var MAX_ROWS=10;
+  var MAX_ROWS=12;
 
   cinemas.forEach(function(cin){
     var sess=cinMap[cin];
@@ -11767,7 +11767,7 @@ function _revRenderTabelaDiaPages(evName,evBg,evText,mostras,msr,allPages,startP
     var chunks=[];
     for(var i=0;i<cinemas.length;i+=MAX_COLS)chunks.push(cinemas.slice(i,i+MAX_COLS));
 
-    var MAX_ROWS=10;
+    var MAX_ROWS=12;
     chunks.forEach(function(cinChunk){
       var filteredTimes=times.filter(function(tm){
         return cinChunk.some(function(cin){return(lookup[cin+'|'+tm]||[]).length>0;});
@@ -14932,7 +14932,7 @@ function renderDash(){
   html+=colBlock('kdm','KDM',kdmBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 30/05/2026 às 12:58';
+  var sysUpdate='última atualização do sistema · 30/05/2026 às 13:02';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -20333,7 +20333,7 @@ window.addEventListener('popstate',function(e){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 30/05/2026 às 12:58</span></div>
+<div id="page-footer"><span>última atualização · 30/05/2026 às 13:02</span></div>
 
 </div>
 

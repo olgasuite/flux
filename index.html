@@ -2067,6 +2067,9 @@ mark{background:rgba(255,186,32,0.28);color:var(--accent);border-radius:2px;padd
 .rev-sess-header{font-family:'IBM Plex Mono',monospace;font-size:6px;font-weight:600;letter-spacing:0.14em;text-transform:uppercase;color:#777;padding:10px 0 3px 0;border-bottom:1px solid #ece8e0;margin-bottom:2px;}
 .rev-sess-header:first-child{padding-top:6px;}
 .rev-sess-desc{font-family:'IBM Plex Sans',sans-serif;font-size:7.5px;font-weight:300;line-height:1.7;color:#555;padding:3px 0 5px 0;}
+.rev-sess-noflim{padding:0;}
+.rev-sess-noflim-info{padding:4px 0 6px 0;display:flex;flex-direction:column;gap:1px;}
+.rev-sess-noflim-line{font-family:'IBM Plex Mono',monospace;font-size:7px;font-weight:500;letter-spacing:0.08em;color:#888;line-height:1.6;}
 .rev-cover-body{display:flex;flex-direction:column;justify-content:space-between;height:calc(100% - 52px);}
 .rev-index-body{padding-top:20px;display:flex;flex-direction:column;}
 .rev-index-row{display:flex;align-items:baseline;padding:11px 0;border-bottom:1px solid #ece8e0;}
@@ -7080,7 +7083,9 @@ function renderSessoes(){
     s.filmes.forEach(function(c){var f=filmesMap[c];if(!f)return;_sessTotalSecs+=_parseDurSecs(f.duracao);});
     var durStr=_sessTotalSecs>0?_secsToHMS(_sessTotalSecs):'';
     var safe=s.nome.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
-    var _avIcon=(s.acessibilidades||'').trim();var acessIcon=_avIcon&&!/^n[ãa]o$/i.test(_avIcon)?'<span class="sess-acess-icon" title="'+s.acessibilidades+'"><svg width="14" height="14" viewBox="0 0 24 24" style="stroke:currentColor;stroke-width:1.75;fill:none;stroke-linecap:round;stroke-linejoin:round;" xmlns="http://www.w3.org/2000/svg"><circle cx="11" cy="4" r="1"/><path d="m11 9 2 7h5l-1.5 3"/><path d="M9 9H7l1 7"/><path d="M13.5 19a4.5 4.5 0 1 1-9 0 4.5 4.5 0 0 1 9 0z"/></svg></span>':'';
+    var _sessSumm=_progSessSummary(s);
+    var badgesIcons=_progSessBadgesHtml(s);
+    var ratingBadge=_sessSumm.ratingMax?_progSessRatingBadgeSmall(_sessSumm.ratingMax):'';
     return '<div class="sess-row" onclick="goToProgFichaFromGrade(\''+safe+'\')">'+
       '<span class="sess-time">'+(s.time?s.time.str:'—')+'</span>'+
       '<span class="sess-name">'+s.nome+'</span>'+
@@ -7092,7 +7097,8 @@ function renderSessoes(){
       '<span class="sess-films">'+(filmTitles||'')+'</span>'+
       '<span class="sess-extras">'+
         (durStr?'<span class="sess-dur">'+durStr+'</span>':'')+
-        acessIcon+
+        badgesIcons+
+        ratingBadge+
         (evTag||'')+
       '</span>'+
     '</div>';
@@ -10978,7 +10984,7 @@ function _revFmtDur(val){
 }
 
 function _revGetSessionGroups(sessoes){
-  var groups={},order=[],seenSigs={};
+  var groups={},order=[],seenSigs={},namedSessions={};
   sessoes.forEach(function(s){
     var sName=(s.name||'').trim();
     var sDesc=(s.session_description||'').trim();
@@ -10998,10 +11004,23 @@ function _revGetSessionGroups(sessoes){
       return{code:cod,titulo:t,original:(o&&o!==t)?o:'',director:Array.isArray(cat.director)?cat.director.join(', '):(cat.director||''),countries:Array.isArray(cat.countries)?cat.countries.join(', '):(cat.countries||''),year:cat.year||''};
     });
     if(!films.length&&!sName)return;
-    var sig=films.length?films.map(function(f){return f.code;}).slice().sort().join('|'):('NAMED|'+sName+'|'+sDesc);
-    if(seenSigs[sig])return;
-    seenSigs[sig]=true;
-    groups[sid].sessions.push({name:sName,description:sDesc,films:films,date:s.date,hora:s.hora||''});
+    if(films.length){
+      var sig=films.map(function(f){return f.code;}).slice().sort().join('|');
+      if(seenSigs[sig])return;
+      seenSigs[sig]=true;
+      groups[sid].sessions.push({name:sName,description:sDesc,films:films,date:s.date,hora:s.hora||''});
+    } else {
+      // Sessão sem filmes: agrega todas as instâncias (data/hora/local) sob o mesmo nome+descrição
+      var nsig=sid+'|NAMED|'+sName+'|'+sDesc;
+      var inst={date:s.date,hora:s.hora||'',cinema:s.cinema||''};
+      if(namedSessions[nsig]){
+        namedSessions[nsig].instances.push(inst);
+      } else {
+        var ns={name:sName,description:sDesc,films:[],date:s.date,hora:s.hora||'',instances:[inst]};
+        groups[sid].sessions.push(ns);
+        namedSessions[nsig]=ns;
+      }
+    }
   });
   order.forEach(function(sid){
     groups[sid].sessions.sort(function(a,b){
@@ -11032,12 +11051,34 @@ function _revSessionItemFns(sessionGroups){
       if(noFilms){
         // Sessão sem filmes: empacotar nome+descrição num bloco único, para que a
         // paginação não confunda esses elementos com cabeçalhos órfãos sem conteúdo.
-        (function(sn,sd){sessGroup.push(function(){
+        // Inclui também as instâncias de exibição (data/hora/local) ao final.
+        (function(sn,sd,inst){sessGroup.push(function(){
           var wrap=document.createElement('div');wrap.className='rev-sess-noflim';
           if(sn){var h=document.createElement('div');h.className='rev-sess-header';h.dataset.sessName=sn;h.textContent=sn;wrap.appendChild(h);}
           if(sd){var d=document.createElement('div');d.className='rev-sess-desc';d.textContent=sd;wrap.appendChild(d);}
+          if(inst&&inst.length){
+            var infoDiv=document.createElement('div');infoDiv.className='rev-sess-noflim-info';
+            // Ordena instâncias por data/hora
+            var ord=inst.slice().sort(function(a,b){
+              if(!a.date&&!b.date)return 0;if(!a.date)return 1;if(!b.date)return -1;
+              var dd=a.date-b.date;return dd!==0?dd:(a.hora||'').localeCompare(b.hora||'');
+            });
+            ord.forEach(function(i){
+              var line=document.createElement('div');line.className='rev-sess-noflim-line';
+              var parts=[];
+              if(i.date){
+                var wk=['dom','seg','ter','qua','qui','sex','sáb'][i.date.getDay()];
+                parts.push(wk+' '+_revFmtDate(i.date));
+              }
+              if(i.hora)parts.push(i.hora);
+              if(i.cinema)parts.push(i.cinema);
+              line.textContent=parts.join(' · ');
+              infoDiv.appendChild(line);
+            });
+            wrap.appendChild(infoDiv);
+          }
           return wrap;
-        });})(sess.name,sess.description);
+        });})(sess.name,sess.description,sess.instances);
       } else {
         if(sess.name&&!singleFilm){
           (function(sn){sessGroup.push(function(){var el=document.createElement('div');el.className='rev-sess-header';el.dataset.sessName=sn;el.textContent=sn;return el;});})(sess.name);
@@ -11472,9 +11513,20 @@ function _revRenderGradePages(evName,evBg,evText,msr,allPages,startPageNum){
         curSlot=1;
       } else {
         curSlot=0;curCol++;col0Tall=false;
-        if(curCol>=3){newGradePage();}
+      }
+      if(curCol>=3){
+        var isLastDate=d===dates[dates.length-1];
+        if(!isLastDate)newGradePage();
       }
     });
+    if(allPages.length){
+      var _lastPage=allPages[allPages.length-1];
+      if(_lastPage.dataset.gradeCinema===cin&&!_lastPage.querySelector('.rev-grade-day-block')){
+        msr.removeChild(_lastPage);
+        allPages.pop();
+        pageNum--;
+      }
+    }
   });
   return pageNum;
 }
@@ -11571,74 +11623,83 @@ function _revRenderTabelaPages(evName,evBg,evText,mostras,msr,allPages,startPage
     var times=Object.keys(timeSet).sort();
     if(!dates.length||!times.length)return;
 
-    for(var ci=0;ci<times.length;ci+=MAX_ROWS){
-      var timesChunk=times.slice(ci,ci+MAX_ROWS);
-      var isLast=ci+MAX_ROWS>=times.length;
-
-      var page=document.createElement('div');
-      page.className='rev-page';page.dataset.pageCinema=cin;
-      var hdr=document.createElement('div');hdr.className='rev-page-header';
-      var cinPill=document.createElement('div');cinPill.className='rev-cinema-pill';cinPill.textContent=cin;
-      var evPill=document.createElement('div');evPill.className='rev-evento-pill';
-      evPill.style.cssText='background:'+evBg+';color:'+evText;evPill.textContent=_revEventoLabel(evName);
-      var hdrLeft=document.createElement('div');hdrLeft.style.cssText='display:flex;gap:6px;align-items:center;';
-      hdrLeft.appendChild(evPill);hdrLeft.appendChild(cinPill);
-      var hdrNum=document.createElement('div');hdrNum.className='rev-page-num';hdrNum.textContent=pageNum++;
-      hdr.appendChild(hdrLeft);hdr.appendChild(hdrNum);
-      page.appendChild(hdr);
-      var legend=document.createElement('div');legend.className='rev-tabela-legend-inline';
-      mostras.forEach(function(prog){
-        var hasSess=sess.some(function(s){return s.program_id===prog.id;});
-        if(!hasSess)return;
-        var item=document.createElement('div');item.className='rev-tabela-legend-item';
-        var sw=document.createElement('div');sw.className='rev-tabela-legend-swatch';sw.style.background=mostraColor[prog.id]||'#e8e8e8';
-        var lbTxt=document.createElement('span');lbTxt.textContent=prog.data.name||prog.id;
-        item.appendChild(sw);item.appendChild(lbTxt);legend.appendChild(item);
+    var MAX_COLS=10;
+    for(var di=0;di<dates.length;di+=MAX_COLS){
+      var datesChunk=dates.slice(di,di+MAX_COLS);
+      var filteredTimes=times.filter(function(tm){
+        return datesChunk.some(function(d){return(lookup[d.key+'|'+tm]||[]).length>0;});
       });
-      var lbl=document.createElement('div');lbl.className='rev-mostra-label';
-      lbl.style.cssText='display:flex;justify-content:space-between;align-items:center;';
-      var lblText=document.createElement('span');lblText.textContent='tabela de programação';
-      lbl.appendChild(lblText);lbl.appendChild(legend);
-      page.appendChild(lbl);
-      var rule=document.createElement('hr');rule.className='rev-mostra-rule';page.appendChild(rule);
+      if(!filteredTimes.length)continue;
 
-      var wrap=document.createElement('div');wrap.className='rev-tabela-page-content';
-      var tWrap=document.createElement('div');tWrap.className='rev-tabela-wrap';
-      var tbl=document.createElement('table');tbl.className='rev-tabela';
-      var thead=document.createElement('thead');
-      var hrow=document.createElement('tr');
-      var thTime=document.createElement('th');thTime.className='rev-tabela-time-th';hrow.appendChild(thTime);
-      dates.forEach(function(d){
-        var th=document.createElement('th');th.className='rev-tabela-day-th';th.dataset.linkDia=d.key;
-        var dt=d.date;var wkd=['dom','seg','ter','qua','qui','sex','sáb'][dt.getDay()];
-        th.innerHTML=_revEsc(String(dt.getDate()).padStart(2,'0')+'/'+String(dt.getMonth()+1).padStart(2,'0'))+'<br><span style="font-weight:400;font-size:6px;color:#777;">'+wkd+'</span>';
-        hrow.appendChild(th);
-      });
-      thead.appendChild(hrow);tbl.appendChild(thead);
-      var tbody=document.createElement('tbody');
-      timesChunk.forEach(function(tm){
-        var tr=document.createElement('tr');
-        var tdTime=document.createElement('td');tdTime.className='rev-tabela-time-td';tdTime.textContent=tm;tr.appendChild(tdTime);
-        dates.forEach(function(d){
-          var key=d.key+'|'+tm;var sessions=lookup[key]||[];
-          var td=document.createElement('td');
-          if(!sessions.length){td.className='rev-tabela-cell rev-tabela-cell-empty';}
-          else{td.className='rev-tabela-cell';_revBuildTabelaCell(td,sessions,mostraColor);}
-          tr.appendChild(td);
+      for(var ci=0;ci<filteredTimes.length;ci+=MAX_ROWS){
+        var timesChunk=filteredTimes.slice(ci,ci+MAX_ROWS);
+        var isLast=ci+MAX_ROWS>=filteredTimes.length;
+
+        var page=document.createElement('div');
+        page.className='rev-page';page.dataset.pageCinema=cin;
+        var hdr=document.createElement('div');hdr.className='rev-page-header';
+        var cinPill=document.createElement('div');cinPill.className='rev-cinema-pill';cinPill.textContent=cin;
+        var evPill=document.createElement('div');evPill.className='rev-evento-pill';
+        evPill.style.cssText='background:'+evBg+';color:'+evText;evPill.textContent=_revEventoLabel(evName);
+        var hdrLeft=document.createElement('div');hdrLeft.style.cssText='display:flex;gap:6px;align-items:center;';
+        hdrLeft.appendChild(evPill);hdrLeft.appendChild(cinPill);
+        var hdrNum=document.createElement('div');hdrNum.className='rev-page-num';hdrNum.textContent=pageNum++;
+        hdr.appendChild(hdrLeft);hdr.appendChild(hdrNum);
+        page.appendChild(hdr);
+        var legend=document.createElement('div');legend.className='rev-tabela-legend-inline';
+        mostras.forEach(function(prog){
+          var hasSess=sess.some(function(s){return s.program_id===prog.id;});
+          if(!hasSess)return;
+          var item=document.createElement('div');item.className='rev-tabela-legend-item';
+          var sw=document.createElement('div');sw.className='rev-tabela-legend-swatch';sw.style.background=mostraColor[prog.id]||'#e8e8e8';
+          var lbTxt=document.createElement('span');lbTxt.textContent=prog.data.name||prog.id;
+          item.appendChild(sw);item.appendChild(lbTxt);legend.appendChild(item);
         });
-        tbody.appendChild(tr);
-      });
-      tbl.appendChild(tbody);tWrap.appendChild(tbl);wrap.appendChild(tWrap);
-      if(!isLast){
-        var cont=document.createElement('div');
-        cont.style.cssText='text-align:right;padding:5px 0 0;font-family:\'IBM Plex Mono\',monospace;font-size:6px;color:#aaa;letter-spacing:0.1em;';
-        cont.innerHTML='continua &#8594;';
-        wrap.appendChild(cont);
+        var lbl=document.createElement('div');lbl.className='rev-mostra-label';
+        lbl.style.cssText='display:flex;justify-content:space-between;align-items:center;';
+        var lblText=document.createElement('span');lblText.textContent='tabela de programação';
+        lbl.appendChild(lblText);lbl.appendChild(legend);
+        page.appendChild(lbl);
+        var rule=document.createElement('hr');rule.className='rev-mostra-rule';page.appendChild(rule);
+
+        var wrap=document.createElement('div');wrap.className='rev-tabela-page-content';
+        var tWrap=document.createElement('div');tWrap.className='rev-tabela-wrap';
+        var tbl=document.createElement('table');tbl.className='rev-tabela';
+        var thead=document.createElement('thead');
+        var hrow=document.createElement('tr');
+        var thTime=document.createElement('th');thTime.className='rev-tabela-time-th';hrow.appendChild(thTime);
+        datesChunk.forEach(function(d){
+          var th=document.createElement('th');th.className='rev-tabela-day-th';th.dataset.linkDia=d.key;
+          var dt=d.date;var wkd=['dom','seg','ter','qua','qui','sex','sáb'][dt.getDay()];
+          th.innerHTML=_revEsc(String(dt.getDate()).padStart(2,'0')+'/'+String(dt.getMonth()+1).padStart(2,'0'))+'<br><span style="font-weight:400;font-size:6px;color:#777;">'+wkd+'</span>';
+          hrow.appendChild(th);
+        });
+        thead.appendChild(hrow);tbl.appendChild(thead);
+        var tbody=document.createElement('tbody');
+        timesChunk.forEach(function(tm){
+          var tr=document.createElement('tr');
+          var tdTime=document.createElement('td');tdTime.className='rev-tabela-time-td';tdTime.textContent=tm;tr.appendChild(tdTime);
+          datesChunk.forEach(function(d){
+            var key=d.key+'|'+tm;var sessions=lookup[key]||[];
+            var td=document.createElement('td');
+            if(!sessions.length){td.className='rev-tabela-cell rev-tabela-cell-empty';}
+            else{td.className='rev-tabela-cell';_revBuildTabelaCell(td,sessions,mostraColor);}
+            tr.appendChild(td);
+          });
+          tbody.appendChild(tr);
+        });
+        tbl.appendChild(tbody);tWrap.appendChild(tbl);wrap.appendChild(tWrap);
+        if(!isLast){
+          var cont=document.createElement('div');
+          cont.style.cssText='text-align:right;padding:5px 0 0;font-family:\'IBM Plex Mono\',monospace;font-size:6px;color:#aaa;letter-spacing:0.1em;';
+          cont.innerHTML='continua &#8594;';
+          wrap.appendChild(cont);
+        }
+        page.appendChild(wrap);
+        msr.appendChild(page);
+        _revApplyTabelaScale(page,wrap);
+        allPages.push(page);
       }
-      page.appendChild(wrap);
-      msr.appendChild(page);
-      _revApplyTabelaScale(page,wrap);
-      allPages.push(page);
     }
   });
   return pageNum;
@@ -14852,7 +14913,7 @@ function renderDash(){
   html+=colBlock('kdm','KDM',kdmBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 30/05/2026 às 12:44';
+  var sysUpdate='última atualização do sistema · 30/05/2026 às 12:56';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -15705,11 +15766,51 @@ async function deleteProgram(id,label){
   try{if(window._olgaRegistry)await window._olgaRegistry.register('programs',id);await window._olgaPrograms.remove(id);window._logFirestoreEdit&&window._logFirestoreEdit('delete',id,{},'programacao','programs');_progData.programs=_progData.programs.filter(function(x){return x.id!==id;});_progRender();}
   catch(e){alert('Erro: '+e.message);}
 }
+function _progNextId(base,hasFn){
+  var b=String(base||'').replace(/\.(\d+)$/,'');
+  var n=2;while(hasFn(b+'.'+n))n++;
+  return b+'.'+n;
+}
+function _progSessionDocData(s,overrides){
+  var data={session_id:s.nome,name:s.name||s.nome,event_name:s.evento,date:s.date?s.date.toISOString().slice(0,10):'',time:s.time?s.time.str:'',venue_name:s.cinema,program_id:s.program_id||'',subprogram_id:s.subprogram_id||'',session_description:s.session_description||'',films:(s.filmes||[]).slice(),bumpers:(s.vinhetas||[]).slice(),guests:s.convidados||'',has_introduction:s.apresentacao||'Não',has_debate:s.col_ag||'Não',for_guests:s.para_convidados||'Não',has_electronic_subtitles:s.leg_eletronica||'Não',reserved_tickets:s.ingressos||'',available_accessibility:s.acessibilidades||''};
+  if(overrides)for(var k in overrides)data[k]=overrides[k];
+  return data;
+}
 async function duplicateProgram(id){
   var p=_progData.programs.find(function(x){return x.id===id;});if(!p)return;
-  var newId=id+'_copia_'+Date.now();
-  try{var _dupData=Object.assign({},p.data,{name:(p.data.name||id)+' (cópia)',auto:false});await window._olgaPrograms.save(newId,_dupData);_progData.programs.push({id:newId,data:_dupData});_progRender();}
-  catch(e){alert('Erro: '+e.message);}
+  var progIds={};_progData.programs.forEach(function(x){progIds[x.id]=1;});
+  var subIds={};_progData.subprograms.forEach(function(x){subIds[x.id]=1;});
+  var sessIds={};Object.keys(sessoesMap).forEach(function(k){sessIds[k]=1;});
+  var sugId=_progNextId(id,function(_id){return!!progIds[_id];});
+  var newId=prompt('ID para a mostra duplicada:',sugId);
+  if(!newId)return;newId=newId.trim();if(!newId)return;
+  if(progIds[newId]){alert('ID já existe: '+newId);return;}
+  try{
+    var _dupData=Object.assign({},p.data,{auto:false});
+    await window._olgaPrograms.save(newId,_dupData);
+    _progData.programs.push({id:newId,data:_dupData});progIds[newId]=1;
+    var subMap={};
+    var subs=_progData.subprograms.filter(function(x){return x.data&&x.data.program_id===id;}).slice();
+    for(var i=0;i<subs.length;i++){
+      var sub=subs[i];
+      var newSubId=_progNextId(sub.id,function(_id){return!!subIds[_id];});
+      var newSubData=Object.assign({},sub.data,{program_id:newId});
+      await window._olgaSubprograms.save(newSubId,newSubData);
+      _progData.subprograms.push({id:newSubId,data:newSubData});subIds[newSubId]=1;
+      subMap[sub.id]=newSubId;
+    }
+    var sessions=sessoesArr.filter(function(s){return s.program_id===id;});
+    for(var j=0;j<sessions.length;j++){
+      var sx=sessions[j];
+      var newSessId=_progNextId(sx.nome,function(_id){return!!sessIds[_id];});
+      var newSubLink=sx.subprogram_id?(subMap[sx.subprogram_id]||sx.subprogram_id):'';
+      var sessData=_progSessionDocData(sx,{session_id:newSessId,program_id:newId,subprogram_id:newSubLink});
+      await window._olgaSessoes.save(newSessId,sessData);
+      sessIds[newSessId]=1;
+    }
+    if(sessions.length)await window._olgaSessoes.reload();
+    _progRender();
+  }catch(e){alert('Erro: '+e.message);}
 }
 async function deleteProgVinTemplate(programId,idx){
   var p=_progData.programs.find(function(x){return x.id===programId;});if(!p)return;
@@ -15885,8 +15986,27 @@ async function deleteSubprogram(id,label){
 }
 async function duplicateSubprogram(id){
   var sub=_progData.subprograms.find(function(x){return x.id===id;});if(!sub)return;
-  try{var _sdupId=id+'_copia_'+Date.now();var _sdupData=Object.assign({},sub.data,{name:(sub.data.name||id)+' (cópia)'});await window._olgaSubprograms.save(_sdupId,_sdupData);_progData.subprograms.push({id:_sdupId,data:_sdupData});_progRender();}
-  catch(e){alert('Erro: '+e.message);}
+  var subIds={};_progData.subprograms.forEach(function(x){subIds[x.id]=1;});
+  var sessIds={};Object.keys(sessoesMap).forEach(function(k){sessIds[k]=1;});
+  var sugSubId=_progNextId(id,function(_id){return!!subIds[_id];});
+  var newSubId=prompt('ID para a submostra duplicada:',sugSubId);
+  if(!newSubId)return;newSubId=newSubId.trim();if(!newSubId)return;
+  if(subIds[newSubId]){alert('ID já existe: '+newSubId);return;}
+  try{
+    var _sdupData=Object.assign({},sub.data);
+    await window._olgaSubprograms.save(newSubId,_sdupData);
+    _progData.subprograms.push({id:newSubId,data:_sdupData});subIds[newSubId]=1;
+    var sessions=sessoesArr.filter(function(s){return s.subprogram_id===id;});
+    for(var i=0;i<sessions.length;i++){
+      var sx=sessions[i];
+      var newSessId=_progNextId(sx.nome,function(_id){return!!sessIds[_id];});
+      var sessData=_progSessionDocData(sx,{session_id:newSessId,subprogram_id:newSubId});
+      await window._olgaSessoes.save(newSessId,sessData);
+      sessIds[newSessId]=1;
+    }
+    if(sessions.length)await window._olgaSessoes.reload();
+    _progRender();
+  }catch(e){alert('Erro: '+e.message);}
 }
 
 /* ── CRUD Sessions ── */
@@ -16187,10 +16307,12 @@ async function deleteProgSessao(nome){
 
 async function duplicateProgSessao(nome){
   var s=sessoesMap[nome];if(!s)return;
-  var newNome=prompt('Código para a sessão duplicada:',nome+'_copia');
+  var base=nome.replace(/\.(\d+)$/,'');
+  var n=2;while(sessoesMap[base+'.'+n])n++;
+  var newNome=prompt('Código para a sessão duplicada:',base+'.'+n);
   if(!newNome)return;newNome=newNome.trim();if(!newNome)return;
   if(sessoesMap[newNome]){alert('Código já existe: '+newNome);return;}
-  var data={session_id:newNome,name:(s.name||nome)+' (cópia)',event_name:s.evento,date:s.date?s.date.toISOString().slice(0,10):'',time:s.time?s.time.str:'',venue_name:s.cinema,program_id:s.program_id||'',subprogram_id:s.subprogram_id||'',session_description:s.session_description||'',films:s.filmes.slice(),bumpers:s.vinhetas.slice(),guests:s.convidados||'',has_introduction:s.apresentacao||'Não',has_debate:s.col_ag||'Não',for_guests:s.para_convidados||'Não',has_electronic_subtitles:s.leg_eletronica||'Não',reserved_tickets:s.ingressos||'',available_accessibility:s.acessibilidades||''};
+  var data={session_id:newNome,name:(s.name||nome),event_name:s.evento,date:s.date?s.date.toISOString().slice(0,10):'',time:s.time?s.time.str:'',venue_name:s.cinema,program_id:s.program_id||'',subprogram_id:s.subprogram_id||'',session_description:s.session_description||'',films:s.filmes.slice(),bumpers:s.vinhetas.slice(),guests:s.convidados||'',has_introduction:s.apresentacao||'Não',has_debate:s.col_ag||'Não',for_guests:s.para_convidados||'Não',has_electronic_subtitles:s.leg_eletronica||'Não',reserved_tickets:s.ingressos||'',available_accessibility:s.acessibilidades||''};
   try{await window._olgaSessoes.save(newNome,data);await window._olgaSessoes.reload();_progRender();}
   catch(e){alert('Erro ao duplicar: '+e.message);}
 }
@@ -20192,7 +20314,7 @@ window.addEventListener('popstate',function(e){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 30/05/2026 às 12:44</span></div>
+<div id="page-footer"><span>última atualização · 30/05/2026 às 12:56</span></div>
 
 </div>
 

@@ -11028,25 +11028,37 @@ function _revSessionItemFns(sessionGroups){
       // Quando a sessão tem apenas um filme, omitir o nome da sessão (evita repetição
       // com o título do filme). A descrição permanece, pois traz contexto curatorial.
       var singleFilm=sess.films.length===1;
-      if(sess.name&&!singleFilm){
-        (function(sn){sessGroup.push(function(){var el=document.createElement('div');el.className='rev-sess-header';el.dataset.sessName=sn;el.textContent=sn;return el;});})(sess.name);
+      var noFilms=sess.films.length===0;
+      if(noFilms){
+        // Sessão sem filmes: empacotar nome+descrição num bloco único, para que a
+        // paginação não confunda esses elementos com cabeçalhos órfãos sem conteúdo.
+        (function(sn,sd){sessGroup.push(function(){
+          var wrap=document.createElement('div');wrap.className='rev-sess-noflim';
+          if(sn){var h=document.createElement('div');h.className='rev-sess-header';h.dataset.sessName=sn;h.textContent=sn;wrap.appendChild(h);}
+          if(sd){var d=document.createElement('div');d.className='rev-sess-desc';d.textContent=sd;wrap.appendChild(d);}
+          return wrap;
+        });})(sess.name,sess.description);
+      } else {
+        if(sess.name&&!singleFilm){
+          (function(sn){sessGroup.push(function(){var el=document.createElement('div');el.className='rev-sess-header';el.dataset.sessName=sn;el.textContent=sn;return el;});})(sess.name);
+        }
+        if(sess.description){
+          (function(sd){sessGroup.push(function(){var el=document.createElement('div');el.className='rev-sess-desc';el.textContent=sd;return el;});})(sess.description);
+        }
+        sess.films.forEach(function(film){
+          (function(fl){sessGroup.push(function(){
+            var titHtml=_revEsc(fl.titulo);
+            if(fl.original)titHtml+=' <span class="rev-film-orig">('+_revEsc(fl.original)+')</span>';
+            var meta=[];
+            if(fl.director)meta.push('Dir. '+_revEsc(fl.director));
+            if(fl.countries)meta.push(_revEsc(fl.countries));
+            if(fl.year)meta.push(_revEsc(String(fl.year)));
+            var el=document.createElement('div');el.className='rev-film-entry';el.dataset.filmCode=fl.code;
+            el.innerHTML='<div class="rev-film-title-row">'+titHtml+'</div>'+(meta.length?'<div class="rev-film-meta">'+meta.join(' · ')+'</div>':'');
+            return el;
+          });})(film);
+        });
       }
-      if(sess.description){
-        (function(sd){sessGroup.push(function(){var el=document.createElement('div');el.className='rev-sess-desc';el.textContent=sd;return el;});})(sess.description);
-      }
-      sess.films.forEach(function(film){
-        (function(fl){sessGroup.push(function(){
-          var titHtml=_revEsc(fl.titulo);
-          if(fl.original)titHtml+=' <span class="rev-film-orig">('+_revEsc(fl.original)+')</span>';
-          var meta=[];
-          if(fl.director)meta.push('Dir. '+_revEsc(fl.director));
-          if(fl.countries)meta.push(_revEsc(fl.countries));
-          if(fl.year)meta.push(_revEsc(String(fl.year)));
-          var el=document.createElement('div');el.className='rev-film-entry';el.dataset.filmCode=fl.code;
-          el.innerHTML='<div class="rev-film-title-row">'+titHtml+'</div>'+(meta.length?'<div class="rev-film-meta">'+meta.join(' · ')+'</div>':'');
-          return el;
-        });})(film);
-      });
       if(sessGroup.length)items.push(sessGroup.length===1?sessGroup[0]:sessGroup);
     });
   });
@@ -11245,23 +11257,49 @@ function _revPaginateColumnsContent(itemFns,pageShellFn,startNum,msr){
       col.appendChild(el);
     }
     // Se ainda transborda (sozinho na coluna), divide o texto da sinopse em continuações
-    var guard=0;
-    while(col.scrollHeight>_REV_COL_H&&guard++<20){
+    if(col.scrollHeight>_REV_COL_H){
       var textEl=el.querySelector('.rev-sinopse-text');
-      if(!textEl)break;
-      var tail=_revFitTextInCol(textEl,col);
-      if(tail===null||!tail)break;
-      advanceCol();
-      col=shells[curP].cols[curC];
-      var cont=document.createElement('div');
-      cont.className='rev-sinopse-entry';
-      if(el.dataset.filmCode)cont.dataset.filmCode=el.dataset.filmCode;
-      var ctext=document.createElement('div');
-      ctext.className='rev-sinopse-text';
-      ctext.textContent=tail;
-      cont.appendChild(ctext);
-      col.appendChild(cont);
-      el=cont;
+      if(textEl){
+        // Remove temporariamente o que vem DEPOIS do texto (mostras/info/sessoes)
+        // para reanexar só no fim da última continuação da sinopse.
+        var trailing=[];
+        var sib=textEl.nextElementSibling;
+        while(sib){var nxt=sib.nextElementSibling;el.removeChild(sib);trailing.push(sib);sib=nxt;}
+        // Divide o texto enquanto não couber
+        var guard=0;
+        while(col.scrollHeight>_REV_COL_H&&guard++<20){
+          var tail=_revFitTextInCol(textEl,col);
+          if(tail===null||!tail)break;
+          advanceCol();
+          col=shells[curP].cols[curC];
+          var cont=document.createElement('div');
+          cont.className='rev-sinopse-entry';
+          if(el.dataset.filmCode)cont.dataset.filmCode=el.dataset.filmCode;
+          var ctext=document.createElement('div');
+          ctext.className='rev-sinopse-text';
+          ctext.textContent=tail;
+          cont.appendChild(ctext);
+          col.appendChild(cont);
+          el=cont;
+          textEl=ctext;
+        }
+        // Reanexa os elementos finais (mostras/info/sessoes) ao último pedaço do texto;
+        // se algum não couber, joga pra próxima coluna mantendo a ordem original.
+        trailing.forEach(function(t){
+          el.appendChild(t);
+          if(col.scrollHeight>_REV_COL_H&&el.children.length>1){
+            el.removeChild(t);
+            advanceCol();
+            col=shells[curP].cols[curC];
+            var trailCont=document.createElement('div');
+            trailCont.className='rev-sinopse-entry';
+            if(el.dataset.filmCode)trailCont.dataset.filmCode=el.dataset.filmCode;
+            col.appendChild(trailCont);
+            el=trailCont;
+            el.appendChild(t);
+          }
+        });
+      }
     }
   });
   return{pages:pages,nextNum:pNum};
@@ -14814,7 +14852,7 @@ function renderDash(){
   html+=colBlock('kdm','KDM',kdmBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 30/05/2026 às 12:40';
+  var sysUpdate='última atualização do sistema · 30/05/2026 às 12:44';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -20154,7 +20192,7 @@ window.addEventListener('popstate',function(e){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 30/05/2026 às 12:40</span></div>
+<div id="page-footer"><span>última atualização · 30/05/2026 às 12:44</span></div>
 
 </div>
 

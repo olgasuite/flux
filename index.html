@@ -11455,17 +11455,19 @@ function _revBuildTabelaCell(td,sessions,mostraColor){
   var sessLabel=s.name&&s.name.trim()?s.name.trim():'';
   var nFilms=(s.filmes||[]).length;
   var multiFilm=nFilms>1;
+  var noFilms=nFilms===0;
   // Quando há apenas um filme, mostra só o título do filme — o nome da sessão fica omitido
   // (evita repetição quando o nome da sessão é praticamente igual ao do único filme).
-  if(sessLabel&&multiFilm){var sn=document.createElement('span');sn.className='rev-tabela-sess-name';sn.dataset.linkSess=sessLabel;sn.textContent=sessLabel;td.appendChild(sn);}
-  if(nFilms===1||!sessLabel){
+  // Quando não há filmes mas tem nome, mostra o nome (sessão sem filmes mas com identificação).
+  if(sessLabel&&(multiFilm||noFilms)){var sn=document.createElement('span');sn.className='rev-tabela-sess-name';sn.dataset.linkSess=sessLabel;sn.textContent=sessLabel;td.appendChild(sn);}
+  if(nFilms===1||(multiFilm&&!sessLabel)){
     (s.filmes||[]).forEach(function(cod){
       var f=filmesMap[cod]||{},cat=catalogoFilmesMap[cod]||{};
       var titulo=cat.title_pt||cat.title||f.titulo||cod;
       var span=document.createElement('span');span.className='rev-tabela-film';span.dataset.filmCode=cod;span.textContent=titulo;td.appendChild(span);
     });
   }
-  if(!nFilms&&!sessLabel){var dash=document.createElement('span');dash.className='rev-tabela-film';dash.textContent='—';td.appendChild(dash);}
+  if(noFilms&&!sessLabel){var dash=document.createElement('span');dash.className='rev-tabela-film';dash.textContent='—';td.appendChild(dash);}
   if(totalSecs>0){
     var durSpan=document.createElement('span');durSpan.className='rev-tabela-dur';
     var tm2=Math.round(totalSecs/60);
@@ -11926,18 +11928,26 @@ function renderRevista(){
     allPages.push(editPage);
     pageNum++;
 
+    // Helper de overflow: checa só a coluna principal, ignorando a sidebar (datas/cinemas
+    // podem ser mais altas que a página e ainda assim a página é válida — sidebar é clipada).
+    var _mainDiv=editPage.querySelector('.rev-main');
+    function _mainOverflows(){
+      var pR=editPage.getBoundingClientRect(),mR=_mainDiv.getBoundingClientRect();
+      return(mR.bottom-pR.top)>(_REV_PAGE_H-32);
+    }
+
     // Trim overflow text
     var overflowParas=[];
     if(paras.length>0){
       var textDiv=editPage.querySelector('.rev-curadorial-text');
-      while(editPage.scrollHeight>_REV_PAGE_H&&textDiv&&textDiv.children.length>0){
+      while(_mainOverflows()&&textDiv&&textDiv.children.length>0){
         overflowParas.unshift(textDiv.lastElementChild);
         textDiv.removeChild(textDiv.lastElementChild);
       }
     }
 
     // Filmes inline no .rev-main, logo após o texto
-    var mainDiv=editPage.querySelector('.rev-main');
+    var mainDiv=_mainDiv;
     var filmGroups=_revGetSessionGroups(sessoesMostra);
     var filmItemFns=_revSessionItemFns(filmGroups);
     var remainingFilmEls=[];
@@ -11953,7 +11963,7 @@ function renderRevista(){
           return;
         }
         els.forEach(function(el){filmsDiv.appendChild(el);});
-        if(editPage.scrollHeight>_REV_PAGE_H&&filmsDiv.children.length>els.length){
+        if(_mainOverflows()&&filmsDiv.children.length>els.length){
           els.forEach(function(el){filmsDiv.removeChild(el);});
           var orphans=_revStripOrphanHeaders(filmsDiv);
           _overflowed=true;
@@ -14804,7 +14814,7 @@ function renderDash(){
   html+=colBlock('kdm','KDM',kdmBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 29/05/2026 às 12:38';
+  var sysUpdate='última atualização do sistema · 30/05/2026 às 12:40';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -20144,7 +20154,7 @@ window.addEventListener('popstate',function(e){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 29/05/2026 às 12:38</span></div>
+<div id="page-footer"><span>última atualização · 30/05/2026 às 12:40</span></div>
 
 </div>
 

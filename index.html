@@ -3981,7 +3981,7 @@ html[data-theme]:not([data-theme="win98"]){--mono:var(--sans);}
 <script type="module">
   import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
   import { getAuth, connectAuthEmulator, GoogleAuthProvider, GithubAuthProvider, signInWithPopup, signInWithEmailAndPassword, createUserWithEmailAndPassword, sendPasswordResetEmail, signOut, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
-  import { getFirestore, connectFirestoreEmulator, collection, doc, getDoc, getDocs, setDoc, deleteDoc, addDoc, serverTimestamp, query, where, orderBy } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+  import { getFirestore, connectFirestoreEmulator, collection, doc, getDoc, getDocs, setDoc, deleteDoc, addDoc, serverTimestamp, query, where, orderBy, onSnapshot } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
 
   const firebaseConfig = {
     apiKey: "AIzaSyDIBhcsqlK3QebTmbWMNqsN_rPPybREj64",
@@ -4097,6 +4097,9 @@ html[data-theme]:not([data-theme="win98"]){--mono:var(--sans);}
     save: async function(id, data) { await setDoc(doc(db, 'sessoes', id), data); },
     remove: async function(id) { await deleteDoc(doc(db, 'sessoes', id)); },
     reload: async function() {
+      // Quando o snapshot de sessoes está ativo, o estado já fica atualizado
+      // automaticamente após cada save/remove — não há motivo para reler tudo.
+      if (window._olgaSnapshotsActive) return;
       var _u=window._olgaUser,_ue=_u&&_u.eventos&&_u.eventos.length?new Set(_u.eventos):null,_ef=_ue?Array.from(_ue):null;
       function _fs(v){if(v===null||v===undefined)return'';if(typeof v==='number'){if(v>0&&v<1){var ts=Math.round(v*86400),hh=Math.floor(ts/3600),mm=Math.floor((ts%3600)/60),ss=ts%60;return hh+':'+String(mm).padStart(2,'0')+':'+String(ss).padStart(2,'0');}return String(v);}return String(v).trim();}
       function _pd(v){if(!v)return null;var iso=v.match(/^(\d{4})-(\d{2})-(\d{2})$/);if(iso)return new Date(+iso[1],+iso[2]-1,+iso[3]);var m=v.match(/(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{2,4})/);if(m)return new Date(+m[3]<100?2000+Number(m[3]):+m[3],m[2]-1,+m[1]);var d=new Date(v);return isNaN(d)?null:new Date(d.getFullYear(),d.getMonth(),d.getDate());}
@@ -4184,6 +4187,8 @@ html[data-theme]:not([data-theme="win98"]){--mono:var(--sans);}
     save: async function(id, data) { await setDoc(doc(db, 'vinhetas', id), data); },
     remove: async function(id) { await deleteDoc(doc(db, 'vinhetas', id)); },
     reload: async function() {
+      // Snapshot ativo mantém vinhetasArr atualizado automaticamente.
+      if (window._olgaSnapshotsActive) return;
       var _u=window._olgaUser,_ue=_u&&_u.eventos&&_u.eventos.length?new Set(_u.eventos):null,_ef=_ue?Array.from(_ue):null;
       function _fs(v){if(v===null||v===undefined)return'';if(typeof v==='number')return String(v);return String(v).trim();}
       var snap=_ef?await getDocs(query(collection(db,'vinhetas'),where('event_name','in',_ef))):await getDocs(collection(db,'vinhetas'));
@@ -4692,6 +4697,9 @@ html[data-theme]:not([data-theme="win98"]){--mono:var(--sans);}
 
   window._olgaLoadFirestore = async function(opts) {
     opts = opts || {};
+    // Se já temos snapshots ativos, ignora chamadas subsequentes:
+    // os dados são mantidos frescos automaticamente via onSnapshot.
+    if (window._olgaSnapshotsActive) return;
     if (window._olgaLoading) return;
     window._olgaLoading = true;
     var landingDrop = document.getElementById('landingDrop');
@@ -4730,75 +4738,65 @@ html[data-theme]:not([data-theme="win98"]){--mono:var(--sans);}
       return !userEventos || userEventos.has(ev);
     }
 
-    try {
-      const [filmesSnap, sessoesSnap, cinemasSnap, vinhetasSnap, eventosSnap, kdmDoc, registrySnap] = await Promise.all([
-        _evFilter ? getDocs(query(collection(db, 'copias'),   where('event_name', 'in', _evFilter))) : getDocs(collection(db, 'copias')),
-        _evFilter ? getDocs(query(collection(db, 'sessoes'),  where('event_name', 'in', _evFilter))) : getDocs(collection(db, 'sessoes')),
-        getDocs(collection(db, 'cinemas')),
-        _evFilter ? getDocs(query(collection(db, 'vinhetas'), where('event_name', 'in', _evFilter))) : getDocs(collection(db, 'vinhetas')),
-        _evFilter ? getDocs(query(collection(db, 'eventos'),  where('nome',       'in', _evFilter))) : getDocs(collection(db, 'eventos')),
-        getDoc(doc(db, 'kdm_results', 'global')).catch(function(){return null;}),
-        getDocs(collection(db, '_registry')).catch(function(){return{forEach:function(){}};})
-      ]);
-      registrySnap.forEach(function(d){_usedIds[d.id]=Object.assign(_usedIds[d.id]||{},d.data().used||{});});
-      // Sync KDM results: merge localStorage + Firebase, push back se houver dados só no local
-      try {
-        var fbRes = (kdmDoc && kdmDoc.exists()) ? (function(){try{var d=kdmDoc.data();return d.r?JSON.parse(d.r):{};} catch(ex){return {};}}()) : {};
-        // Firebase wins para mesma sessão (mais recente entre dispositivos)
-        Object.assign(window._kdmResults, fbRes);
-        try { localStorage.setItem('olga-kdm-results', JSON.stringify(window._kdmResults)); } catch(e2) {}
-        // Se há resultados só no localStorage que o Firebase não tem, sincroniza agora
-        var localOnly=Object.keys(window._kdmResults).some(function(k){return !fbRes[k];});
-        if(localOnly && window._olgaKDMResults) window._olgaKDMResults.save(window._kdmResults).catch(function(){});
-      } catch(e) {}
-      // Catálogo (filmes) — carregado em paralelo, com TTL próprio de 15 min
-      if(window._olgaCatalogo&&window._olgaCacheExpired&&window._olgaCacheExpired('catalogo',15*60*1000)){
-        window._olgaCatalogo.load().then(function(map){
-          catalogoFilmesMap=map||{};
-          if(window._olgaCacheTouch)window._olgaCacheTouch('catalogo');
-          if(typeof buildBuscaFilterPanel==='function')buildBuscaFilterPanel();
-        }).catch(function(){if(window._olgaCacheTouch)window._olgaCacheTouch('catalogo');});
-      }
+    // Helpers usados pelos parsers de sessão
+    function _parseDate(v) {
+      if (!v) return null;
+      var iso = v.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+      if (iso) return new Date(+iso[1], +iso[2]-1, +iso[3]);
+      var m = v.match(/(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{2,4})/);
+      if (m) return new Date(+m[3]<100?2000+Number(m[3]):+m[3], m[2]-1, +m[1]);
+      var d = new Date(v); return isNaN(d) ? null : new Date(d.getFullYear(), d.getMonth(), d.getDate());
+    }
+    function _fmtDate(v) {
+      if (!v) return '—';
+      var d = _parseDate(v);
+      return d ? d.toLocaleDateString('pt-BR',{weekday:'short',day:'2-digit',month:'2-digit',year:'2-digit'}) : v;
+    }
+    function _parseTime(v) {
+      if (!v) return {h:0,m:0,str:'?'};
+      var p = v.split(':').map(Number);
+      return {h:p[0]||0, m:p[1]||0, str:String(p[0]||0).padStart(2,'0')+':'+String(p[1]||0).padStart(2,'0')};
+    }
 
-      // filmes
-      var filmesMap2 = {}, filmesArr2 = [];
-      filmesSnap.forEach(function(doc) {
+    // ============ Parsers de snapshot (atualizam globals diretamente) ============
+    function parseCopiasSnap(snap) {
+      var map = {}, arr = [];
+      snap.forEach(function(doc) {
         var r = doc.data();
         var codigo = fs(r['festival_code']);
         if (!codigo || codigo === '-' || codigo === '0') return;
         var evento = fs(r['event_name']);
         if (!allowedEvento(evento)) return;
         var f = {
-          evento: evento,      codigo: codigo,
-          hd:     fs(r['storage_location']),   titulo:    fs(r['title']),
-          idioma: fs(r['original_language']),  legenda:   fs(r['dcp_subtitle_code']),
-          col_g:  fs(r['program']||r['program_section']),    vf:        fs(r['vf_subtitle_code']),
-          lente:  fs(r['projection_lens']),    som:       fs(r['audio_format']),
-          col_k:  fs(r['dcp_creator']),        kdm:       fs(r['has_kdm']),
-          status: fs(r['status']),             col_n:     fs(r['subtitle_status']),
-          obs:    fs(r['notes']),              cpl:       fs(r['cpl_id']),
-          resolucao: fs(r['dcp_resolution']),  duracao:   fs(r['dcp_duration']),
-          gb:     fs(r['dcp_size']),           fps:       fs(r['dcp_fps']),
-          cplOV:  fs(r['ov_cpl_id']),          acessibilidade: fs(r['accessibility_features']),
+          evento: evento, codigo: codigo,
+          hd: fs(r['storage_location']), titulo: fs(r['title']),
+          idioma: fs(r['original_language']), legenda: fs(r['dcp_subtitle_code']),
+          col_g: fs(r['program']||r['program_section']), vf: fs(r['vf_subtitle_code']),
+          lente: fs(r['projection_lens']), som: fs(r['audio_format']),
+          col_k: fs(r['dcp_creator']), kdm: fs(r['has_kdm']),
+          status: fs(r['status']), col_n: fs(r['subtitle_status']),
+          obs: fs(r['notes']), cpl: fs(r['cpl_id']),
+          resolucao: fs(r['dcp_resolution']), duracao: fs(r['dcp_duration']),
+          gb: fs(r['dcp_size']), fps: fs(r['dcp_fps']),
+          cplOV: fs(r['ov_cpl_id']), acessibilidade: fs(r['accessibility_features']),
           exhibition_format: fs(r['exhibition_format']),
           exhibition_format_notes: fs(r['exhibition_format_notes']),
           dcp_uuid: fs(r['dcp_uuid']),
           dcp_link: fs(r['dcp_link']),
           file_link: fs(r['file_link'])
         };
-        filmesMap2[codigo] = f;
-        filmesArr2.push(f);
+        map[codigo] = f;
+        arr.push(f);
       });
-
-      // sessoes
-      var sessoesArr2 = [], sessoesMap2 = {}, buscaRev2 = {};
-      sessoesSnap.forEach(function(doc) {
+      filmesMap = map; filmesArr = arr;
+    }
+    function parseSessoesSnap(snap) {
+      var arr = [], map = {}, brev = {};
+      snap.forEach(function(doc) {
         var r = doc.data();
         var nome = fs(r['session_id']);
         if (!nome) return;
         var evento = fs(r['event_name']);
-        // se evento da sessao não vier preenchido, herda do primeiro filme
-        // filmes: suporte a array 'films' (novo) com fallback para film_1..10 (legado)
         var codes = [];
         if (Array.isArray(r['films']) && r['films'].length) {
           r['films'].forEach(function(c){ var cs=fs(c); if(cs&&cs!=='-'&&!/^=/.test(cs))codes.push(cs); });
@@ -4810,172 +4808,253 @@ html[data-theme]:not([data-theme="win98"]){--mono:var(--sans);}
         }
         if (!evento) {
           for (var fi2 = 0; fi2 < codes.length; fi2++) {
-            if (filmesMap2[codes[fi2]] && filmesMap2[codes[fi2]].evento) {
-              evento = filmesMap2[codes[fi2]].evento; break;
+            if (filmesMap[codes[fi2]] && filmesMap[codes[fi2]].evento) {
+              evento = filmesMap[codes[fi2]].evento; break;
             }
           }
         }
         if (!allowedEvento(evento)) return;
-
-        var vinhetas2 = [];
+        var vin2 = [];
         if (Array.isArray(r['bumpers']) && r['bumpers'].length) {
-          r['bumpers'].forEach(function(vc){ var vcs=fs(vc); if(vcs&&vcs!=='-'&&!/^=/.test(vcs))vinhetas2.push(vcs); });
+          r['bumpers'].forEach(function(vc){ var vcs=fs(vc); if(vcs&&vcs!=='-'&&!/^=/.test(vcs))vin2.push(vcs); });
         } else {
           for (var vi = 1; vi <= 10; vi++) {
             var vc = fs(r['bumper_' + vi]);
-            if (vc && vc !== '-' && !/^=/.test(vc)) vinhetas2.push(vc);
+            if (vc && vc !== '-' && !/^=/.test(vc)) vin2.push(vc);
           }
         }
         var dateVal = fs(r['date']), timeVal = fs(r['time']);
-        function _parseDate(v) {
-          if (!v) return null;
-          // ISO YYYY-MM-DD: construir como local para evitar UTC offset
-          var iso = v.match(/^(\d{4})-(\d{2})-(\d{2})$/);
-          if (iso) return new Date(+iso[1], +iso[2]-1, +iso[3]);
-          var m = v.match(/(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{2,4})/);
-          if (m) return new Date(+m[3]<100?2000+Number(m[3]):+m[3], m[2]-1, +m[1]);
-          var d = new Date(v); return isNaN(d) ? null : new Date(d.getFullYear(), d.getMonth(), d.getDate());
-        }
-        function _fmtDate(v) {
-          if (!v) return '—';
-          var d = _parseDate(v);
-          return d ? d.toLocaleDateString('pt-BR',{weekday:'short',day:'2-digit',month:'2-digit',year:'2-digit'}) : v;
-        }
-        function _parseTime(v) {
-          if (!v) return {h:0,m:0,str:'?'};
-          var p = v.split(':').map(Number);
-          return {h:p[0]||0, m:p[1]||0, str:String(p[0]||0).padStart(2,'0')+':'+String(p[1]||0).padStart(2,'0')};
-        }
         var s = {
-          nome: nome,               cinema:         fs(r['venue_name']),
-          dia:  _fmtDate(dateVal),  hora:           timeVal ? timeVal.slice(0,5) : '—',
-          filmes: codes,            date:           _parseDate(dateVal),
-          time: _parseTime(timeVal),evento:         evento,
-          vinhetas: vinhetas2,      convidados:     fs(r['guests']),
-          apresentacao: fs(r['has_introduction']),  publico:    fs(r['total_audience']),  renda: fs(r['total_revenue']),
-          ingressos: fs(r['reserved_tickets']),     leg_eletronica: fs(r['has_electronic_subtitles']),
+          nome: nome, cinema: fs(r['venue_name']),
+          dia: _fmtDate(dateVal), hora: timeVal ? timeVal.slice(0,5) : '—',
+          filmes: codes, date: _parseDate(dateVal),
+          time: _parseTime(timeVal), evento: evento,
+          vinhetas: vin2, convidados: fs(r['guests']),
+          apresentacao: fs(r['has_introduction']), publico: fs(r['total_audience']), renda: fs(r['total_revenue']),
+          ingressos: fs(r['reserved_tickets']), leg_eletronica: fs(r['has_electronic_subtitles']),
           acessibilidades: fs(r['available_accessibility']), col_ag: fs(r['has_debate']), para_convidados: fs(r['for_guests']),
-          name: fs(r['name']),      program_id:     fs(r['program_id']),          _docId: doc.id,
-          subprogram_id: fs(r['subprogram_id']),    session_description: fs(r['session_description']),
+          name: fs(r['name']), program_id: fs(r['program_id']), _docId: doc.id,
+          subprogram_id: fs(r['subprogram_id']), session_description: fs(r['session_description']),
           notes: fs(r['notes'])
         };
-        sessoesArr2.push(s);
-        sessoesMap2[nome] = s;
-        codes.forEach(function(c) {
-          if (!buscaRev2[c]) buscaRev2[c] = [];
-          buscaRev2[c].push(nome);
-        });
+        arr.push(s); map[nome] = s;
+        codes.forEach(function(c) { if (!brev[c]) brev[c] = []; brev[c].push(nome); });
       });
-
-      // cinemas
-      var cinemasArr2 = [];
-      cinemasSnap.forEach(function(doc) {
+      sessoesArr = arr; sessoesMap = map; buscaReverseSessoes = brev;
+      var vrev = {};
+      sessoesArr.forEach(function(s) {
+        (s.vinhetas || []).forEach(function(c) { if (!vrev[c]) vrev[c] = []; vrev[c].push(s.nome); });
+      });
+      vinhetaReverseSessoes = vrev;
+    }
+    function parseCinemasSnap(snap) {
+      var arr = [];
+      snap.forEach(function(doc) {
         var r = doc.data();
         var sala = fs(r['venue_name']);
         if (!sala) return;
-        // cinemas podem ter multiplos eventos (separados por ;)
         var eventoRaw = fs(r['event_name']);
         var eventosList = eventoRaw ? eventoRaw.split(';').map(function(e){return e.trim();}).filter(Boolean) : [];
         if (userEventos && eventosList.length && !eventosList.some(function(e){return userEventos.has(e);})) return;
-        cinemasArr2.push({
-          docId:    doc.id,
-          complexo: fs(r['complex_name']), sala:       sala,
-          servidor: fs(r['server_model']), serial:     fs(r['server_serial']),
-          projetor: fs(r['projector_model']),assentos: fs(r['seat_count']),
-          proporcao:fs(r['screen_aspect_ratio']),som:  fs(r['sound_system']),
-          obs:      fs(r['notes']),        cineassista:fs(r['cineassist_system']),
-          tms:      fs(r['tms_system']),        storage_gb: fs(r['storage_gb']),
-          evento:   eventoRaw,             estado:     fs(r['state']),
+        arr.push({
+          docId: doc.id,
+          complexo: fs(r['complex_name']), sala: sala,
+          servidor: fs(r['server_model']), serial: fs(r['server_serial']),
+          projetor: fs(r['projector_model']), assentos: fs(r['seat_count']),
+          proporcao: fs(r['screen_aspect_ratio']), som: fs(r['sound_system']),
+          obs: fs(r['notes']), cineassista: fs(r['cineassist_system']),
+          tms: fs(r['tms_system']), storage_gb: fs(r['storage_gb']),
+          evento: eventoRaw, estado: fs(r['state']),
           endereco: fs(r['address']),
-          email_kdm:  fs(r['kdm_email']),
-          email_ger:  fs(r['mgmt_email']),
-          tela_h:     fs(r['screen_height']),
-          tela_w:     fs(r['screen_width']),
-          cert_subject:    fs(r['cert_subject']),
-          cert_issuer:     fs(r['cert_issuer']),
-          cert_serial_hex: fs(r['cert_serial_hex']),
-          cert_serial_dec: fs(r['cert_serial_dec']),
-          cert_thumbprint: fs(r['cert_thumbprint']),
-          cert_filename:   fs(r['cert_filename']),
-          cert_imported_at:r['cert_imported_at']&&r['cert_imported_at'].toDate?r['cert_imported_at'].toDate():null,
-          utc_offset:      fs(r['utc_offset'])
+          email_kdm: fs(r['kdm_email']), email_ger: fs(r['mgmt_email']),
+          tela_h: fs(r['screen_height']), tela_w: fs(r['screen_width']),
+          cert_subject: fs(r['cert_subject']), cert_issuer: fs(r['cert_issuer']),
+          cert_serial_hex: fs(r['cert_serial_hex']), cert_serial_dec: fs(r['cert_serial_dec']),
+          cert_thumbprint: fs(r['cert_thumbprint']), cert_filename: fs(r['cert_filename']),
+          cert_imported_at: r['cert_imported_at']&&r['cert_imported_at'].toDate?r['cert_imported_at'].toDate():null,
+          utc_offset: fs(r['utc_offset'])
         });
       });
-
-      // vinhetas
-      var vinhetasArr2 = [];
-      vinhetasSnap.forEach(function(doc) {
+      cinemasArr = arr;
+    }
+    function parseVinhetasSnap(snap) {
+      var arr = [];
+      snap.forEach(function(doc) {
         var r = doc.data();
         var codigo = fs(r['bumper_code']);
         if (!codigo || codigo === '-') return;
         var evento = fs(r['event_name']);
         if (!allowedEvento(evento)) return;
-        vinhetasArr2.push({
+        arr.push({
           evento: evento, codigo: codigo,
-          nome:   fs(r['title']),           lente:  fs(r['projection_lens']),
-          som:    fs(r['audio_format']),    obs:    fs(r['notes']),
-          cpl:    fs(r['cpl_id']),          link:   fs(r['file_link']),
-          duracao:fs(r['duration'])
+          nome: fs(r['title']), lente: fs(r['projection_lens']),
+          som: fs(r['audio_format']), obs: fs(r['notes']),
+          cpl: fs(r['cpl_id']), link: fs(r['file_link']),
+          duracao: fs(r['duration'])
         });
       });
-
-      // vinhetaReverseSessoes
-      var vinhetaRev2 = {};
-      sessoesArr2.forEach(function(s) {
-        (s.vinhetas || []).forEach(function(c) {
-          if (!vinhetaRev2[c]) vinhetaRev2[c] = [];
-          vinhetaRev2[c].push(s.nome);
-        });
+      vinhetasArr = arr;
+    }
+    function parseFilmesSnap(snap) {
+      var map = {};
+      function fss(v){return(v===null||v===undefined)?'':(typeof v==='string'?v.trim():String(v));}
+      function fsa(v){if(!v)return[];if(Array.isArray(v))return v.map(fss);return[];}
+      snap.forEach(function(d) {
+        var r = d.data();
+        var cod = r['festival_code'] || d.id; if (!cod) return;
+        map[cod] = {
+          festival_code:cod, system_name:fss(r.system_name), title:fss(r.title), title_pt:fss(r.title_pt),
+          original_title:fss(r.original_title), english_title:fss(r.english_title),
+          year:r.year?parseInt(r.year):null, director:fsa(r.director),
+          countries:fsa(r.countries), production_company:fsa(r.production_company),
+          distribution_company:fsa(r.distribution_company), synopsis:fss(r.synopsis),
+          synopsis_en:fss(r.synopsis_en), website:fss(r.website),
+          genre:fsa(r.genre), film_type:fss(r.film_type), content_rating:fss(r.content_rating),
+          original_language:fss(r.original_language), subtitles:fsa(r.subtitles),
+          contact_email:fss(r.contact_email), awards:fsa(r.awards),
+          director_filmography:fsa(r.director_filmography),
+          keywords:fsa(r.keywords), producers:fsa(r.producers),
+          copy_arrival_forecast:fss(r.copy_arrival_forecast), copy_notes:fss(r.copy_notes),
+          selecao:fss(r.selecao), screener:fss(r.screener), trailer:fss(r.trailer),
+          uf:fsa(r.uf),
+          film_color:fss(r.film_color), aspect_ratio:fss(r.aspect_ratio),
+          shooting_format:fss(r.shooting_format), student_project:fss(r.student_project),
+          ff_submission_id:fss(r.ff_submission_id), ff_link:fss(r.ff_link),
+          ff_rating:fss(r.ff_rating), ff_category:fss(r.ff_category),
+          ff_duration:fss(r.ff_duration),
+          ff_student:fss(r.ff_student), ff_school:fss(r.ff_school),
+          ff_first_time:fss(r.ff_first_time), ff_other_credits:fss(r.ff_other_credits),
+          sfd_school:fss(r.sfd_school),
+          sfd_section:fss(r.sfd_section), sfd_category:fss(r.sfd_category),
+          sfd_first_time:fss(r.sfd_first_time), sfd_screening_format:fss(r.sfd_screening_format),
+          sfd_ref:fss(r.sfd_ref), sfd_film_id:fss(r.sfd_film_id), sfd_id:fss(r.sfd_id),
+          import_source:fss(r.import_source),
+          cpb:fss(r.cpb), forma_selecao:fss(r.forma_selecao),
+          crew:r.crew?{
+            cinematography:fsa(r.crew.cinematography), screenplay:fsa(r.crew.screenplay),
+            editing:fsa(r.crew.editing), sound:fsa(r.crew.sound),
+            art_direction:fsa(r.crew.art_direction), costume_design:fsa(r.crew.costume_design),
+            cast:fsa(r.crew.cast)
+          }:{},
+          runtime:r.runtime?parseInt(r.runtime):null,
+          cinemateca_raw:r.cinemateca_raw?(function(){try{return JSON.parse(r.cinemateca_raw);}catch(e){return null;}})():null
+        };
       });
-
-      // events set (só eventos permitidos)
-      var evSet = new Set();
-      filmesArr2.forEach(function(f)  { if (f.evento) evSet.add(f.evento); });
-      sessoesArr2.forEach(function(s) { if (s.evento) evSet.add(s.evento); });
-      cinemasArr2.forEach(function(c) {
-        if (c.evento) c.evento.split(';').forEach(function(e){ var t=e.trim(); if(t&&allowedEvento(t)) evSet.add(t); });
-      });
-      vinhetasArr2.forEach(function(v){ if (v.evento) evSet.add(v.evento); });
-
-      var now = new Date();
-      var label = 'Firestore · ' + now.toLocaleDateString('pt-BR') + ' ' +
-                  now.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
-
-      // eventos cadastrados no Firestore (fonte de verdade para cores e eventos sem filmes)
-      var eventosFirestore2 = [];
-      if(!window._olgaEventoNomes)window._olgaEventoNomes={};
-      eventosSnap.forEach(function(doc) {
-        var r = doc.data();
-        var nome = (r.nome || doc.id || '').trim();
+      catalogoFilmesMap = map;
+      if (typeof buildBuscaFilterPanel === 'function') buildBuscaFilterPanel();
+    }
+    function parseProgramsSnap(snap) {
+      var arr = []; snap.forEach(function(d){ arr.push({ id: d.id, data: d.data() }); });
+      _progData.programs = arr;
+    }
+    function parseSubprogramsSnap(snap) {
+      var arr = []; snap.forEach(function(d){ arr.push({ id: d.id, data: d.data() }); });
+      _progData.subprograms = arr;
+    }
+    function parseEventosSnap(snap) {
+      var fs2 = [], full = [];
+      if (!window._olgaEventoNomes) window._olgaEventoNomes = {};
+      snap.forEach(function(d) {
+        var r = d.data();
+        var nome = (r.nome || d.id || '').trim();
         if (!nome) return;
         if (!allowedEvento(nome)) return;
-        eventosFirestore2.push({ nome: nome, texto_curatorial: r.texto_curatorial||'', cor: (r.cor&&r.cor.bg)?r.cor:null });
-        // mapeia code → nome_exibicao para uso na Revista
-        if(r.nome_exibicao)window._olgaEventoNomes[doc.id]=r.nome_exibicao;
-        if(r.nome_exibicao)window._olgaEventoNomes[nome]=r.nome_exibicao;
+        fs2.push({ nome: nome, texto_curatorial: r.texto_curatorial || '', cor: (r.cor && r.cor.bg) ? r.cor : null });
+        full.push({ id: d.id, data: r });
+        if (r.nome_exibicao) {
+          window._olgaEventoNomes[d.id] = r.nome_exibicao;
+          window._olgaEventoNomes[nome] = r.nome_exibicao;
+        }
       });
-      window._olgaEventosCache = eventosFirestore2;
+      window._olgaEventosCache = fs2;
+      window._adminEventosFullCache = full;
+    }
 
+    // Coleções estáticas: kdm_results + _registry (uma leitura, sem listener)
+    try {
+      var kdmAndReg = await Promise.all([
+        getDoc(doc(db, 'kdm_results', 'global')).catch(function(){return null;}),
+        getDocs(collection(db, '_registry')).catch(function(){return{forEach:function(){}};})
+      ]);
+      var kdmDoc = kdmAndReg[0], registrySnap = kdmAndReg[1];
+      registrySnap.forEach(function(d){_usedIds[d.id]=Object.assign(_usedIds[d.id]||{},d.data().used||{});});
+      try {
+        var fbRes = (kdmDoc && kdmDoc.exists()) ? (function(){try{var d=kdmDoc.data();return d.r?JSON.parse(d.r):{};} catch(ex){return {};}}()) : {};
+        Object.assign(window._kdmResults, fbRes);
+        try { localStorage.setItem('olga-kdm-results', JSON.stringify(window._kdmResults)); } catch(e2) {}
+        var localOnly=Object.keys(window._kdmResults).some(function(k){return !fbRes[k];});
+        if(localOnly && window._olgaKDMResults) window._olgaKDMResults.save(window._kdmResults).catch(function(){});
+      } catch(e) {}
+    } catch(e) { console.warn('static load:', e); }
+
+    // Subscriptions onSnapshot — real-time push para 8 coleções voláteis
+    var pendingFirst = new Set(['copias','sessoes','cinemas','vinhetas','filmes','programs','subprograms','eventos']);
+    var initialApplied = false;
+    var snapLabel = 'Firestore · ' + (new Date()).toLocaleDateString('pt-BR') + ' ' + (new Date()).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+    function _olgaFinalizeInitial() {
+      if (initialApplied || pendingFirst.size > 0) return;
+      initialApplied = true;
+      var evSet = new Set();
+      filmesArr.forEach(function(f){ if (f.evento) evSet.add(f.evento); });
+      sessoesArr.forEach(function(s){ if (s.evento) evSet.add(s.evento); });
+      cinemasArr.forEach(function(c){
+        if (c.evento) c.evento.split(';').forEach(function(e){ var t=e.trim(); if(t&&allowedEvento(t)) evSet.add(t); });
+      });
+      vinhetasArr.forEach(function(v){ if (v.evento) evSet.add(v.evento); });
       if (typeof applyParsedData === 'function') {
         applyParsedData({
-          filmesMap: filmesMap2, filmesArr: filmesArr2,
-          sessoesArr: sessoesArr2, sessoesMap: sessoesMap2,
-          buscaReverseSessoes: buscaRev2,
-          cinemasArr: cinemasArr2,
-          vinhetasArr: vinhetasArr2, vinhetaReverseSessoes: vinhetaRev2,
+          filmesMap: filmesMap, filmesArr: filmesArr,
+          sessoesArr: sessoesArr, sessoesMap: sessoesMap,
+          buscaReverseSessoes: buscaReverseSessoes,
+          cinemasArr: cinemasArr,
+          vinhetasArr: vinhetasArr, vinhetaReverseSessoes: vinhetaReverseSessoes,
           events: Array.from(evSet),
-          eventosFirestore: eventosFirestore2
-        }, label);
+          eventosFirestore: window._olgaEventosCache
+        }, snapLabel);
       }
       window._olgaCacheTouch('sessoes');
       window._olgaCacheTouch('vinhetas');
+      window._olgaCacheTouch('catalogo');
+      window._olgaCacheTouch('prog');
       window._olgaLoading = false;
+    }
+    function _onSnap(name, parser) {
+      return function(snap) {
+        try { parser(snap); } catch(e) { console.warn('parse '+name+':', e); }
+        if (pendingFirst.has(name)) {
+          pendingFirst.delete(name);
+          _olgaFinalizeInitial();
+        } else if (initialApplied) {
+          // delta após carga inicial → re-renderiza a view ativa
+          if (typeof _olgaRerenderActive === 'function') _olgaRerenderActive();
+        }
+      };
+    }
+    function _onSnapErr(name) {
+      return function(err) {
+        console.warn('snapshot '+name+':', err);
+        if (pendingFirst.has(name)) {
+          pendingFirst.delete(name);
+          _olgaFinalizeInitial();
+        }
+      };
+    }
 
+    try {
+      var unsubs = [];
+      unsubs.push(onSnapshot(_evFilter ? query(collection(db,'copias'),   where('event_name','in',_evFilter)) : collection(db,'copias'),   _onSnap('copias',      parseCopiasSnap),      _onSnapErr('copias')));
+      unsubs.push(onSnapshot(_evFilter ? query(collection(db,'sessoes'),  where('event_name','in',_evFilter)) : collection(db,'sessoes'),  _onSnap('sessoes',     parseSessoesSnap),     _onSnapErr('sessoes')));
+      unsubs.push(onSnapshot(collection(db,'cinemas'),                                                                                       _onSnap('cinemas',     parseCinemasSnap),     _onSnapErr('cinemas')));
+      unsubs.push(onSnapshot(_evFilter ? query(collection(db,'vinhetas'), where('event_name','in',_evFilter)) : collection(db,'vinhetas'), _onSnap('vinhetas',    parseVinhetasSnap),    _onSnapErr('vinhetas')));
+      unsubs.push(onSnapshot(collection(db,'filmes'),                                                                                       _onSnap('filmes',      parseFilmesSnap),      _onSnapErr('filmes')));
+      unsubs.push(onSnapshot(collection(db,'programs'),                                                                                     _onSnap('programs',    parseProgramsSnap),    _onSnapErr('programs')));
+      unsubs.push(onSnapshot(collection(db,'subprograms'),                                                                                  _onSnap('subprograms', parseSubprogramsSnap), _onSnapErr('subprograms')));
+      unsubs.push(onSnapshot(_evFilter ? query(collection(db,'eventos'),  where('nome','in',_evFilter))      : collection(db,'eventos'),   _onSnap('eventos',     parseEventosSnap),     _onSnapErr('eventos')));
+      window._olgaSnapshotUnsubs = unsubs;
+      window._olgaSnapshotsActive = true;
     } catch (err) {
       window._olgaLoading = false;
-      window._olgaCacheTouch('sessoes');
-      window._olgaCacheTouch('vinhetas');
-      console.error('Firestore load error:', err);
+      console.error('Firestore subscribe error:', err);
       if (landingDrop) {
         landingDrop.innerHTML =
           '<div class="drop-icon" style="color:var(--warn);display:block!important">⚠</div>' +
@@ -5082,6 +5161,12 @@ html[data-theme]:not([data-theme="win98"]){--mono:var(--sans);}
 
     } else {
       window._olgaUser = null;
+      // Desconecta listeners de snapshot ao deslogar pra evitar leaks
+      if (window._olgaSnapshotUnsubs) {
+        window._olgaSnapshotUnsubs.forEach(function(u){ try{u();}catch(e){} });
+        window._olgaSnapshotUnsubs = [];
+        window._olgaSnapshotsActive = false;
+      }
       loginScreen.style.display = 'flex';
       appWrap.style.display = 'none';
     }
@@ -5972,12 +6057,23 @@ var PALETTE=[
 // Persiste cores de eventos no Firestore (best-effort, em background).
 // Só grava se o usuário pode editar equipe e a API _olgaEventos está disponível.
 // Falhas por permissão são silenciosas — a cor calculada continua valendo na sessão.
+// Roda no máximo uma vez por sessão para não acumular reads/writes a cada reload.
+var _eventColorsPersistTried=false;
 async function _persistEventColors(map){
+  if(_eventColorsPersistTried)return;
   if(!map)return;
   var keys=Object.keys(map);if(!keys.length)return;
   if(!window._olgaEventos||!window._olgaCanEdit||!window._olgaCanEdit('equipe'))return;
+  _eventColorsPersistTried=true;
   try{
-    if(!(_adminEventos||[]).length){try{_adminEventos=await window._olgaEventos.list();}catch(e){return;}}
+    // Reusa o snapshot completo já carregado em _olgaLoadFirestore (sem nova leitura).
+    if(!(_adminEventos||[]).length){
+      if(window._adminEventosFullCache&&window._adminEventosFullCache.length){
+        _adminEventos=window._adminEventosFullCache.slice();
+      } else {
+        try{_adminEventos=await window._olgaEventos.list();}catch(e){return;}
+      }
+    }
     var byId={};(_adminEventos||[]).forEach(function(e){byId[e.id]=e;});
     for(var i=0;i<keys.length;i++){
       var ev=keys[i],col=map[ev];
@@ -5996,6 +6092,46 @@ async function _persistEventColors(map){
       }catch(e){/* sem permissão ou offline — segue computado */break;}
     }
   }catch(e){}
+}
+
+// Re-render do módulo ativo após uma atualização de snapshot.
+// Chamado pelos handlers do onSnapshot quando dados de uma coleção chegam.
+function _olgaRerenderActive(){
+  if(!dataLoaded||!currentMode)return;
+  try{
+    if(window._mobileActive){if(typeof olgaMobileRefresh==='function')olgaMobileRefresh();return;}
+    switch(currentMode){
+      case 'sessoes': if(typeof renderSessoes==='function')renderSessoes(); break;
+      case 'bilheteria': if(typeof renderBilheteria==='function')renderBilheteria(); break;
+      case 'grade': if(typeof renderGrade==='function')renderGrade(); break;
+      case 'grade2': if(typeof renderGrade2==='function')renderGrade2(); break;
+      case 'vinhetas':
+        if(typeof currentVinhetaDetail!=='undefined'&&currentVinhetaDetail&&typeof renderVinhetaDetail==='function')renderVinhetaDetail(currentVinhetaDetail);
+        else if(typeof renderVinhetas==='function')renderVinhetas();
+        break;
+      case 'projecao': if(typeof renderProjecao==='function')renderProjecao(); break;
+      case 'ficha': if(typeof renderFicha==='function')renderFicha(); break;
+      case 'cinemas':
+        if(typeof currentCinemaDetail!=='undefined'&&currentCinemaDetail&&typeof renderCinemaDetail==='function')renderCinemaDetail(currentCinemaDetail);
+        else if(typeof renderCinemas==='function')renderCinemas();
+        break;
+      case 'kdm': if(typeof renderKDM==='function')renderKDM(); break;
+      case 'dash': if(typeof renderDash==='function')renderDash(); break;
+      case 'receptivo': if(typeof renderReceptivo==='function')renderReceptivo(); break;
+      case 'revista': if(typeof renderRevista==='function')renderRevista(); break;
+      case 'busca': if(typeof renderBuscaResults==='function')renderBuscaResults(); break;
+      case 'ingest': if(typeof renderIngest==='function')renderIngest(); break;
+      case 'equipe': if(typeof renderEquipe==='function')renderEquipe(); break;
+      case 'catalogo':
+        if(typeof _catView!=='undefined'){
+          if(_catView==='detail'&&typeof renderCatDetail==='function'&&!_catEditing)renderCatDetail();
+          else if(_catView==='search'&&typeof renderCatalogo==='function')renderCatalogo();
+        }
+        break;
+      case 'programacao': if(typeof _progRender==='function')_progRender(); break;
+      case 'triagem': if(typeof renderTriagem==='function')renderTriagem(); break;
+    }
+  }catch(e){console.warn('_olgaRerenderActive:',e);}
 }
 
 var fileInput=document.getElementById('fileInput');
@@ -15249,7 +15385,7 @@ function renderDash(){
   html+=colBlock('kdm','KDM',kdmBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 31/05/2026 às 13:52';
+  var sysUpdate='última atualização do sistema · 31/05/2026 às 14:00';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -21205,7 +21341,7 @@ window.addEventListener('popstate',function(e){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 31/05/2026 às 13:52</span></div>
+<div id="page-footer"><span>última atualização · 31/05/2026 às 14:00</span></div>
 
 </div>
 
@@ -23751,16 +23887,9 @@ async function ffStartImport(){
   if(typeof buildBuscaFilterPanel==='function')buildBuscaFilterPanel();
 }
 
-// Polling de fundo: enquanto o usuário permanece num módulo com dados voláteis,
-// verifica o TTL a cada 60s e dispara reload silencioso se expirado.
-setInterval(function(){
-  if(!window._olgaLoadFirestore||window._olgaLoading||!window._olgaCacheExpired)return;
-  if((currentMode==='sessoes'||currentMode==='bilheteria')&&window._olgaCacheExpired('sessoes',180000)){
-    window._olgaLoadFirestore({silent:true});
-  }else if(currentMode==='vinhetas'&&window._olgaCacheExpired('vinhetas',600000)){
-    window._olgaLoadFirestore({silent:true});
-  }
-},60000);
+// (Polling removido — substituído por onSnapshot em _olgaLoadFirestore.
+//  Os dados de copias/sessoes/cinemas/vinhetas/filmes/programs/subprograms/eventos
+//  são atualizados em tempo real via push do Firestore. Sem reads idle.)
 </script>
 
 <!-- ═══ SHORT FILM DEPOT IMPORTER ═══ -->

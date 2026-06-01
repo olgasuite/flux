@@ -1380,7 +1380,7 @@ td.cpl-cell{background:var(--cpl-bg);border-left:3px solid var(--cpl-border);pad
 .card-top{display:flex;align-items:center;gap:8px;flex-wrap:nowrap;margin-bottom:6px;}
 .card-titulo{font-family:var(--sans);font-size:14px;font-weight:600;color:var(--text);line-height:1.2;}
 mark{background:rgba(255,186,32,0.28);color:var(--accent);border-radius:2px;padding:0 1px;}
-.card-codigo{font-family:var(--mono);font-size:10px;color:var(--text-dim);white-space:nowrap;}
+.card-codigo{font-family:var(--mono);font-size:8.5px;color:var(--text-dim);white-space:nowrap;}
 .card-evento{font-family:var(--mono);font-size:9px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;padding:2px 7px;border-radius:2px;}
 .card-meta{display:flex;gap:5px;flex-wrap:nowrap;align-items:center;margin-top:8px;overflow-x:auto;scrollbar-width:none;}
 /* unified pill — every card-meta child is this exact height */
@@ -3167,10 +3167,10 @@ mark{background:rgba(255,186,32,0.28);color:var(--accent);border-radius:2px;padd
 #catalogo-panel{padding:0 0 80px;}
 #triagem-panel{padding:0 0 80px;}
 .cat-list{padding:14px 24px;display:flex;flex-direction:column;gap:4px;}
-.cat-item{display:grid;grid-template-columns:76px 70px 1fr 140px 40px 48px 38px 50px 80px 84px;align-items:center;gap:12px;padding:9px 14px;background:var(--surface);border:1px solid var(--border);border-left:3px solid var(--border2);cursor:pointer;transition:background 0.1s;text-align:left;width:100%;color:var(--text);}
+.cat-item{display:grid;grid-template-columns:70px 60px 1fr 140px 40px 48px 38px 50px 80px 84px;align-items:center;gap:12px;padding:9px 14px;background:var(--surface);border:1px solid var(--border);border-left:3px solid var(--border2);cursor:pointer;transition:background 0.1s;text-align:left;width:100%;color:var(--text);}
 .cat-item:hover{background:var(--surface2);}
 .cat-item.has-meta{border-left-color:var(--accent);}
-.cat-item-code{font-family:var(--mono);font-size:10px;color:var(--text-muted);}
+.cat-item-code{font-family:var(--mono);font-size:8.5px;color:var(--text-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .cat-item-title{font-family:var(--sans);font-size:13px;font-weight:600;color:var(--text);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .cat-item-dir{font-family:var(--sans);font-size:11px;color:var(--text-dim);min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .cat-item-dir.dim{color:var(--text-muted);}
@@ -14092,6 +14092,7 @@ function _buildBatchForm(){
     +tagInp('director','Direção')
     +tagInp('genre','Gênero')
     +tagInp('countries','País')
+    +tagInp('uf','UF')
     +inp('film_type','Metragem','curta / média / longa')
     +sel('content_rating','Classificação etária',['L','10','12','14','16','18'])
     +sel('selecao','Seleção',['FEST','NÃO FEST','SUPLENTE','CONVIDADO','VISIONAMENTO'])
@@ -14127,7 +14128,7 @@ async function executeBatchSave(){
 
   // Ler campos simples
   var simples=['title_pt','original_title','english_title','year','film_type','content_rating','selecao','screener','contact_email','synopsis'];
-  var arrays=['director','genre','countries','production_company','distribution_company','awards','director_filmography','keywords'];
+  var arrays=['director','genre','countries','uf','production_company','distribution_company','awards','director_filmography','keywords'];
   // Status DCP é separado — vai pra `copias`, não `filmes`
   var statusDcpVal=_bfVal('status_dcp');
 
@@ -14222,11 +14223,17 @@ function _buildBatchCopiasForm(){
   function inp(id,label){return'<div class="batch-fld"><div class="batch-fld-label">'+label+'</div><input class="batch-fld-inp" id="bfc_'+id+'" placeholder="deixe vazio para não alterar"></div>';}
   function inpDl(id,label,arr){return'<div class="batch-fld"><div class="batch-fld-label">'+label+'</div><input class="batch-fld-inp" id="bfc_'+id+'" list="bfcdl_'+id+'" placeholder="deixe vazio para não alterar" autocomplete="off">'+dl(id,arr)+'</div>';}
   function kdmSel(){return'<div class="batch-fld"><div class="batch-fld-label">KDM</div><select class="batch-fld-inp" id="bfc_kdm"><option value="">— não alterar</option><option value="Sim">Sim</option><option value="Não">Não</option></select></div>';}
+  function exFmtSel(){
+    var opts=['DCP','arquivo','35mm','16mm','Super 8mm','HDCAM','Outro'];
+    return'<div class="batch-fld"><div class="batch-fld-label">Formato de exibição</div><select class="batch-fld-inp" id="bfc_exhibition_format"><option value="">— não alterar</option>'+opts.map(function(o){return'<option value="'+esc(o)+'">'+esc(o)+'</option>';}).join('')+'</select></div>';
+  }
   function ta(id,label){return'<div class="batch-fld batch-full"><div class="batch-fld-label">'+label+'</div><textarea class="batch-fld-inp batch-fld-ta" id="bfc_'+id+'" placeholder="deixe vazio para não alterar"></textarea></div>';}
   return inpDl('status','Status',statusVals)
     +kdmSel()
     +inpDl('lente','Lente',lentes)
     +inpDl('som','Som',sons)
+    +exFmtSel()
+    +inp('exhibition_format_notes','Obs. do formato')
     +inp('hd','Storage / HD')
     +inp('legenda','Legenda (código)')
     +inp('vf','VF (código)')
@@ -14263,6 +14270,8 @@ async function executeBatchCopiasSave(){
     {form:'kdm',fs:'has_kdm',int:'kdm'},
     {form:'lente',fs:'projection_lens',int:'lente'},
     {form:'som',fs:'audio_format',int:'som'},
+    {form:'exhibition_format',fs:'exhibition_format',int:'exhibition_format'},
+    {form:'exhibition_format_notes',fs:'exhibition_format_notes',int:'exhibition_format_notes'},
     {form:'hd',fs:'storage_location',int:'hd'},
     {form:'legenda',fs:'dcp_subtitle_code',int:'legenda'},
     {form:'vf',fs:'vf_subtitle_code',int:'vf'},
@@ -14294,6 +14303,8 @@ async function executeBatchCopiasSave(){
         dcp_size:f.gb||'', dcp_fps:f.fps||'',
         storage_location:'storage_location' in patch?patch.storage_location:(f.hd||''),
         dcp_uuid:f.dcp_uuid||'',
+        exhibition_format:'exhibition_format' in patch?patch.exhibition_format:(f.exhibition_format||''),
+        exhibition_format_notes:'exhibition_format_notes' in patch?patch.exhibition_format_notes:(f.exhibition_format_notes||''),
         accessibility_features:(function(){if(!_bfcAcessTags.length)return f.acessibilidade||'';if(_bfcAcessMode==='substituir')return _bfcAcessTags.join(', ');var ex=(f.acessibilidade||'').split(/[,;\/\n]+/).map(function(t){return t.trim();}).filter(Boolean);var mg=ex.slice();_bfcAcessTags.forEach(function(t){if(mg.indexOf(t)<0)mg.push(t);});return mg.join(', ');})(),
         dcp_link:f.dcp_link||'', file_link:f.file_link||''
       };
@@ -14383,8 +14394,8 @@ function renderBuscaResults(){
               '<span class="card-titulo">'+hl(f.titulo||f.codigo,buscaQuery)+'</span>'+
               '<span class="expand-toggle">▶</span>'+
             '</span>'+
-            '<span class="card-codigo">'+hl(f.codigo,buscaQuery)+'</span>'+
             (f.evento&&col?'<span class="card-evento" style="background:'+col.bg+';color:'+col.text+'">'+f.evento+'</span>':'')+
+            '<span class="card-codigo">'+hl(f.codigo,buscaQuery)+'</span>'+
             statusBadge(f.status)+
           '</div>'+
           '<div class="card-meta">'+
@@ -15385,7 +15396,7 @@ function renderDash(){
   html+=colBlock('kdm','KDM',kdmBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 31/05/2026 às 14:00';
+  var sysUpdate='última atualização do sistema · 31/05/2026 às 14:10';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -18223,9 +18234,9 @@ function _catSortHeader(){
     var arr=act?(_catSortDir==='asc'?' ↑':' ↓'):'';
     return'<button onclick="_catSetSort(\''+key+'\')" style="background:none;border:none;padding:0;width:100%;cursor:pointer;user-select:none;font-family:var(--mono);font-size:8px;font-weight:600;letter-spacing:0.12em;text-transform:uppercase;color:'+(act?'var(--accent)':'var(--text-muted)')+';text-align:'+(align||'left')+';white-space:nowrap;">'+label+arr+'</button>';
   }
-  return'<div style="display:grid;grid-template-columns:76px 70px 1fr 140px 40px 48px 38px 50px 80px 84px;align-items:center;gap:12px;padding:5px '+pr+' 5px '+pl+';background:var(--surface2);border-bottom:2px solid var(--border);border-top:1px solid var(--border);position:sticky;top:44px;z-index:10;">'
-    +sh('Código','code')
+  return'<div style="display:grid;grid-template-columns:70px 60px 1fr 140px 40px 48px 38px 50px 80px 84px;align-items:center;gap:12px;padding:5px '+pr+' 5px '+pl+';background:var(--surface2);border-bottom:2px solid var(--border);border-top:1px solid var(--border);position:sticky;top:44px;z-index:10;">'
     +sh('Evento','evento','center')
+    +sh('Código','code')
     +sh('Título','title')
     +sh('Direção','dir')
     +sh('Dur','dur','center')
@@ -18263,8 +18274,8 @@ function _catBuildCards(films){
     html+=(_batchCanEdit()?'<div class="cat-item-wrap">':'')
       +(_batchCanEdit()?'<label class="batch-cb-wrap" onclick="event.stopPropagation()"><input type="checkbox" class="batch-cb" data-codigo="'+f.codigo.replace(/"/g,'&quot;')+'" onchange="_catToggleSel(this)"'+(_catBatchSel.has(f.codigo)?' checked':'')+'/></label>':'')
       +'<button class="cat-item'+(hasMeta?' has-meta':'')+'" data-cod="'+f.codigo.replace(/"/g,'&quot;')+'" onclick="openCatDetail(this.dataset.cod)">'
-      +'<span class="cat-item-code">'+f.codigo+'</span>'
       +evSpan
+      +'<span class="cat-item-code" title="'+f.codigo.replace(/"/g,'&quot;')+'">'+f.codigo+'</span>'
       +'<span class="cat-item-title">'+(title||'')+'</span>'
       +(dir?'<span class="cat-item-dir">'+dir+'</span>':'<span class="cat-item-dir dim">—</span>')
       +durSpan
@@ -21341,7 +21352,7 @@ window.addEventListener('popstate',function(e){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 31/05/2026 às 14:00</span></div>
+<div id="page-footer"><span>última atualização · 31/05/2026 às 14:10</span></div>
 
 </div>
 

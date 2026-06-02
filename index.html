@@ -5602,6 +5602,7 @@ window.addEventListener('DOMContentLoaded',function(){
   <input type="text" id="sessoesTituloInput" placeholder="título, diretor, idioma…" style="height:28px;padding:0 8px;border:1px solid var(--border);border-radius:4px;background:var(--surface);color:var(--text);font-family:var(--mono);font-size:10px;min-width:220px;margin-left:4px;" oninput="_sessoesFiltroTitulo=this.value;var _s=this.selectionStart,_e=this.selectionEnd;renderSessoes();this.focus();this.setSelectionRange(_s,_e);">
   <input type="date" id="sessoesDataInput" style="height:28px;padding:0 6px;border:1px solid var(--border);border-radius:4px;background:var(--surface);color:var(--text);font-family:var(--mono);font-size:10px;margin-left:4px;" onchange="_sessoesFiltroData=this.value;renderSessoes();">
   <button class="print-btn" id="btnSessoesBatch" onclick="_sessoesBatchToggleMode()" style="margin-left:8px;display:none;">☑ Selecionar sessões</button>
+  <button class="print-btn" id="btnSessoesExportCinemas" onclick="openSessoesExportCinemas()" style="margin-left:6px;">⤓ Exportar para cinemas</button>
 </div>
 <div class="mode-bar hidden" id="barBusca">
   <button class="recep-back-btn" onclick="switchMode('projecao')">← Projeção</button>
@@ -5617,6 +5618,7 @@ window.addEventListener('DOMContentLoaded',function(){
   <span class="result-count" id="resultCount"></span>
   <button class="print-btn" onclick="printBusca()" style="margin-left:auto;">⎙ Imprimir</button>
   <button class="print-btn" onclick="openAcervoRelatorio()" style="margin-left:6px;">⎙ Relatório</button>
+  <button class="print-btn" id="btnBuscaExportEspecial" onclick="openCatExportModal('busca')" style="margin-left:6px;">⤓ Exportar especial</button>
 </div>
 <div id="filterPanel">
   <div class="fp-header">
@@ -7451,6 +7453,8 @@ function buildSessoesFilters(){
   rebuildSessoesCinemaSelect();
   var canBatch=window._olgaUser&&window._olgaCanEdit&&window._olgaCanEdit('programacao')&&!(window._olgaHasRestricao&&window._olgaHasRestricao('sessoes.somente_vinhetas'));
   var btnB=document.getElementById('btnSessoesBatch');if(btnB)btnB.style.display=canBatch?'':'none';
+  var btnExpC=document.getElementById('btnSessoesExportCinemas');
+  if(btnExpC)btnExpC.style.display=(window._olgaHasRestricao&&window._olgaHasRestricao('sessoes.exportar_cinemas'))?'none':'';
   if(currentMode==='sessoes')renderSessoes();
 }
 
@@ -7884,6 +7888,8 @@ function buildBuscaFilters(){
     _cleanBuscaSessaoFilter();
     renderBuscaResults();buildBuscaFilterPanel();
   });
+  var _btnExpB=document.getElementById('btnBuscaExportEspecial');
+  if(_btnExpB)_btnExpB.style.display=(window._olgaHasRestricao&&window._olgaHasRestricao('busca.exportar_especial'))?'none':'';
 }
 
 function rebuildIngestCinemaSelect(){
@@ -15657,7 +15663,7 @@ function renderDash(){
   html+=colBlock('kdm','KDM',kdmBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 02/06/2026 às 15:04';
+  var sysUpdate='última atualização do sistema · 02/06/2026 às 15:12';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -17398,6 +17404,8 @@ var _EQUIPE_RESTRICOES=[
   {k:'catalogo.triagem',label:'Catálogo · Ocultar botão "Importar da Triagem"'},
   {k:'catalogo.cadastro_lote',label:'Catálogo · Ocultar botão "+ Múltiplos filmes"'},
   {k:'catalogo.exportar_especial',label:'Catálogo · Ocultar botão "Exportar especial"'},
+  {k:'busca.exportar_especial',label:'Acervo Técnico · Ocultar botão "Exportar especial"'},
+  {k:'sessoes.exportar_cinemas',label:'Sessões · Ocultar botão "Exportar para cinemas"'},
   {k:'triagem.filmfreeway',label:'Triagem · Ocultar botão FilmFreeway'},
   {k:'triagem.sfd',label:'Triagem · Ocultar botão Short Film Depot'},
   {k:'sessoes.btn_projecao',label:'Sessões · Ocultar botão "Ficha de Projeção"'},
@@ -21029,7 +21037,7 @@ window.addEventListener('popstate',function(e){
 .cxp-tpl-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding-bottom:10px;border-bottom:1px solid var(--border);}
 .cxp-tpl-row label{font-family:var(--mono);font-size:9px;color:var(--text-muted);letter-spacing:0.08em;text-transform:uppercase;}
 .cxp-input{height:26px;padding:0 8px;background:var(--bg);border:1px solid var(--border);color:var(--text);font-family:var(--mono);font-size:10px;border-radius:3px;}
-.cxp-select{height:26px;padding:0 6px;background:var(--bg);border:1px solid var(--border);color:var(--text);font-family:var(--mono);font-size:10px;border-radius:3px;min-width:200px;}
+.cxp-select{height:26px;padding:0 6px;background:var(--bg);border:1px solid var(--border);color:var(--text);font-family:var(--mono);font-size:10px;border-radius:3px;min-width:340px;max-width:520px;}
 .cxp-btn{font-family:var(--mono);font-size:9px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;padding:5px 10px;background:transparent;color:var(--text-dim);border:1px solid var(--border);cursor:pointer;border-radius:3px;}
 .cxp-btn:hover{background:var(--surface2);color:var(--text);}
 .cxp-btn.primary{background:var(--accent);color:var(--on-accent);border-color:var(--accent);}
@@ -21143,8 +21151,10 @@ var _CAT_EXP_FIELDS={
 var _catExpColumns=[]; // [{c:'filmes',f:'title',l:'label custom'}]
 var _catExpTemplates=[];
 var _catExpEditId=null;
-function openCatExportModal(){
+var _catExpContext='catalogo'; // 'catalogo' ou 'busca'
+function openCatExportModal(ctx){
   if(!window._olgaCatExportTemplates){alert('API de templates indisponível.');return;}
+  _catExpContext=(ctx==='busca')?'busca':'catalogo';
   document.getElementById('catExpModal').classList.add('open');
   _catExpRenderFieldCols();
   _catExpRenderSelected();
@@ -21206,17 +21216,25 @@ function _catExpRemove(i){
   _catExpRenderFieldCols();_catExpRenderSelected();_catExpUpdateRowCount();
 }
 function _catExpGetActiveFilms(){
-  // pega filmes pelos eventos ativos do catálogo (mesmo filtro do módulo)
-  var evs=Array.from(activeEventsCatalogo||[]);
   var out=[];
-  Object.keys(catalogoFilmesMap||{}).forEach(function(cod){
-    var meta=catalogoFilmesMap[cod]||{};
-    var copia=filmesMap[cod]||{};
-    var ev=meta.evento||copia.evento||'';
-    if(evs.length&&ev&&evs.indexOf(ev)<0)return;
-    if(evs.length&&!ev)return; // sem evento → fora
-    out.push({code:cod,meta:meta,copia:copia});
-  });
+  if(_catExpContext==='busca'){
+    // Acervo Técnico: usa o resultado filtrado já calculado pelo módulo busca
+    (filteredFilmes||[]).forEach(function(f){
+      var cod=f.codigo;if(!cod)return;
+      out.push({code:cod,meta:catalogoFilmesMap[cod]||{},copia:filmesMap[cod]||f});
+    });
+  }else{
+    // Catálogo: filmes do catálogo pelos eventos ativos
+    var evs=Array.from(activeEventsCatalogo||[]);
+    Object.keys(catalogoFilmesMap||{}).forEach(function(cod){
+      var meta=catalogoFilmesMap[cod]||{};
+      var copia=filmesMap[cod]||{};
+      var ev=meta.evento||copia.evento||'';
+      if(evs.length&&ev&&evs.indexOf(ev)<0)return;
+      if(evs.length&&!ev)return;
+      out.push({code:cod,meta:meta,copia:copia});
+    });
+  }
   out.sort(function(a,b){return(a.code||'').localeCompare(b.code||'','pt-BR');});
   return out;
 }
@@ -21279,9 +21297,12 @@ function _catExpPrint(){
   w.document.close();
   setTimeout(function(){w.focus();w.print();},300);
 }
+function _catExpActiveEvents(){
+  return Array.from((_catExpContext==='busca'?(typeof activeEventsBusca!=='undefined'?activeEventsBusca:activeEventsCatalogo):activeEventsCatalogo)||[]);
+}
 async function _catExpLoadTemplates(){
   try{_catExpTemplates=await window._olgaCatExportTemplates.list();}catch(e){_catExpTemplates=[];}
-  var evs=Array.from(activeEventsCatalogo||[]);
+  var evs=_catExpActiveEvents();
   // filtra templates com interseção com eventos ativos (ou sem evento → mostra a todos)
   var visible=_catExpTemplates.filter(function(t){
     var tEvs=t.data&&t.data.eventos||[];
@@ -21310,8 +21331,8 @@ function _catExpLoadTemplate(id){
   if(!t)return;
   _catExpColumns=(t.data.columns||[]).map(function(c){return{c:c.c,f:c.f,l:c.l};});
   document.getElementById('cxpTplName').value=t.data.name||'';
-  var meUid=window._olgaUser&&window._olgaUser.uid;
-  var isOwner=meUid&&t.data.created_by===meUid;
+  var meEmail=window._olgaUser&&window._olgaUser.email;
+  var isOwner=meEmail&&t.data.created_by===meEmail;
   owner.textContent=t.data.created_by_name?('por '+t.data.created_by_name+(isOwner?' (você)':'')):'';
   dupBtn.disabled=false;
   delBtn.disabled=!isOwner;
@@ -21321,7 +21342,7 @@ async function _catExpSaveTemplate(){
   var name=(document.getElementById('cxpTplName').value||'').trim();
   if(!name){alert('Dê um nome ao template.');return;}
   if(!_catExpColumns.length){alert('Selecione ao menos uma coluna.');return;}
-  var evs=Array.from(activeEventsCatalogo||[]);
+  var evs=_catExpActiveEvents();
   var data={
     name:name,
     eventos:evs,
@@ -21329,8 +21350,8 @@ async function _catExpSaveTemplate(){
     updated_at:new Date().toISOString()
   };
   if(!_catExpEditId){
-    data.created_by=(window._olgaUser&&window._olgaUser.uid)||'';
-    data.created_by_name=(window._olgaUser&&(window._olgaUser.nome||window._olgaUser.email))||'';
+    data.created_by=(window._olgaUser&&window._olgaUser.email)||'';
+    data.created_by_name=(window._olgaUser&&(window._olgaUser.name||window._olgaUser.email))||'';
     data.created_at=data.updated_at;
   }else{
     // preserva criador
@@ -21362,8 +21383,8 @@ async function _catExpDupTemplate(){
     name:newName,
     eventos:evs,
     columns:(orig.data.columns||[]).map(function(c){return{c:c.c,f:c.f,l:c.l};}),
-    created_by:(window._olgaUser&&window._olgaUser.uid)||'',
-    created_by_name:(window._olgaUser&&(window._olgaUser.nome||window._olgaUser.email))||'',
+    created_by:(window._olgaUser&&window._olgaUser.email)||'',
+    created_by_name:(window._olgaUser&&(window._olgaUser.name||window._olgaUser.email))||'',
     created_at:new Date().toISOString(),
     updated_at:new Date().toISOString()
   };
@@ -21387,7 +21408,170 @@ async function _catExpDeleteTemplate(){
     _catExpLoadTemplate('');
   }catch(e){alert('Erro ao excluir: '+e.message);}
 }
+
+/* ═══ EXPORTAR PARA CINEMAS · SESSÕES ═══ */
+var _sxcRows=[]; // {sid,vendas,blqPad,blqExt,...campos calculados}
+function openSessoesExportCinemas(){
+  if(typeof _sessoesGetFiltered!=='function'){alert('Filtro de sessões indisponível.');return;}
+  var sessoes=_sessoesGetFiltered();
+  if(!sessoes.length){alert('Nenhuma sessão no filtro atual.');return;}
+  // ordena por data/hora
+  sessoes.sort(function(a,b){
+    if(a.date&&b.date){var dd=a.date-b.date;if(dd)return dd;}
+    return(a.hora||'').localeCompare(b.hora||'');
+  });
+  // monta linhas
+  var cinMap={};(cinemasArr||[]).forEach(function(c){if(c.sala)cinMap[c.sala]=c;});
+  _sxcRows=sessoes.map(function(s){
+    var films=(s.filmes||[]).map(function(cod){
+      var meta=catalogoFilmesMap&&catalogoFilmesMap[cod]||{};
+      var copia=filmesMap&&filmesMap[cod]||{};
+      return{cod:cod,meta:meta,copia:copia};
+    });
+    var tituloPt=films.map(function(f){return f.meta.title_pt||f.meta.title||f.copia.titulo||f.cod;}).filter(Boolean).join(' / ');
+    var tituloOrig=films.map(function(f){return f.meta.original_title||f.meta.title||'';}).filter(Boolean).join(' / ');
+    var totalSecs=0;films.forEach(function(f){totalSecs+=_parseDurSecs(f.copia.duracao||'');});
+    var mins=totalSecs?Math.round(totalSecs/60):'';
+    // legenda de exibição: agrega legenda/vf de cada filme como aparece na ficha
+    var legs=films.map(function(f){
+      var leg=(f.copia.legenda||'').trim(),vf=(f.copia.vf||'').trim();
+      if(vf)return 'VF '+(_fmtDcncToName?_fmtDcncToName(vf):vf);
+      if(leg&&leg!=='-')return (_fmtDcncToName?_fmtDcncToName(leg):leg);
+      return '';
+    }).filter(Boolean).join(' / ');
+    var cin=cinMap[s.cinema]||{};
+    var assentos=parseInt(cin.assentos,10)||0;
+    var blqPadVal=Math.ceil(assentos*0.10);
+    var blqExt=parseInt(s.ingressos,10)||0;
+    var sNome=s.nome||'';
+    return{
+      sid:sNome,
+      vendas:'LIBERADA',
+      data:s.dia||'',
+      cinema:s.cinema||'',
+      sessao:stripEvPrefix(sNome,s.evento),
+      horario:(s.time&&s.time.str)||s.hora||'',
+      titulo_pt:tituloPt,
+      titulo_orig:tituloOrig,
+      mins:mins,
+      apresentacao:_sxcSimNao(s.apresentacao),
+      debate:_sxcSimNao(s.col_ag),
+      acessibilidade:_sxcAcessLabel(s.acessibilidades),
+      legenda:legs,
+      blqPadMode:'10%',
+      blqPadVal:blqPadVal,
+      capacidade:assentos,
+      blqExt:blqExt
+    };
+  });
+  _sxcRender();
+  document.getElementById('sxcModal').classList.add('open');
+}
+function _sxcSimNao(v){var x=(v||'').toLowerCase().trim();return x==='sim'?'sim':(x==='não'||x==='nao'?'não':'');}
+function _sxcAcessLabel(v){var x=(v||'').trim();if(!x)return '';if(/^n[ãa]o$/i.test(x))return 'não';return x;}
+function closeSessoesExportCinemas(){document.getElementById('sxcModal').classList.remove('open');}
+function _sxcBlqTotal(r){
+  var pad=r.blqPadMode==='vender_tudo'?0:r.blqPadVal;
+  return pad+(parseInt(r.blqExt,10)||0);
+}
+function _sxcRender(){
+  var thead='<tr>'+
+    '<th>VENDAS</th><th>DATA</th><th>CINEMA (SALA)</th><th>SESSÃO</th><th>HORÁRIO</th>'+
+    '<th>TÍTULO PT</th><th>TÍTULO ORIGINAL</th><th>MIN</th>'+
+    '<th>APRESENT.</th><th>DEBATE</th><th>ACESSIB.</th><th>LEGENDA</th>'+
+    '<th>BLQ PADRÃO (10%)</th><th>BLQ EXTRA</th><th>BLQ TOTAL</th></tr>';
+  var rows=_sxcRows.map(function(r,i){
+    var blqTotal=_sxcBlqTotal(r);
+    var vendOpts=['LIBERADA','BLOQUEADA'].map(function(v){return'<option value="'+v+'"'+(r.vendas===v?' selected':'')+'>'+v+'</option>';}).join('');
+    var padOpts='<option value="10%"'+(r.blqPadMode==='10%'?' selected':'')+'>'+r.blqPadVal+' (10% de '+r.capacidade+')</option>'+
+                '<option value="vender_tudo"'+(r.blqPadMode==='vender_tudo'?' selected':'')+'>VENDER TUDO (0)</option>';
+    return '<tr>'+
+      '<td><select class="sxc-sel" onchange="_sxcSet('+i+',\'vendas\',this.value)">'+vendOpts+'</select></td>'+
+      '<td>'+esc(r.data)+'</td>'+
+      '<td>'+esc(r.cinema)+'</td>'+
+      '<td>'+esc(r.sessao)+'</td>'+
+      '<td>'+esc(r.horario)+'</td>'+
+      '<td>'+esc(r.titulo_pt)+'</td>'+
+      '<td>'+esc(r.titulo_orig)+'</td>'+
+      '<td class="sxc-num">'+esc(String(r.mins||''))+'</td>'+
+      '<td>'+esc(r.apresentacao)+'</td>'+
+      '<td>'+esc(r.debate)+'</td>'+
+      '<td>'+esc(r.acessibilidade)+'</td>'+
+      '<td>'+esc(r.legenda)+'</td>'+
+      '<td><select class="sxc-sel" onchange="_sxcSet('+i+',\'blqPadMode\',this.value)">'+padOpts+'</select></td>'+
+      '<td class="sxc-num">'+(r.blqExt||0)+'</td>'+
+      '<td class="sxc-num"><strong>'+blqTotal+'</strong></td>'+
+    '</tr>';
+  }).join('');
+  document.getElementById('sxcTableWrap').innerHTML='<table class="sxc-table"><thead>'+thead+'</thead><tbody>'+rows+'</tbody></table>';
+  document.getElementById('sxcCount').textContent=_sxcRows.length+' sessão'+(_sxcRows.length!==1?'ões':'')+' · '+(new Set(_sxcRows.map(function(r){return r.cinema;}))).size+' sala(s)';
+}
+function _sxcSet(i,field,val){if(!_sxcRows[i])return;_sxcRows[i][field]=val;_sxcRender();}
+function _sxcCsvEscape(v){var s=String(v==null?'':v);if(/[;\",\n\r]/.test(s))return'"'+s.replace(/"/g,'""')+'"';return s;}
+function _sxcExportCSV(){
+  var headers=['VENDAS','DATA','CINEMA (SALA)','SESSÃO','HORÁRIO','TÍTULO PT','TÍTULO ORIGINAL','MIN','APRESENT.','DEBATE','ACESSIB.','LEGENDA','BLQ PADRÃO (10%)','BLQ EXTRA','BLQ TOTAL'];
+  var lines=[headers.map(_sxcCsvEscape).join(';')];
+  _sxcRows.forEach(function(r){
+    var bpVal=r.blqPadMode==='vender_tudo'?'VENDER TUDO':String(r.blqPadVal);
+    var line=[r.vendas,r.data,r.cinema,r.sessao,r.horario,r.titulo_pt,r.titulo_orig,r.mins,r.apresentacao,r.debate,r.acessibilidade,r.legenda,bpVal,r.blqExt,_sxcBlqTotal(r)];
+    lines.push(line.map(_sxcCsvEscape).join(';'));
+  });
+  var csv='﻿'+lines.join('\r\n');
+  var blob=new Blob([csv],{type:'text/csv;charset=utf-8;'});
+  var name='exportar_para_cinemas_'+new Date().toISOString().slice(0,10)+'.csv';
+  var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;document.body.appendChild(a);a.click();setTimeout(function(){URL.revokeObjectURL(a.href);a.remove();},100);
+}
+function _sxcPrint(){
+  var headers=['VENDAS','DATA','CINEMA (SALA)','SESSÃO','HORÁRIO','TÍTULO PT','TÍTULO ORIGINAL','MIN','APRESENT.','DEBATE','ACESSIB.','LEGENDA','BLQ PADRÃO (10%)','BLQ EXTRA','BLQ TOTAL'];
+  var thead='<tr>'+headers.map(function(h){return'<th>'+esc(h)+'</th>';}).join('')+'</tr>';
+  var rows=_sxcRows.map(function(r){
+    var bpVal=r.blqPadMode==='vender_tudo'?'VENDER TUDO':String(r.blqPadVal);
+    var cells=[r.vendas,r.data,r.cinema,r.sessao,r.horario,r.titulo_pt,r.titulo_orig,r.mins,r.apresentacao,r.debate,r.acessibilidade,r.legenda,bpVal,r.blqExt,_sxcBlqTotal(r)];
+    return '<tr>'+cells.map(function(v){return '<td>'+esc(String(v||''))+'</td>';}).join('')+'</tr>';
+  }).join('');
+  var title='Exportar para Cinemas · '+new Date().toLocaleString('pt-BR');
+  var w=window.open('','_blank');
+  w.document.write('<!doctype html><html><head><meta charset="utf-8"><title>'+esc(title)+'</title><style>@page{size:A4 landscape;margin:8mm;}body{font-family:sans-serif;font-size:8px;padding:6px;}h1{font-size:12px;margin:0 0 8px 0;}table{border-collapse:collapse;width:100%;}th,td{border:1px solid #aaa;padding:3px 4px;text-align:left;vertical-align:top;}th{background:#222;color:#fff;font-size:8px;text-transform:uppercase;letter-spacing:0.04em;}td.num{text-align:right;font-variant-numeric:tabular-nums;}</style></head><body><h1>'+esc(title)+'</h1><table><thead>'+thead+'</thead><tbody>'+rows+'</tbody></table></body></html>');
+  w.document.close();
+  setTimeout(function(){w.focus();w.print();},300);
+}
 </script>
+
+<style>
+#sxcModal{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.78);z-index:600;align-items:center;justify-content:center;padding:20px;}
+#sxcModal.open{display:flex;}
+.sxc-box{background:var(--surface);border:1px solid var(--border);width:100%;max-width:1500px;max-height:92vh;display:flex;flex-direction:column;color:var(--text);}
+.sxc-head{padding:14px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;font-family:var(--mono);font-size:11px;font-weight:600;letter-spacing:0.18em;text-transform:uppercase;color:var(--accent);}
+.sxc-close{background:none;border:none;color:var(--text-muted);font-size:20px;cursor:pointer;line-height:1;}
+.sxc-body{padding:8px 14px;overflow:auto;flex:1;}
+#sxcTableWrap{overflow:auto;}
+.sxc-table{border-collapse:collapse;width:100%;font-family:var(--mono);font-size:10px;}
+.sxc-table th,.sxc-table td{border:1px solid var(--border);padding:4px 6px;vertical-align:top;text-align:left;}
+.sxc-table th{background:var(--surface2);color:var(--text);font-size:9px;text-transform:uppercase;letter-spacing:0.06em;font-weight:600;position:sticky;top:0;}
+.sxc-table td.sxc-num{text-align:right;font-variant-numeric:tabular-nums;}
+.sxc-sel{height:22px;padding:0 4px;background:var(--bg);border:1px solid var(--border);color:var(--text);font-family:var(--mono);font-size:9px;border-radius:2px;width:100%;}
+.sxc-foot{padding:10px 20px;border-top:1px solid var(--border);display:flex;gap:8px;justify-content:flex-end;align-items:center;flex-shrink:0;}
+.sxc-foot-left{margin-right:auto;font-family:var(--mono);font-size:10px;color:var(--text-muted);}
+.sxc-btn{font-family:var(--mono);font-size:9px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;padding:6px 12px;background:transparent;color:var(--text-dim);border:1px solid var(--border);cursor:pointer;border-radius:3px;}
+.sxc-btn:hover{background:var(--surface2);color:var(--text);}
+.sxc-btn.primary{background:var(--accent);color:var(--on-accent);border-color:var(--accent);}
+</style>
+
+<div id="sxcModal">
+  <div class="sxc-box">
+    <div class="sxc-head">
+      <span>Exportar para Cinemas · Sessões</span>
+      <button class="sxc-close" onclick="closeSessoesExportCinemas()">×</button>
+    </div>
+    <div class="sxc-body"><div id="sxcTableWrap"></div></div>
+    <div class="sxc-foot">
+      <span class="sxc-foot-left" id="sxcCount"></span>
+      <button class="sxc-btn" onclick="closeSessoesExportCinemas()">Fechar</button>
+      <button class="sxc-btn primary" onclick="_sxcPrint()">⎙ Imprimir</button>
+      <button class="sxc-btn primary" onclick="_sxcExportCSV()">⤓ CSV</button>
+    </div>
+  </div>
+</div>
 
 <!-- ═══ MODAIS PROGRAMAÇÃO ═══ -->
 <div id="progProgramModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:500;align-items:center;justify-content:center;overflow-y:auto;padding:20px;">
@@ -22048,7 +22232,7 @@ async function _catExpDeleteTemplate(){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 02/06/2026 às 15:04</span></div>
+<div id="page-footer"><span>última atualização · 02/06/2026 às 15:12</span></div>
 
 </div>
 

@@ -6609,7 +6609,7 @@ function renderFicha(nome,s){
   var _fpUtcTag=_fpCi.utc_offset?'<span style="font-family:var(--mono);font-size:9px;color:var(--text-muted);margin-left:5px;opacity:0.75;">('+_fpCi.utc_offset+')</span>':'';
   var _fichaNavSafe=nome.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
   var _fichaNavBtn=window._olgaHasRestricao('projecao.btn_programacao')?'':'<div class="ficha-nav-bar"><button class="prog-btn-sm" onclick="_goToProgFromFicha(\''+_fichaNavSafe+'\')">← ficha de programação</button></div>';
-  document.getElementById('fichaWrap').innerHTML=_fichaNavBtn+'<div class="ficha"><div class="ficha-header"><div class="ficha-header-main"><div class="ficha-session-wrap"><div class="ficha-session-name">'+nome+'</div>'+(s.name?'<div class="prog-sess-display-name-ficha">'+esc(s.name)+'</div>':'')+eventoBadge+(fichaRatingBadge?fichaRatingBadge:'')+'</div><div class="ficha-meta"><div class="meta-item"><div class="meta-label">Cinema</div><div class="meta-value">'+(s.cinema||'—')+_fpUtcTag+'</div></div><div class="meta-item"><div class="meta-label">Data</div><div class="meta-value">'+s.dia+'</div></div><div class="meta-item"><div class="meta-label">Hora</div><div class="meta-value">'+s.hora+'</div></div><div class="meta-item"><div class="meta-label">Filmes</div><div class="meta-value highlight">'+films.length+'</div></div></div></div>'+extraHtml+'</div>'+vinhetasHtml+'<div class="film-table-wrap"><table><thead><tr><th>#</th><th>Filme</th><th class="center">Lente</th><th class="center">Som</th><th>Legenda</th><th class="center">Idioma</th><th class="center">KDM</th><th>CPL</th><th>Duração</th><th>OBS</th><th class="center">Res</th><th class="center">FPS · GB</th><th class="center" title="Acessibilidade"><svg width="13" height="13" viewBox="0 0 24 24" style="stroke:currentColor;stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round;vertical-align:middle;"><circle cx="11" cy="4" r="1"/><path d="m11 9 2 7h5l-1.5 3"/><path d="M9 9H7l1 7"/><path d="M13.5 19a4.5 4.5 0 1 1-9 0 4.5 4.5 0 0 1 9 0z"/></svg></th></tr></thead><tbody>'+(rows||'<tr><td colspan="13" style="text-align:center;color:var(--text-muted);padding:24px">Nenhum filme encontrado para esta sessão.</td></tr>')+'</tbody></table></div><div class="ficha-footer"><div class="footer-total">Duração total dos filmes: <strong>'+totalDur+'</strong>'+(totalVinSecs>0?' &nbsp;·&nbsp; Vinhetas: <strong>'+_secsToHMS(totalVinSecs)+'</strong>':'')+' &nbsp;·&nbsp; Tamanho: <strong>'+totalGBStr+'</strong></div><div class="footer-stamp">OLGA · '+new Date().toLocaleString('pt-BR')+'</div></div></div>';
+  document.getElementById('fichaWrap').innerHTML=_fichaNavBtn+'<div class="ficha"><div class="ficha-header"><div class="ficha-header-main"><div class="ficha-session-wrap"><div class="ficha-session-name" title="'+esc(nome)+'">'+esc(stripEvPrefix(nome,s.evento))+'</div>'+(s.name?'<div class="prog-sess-display-name-ficha">'+esc(s.name)+'</div>':'')+eventoBadge+(fichaRatingBadge?fichaRatingBadge:'')+'</div><div class="ficha-meta"><div class="meta-item"><div class="meta-label">Cinema</div><div class="meta-value">'+(s.cinema||'—')+_fpUtcTag+'</div></div><div class="meta-item"><div class="meta-label">Data</div><div class="meta-value">'+s.dia+'</div></div><div class="meta-item"><div class="meta-label">Hora</div><div class="meta-value">'+s.hora+'</div></div><div class="meta-item"><div class="meta-label">Filmes</div><div class="meta-value highlight">'+films.length+'</div></div></div></div>'+extraHtml+'</div>'+vinhetasHtml+'<div class="film-table-wrap"><table><thead><tr><th>#</th><th>Filme</th><th class="center">Lente</th><th class="center">Som</th><th>Legenda</th><th class="center">Idioma</th><th class="center">KDM</th><th>CPL</th><th>Duração</th><th>OBS</th><th class="center">Res</th><th class="center">FPS · GB</th><th class="center" title="Acessibilidade"><svg width="13" height="13" viewBox="0 0 24 24" style="stroke:currentColor;stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round;vertical-align:middle;"><circle cx="11" cy="4" r="1"/><path d="m11 9 2 7h5l-1.5 3"/><path d="M9 9H7l1 7"/><path d="M13.5 19a4.5 4.5 0 1 1-9 0 4.5 4.5 0 0 1 9 0z"/></svg></th></tr></thead><tbody>'+(rows||'<tr><td colspan="13" style="text-align:center;color:var(--text-muted);padding:24px">Nenhum filme encontrado para esta sessão.</td></tr>')+'</tbody></table></div><div class="ficha-footer"><div class="footer-total">Duração total dos filmes: <strong>'+totalDur+'</strong>'+(totalVinSecs>0?' &nbsp;·&nbsp; Vinhetas: <strong>'+_secsToHMS(totalVinSecs)+'</strong>':'')+' &nbsp;·&nbsp; Tamanho: <strong>'+totalGBStr+'</strong></div><div class="footer-stamp">OLGA · '+new Date().toLocaleString('pt-BR')+'</div></div></div>';
 }
 
 function _goToFichaFromProg(nome){
@@ -6781,7 +6781,7 @@ function renderIngest(){
       var filmList=getFilmList(s);
       var sessGB=0;
       filmList.forEach(function(c){var f=filmesMap[c];if(!f)return;var g=parseFloat((f.gb||'').toString().replace(',','.'));if(!isNaN(g))sessGB+=g;});
-      html+='<div class="ingest-session"><div class="ingest-session-header"><span class="ingest-sess-name">'+s.nome+'</span><span class="ingest-sess-meta">'+s.dia+' · '+s.hora+'</span>'+(sessGB>0?'<span class="ingest-sess-gb">'+sessGB.toFixed(0)+' GB</span>':'')+'</div>';
+      html+='<div class="ingest-session"><div class="ingest-session-header"><span class="ingest-sess-name" title="'+esc(s.nome)+'">'+esc(stripEvPrefix(s.nome,s.evento))+'</span><span class="ingest-sess-meta">'+s.dia+' · '+s.hora+'</span>'+(sessGB>0?'<span class="ingest-sess-gb">'+sessGB.toFixed(0)+' GB</span>':'')+'</div>';
       html+='<div class="ingest-film-list">';
       filmList.forEach(function(c,idx){
         var f=filmesMap[c]||{};
@@ -7019,12 +7019,14 @@ function gptRenderTable(headers,slots,getSessionsFn){
         s.filmes.forEach(function(cod){var f=filmesMap[cod];if(!f)return;_progTotalSecs+=_parseDurSecs(f.duracao);});
         var durStr=_secsToHMS(_progTotalSecs);
         var _gptProg=_gradeProgName(s);
-        html+='<div class="gpt-sess-entry" onclick="closeGradePrintModal();goToFicha(\''+safeName+'\')" title="Abrir ficha: '+s.nome.replace(/"/g,'&quot;')+'">';
-        if(durStr)html+='<div class="gpt-sess-time">'+durStr+'</div>';
-        html+='<div class="gpt-sess-name">'+s.nome+'</div>';
+        var _gptCodeDisp=stripEvPrefix(s.nome,s.evento);
+        var _gptNameDisp=(s.name&&s.name!==s.nome&&s.name!==_gptCodeDisp)?s.name:'';
+        html+='<div class="gpt-sess-entry" onclick="closeGradePrintModal();goToFicha(\''+safeName+'\')" title="Abrir ficha: '+esc(s.nome)+'">';
+        if(durStr)html+='<div class="gpt-sess-time">'+esc(durStr)+'</div>';
+        html+='<div class="gpt-sess-name" title="'+esc(s.nome)+'">'+esc(_gptNameDisp||_gptCodeDisp)+'</div>';
         if(nf)html+='<div class="gpt-sess-films">'+nf+' filme'+(nf!==1?'s':'')+'</div>';
-        if(s.evento)html+='<div class="gpt-sess-event">'+s.evento+'</div>';
-        if(_gptProg)html+='<div class="gpt-sess-mostra">'+_gptProg+'</div>';
+        if(s.evento)html+='<div class="gpt-sess-event">'+esc(s.evento)+'</div>';
+        if(_gptProg)html+='<div class="gpt-sess-mostra">'+esc(_gptProg)+'</div>';
         html+='</div>';
       });
       html+='</td>';
@@ -7663,7 +7665,9 @@ function renderGrade2(){
       var _blkFilmsStr=s.filmes.length?'<span>'+s.filmes.length+' filme'+(s.filmes.length!==1?'s':'')+'</span>':'';
       var _blkRow3=(_blkFilmsStr||_blkIcons)?'<div class="block-row3">'+_blkFilmsStr+(_blkIcons?'<span class="block-icons">'+_blkIcons+'</span>':'')+'</div>':'';
       var _blkProgName=_gradeProgName(s);
-      blk.innerHTML='<div class="block-time">'+s.time.str+'</div><div class="block-name">'+s.nome+'</div>'+(s.name?'<div class="block-display-name">'+s.name+'</div>':'')+_blkRow3+(s.evento?'<div class="block-event">'+s.evento+'</div>':'')+(_blkProgName?'<div class="block-mostra">'+_blkProgName+'</div>':'')+'<div class="block-hint">↗ ficha</div>';
+      var _blkCodeDisp=stripEvPrefix(s.nome,s.evento);
+      var _blkNameDisp=(s.name&&s.name!==s.nome&&s.name!==_blkCodeDisp)?s.name:'';
+      blk.innerHTML='<div class="block-time">'+esc(s.time.str)+'</div><div class="block-name" title="'+esc(s.nome)+'">'+esc(_blkCodeDisp)+'</div>'+(_blkNameDisp?'<div class="block-display-name">'+esc(_blkNameDisp)+'</div>':'')+_blkRow3+(s.evento?'<div class="block-event">'+esc(s.evento)+'</div>':'')+(_blkProgName?'<div class="block-mostra">'+esc(_blkProgName)+'</div>':'')+'<div class="block-hint">↗ ficha</div>';
       blk.addEventListener('mouseenter',function(ev){showTooltip(ev,s);});
       blk.addEventListener('mousemove',function(ev){moveTooltip(ev);});
       blk.addEventListener('mouseleave',function(){tip.style.display='none';});
@@ -7996,7 +8000,7 @@ function openCinemaDetail(sala){
     html+='<span class="cinema-sess-date">'+s.dia+'</span>';
     html+='<span class="cinema-sess-time">'+s.hora+'</span>';
     html+='<div class="cinema-sess-body">';
-    html+='<span class="cinema-sess-name">'+s.nome+'</span>';
+    html+='<span class="cinema-sess-name" title="'+esc(s.nome)+'">'+esc(stripEvPrefix(s.nome,s.evento))+'</span>';
     if(filmTitles)html+='<span class="cinema-sess-film-list">'+filmTitles+'</span>';
     html+='</div>';
     if(evBadge)html+=evBadge;
@@ -8438,7 +8442,7 @@ function openBordero(cx,tipo){
         html+='<div class="bordero-sess-row">';
         html+='<span class="bordero-sess-date">'+s.dia+'</span>';
         html+='<span class="bordero-sess-time">'+s.hora+'</span>';
-        html+='<span class="bordero-sess-name">'+s.nome+'</span>';
+        html+='<span class="bordero-sess-name" title="'+esc(s.nome)+'">'+esc(stripEvPrefix(s.nome,s.evento))+'</span>';
         html+='<span class="bordero-sess-cinema">'+s.cinema+'</span>';
         html+='<span class="bordero-sess-pub">'+(s[tipo]?fmtVal(parsePub(s[tipo])):'—')+'</span>';
         html+='</div>';
@@ -8528,7 +8532,7 @@ function openBorderoDashSessoes(scope,tipo){
               var pub=parsePub(s[tipo]);var hasPub=s[tipo]!==''&&s[tipo]!==null&&s[tipo]!==undefined;
               var safe=s.nome.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
               return'<div class="bts-cell-entry" style="cursor:pointer" onclick="closeBordero();goToFicha(\''+safe+'\')">'+
-                '<span class="bts-cell-nome">'+s.nome+'</span>'+
+                '<span class="bts-cell-nome" title="'+esc(s.nome)+'">'+esc(stripEvPrefix(s.nome,s.evento))+'</span>'+
                 '<span class="bts-cell-pub">'+(hasPub?fmtVal(parsePub(s[tipo])):'—')+'</span>'+
               '</div>';
             }).join('')+'</td>';
@@ -8568,7 +8572,7 @@ function openBorderoDashSessoes(scope,tipo){
               var pub=parsePub(s[tipo]);var hasPub=s[tipo]!==''&&s[tipo]!==null&&s[tipo]!==undefined;
               var safe=s.nome.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
               return'<div class="bts-cell-entry" style="cursor:pointer" onclick="closeBordero();goToFicha(\''+safe+'\')">'+
-                '<span class="bts-cell-nome">'+s.nome+'</span>'+
+                '<span class="bts-cell-nome" title="'+esc(s.nome)+'">'+esc(stripEvPrefix(s.nome,s.evento))+'</span>'+
                 '<span class="bts-cell-pub">'+(hasPub?fmtVal(parsePub(s[tipo])):'—')+'</span>'+
               '</div>';
             }).join('')+'</td>';
@@ -8699,7 +8703,7 @@ function openBorderoSessoesDay(dayKey,tipo){
             var hasPub=s[tipo]!==''&&s[tipo]!==null&&s[tipo]!==undefined;
             var safe=s.nome.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
             return'<div class="bts-cell-entry" style="cursor:pointer" onclick="closeBordero();goToFicha(\''+safe+'\')">'+
-              '<span class="bts-cell-nome">'+s.nome+'</span>'+
+              '<span class="bts-cell-nome" title="'+esc(s.nome)+'">'+esc(stripEvPrefix(s.nome,s.evento))+'</span>'+
               '<span class="bts-cell-pub">'+(hasPub?fmtVal(parsePub(s[tipo])):'—')+'</span>'+
             '</div>';
           }).join('');
@@ -8829,7 +8833,7 @@ function openBorderoCinema(sala,tipo){
               var pub=parsePub(s[tipo]);
               var hasPub=s[tipo]!==''&&s[tipo]!==null&&s[tipo]!==undefined;
               return'<div class="bts-cell-entry">'+
-                '<span class="bts-cell-nome">'+s.nome+'</span>'+
+                '<span class="bts-cell-nome" title="'+esc(s.nome)+'">'+esc(stripEvPrefix(s.nome,s.evento))+'</span>'+
                 '<span class="bts-cell-pub">'+(hasPub?fmtVal(parsePub(s[tipo])):'—')+'</span>'+
               '</div>';
             }).join('');
@@ -11082,7 +11086,7 @@ function renderKDM(){
     return'<div class="kdm-row" id="kdmrow-'+enc+'">'
       +'<span class="kdm-row-time">'+(s.time?s.time.str:'—')+'</span>'
       +'<span class="kdm-row-cinema">'+s.cinema+'</span>'
-      +'<div class="kdm-row-body"><div class="kdm-row-name">'+s.nome+'</div>'+(filmTitles?'<div class="kdm-row-films">'+filmTitles+'</div>':'')+'</div>'
+      +'<div class="kdm-row-body"><div class="kdm-row-name" title="'+esc(s.nome)+'">'+esc(stripEvPrefix(s.nome,s.evento))+'</div>'+(filmTitles?'<div class="kdm-row-films">'+filmTitles+'</div>':'')+'</div>'
       +'<div class="kdm-row-right">'+(evTag||'')+'<span class="kdm-status '+st.cls+'">'+st.label+'</span>'+'<button class="kdm-test-btn" onclick="testKDM(\''+safe+'\')">Testar KDM</button>'+'</div>'
       +'</div>'+prevResult;
   }
@@ -13012,7 +13016,7 @@ function openVinhetaDetail(cod){
       '<span class="vinheta-sess-date">'+s.dia+'</span>'+
       '<span class="vinheta-sess-time">'+(s.time?s.time.str:'—')+'</span>'+
       '<span class="vinheta-sess-cinema">'+s.cinema+'</span>'+
-      '<span class="vinheta-sess-name">'+s.nome+'</span>'+
+      '<span class="vinheta-sess-name" title="'+esc(s.nome)+'">'+esc(stripEvPrefix(s.nome,s.evento))+'</span>'+
     '</div>';
   }).join('');
 
@@ -13150,7 +13154,7 @@ function printVinhetas(){
         '<span>'+s.cinema+'</span>'+
         '<span>'+s.dia+'</span>'+
         '<span>'+(s.time?s.time.str:'—')+'</span>'+
-        '<span>'+s.nome+'</span>'+
+        '<span title="'+esc(s.nome)+'">'+esc(stripEvPrefix(s.nome,s.evento))+'</span>'+
       '</div>'+
       '<div class="vp-vinheta-list">'+vinTags+'</div>'+
     '</div>';
@@ -13212,7 +13216,9 @@ function renderGrade(){
       var _blkFilmsStr=s.filmes.length?'<span>'+s.filmes.length+' filme'+(s.filmes.length!==1?'s':'')+'</span>':'';
       var _blkRow3=(_blkFilmsStr||_blkIcons)?'<div class="block-row3">'+_blkFilmsStr+(_blkIcons?'<span class="block-icons">'+_blkIcons+'</span>':'')+'</div>':'';
       var _blkProgName=_gradeProgName(s);
-      blk.innerHTML='<div class="block-time">'+s.time.str+'</div><div class="block-name">'+s.nome+'</div>'+(s.name?'<div class="block-display-name">'+s.name+'</div>':'')+_blkRow3+(s.evento?'<div class="block-event">'+s.evento+'</div>':'')+(_blkProgName?'<div class="block-mostra">'+_blkProgName+'</div>':'')+'<div class="block-hint">↗ programação</div>';
+      var _blkCodeDisp=stripEvPrefix(s.nome,s.evento);
+      var _blkNameDisp=(s.name&&s.name!==s.nome&&s.name!==_blkCodeDisp)?s.name:'';
+      blk.innerHTML='<div class="block-time">'+esc(s.time.str)+'</div><div class="block-name" title="'+esc(s.nome)+'">'+esc(_blkCodeDisp)+'</div>'+(_blkNameDisp?'<div class="block-display-name">'+esc(_blkNameDisp)+'</div>':'')+_blkRow3+(s.evento?'<div class="block-event">'+esc(s.evento)+'</div>':'')+(_blkProgName?'<div class="block-mostra">'+esc(_blkProgName)+'</div>':'')+'<div class="block-hint">↗ programação</div>';
       blk.addEventListener('mouseenter',function(ev){showTooltip(ev,s);});
       blk.addEventListener('mousemove',function(ev){moveTooltip(ev);});
       blk.addEventListener('mouseleave',function(){tip.style.display='none';});
@@ -13245,7 +13251,8 @@ function showTooltip(ev,s){
     if(legSim)extraRows+=iconSub+'<span>Leg. eletrônica</span>';
     extraRows+='</div>';
   }
-  tip.innerHTML='<div class="tt-name">'+s.nome+'</div><div class="tt-row">'+iconCal+'<span>'+s.dia+'</span></div><div class="tt-row">'+iconClock+'<span>'+(s.time?s.time.str:'—')+(durStr?' · '+durStr:'')+'</span></div><div class="tt-row">'+iconScreen+'<span>'+s.cinema+'</span></div>'+(s.evento?'<div class="tt-row">'+iconTag+'<span>'+s.evento+'</span></div>':'')+extraRows+(fl?'<div class="tt-films">'+fl+'</div>':'');
+  var _ttHeader=s.name&&s.name!==s.nome?esc(s.name)+' <span style="opacity:0.55;font-weight:400;">'+esc(stripEvPrefix(s.nome,s.evento))+'</span>':esc(stripEvPrefix(s.nome,s.evento));
+  tip.innerHTML='<div class="tt-name">'+_ttHeader+'</div><div class="tt-row">'+iconCal+'<span>'+esc(s.dia)+'</span></div><div class="tt-row">'+iconClock+'<span>'+esc((s.time?s.time.str:'—')+(durStr?' · '+durStr:''))+'</span></div><div class="tt-row">'+iconScreen+'<span>'+esc(s.cinema||'')+'</span></div>'+(s.evento?'<div class="tt-row">'+iconTag+'<span>'+esc(s.evento)+'</span></div>':'')+extraRows+(fl?'<div class="tt-films">'+fl+'</div>':'');
   tip.style.display='block';moveTooltip(ev);
 }
 function moveTooltip(ev){
@@ -14781,7 +14788,7 @@ function renderDash(){
         bodyHtml+='<div class="dsd-sess-row'+(hasAlert?' dsd-sess-alert':'')+'" style="cursor:pointer" onclick="goToFicha(\''+safe+'\')">'+
           '<span class="dsd-date">'+s.dia+'</span>'+
           '<span class="dsd-time">'+s.hora+'</span>'+
-          '<span class="dsd-name">'+s.nome+'</span>'+
+          '<span class="dsd-name" title="'+esc(s.nome)+'">'+esc(stripEvPrefix(s.nome,s.evento))+'</span>'+
           '<span class="dsd-cinema">'+s.cinema+'</span>'+
           (hasAlert?'<span style="color:var(--warn);font-size:11px;flex-shrink:0;" title="Filme com status de erro ou sem status">⚠</span>':'')+
           (filmTitles?'<span class="dsd-extra" style="font-family:var(--sans);width:100%;">'+filmTitles+'</span>':'')+
@@ -14932,7 +14939,7 @@ function renderDash(){
           bodyHtml+='<div class="dsd-sess-row" style="cursor:pointer" onclick="goToFicha(\''+safe+'\')">'+
             '<span class="dsd-date">'+s.dia+'</span>'+
             '<span class="dsd-time">'+s.hora+'</span>'+
-            '<span class="dsd-name">'+s.nome+'</span>'+
+            '<span class="dsd-name" title="'+esc(s.nome)+'">'+esc(stripEvPrefix(s.nome,s.evento))+'</span>'+
             '<span class="dsd-cinema">'+s.cinema+'</span>'+
             '<span class="dsd-pub">'+pubStr+'</span>'+
             (renda!==null?'<span class="dsd-extra" style="color:var(--text-dim);">Receita Líquida: '+_bilhFmtRenda(renda)+'</span>':'')+
@@ -14955,7 +14962,7 @@ function renderDash(){
         bodyHtml+='<div class="dsd-sess-row" style="cursor:pointer" onclick="goToFicha(\''+safe+'\')">'+
           '<span class="dsd-date">'+s.dia+'</span>'+
           '<span class="dsd-time">'+s.hora+'</span>'+
-          '<span class="dsd-name">'+s.nome+'</span>'+
+          '<span class="dsd-name" title="'+esc(s.nome)+'">'+esc(stripEvPrefix(s.nome,s.evento))+'</span>'+
           '<span class="dsd-cinema">'+s.cinema+'</span>'+
           (filmTitles?'<span class="dsd-extra" style="font-family:var(--sans);">'+filmTitles+'</span>':'')+
           '<span class="dsd-extra"><svg width="14" height="14" viewBox="0 0 24 24" style="stroke:currentColor;stroke-width:1.75;fill:none;stroke-linecap:round;stroke-linejoin:round;" xmlns="http://www.w3.org/2000/svg"><circle cx="11" cy="4" r="1"/><path d="m11 9 2 7h5l-1.5 3"/><path d="M9 9H7l1 7"/><path d="M13.5 19a4.5 4.5 0 1 1-9 0 4.5 4.5 0 0 1 9 0z"/></svg> '+acessLabel+'</span>'+
@@ -14972,7 +14979,7 @@ function renderDash(){
         bodyHtml+='<div class="dsd-sess-row" style="cursor:pointer" onclick="goToFicha(\''+safe+'\')">'+
           '<span class="dsd-date">'+s.dia+'</span>'+
           '<span class="dsd-time">'+s.hora+'</span>'+
-          '<span class="dsd-name">'+s.nome+'</span>'+
+          '<span class="dsd-name" title="'+esc(s.nome)+'">'+esc(stripEvPrefix(s.nome,s.evento))+'</span>'+
           '<span class="dsd-cinema">'+s.cinema+'</span>'+
           (filmTitles?'<span class="dsd-extra" style="font-family:var(--sans);">'+filmTitles+'</span>':'')+
         '</div>';
@@ -15030,7 +15037,7 @@ function renderDash(){
           var filmTitles=s.filmes.map(function(c){var f=filmesMap[c];return f&&f.titulo?clean(f.titulo):c;}).filter(Boolean).join(' · ');
           bodyHtml+='<div class="dsd-sess-row" style="cursor:pointer" onclick="goToFicha(\''+safe+'\')">'+
             '<span class="dsd-date">'+s.dia+'</span><span class="dsd-time">'+s.hora+'</span>'+
-            '<span class="dsd-name">'+s.nome+'</span><span class="dsd-cinema">'+s.cinema+'</span>'+
+            '<span class="dsd-name" title="'+esc(s.nome)+'">'+esc(stripEvPrefix(s.nome,s.evento))+'</span><span class="dsd-cinema">'+s.cinema+'</span>'+
             (filmTitles?'<span class="dsd-extra" style="font-family:var(--sans);width:100%;">'+filmTitles+'</span>':'')+
           '</div>';
         });
@@ -15053,7 +15060,7 @@ function renderDash(){
           var acessLabel=acessSet.length?acessSet.join(' · '):s.acessibilidades;
           bodyHtml+='<div class="dsd-sess-row" style="cursor:pointer" onclick="goToFicha(\''+safe+'\')">'+
             '<span class="dsd-date">'+s.dia+'</span><span class="dsd-time">'+s.hora+'</span>'+
-            '<span class="dsd-name">'+s.nome+'</span><span class="dsd-cinema">'+s.cinema+'</span>'+
+            '<span class="dsd-name" title="'+esc(s.nome)+'">'+esc(stripEvPrefix(s.nome,s.evento))+'</span><span class="dsd-cinema">'+s.cinema+'</span>'+
             '<span class="dsd-extra"><svg width="14" height="14" viewBox="0 0 24 24" style="stroke:currentColor;stroke-width:1.75;fill:none;stroke-linecap:round;stroke-linejoin:round;" xmlns="http://www.w3.org/2000/svg"><circle cx="11" cy="4" r="1"/><path d="m11 9 2 7h5l-1.5 3"/><path d="M9 9H7l1 7"/><path d="M13.5 19a4.5 4.5 0 1 1-9 0 4.5 4.5 0 0 1 9 0z"/></svg> '+acessLabel+'</span>'+
           '</div>';
         });
@@ -15332,12 +15339,12 @@ function renderDash(){
       var sessLinks=item.sessions.map(function(s){
         var safe=s.nome.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
         return'<button class="dash-sess-link" onclick="goToFicha(\''+safe+'\')">'+
-          '<span class="dash-sess-cinema">'+s.cinema+'</span>'+s.nome+'</button>';
+          '<span class="dash-sess-cinema">'+s.cinema+'</span>'+esc(stripEvPrefix(s.nome,s.evento))+'</button>';
       }).join('');
       ctrlBody+='<div class="dash-film-card" style="border-left-color:'+(col?col.bg:'var(--border2)')+'">'+
         '<div class="dash-film-top">'+
           '<span class="dash-film-title">'+titulo+'</span>'+
-          '<span class="dash-film-code">'+f.codigo+'</span>'+
+          '<span class="dash-film-code" title="'+esc(f.codigo)+'">'+esc(stripEvPrefix(f.codigo,f.evento))+'</span>'+
           evBadge+
         '</div>'+
         (sessLinks?'<div class="dash-sess-list"><span class="dash-sess-label">Sessões</span>'+sessLinks+'</div>':'')+
@@ -15399,7 +15406,7 @@ function renderDash(){
         kdmBody+='<div class="dash-film-card" style="border-left-color:'+(col?col.bg:'var(--border2)')+'">'+
           '<div class="dash-film-top">'+
             '<span class="dash-film-title">'+titulo+'</span>'+
-            '<span class="dash-film-code">'+f.codigo+'</span>'+
+            '<span class="dash-film-code" title="'+esc(f.codigo)+'">'+esc(stripEvPrefix(f.codigo,f.evento))+'</span>'+
             evBadge+
           '</div>'+
           (sessLinks?'<div class="dash-sess-list"><span class="dash-sess-label">Sessões</span>'+sessLinks+'</div>':'')+
@@ -15411,7 +15418,7 @@ function renderDash(){
   html+=colBlock('kdm','KDM',kdmBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 31/05/2026 às 14:20';
+  var sysUpdate='última atualização do sistema · 31/05/2026 às 14:24';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -16225,8 +16232,8 @@ function _progRenderSessao(sessaoNome){
   var html='<div class="prog-module-wrap">';
   html+='<div class="ficha"><div class="ficha-header"><div class="ficha-header-main">';
   html+='<div class="ficha-session-wrap">';
-  html+='<div class="ficha-session-name">'+esc(sessaoNome)+'</div>';
-  if(s.name)html+='<div class="prog-sess-display-name">'+esc(s.name)+'</div>';
+  html+='<div class="ficha-session-name" title="'+esc(sessaoNome)+'">'+esc(stripEvPrefix(sessaoNome,s.evento))+'</div>';
+  if(s.name&&s.name!==sessaoNome)html+='<div class="prog-sess-display-name">'+esc(s.name)+'</div>';
   html+=eventoBadge;
   if(ratingBadge)html+=ratingBadge;
   if(prog&&(prog.data.competitive||prog.data.popular_vote)){
@@ -17095,7 +17102,7 @@ async function saveCatCriaSessao(){
   var reserved=bloqVal?(bloqMode==='pct'?bloqVal+'%':bloqVal):'';
   var data={
     session_id:id,
-    name:name||id,
+    name:name||'',
     event_name:ev,
     date:date,
     time:time,
@@ -18839,7 +18846,7 @@ function renderCatDetail(){
         +'<span class="cat-sess-time">'+(s.time?s.time.str:'\u2014')+'</span>'
         +'<span class="cat-sess-day">'+s.dia+'</span>'
         +'<span class="cat-sess-cinema">'+(s.cinema||'\u2014')+'</span>'
-        +'<span class="cat-sess-name">'+s.nome+'</span>'
+        +'<span class="cat-sess-name" title="'+esc(s.nome)+'">'+esc(stripEvPrefix(s.nome,s.evento))+'</span>'
         +_badges
         +_sessActions
         +'</div>';
@@ -21395,7 +21402,7 @@ window.addEventListener('popstate',function(e){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 31/05/2026 às 14:20</span></div>
+<div id="page-footer"><span>última atualização · 31/05/2026 às 14:24</span></div>
 
 </div>
 

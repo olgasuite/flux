@@ -1044,7 +1044,7 @@ header{position:fixed;top:0;left:0;right:0;z-index:200;background:rgba(10,10,10,
 /* MODE BARS */
 .mode-bar{border-bottom:1px solid var(--border);padding:10px 24px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;min-height:48px;background:var(--surface);}
 .mode-bar.hidden{display:none;}
-select{font-family:var(--mono);font-size:11px;background:var(--surface2);color:var(--text);border:1px solid var(--border2);padding:7px 12px;min-width:280px;cursor:pointer;outline:none;}
+select{font-family:var(--mono);font-size:11px;line-height:1.4;background:var(--surface2);color:var(--text);border:1px solid var(--border2);padding:7px 12px;min-width:280px;cursor:pointer;outline:none;box-sizing:border-box;}
 select:focus{border-color:var(--accent);}
 select:disabled{opacity:0.35;cursor:not-allowed;}
 .print-btn{display:inline-flex;align-items:center;gap:6px;padding:7px 18px;background:transparent;color:var(--accent);border:1px solid var(--accent);font-family:var(--mono);font-size:10px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;cursor:pointer;transition:all 0.15s;}
@@ -4899,6 +4899,7 @@ html[data-theme]:not([data-theme="win98"]){--mono:var(--sans);}
           cplOV: fs(r['ov_cpl_id']), acessibilidade: fs(r['accessibility_features']),
           exhibition_format: fs(r['exhibition_format']),
           exhibition_format_notes: fs(r['exhibition_format_notes']),
+          legenda_exibicao: fs(r['legenda_exibicao'])||'ORIGINAL',
           dcp_uuid: fs(r['dcp_uuid']),
           dcp_link: fs(r['dcp_link']),
           file_link: fs(r['file_link'])
@@ -6587,6 +6588,22 @@ function _fmtDcncToName(code){
   var isOpen=/[a-z]/.test(code)&&code===code.toLowerCase();
   var name=dcncToCldr(code);
   return esc(name)+(isOpen?'<span class="leg-open-tag"> (queimada na cópia)</span>':'');
+}
+// Resolve a legenda de exibição efetiva a partir da cópia: usa `legenda_exibicao`
+// quando ≠ 'ORIGINAL' (texto fixo), senão devolve null para indicar fluxo padrão (legenda/VF).
+function _legendaExibOverride(copia){
+  if(!copia)return null;
+  var sel=(copia.legenda_exibicao||'').trim().toUpperCase();
+  if(!sel||sel==='ORIGINAL')return null;
+  var map={
+    'ELETRONICA EM PORTUGUES':'Eletrônica em Português',
+    'ELETRÔNICA EM PORTUGUÊS':'Eletrônica em Português',
+    'ELETRONICA EM INGLES':'Eletrônica em Inglês',
+    'ELETRÔNICA EM INGLÊS':'Eletrônica em Inglês',
+    'ELETRONICA LSE':'Eletrônica LSE',
+    'ELETRÔNICA LSE':'Eletrônica LSE'
+  };
+  return map[sel]||copia.legenda_exibicao;
 }
 function langTagHtml(wrapperId,hiddenId,placeholder){
   return'<div class="lang-tag-wrap" id="'+wrapperId+'" data-hidden="'+hiddenId+'">'
@@ -15663,7 +15680,7 @@ function renderDash(){
   html+=colBlock('kdm','KDM',kdmBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 02/06/2026 às 15:12';
+  var sysUpdate='última atualização do sistema · 02/06/2026 às 15:20';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -16443,10 +16460,17 @@ function _progRenderSessao(sessaoNome){
     vinhetasHtml='<div class="ficha-vinhetas"><span class="ficha-vinhetas-label">Vinhetas</span>'+tags+'</div>';
   }
   var rows=films.map(function(f,idx){
-    var legParts=[];
-    if(f.vf)legParts.push('<span class="leg-text leg-vf-entry"><span class="leg-vf-label">VF</span> <span class="leg-cldr">'+_fmtDcncToName(f.vf)+'</span></span>');
-    else if(f.legenda)legParts.push('<span class="leg-text leg-cldr">'+_fmtDcncToName(f.legenda)+'</span>');
-    var legCell=legParts.length?'<div class="leg-stack">'+legParts.join('')+'</div>':'<span style="color:var(--text-muted)">—</span>';
+    var _fRaw=filmesMap[f.codigo]||{};
+    var _legOv=_legendaExibOverride(_fRaw);
+    var legCell;
+    if(_legOv){
+      legCell='<div class="leg-stack"><span class="leg-text">'+esc(_legOv)+'</span></div>';
+    }else{
+      var legParts=[];
+      if(f.vf)legParts.push('<span class="leg-text leg-vf-entry"><span class="leg-vf-label">VF</span> <span class="leg-cldr">'+_fmtDcncToName(f.vf)+'</span></span>');
+      else if(f.legenda)legParts.push('<span class="leg-text leg-cldr">'+_fmtDcncToName(f.legenda)+'</span>');
+      legCell=legParts.length?'<div class="leg-stack">'+legParts.join('')+'</div>':'<span style="color:var(--text-muted)">—</span>';
+    }
     var idiomaCell=f.idioma?'<span class="idioma-text">'+esc(f.idioma)+'</span>':'<span style="color:var(--text-muted)">—</span>';
     var acessCell=f.acessibilidade?'<div style="font-size:9px;line-height:1.4;color:var(--text-dim);max-width:100px;overflow:hidden;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;">'+esc(f.acessibilidade)+'</div>':'<span style="color:var(--text-muted)">—</span>';
     var paisCell=f.countries&&f.countries.length?progCountriesCell(f.countries):'<span style="color:var(--text-muted)">—</span>';
@@ -18924,8 +18948,13 @@ function renderCatDetail(){
   var canEdit=window._olgaUser&&window._olgaCanEdit('catalogo');
   var dirArr=Array.isArray(meta.director)?meta.director:(meta.director?[meta.director]:[]);
   var dirDisplay=dirArr.join(', ');
-  var legDisplay=copia.legenda?_fmtDcncToName(copia.legenda):'—';
-  if(copia.legenda&&copia.legenda.toUpperCase().includes('VF')&&copia.vf)legDisplay=_fmtDcncToName(copia.legenda)+' · '+_fmtDcncToName(copia.vf);
+  var _legOvCat=_legendaExibOverride(copia);
+  var legDisplay;
+  if(_legOvCat){legDisplay=esc(_legOvCat);}
+  else{
+    legDisplay=copia.legenda?_fmtDcncToName(copia.legenda):'—';
+    if(copia.legenda&&copia.legenda.toUpperCase().includes('VF')&&copia.vf)legDisplay=_fmtDcncToName(copia.legenda)+' · '+_fmtDcncToName(copia.vf);
+  }
   if(!_langCache)_langEnsure().then(function(){renderCatDetail();});
   var crew=meta.crew||{};
   function crewArr(v){return Array.isArray(v)?v:(v?[v]:[]);}
@@ -20466,6 +20495,13 @@ async function openAcervoEdit(idx){
     })())
     +aeRow('Observações do formato','<input class="cat-input" id="ae_exhibition_format_notes" type="text" value="'+esc(f.exhibition_format_notes||'')+'" placeholder="(opcional)">')
     +'</div>'
+    +aeRow('Legenda de exibição',(function(){
+      var lopts=['ORIGINAL','ELETRÔNICA EM PORTUGUÊS','ELETRÔNICA EM INGLÊS','ELETRÔNICA LSE'];
+      var cur=(f.legenda_exibicao||'ORIGINAL').toUpperCase();
+      return '<select class="cat-input" id="ae_legenda_exibicao">'
+        +lopts.map(function(o){return'<option value="'+esc(o)+'"'+(cur===o?' selected':'')+'>'+esc(o)+'</option>';}).join('')
+        +'</select>';
+    })())
     +'<div class="cat-grid">'
     +aeRow('Status',aeDatalist('status',f.status,'status',listOpts(statusVals)))
     +aeRow('KDM','<select class="cat-input" id="ae_kdm"><option value="Não"'+((!f.kdm||f.kdm.toLowerCase()!=='sim')?' selected':'')+'>Não</option><option value="Sim"'+((f.kdm&&f.kdm.toLowerCase()==='sim')?' selected':'')+'>Sim</option></select>')
@@ -20514,6 +20550,7 @@ async function openAcervoEdit(idx){
     dcp_uuid:f.dcp_uuid||'',accessibility_features:_aeAcessTags.join(', '),
     exhibition_format:f.exhibition_format||'',
     exhibition_format_notes:f.exhibition_format_notes||'',
+    legenda_exibicao:f.legenda_exibicao||'ORIGINAL',
     dcp_link:f.dcp_link||'',file_link:f.file_link||''
   };
 }
@@ -20551,6 +20588,7 @@ async function doSaveAcervoEdit(){
     dcp_uuid:aeVal('uuid'),accessibility_features:aeVal('acess'),
     exhibition_format:aeVal('exhibition_format'),
     exhibition_format_notes:aeVal('exhibition_format_notes'),
+    legenda_exibicao:aeVal('legenda_exibicao')||'ORIGINAL',
     dcp_link:aeVal('dcp_link'),file_link:aeVal('file_link')
   };
   try{
@@ -21036,8 +21074,8 @@ window.addEventListener('popstate',function(e){
 .cxp-body{padding:14px 20px;overflow-y:auto;display:flex;flex-direction:column;gap:12px;}
 .cxp-tpl-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding-bottom:10px;border-bottom:1px solid var(--border);}
 .cxp-tpl-row label{font-family:var(--mono);font-size:9px;color:var(--text-muted);letter-spacing:0.08em;text-transform:uppercase;}
-.cxp-input{height:26px;padding:0 8px;background:var(--bg);border:1px solid var(--border);color:var(--text);font-family:var(--mono);font-size:10px;border-radius:3px;}
-.cxp-select{height:26px;padding:0 6px;background:var(--bg);border:1px solid var(--border);color:var(--text);font-family:var(--mono);font-size:10px;border-radius:3px;min-width:340px;max-width:520px;}
+.cxp-input{padding:5px 8px;background:var(--bg);border:1px solid var(--border);color:var(--text);font-family:var(--mono);font-size:10px;line-height:1.3;border-radius:3px;box-sizing:border-box;}
+.cxp-select{padding:5px 8px;background:var(--bg);border:1px solid var(--border);color:var(--text);font-family:var(--mono);font-size:10px;line-height:1.3;border-radius:3px;min-width:340px;max-width:520px;box-sizing:border-box;}
 .cxp-btn{font-family:var(--mono);font-size:9px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;padding:5px 10px;background:transparent;color:var(--text-dim);border:1px solid var(--border);cursor:pointer;border-radius:3px;}
 .cxp-btn:hover{background:var(--surface2);color:var(--text);}
 .cxp-btn.primary{background:var(--accent);color:var(--on-accent);border-color:var(--accent);}
@@ -21432,11 +21470,14 @@ function openSessoesExportCinemas(){
     var tituloOrig=films.map(function(f){return f.meta.original_title||f.meta.title||'';}).filter(Boolean).join(' / ');
     var totalSecs=0;films.forEach(function(f){totalSecs+=_parseDurSecs(f.copia.duracao||'');});
     var mins=totalSecs?Math.round(totalSecs/60):'';
-    // legenda de exibição: agrega legenda/vf de cada filme como aparece na ficha
+    // legenda de exibição: usa override (campo legenda_exibicao) se != ORIGINAL,
+    // senão devolve só o nome do idioma (VF ou legenda da cópia, sem prefixo VF)
     var legs=films.map(function(f){
+      var ov=(typeof _legendaExibOverride==='function')?_legendaExibOverride(f.copia):null;
+      if(ov)return ov;
       var leg=(f.copia.legenda||'').trim(),vf=(f.copia.vf||'').trim();
-      if(vf)return 'VF '+(_fmtDcncToName?_fmtDcncToName(vf):vf);
-      if(leg&&leg!=='-')return (_fmtDcncToName?_fmtDcncToName(leg):leg);
+      if(vf)return (typeof dcncToCldr==='function'?dcncToCldr(vf):vf);
+      if(leg&&leg!=='-')return (typeof dcncToCldr==='function'?dcncToCldr(leg):leg);
       return '';
     }).filter(Boolean).join(' / ');
     var cin=cinMap[s.cinema]||{};
@@ -21476,7 +21517,7 @@ function _sxcBlqTotal(r){
 }
 function _sxcRender(){
   var thead='<tr>'+
-    '<th>VENDAS</th><th>DATA</th><th>CINEMA (SALA)</th><th>SESSÃO</th><th>HORÁRIO</th>'+
+    '<th>VENDAS</th><th>DATA</th><th>CINEMA (SALA)</th><th>HORÁRIO</th>'+
     '<th>TÍTULO PT</th><th>TÍTULO ORIGINAL</th><th>MIN</th>'+
     '<th>APRESENT.</th><th>DEBATE</th><th>ACESSIB.</th><th>LEGENDA</th>'+
     '<th>BLQ PADRÃO (10%)</th><th>BLQ EXTRA</th><th>BLQ TOTAL</th></tr>';
@@ -21489,7 +21530,6 @@ function _sxcRender(){
       '<td><select class="sxc-sel" onchange="_sxcSet('+i+',\'vendas\',this.value)">'+vendOpts+'</select></td>'+
       '<td>'+esc(r.data)+'</td>'+
       '<td>'+esc(r.cinema)+'</td>'+
-      '<td>'+esc(r.sessao)+'</td>'+
       '<td>'+esc(r.horario)+'</td>'+
       '<td>'+esc(r.titulo_pt)+'</td>'+
       '<td>'+esc(r.titulo_orig)+'</td>'+
@@ -21509,11 +21549,11 @@ function _sxcRender(){
 function _sxcSet(i,field,val){if(!_sxcRows[i])return;_sxcRows[i][field]=val;_sxcRender();}
 function _sxcCsvEscape(v){var s=String(v==null?'':v);if(/[;\",\n\r]/.test(s))return'"'+s.replace(/"/g,'""')+'"';return s;}
 function _sxcExportCSV(){
-  var headers=['VENDAS','DATA','CINEMA (SALA)','SESSÃO','HORÁRIO','TÍTULO PT','TÍTULO ORIGINAL','MIN','APRESENT.','DEBATE','ACESSIB.','LEGENDA','BLQ PADRÃO (10%)','BLQ EXTRA','BLQ TOTAL'];
+  var headers=['VENDAS','DATA','CINEMA (SALA)','HORÁRIO','TÍTULO PT','TÍTULO ORIGINAL','MIN','APRESENT.','DEBATE','ACESSIB.','LEGENDA','BLQ PADRÃO (10%)','BLQ EXTRA','BLQ TOTAL'];
   var lines=[headers.map(_sxcCsvEscape).join(';')];
   _sxcRows.forEach(function(r){
     var bpVal=r.blqPadMode==='vender_tudo'?'VENDER TUDO':String(r.blqPadVal);
-    var line=[r.vendas,r.data,r.cinema,r.sessao,r.horario,r.titulo_pt,r.titulo_orig,r.mins,r.apresentacao,r.debate,r.acessibilidade,r.legenda,bpVal,r.blqExt,_sxcBlqTotal(r)];
+    var line=[r.vendas,r.data,r.cinema,r.horario,r.titulo_pt,r.titulo_orig,r.mins,r.apresentacao,r.debate,r.acessibilidade,r.legenda,bpVal,r.blqExt,_sxcBlqTotal(r)];
     lines.push(line.map(_sxcCsvEscape).join(';'));
   });
   var csv='﻿'+lines.join('\r\n');
@@ -21522,11 +21562,11 @@ function _sxcExportCSV(){
   var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;document.body.appendChild(a);a.click();setTimeout(function(){URL.revokeObjectURL(a.href);a.remove();},100);
 }
 function _sxcPrint(){
-  var headers=['VENDAS','DATA','CINEMA (SALA)','SESSÃO','HORÁRIO','TÍTULO PT','TÍTULO ORIGINAL','MIN','APRESENT.','DEBATE','ACESSIB.','LEGENDA','BLQ PADRÃO (10%)','BLQ EXTRA','BLQ TOTAL'];
+  var headers=['VENDAS','DATA','CINEMA (SALA)','HORÁRIO','TÍTULO PT','TÍTULO ORIGINAL','MIN','APRESENT.','DEBATE','ACESSIB.','LEGENDA','BLQ PADRÃO (10%)','BLQ EXTRA','BLQ TOTAL'];
   var thead='<tr>'+headers.map(function(h){return'<th>'+esc(h)+'</th>';}).join('')+'</tr>';
   var rows=_sxcRows.map(function(r){
     var bpVal=r.blqPadMode==='vender_tudo'?'VENDER TUDO':String(r.blqPadVal);
-    var cells=[r.vendas,r.data,r.cinema,r.sessao,r.horario,r.titulo_pt,r.titulo_orig,r.mins,r.apresentacao,r.debate,r.acessibilidade,r.legenda,bpVal,r.blqExt,_sxcBlqTotal(r)];
+    var cells=[r.vendas,r.data,r.cinema,r.horario,r.titulo_pt,r.titulo_orig,r.mins,r.apresentacao,r.debate,r.acessibilidade,r.legenda,bpVal,r.blqExt,_sxcBlqTotal(r)];
     return '<tr>'+cells.map(function(v){return '<td>'+esc(String(v||''))+'</td>';}).join('')+'</tr>';
   }).join('');
   var title='Exportar para Cinemas · '+new Date().toLocaleString('pt-BR');
@@ -21549,7 +21589,7 @@ function _sxcPrint(){
 .sxc-table th,.sxc-table td{border:1px solid var(--border);padding:4px 6px;vertical-align:top;text-align:left;}
 .sxc-table th{background:var(--surface2);color:var(--text);font-size:9px;text-transform:uppercase;letter-spacing:0.06em;font-weight:600;position:sticky;top:0;}
 .sxc-table td.sxc-num{text-align:right;font-variant-numeric:tabular-nums;}
-.sxc-sel{height:22px;padding:0 4px;background:var(--bg);border:1px solid var(--border);color:var(--text);font-family:var(--mono);font-size:9px;border-radius:2px;width:100%;}
+.sxc-sel{padding:4px 6px;background:var(--bg);border:1px solid var(--border);color:var(--text);font-family:var(--mono);font-size:10px;line-height:1.3;border-radius:2px;width:100%;box-sizing:border-box;}
 .sxc-foot{padding:10px 20px;border-top:1px solid var(--border);display:flex;gap:8px;justify-content:flex-end;align-items:center;flex-shrink:0;}
 .sxc-foot-left{margin-right:auto;font-family:var(--mono);font-size:10px;color:var(--text-muted);}
 .sxc-btn{font-family:var(--mono);font-size:9px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;padding:6px 12px;background:transparent;color:var(--text-dim);border:1px solid var(--border);cursor:pointer;border-radius:3px;}
@@ -22232,7 +22272,7 @@ function _sxcPrint(){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 02/06/2026 às 15:12</span></div>
+<div id="page-footer"><span>última atualização · 02/06/2026 às 15:20</span></div>
 
 </div>
 

@@ -15709,7 +15709,7 @@ function renderDash(){
   html+=colBlock('kdm','KDM',kdmBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 02/06/2026 às 15:26';
+  var sysUpdate='última atualização do sistema · 02/06/2026 às 15:28';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -17461,6 +17461,8 @@ var _EQUIPE_RESTRICOES=[
   {k:'sessoes.exportar_cinemas',label:'Sessões · Ocultar botão "Exportar para cinemas"'},
   {k:'triagem.filmfreeway',label:'Curadoria e Seleção · Ocultar botão FilmFreeway'},
   {k:'triagem.sfd',label:'Curadoria e Seleção · Ocultar botão Short Film Depot'},
+  {k:'triagem.ocultar_avaliacoes_outros',label:'Curadoria e Seleção · Ocultar média e avaliações dos outros (vê só a própria)'},
+  {k:'triagem.somente_avaliar',label:'Curadoria e Seleção · Edição restrita à avaliação (não edita ficha do filme)'},
   {k:'sessoes.btn_projecao',label:'Sessões · Ocultar botão "Ficha de Projeção"'},
   {k:'projecao.btn_programacao',label:'Projeção · Ocultar botão "Ficha de Programação"'}
 ];
@@ -22325,7 +22327,7 @@ function _sxcPrint(){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 02/06/2026 às 15:26</span></div>
+<div id="page-footer"><span>última atualização · 02/06/2026 às 15:28</span></div>
 
 </div>
 
@@ -25804,7 +25806,7 @@ function renderTriagemDetail(){
   var meta=triagemFilmesMap[_triagemCode]||{};
   var title=meta.title_pt||meta.title||meta.system_name||_triagemCode;
   var dirArr=Array.isArray(meta.director)?meta.director:(meta.director?[meta.director]:[]);
-  var canEdit=window._olgaUser&&_triagemCanEdit()&&!meta.importado_catalogo;
+  var canEdit=window._olgaUser&&_triagemCanEdit()&&!meta.importado_catalogo&&!(window._olgaHasRestricao&&window._olgaHasRestricao('triagem.somente_avaliar'));
   function toArr(v){return Array.isArray(v)?v:(v?[v]:[]);}
   function crewArr(v){return Array.isArray(v)?v:(v?[v]:[]);}
   var crew=meta.crew||{};
@@ -26009,8 +26011,14 @@ function _triagemRenderRaw(raw,source){
 }
 
 /* ── avaliações ── */
+function _triagemOcultaOutros(){
+  return !!(window._olgaHasRestricao&&window._olgaHasRestricao('triagem.ocultar_avaliacoes_outros'));
+}
 function _triagemAvaliacaoSummary(meta){
   var av=(meta&&meta.avaliacoes)||{};
+  // se a restrição estiver ativa e ainda não houve decisão, esconde a média
+  var oculta=_triagemOcultaOutros()&&!(meta&&meta.selecao);
+  if(oculta)return{count:0,avg:0,bg:'',fg:'',label:''};
   var notas=Object.values(av).map(function(e){return parseInt(e&&e.nota)||0;}).filter(function(n){return n>0;});
   if(!notas.length)return{count:0,avg:0,bg:'',fg:'',label:''};
   var avg=notas.reduce(function(a,b){return a+b;},0)/notas.length;
@@ -26022,9 +26030,14 @@ function _triagemAvaliacaoSummary(meta){
 }
 function _triagemAvaliacoesList(meta){
   var av=(meta&&meta.avaliacoes)||{};
-  var keys=Object.keys(av);if(!keys.length)return'';
-  keys.sort(function(a,b){return(av[b].ts||'').localeCompare(av[a].ts||'');});
   var meEmail=(window._olgaUser&&window._olgaUser.email)||'';
+  var keys=Object.keys(av);
+  // se a restrição estiver ativa e ainda não houve decisão, só mostra a própria
+  if(_triagemOcultaOutros()&&!(meta&&meta.selecao)){
+    keys=keys.filter(function(k){return k===meEmail;});
+  }
+  if(!keys.length)return'';
+  keys.sort(function(a,b){return(av[b].ts||'').localeCompare(av[a].ts||'');});
   var rows=keys.map(function(em){
     var e=av[em]||{};var nota=parseInt(e.nota)||0;
     var dt=e.ts?new Date(e.ts).toLocaleDateString('pt-BR'):'';

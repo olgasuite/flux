@@ -4347,6 +4347,7 @@ html[data-theme]:not([data-theme="win98"]){--mono:var(--sans);}
             import_source:fss(r.import_source),
             cpb:fss(r.cpb), forma_selecao:fss(r.forma_selecao),
             evento:fss(r.evento),
+            avaliacoes:(r.avaliacoes&&typeof r.avaliacoes==='object')?r.avaliacoes:{},
             crew:r.crew?{
               cinematography:fsa(r.crew.cinematography), screenplay:fsa(r.crew.screenplay),
               editing:fsa(r.crew.editing), sound:fsa(r.crew.sound),
@@ -4412,9 +4413,18 @@ html[data-theme]:not([data-theme="win98"]){--mono:var(--sans);}
         sfd_ref:fsStr(data.sfd_ref||''),sfd_film_id:fsStr(data.sfd_film_id||''),sfd_id:fsStr(data.sfd_id||''),
         import_source:fsStr(data.import_source||''),
         cpb:fsStr(data.cpb||''),forma_selecao:fsStr(data.forma_selecao||''),
+        evento:fsStr(data.evento||''),
         runtime:data.runtime?fsInt(data.runtime):{integerValue:'0'},
         crew:{mapValue:{fields:crewF}},
-        cinemateca_raw:fsStr(data.cinemateca_raw?JSON.stringify(data.cinemateca_raw):'')
+        cinemateca_raw:fsStr(data.cinemateca_raw?JSON.stringify(data.cinemateca_raw):''),
+        avaliacoes:(function(){
+          var av=data.avaliacoes||{};var fs={};
+          Object.keys(av).forEach(function(em){
+            var v=av[em]||{};
+            fs[em]={mapValue:{fields:{nota:{integerValue:String(parseInt(v.nota)||0)},obs:{stringValue:String(v.obs||'')},ts:{stringValue:String(v.ts||'')}}}};
+          });
+          return{mapValue:{fields:fs}};
+        })()
       };
       var token = await auth.currentUser.getIdToken();
       var _fsBase=(location.hostname==='localhost'||location.hostname==='127.0.0.1')?'http://127.0.0.1:8080/v1/projects/olga-suite/databases/(default)/documents':'https://firestore.googleapis.com/v1/projects/olga-suite/databases/(default)/documents';
@@ -4484,7 +4494,8 @@ html[data-theme]:not([data-theme="win98"]){--mono:var(--sans);}
             })():null,
             import_source:fss(r.import_source),
             importado_catalogo:!!(r.importado_catalogo),
-            importado_em:fss(r.importado_em)
+            importado_em:fss(r.importado_em),
+            avaliacoes:(r.avaliacoes&&typeof r.avaliacoes==='object')?r.avaliacoes:{}
           };
         });
         return map;
@@ -4539,7 +4550,15 @@ html[data-theme]:not([data-theme="win98"]){--mono:var(--sans);}
         import_raw:fsStr(data.import_raw?JSON.stringify(data.import_raw):''),
         import_source:fsStr(data.import_source||''),
         importado_catalogo:fsBool(data.importado_catalogo),
-        importado_em:fsStr(data.importado_em||'')
+        importado_em:fsStr(data.importado_em||''),
+        avaliacoes:(function(){
+          var av=data.avaliacoes||{};var fs={};
+          Object.keys(av).forEach(function(em){
+            var v=av[em]||{};
+            fs[em]={mapValue:{fields:{nota:{integerValue:String(parseInt(v.nota)||0)},obs:{stringValue:String(v.obs||'')},ts:{stringValue:String(v.ts||'')}}}};
+          });
+          return{mapValue:{fields:fs}};
+        })()
       };
       var token = await auth.currentUser.getIdToken();
       var _fsBase=(location.hostname==='localhost'||location.hostname==='127.0.0.1')?'http://127.0.0.1:8080/v1/projects/olga-suite/databases/(default)/documents':'https://firestore.googleapis.com/v1/projects/olga-suite/databases/(default)/documents';
@@ -4553,6 +4572,16 @@ html[data-theme]:not([data-theme="win98"]){--mono:var(--sans);}
       var url=_fsBase+'/triagem/'+encodeURIComponent(codigo);
       var resp=await fetch(url,{method:'DELETE',headers:{'Authorization':'Bearer '+token}});
       if(!resp.ok&&resp.status!==404)throw new Error(await resp.text());
+    }
+  };
+
+  // API de avaliações da triagem: cada usuário escreve só a própria entrada em
+  // avaliacoes.<email> via merge — não exige permissão de editor.
+  window._olgaTriagemAvaliacao = {
+    save: async function(codigo, email, nota, obs){
+      if(!codigo||!email)throw new Error('Código e e-mail são obrigatórios.');
+      var payload={};payload[email]={nota:parseInt(nota)||0,obs:String(obs||''),ts:new Date().toISOString()};
+      await setDoc(doc(db,'triagem',codigo),{avaliacoes:payload},{merge:true});
     }
   };
 
@@ -5501,7 +5530,7 @@ window.addEventListener('DOMContentLoaded',function(){
 <nav class="nav-tabs" id="navSidebar">
   <button class="nav-tab" id="tabDash" disabled onclick="switchMode('dash')" title="Dashboard"><span class="tab-icon"><i data-lucide="bar-chart-2"></i></span><span class="nav-label"> Dashboard</span></button>
   <button class="nav-tab" id="tabCatalogo" disabled onclick="switchMode('catalogo')" title="Catálogo"><span class="tab-icon"><i data-lucide="library"></i></span><span class="nav-label"> Catálogo</span></button>
-  <button class="nav-tab" id="tabTriagem" disabled onclick="switchMode('triagem')" title="Triagem"><span class="tab-icon"><i data-lucide="filter"></i></span><span class="nav-label"> Triagem</span></button>
+  <button class="nav-tab" id="tabTriagem" disabled onclick="switchMode('triagem')" title="Curadoria e Seleção"><span class="tab-icon"><i data-lucide="filter"></i></span><span class="nav-label"> Curadoria e Seleção</span></button>
   <button class="nav-tab" id="tabProgramacao" disabled onclick="switchMode('programacao')" title="Programação"><span class="tab-icon"><i data-lucide="layout-list"></i></span><span class="nav-label"> Programação</span></button>
   <button class="nav-tab" id="tabVinhetas" disabled onclick="switchMode('vinhetas')" title="Vinhetas"><span class="tab-icon"><i data-lucide="film"></i></span><span class="nav-label"> Vinhetas</span></button>
   <button class="nav-tab" id="tabGrade" disabled onclick="switchMode('grade')" title="Grade"><span class="tab-icon"><i data-lucide="layout-dashboard"></i></span><span class="nav-label"> Grade</span></button>
@@ -5792,7 +5821,7 @@ window.addEventListener('DOMContentLoaded',function(){
     </div>
     <div class="module-card disabled" id="modCardTriagem" onclick="moduleCardClick('triagem')">
       <div class="module-icon"><i data-lucide="filter"></i></div>
-      <div class="module-name">Triagem</div>
+      <div class="module-name">Curadoria e Seleção</div>
       <div class="module-desc">Acervo de inscrições importadas para curadoria e pré-seleção de filmes</div>
     </div>
     <div class="module-card disabled" id="modCardProgramacao" onclick="moduleCardClick('programacao')">
@@ -15680,7 +15709,7 @@ function renderDash(){
   html+=colBlock('kdm','KDM',kdmBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 02/06/2026 às 15:22';
+  var sysUpdate='última atualização do sistema · 02/06/2026 às 15:26';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -17425,13 +17454,13 @@ var _EQUIPE_RESTRICOES=[
   {k:'catalogo.filmfreeway',label:'Catálogo · Ocultar botão e bloco FilmFreeway'},
   {k:'catalogo.sfd',label:'Catálogo · Ocultar botão Short Film Depot'},
   {k:'catalogo.cinemateca',label:'Catálogo · Ocultar botão "Filmografia Brasileira"'},
-  {k:'catalogo.triagem',label:'Catálogo · Ocultar botão "Importar da Triagem"'},
+  {k:'catalogo.triagem',label:'Catálogo · Ocultar botão "Importar da Curadoria e Seleção"'},
   {k:'catalogo.cadastro_lote',label:'Catálogo · Ocultar botão "+ Múltiplos filmes"'},
   {k:'catalogo.exportar_especial',label:'Catálogo · Ocultar botão "Exportar especial"'},
   {k:'busca.exportar_especial',label:'Acervo Técnico · Ocultar botão "Exportar especial"'},
   {k:'sessoes.exportar_cinemas',label:'Sessões · Ocultar botão "Exportar para cinemas"'},
-  {k:'triagem.filmfreeway',label:'Triagem · Ocultar botão FilmFreeway'},
-  {k:'triagem.sfd',label:'Triagem · Ocultar botão Short Film Depot'},
+  {k:'triagem.filmfreeway',label:'Curadoria e Seleção · Ocultar botão FilmFreeway'},
+  {k:'triagem.sfd',label:'Curadoria e Seleção · Ocultar botão Short Film Depot'},
   {k:'sessoes.btn_projecao',label:'Sessões · Ocultar botão "Ficha de Projeção"'},
   {k:'projecao.btn_programacao',label:'Projeção · Ocultar botão "Ficha de Programação"'}
 ];
@@ -18870,9 +18899,9 @@ function renderCatalogo(){
   if(_catCanEdit&&!window._olgaHasRestricao('catalogo.cadastro_lote'))_catActions2+='<button class="cat-edit-btn" onclick="openCatCreateBulk()">+ Múltiplos filmes</button>';
   if(_catCanEdit&&!window._olgaHasRestricao('catalogo.filmfreeway'))_catActions2+='<button class="cat-edit-btn" style="background:var(--accent-dim);border-color:var(--accent);color:var(--accent);" onclick="openFFImport()">↓ FilmFreeway</button>';
   if(_catCanEdit&&!window._olgaHasRestricao('catalogo.sfd'))_catActions2+='<button class="cat-edit-btn" style="background:var(--accent-dim);border-color:var(--accent);color:var(--accent);" onclick="openSFDImport()">↓ Short Film Depot</button>';
-  if(_catCanEdit&&!window._olgaHasRestricao('catalogo.triagem'))_catActions2+='<button class="cat-edit-btn" style="background:rgba(80,200,120,0.12);border-color:rgba(80,200,120,0.55);color:var(--ok);" onclick="importarDaTriagem()">↓ Importar da Triagem</button>';
+  if(_catCanEdit&&!window._olgaHasRestricao('catalogo.triagem'))_catActions2+='<button class="cat-edit-btn" style="background:rgba(80,200,120,0.12);border-color:rgba(80,200,120,0.55);color:var(--ok);" onclick="importarDaTriagem()">↓ Importar da Curadoria e Seleção</button>';
   if(_isAdmin)_catActions2+='<button class="cat-edit-btn" onclick="importCopiasToCatalog()">↓ Importar do Acervo</button>';
-  if(_isAdmin)_catActions2+='<button class="cat-edit-btn" title="Copia campos FilmFreeway/Short Film Depot de filmes da Triagem para o Catálogo (útil para filmes importados antes da última atualização)" onclick="ressincronizarPlataformasDaTriagem()">↻ Sincronizar plataformas</button>';
+  if(_isAdmin)_catActions2+='<button class="cat-edit-btn" title="Copia campos FilmFreeway/Short Film Depot de filmes da Curadoria e Seleção para o Catálogo (útil para filmes importados antes da última atualização)" onclick="ressincronizarPlataformasDaTriagem()">↻ Sincronizar plataformas</button>';
   if(_isAdmin)_catActions2+='<button class="cat-edit-btn" title="Preenche o campo de duração vazio (runtime ↔ dcp_duration) usando o valor do outro campo. Conflitos são listados sem alteração." onclick="ressincronizarDuracoes()">↻ Sincronizar durações</button>';
   if(_catActions2)html+='<div class="cat-sf-actions" style="border-top:none;padding-top:0;">'+_catActions2+'</div>';
   // dashboard — filtrado pelos eventos ativos
@@ -19153,6 +19182,16 @@ function renderCatDetail(){
     html+=catBlock('Sessões',_newSessBtn+'<div style="font-family:var(--mono);font-size:10px;color:var(--text-muted);">Nenhuma sessão programada.</div>');
   }
   if(meta.cinemateca_raw&&!_catEditing)html+=_renderCinBlock(meta.cinemateca_raw);
+  // Avaliações importadas da Curadoria e Seleção (colapsável no rodapé)
+  if(meta.avaliacoes&&Object.keys(meta.avaliacoes).length){
+    var _catAvSummary=_triagemAvaliacaoSummary(meta);
+    var _catAvList=_triagemAvaliacoesList(meta);
+    html+='<details style="margin-top:24px;border-top:1px solid var(--border);padding-top:16px;"><summary style="cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;user-select:none;">'
+      +'<span style="font-family:var(--mono);font-size:10px;font-weight:700;letter-spacing:0.07em;color:var(--accent);text-transform:uppercase;">Avaliações da Curadoria</span>'
+      +(_catAvSummary.count>0?'<span style="display:inline-flex;align-items:center;gap:6px;padding:3px 10px;border-radius:12px;background:'+_catAvSummary.bg+';color:'+_catAvSummary.fg+';font-family:var(--mono);font-size:10px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;">★ '+_catAvSummary.avg.toFixed(1)+'/5 · '+esc(_catAvSummary.label)+' ('+_catAvSummary.count+')</span>':'')
+      +'<span style="font-family:var(--sans);font-size:11px;color:var(--text-muted);">clique para expandir</span>'
+      +'</summary><div style="margin-top:14px;">'+_catAvList+'</div></details>';
+  }
   if(_catEditing){
     html+='<div class="cat-actions" style="margin-top:8px;border-top:1px solid var(--border);padding-top:14px;"><span class="cat-msg" id="catSaveMsgBottom"></span><button class="cat-cancel-btn" onclick="_catConfirmLeave(cancelCatEdit)">Cancelar</button><button class="cat-save-btn" onclick="doSaveCat()">Salvar</button></div>';
   }
@@ -22286,7 +22325,7 @@ function _sxcPrint(){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 02/06/2026 às 15:22</span></div>
+<div id="page-footer"><span>última atualização · 02/06/2026 às 15:26</span></div>
 
 </div>
 
@@ -24037,7 +24076,7 @@ function _ffSetFooter(phase){
   } else if(phase==='done'){
     el.innerHTML='<button class="ffim-btn" onclick="_ffGoBack()">← Nova importação</button>'
       +(_ffImportTarget==='triagem'
-        ?'<button class="ffim-btn primary" onclick="closeFFImport();if(typeof renderTriagem===\'function\')renderTriagem();">Fechar e atualizar Triagem</button>'
+        ?'<button class="ffim-btn primary" onclick="closeFFImport();if(typeof renderTriagem===\'function\')renderTriagem();">Fechar e atualizar Curadoria e Seleção</button>'
         :'<button class="ffim-btn primary" onclick="closeFFImport();if(typeof renderCatalogo===\'function\')renderCatalogo();">Fechar e atualizar catálogo</button>');
   }
 }
@@ -24761,7 +24800,7 @@ function _ffEsc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;
 
 async function ffStartImport(){
   if(_ffImporting||!_ffRows.length)return;
-  if(_ffImportTarget==='triagem'){if(!window._olgaTriagem){alert('API de triagem não disponível. Faça login primeiro.');return;}}
+  if(_ffImportTarget==='triagem'){if(!window._olgaTriagem){alert('API de Curadoria e Seleção não disponível. Faça login primeiro.');return;}}
   else{if(!window._olgaCatalogo){alert('API do catálogo não disponível. Faça login primeiro.');return;}}
   var chks=Array.from(document.querySelectorAll('.ff-row-chk'));
   var selectedIdxs=chks.filter(function(c){return c.checked;}).map(function(c){return parseInt(c.dataset.idx);});
@@ -24909,7 +24948,7 @@ function _sfdSetFooter(phase){
   }else if(phase==='done'){
     el.innerHTML='<button class="ffim-btn" onclick="_sfdGoBack()">← Nova importação</button>'
       +(_sfdImportTarget==='triagem'
-        ?'<button class="ffim-btn primary" onclick="closeSFDImport();if(typeof renderTriagem===\'function\')renderTriagem();">Fechar e atualizar Triagem</button>'
+        ?'<button class="ffim-btn primary" onclick="closeSFDImport();if(typeof renderTriagem===\'function\')renderTriagem();">Fechar e atualizar Curadoria e Seleção</button>'
         :'<button class="ffim-btn primary" onclick="closeSFDImport();if(typeof renderCatalogo===\'function\')renderCatalogo();">Fechar e atualizar catálogo</button>');
   }
 }
@@ -25274,7 +25313,7 @@ function sfdUpdateSelCount(){
 }
 async function sfdStartImport(){
   if(_sfdImporting||!_sfdRows.length)return;
-  if(_sfdImportTarget==='triagem'){if(!window._olgaTriagem){alert('API de triagem não disponível. Faça login primeiro.');return;}}
+  if(_sfdImportTarget==='triagem'){if(!window._olgaTriagem){alert('API de Curadoria e Seleção não disponível. Faça login primeiro.');return;}}
   else{if(!window._olgaCatalogo){alert('API do catálogo não disponível. Faça login primeiro.');return;}}
   var chks=Array.from(document.querySelectorAll('.sfd-row-chk'));
   var selectedIdxs=chks.filter(function(c){return c.checked;}).map(function(c){return parseInt(c.dataset.idx);});
@@ -25379,7 +25418,7 @@ function _updateTriagemBatchToolbar(){
 }
 async function _triagemBatchDelete(){
   var n=_triagemBatchSel.size;if(!n)return;
-  if(!confirm('Excluir '+n+' filme'+(n!==1?'s':'')+' da Triagem permanentemente?'))return;
+  if(!confirm('Excluir '+n+' filme'+(n!==1?'s':'')+' da Curadoria e Seleção permanentemente?'))return;
   var codes=Array.from(_triagemBatchSel),errors=[];
   for(var i=0;i<codes.length;i++){
     try{await window._olgaTriagem.remove(codes[i]);delete triagemFilmesMap[codes[i]];}
@@ -25392,7 +25431,7 @@ async function _triagemBatchDelete(){
 /* ── EDIÇÃO EM LOTE — TRIAGEM ── */
 function openTriagemBatchModal(){
   var sel=_triagemBatchSel;if(!sel.size)return;
-  document.getElementById('batchModalTitle').textContent='Editar '+sel.size+' filme'+(sel.size!==1?'s':'')+' da Triagem';
+  document.getElementById('batchModalTitle').textContent='Editar '+sel.size+' filme'+(sel.size!==1?'s':'')+' da Curadoria e Seleção';
   document.getElementById('batchProgress').textContent='';
   document.getElementById('batchSaveBtn').disabled=false;
   document.getElementById('batchSaveBtn').onclick=executeTriagemBatchSave;
@@ -25781,7 +25820,7 @@ function renderTriagemDetail(){
   if(meta.runtime)durDisplay=meta.runtime+"'";
   else if(meta.ff_duration){var mm=_ffDurToMin(meta.ff_duration);durDisplay=mm?(mm+"'"):String(meta.ff_duration);}
   var html='<div class="cat-detail">';
-  html+='<button class="cat-back" onclick="renderTriagem()">← Triagem</button>';
+  html+='<button class="cat-back" onclick="renderTriagem()">← Curadoria e Seleção</button>';
   if(canEdit&&!_triagemEditing){
     html+='<div class="cat-actions"><button class="cat-edit-btn" onclick="startTriagemEdit()">✎ Editar</button><button class="cat-edit-btn" style="color:var(--warn);border-color:var(--warn);" onclick="deleteTriagemFilm(\''+_triagemCode.replace(/\'/g,"\\\'")+'\')">× Excluir</button></div>';
   }else if(_triagemEditing){
@@ -25823,10 +25862,24 @@ function renderTriagemDetail(){
     );
   }
   // ── SELEÇÃO ─────────────────────────────────────
+  var _avRes=_triagemAvaliacaoSummary(meta);
+  var _avBadgeHtml=_avRes.count>0
+    ?'<span style="display:inline-flex;align-items:center;gap:8px;padding:5px 12px;border-radius:14px;background:'+_avRes.bg+';color:'+_avRes.fg+';font-family:var(--mono);font-size:11px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;">'
+      +'<span>★ '+_avRes.avg.toFixed(1)+'/5</span>'
+      +'<span style="opacity:0.85;">· '+esc(_avRes.label)+'</span>'
+      +'<span style="opacity:0.65;font-weight:400;">('+_avRes.count+' aval.)</span>'
+    +'</span>'
+    :'<span style="font-family:var(--mono);font-size:10px;color:var(--text-muted);font-style:italic;">sem avaliações</span>';
+  var _avBtn=_triagemEditing?'':'<button class="cat-edit-btn" style="margin-left:auto;" onclick="openTriagemAvaliarModal()">★ Avaliar</button>';
+  var _avRowHtml='<div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">'+_avBadgeHtml+_avBtn+'</div>';
+  // Lista detalhada das avaliações
+  var _avList=_triagemAvaliacoesList(meta);
   html+=catBlock('Seleção',
     catFld('Decisão',_triagemEditing
       ?'<select class="cat-input" id="catf_selecao"><option value="">— aguardando —</option>'+_TRIAGEM_SELECAO_OPTS.map(function(o){return'<option value="'+o+'"'+(meta.selecao===o?' selected':'')+'>'+o+'</option>';}).join('')+'</select>'
       :(meta.selecao?selBadge:'<span style="color:var(--text-muted);font-style:italic;">Aguardando decisão</span>'))
+    +catFld('Curadoria',_avRowHtml)
+    +(_avList?'<div style="margin-top:8px;">'+_avList+'</div>':'')
   );
   // ── SINOPSE ─────────────────────────────────────
   if(meta.synopsis||_triagemEditing)
@@ -25955,6 +26008,99 @@ function _triagemRenderRaw(raw,source){
   return h;
 }
 
+/* ── avaliações ── */
+function _triagemAvaliacaoSummary(meta){
+  var av=(meta&&meta.avaliacoes)||{};
+  var notas=Object.values(av).map(function(e){return parseInt(e&&e.nota)||0;}).filter(function(n){return n>0;});
+  if(!notas.length)return{count:0,avg:0,bg:'',fg:'',label:''};
+  var avg=notas.reduce(function(a,b){return a+b;},0)/notas.length;
+  var cfg;
+  if(avg<2)cfg={bg:'#a82828',fg:'#fff',label:'desconsiderar filme'};
+  else if(avg<4)cfg={bg:'#c9962a',fg:'#fff',label:'avaliação média'};
+  else cfg={bg:'#3a8f3a',fg:'#fff',label:'bem avaliado'};
+  return{count:notas.length,avg:avg,bg:cfg.bg,fg:cfg.fg,label:cfg.label};
+}
+function _triagemAvaliacoesList(meta){
+  var av=(meta&&meta.avaliacoes)||{};
+  var keys=Object.keys(av);if(!keys.length)return'';
+  keys.sort(function(a,b){return(av[b].ts||'').localeCompare(av[a].ts||'');});
+  var meEmail=(window._olgaUser&&window._olgaUser.email)||'';
+  var rows=keys.map(function(em){
+    var e=av[em]||{};var nota=parseInt(e.nota)||0;
+    var dt=e.ts?new Date(e.ts).toLocaleDateString('pt-BR'):'';
+    var isMe=em===meEmail;
+    return '<div style="display:flex;flex-direction:column;gap:2px;padding:6px 10px;background:var(--surface2);border-radius:3px;border-left:3px solid '+(isMe?'var(--accent)':'var(--border2)')+';">'
+      +'<div style="display:flex;align-items:center;gap:8px;font-family:var(--mono);font-size:10px;">'
+        +'<span style="color:var(--accent);font-weight:700;">★ '+nota+'/5</span>'
+        +'<span style="color:var(--text-dim);">'+esc(em)+(isMe?' <span style="color:var(--accent);font-size:9px;">(você)</span>':'')+'</span>'
+        +(dt?'<span style="color:var(--text-muted);margin-left:auto;font-size:9px;">'+dt+'</span>':'')
+      +'</div>'
+      +(e.obs?'<div style="font-family:var(--sans);font-size:11px;color:var(--text);margin-top:2px;white-space:pre-wrap;">'+esc(e.obs)+'</div>':'')
+    +'</div>';
+  }).join('');
+  return '<details style="margin-top:2px;"><summary style="cursor:pointer;list-style:none;display:flex;align-items:center;gap:6px;user-select:none;font-family:var(--mono);font-size:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;"><span>ver avaliações ('+keys.length+')</span></summary><div style="display:flex;flex-direction:column;gap:6px;margin-top:8px;">'+rows+'</div></details>';
+}
+function openTriagemAvaliarModal(){
+  if(!_triagemCode)return;
+  if(!(window._olgaUser&&window._olgaUser.email)){alert('Você precisa estar logado para avaliar.');return;}
+  if(!window._olgaTriagemAvaliacao){alert('API de avaliação indisponível.');return;}
+  var meta=triagemFilmesMap[_triagemCode]||{};
+  var meEmail=window._olgaUser.email;
+  var existing=(meta.avaliacoes&&meta.avaliacoes[meEmail])||{};
+  var curNota=parseInt(existing.nota)||0;
+  var curObs=existing.obs||'';
+  var html=
+    '<div class="cxp-box" style="max-width:480px;">'+
+    '<div class="cxp-head"><span>Avaliar · '+esc(_triagemCode)+'</span><button class="cxp-close" onclick="closeTriagemAvaliarModal()">×</button></div>'+
+    '<div class="cxp-body">'+
+      '<div><label style="font-family:var(--mono);font-size:10px;color:var(--text-muted);letter-spacing:0.1em;text-transform:uppercase;display:block;margin-bottom:8px;">Nota</label>'+
+        '<div id="tavStars" style="display:flex;gap:6px;">'+
+          [1,2,3,4,5].map(function(n){return'<button type="button" class="tav-star" data-n="'+n+'" onclick="_tavSetNota('+n+')" style="background:'+(n<=curNota?'var(--accent)':'var(--surface2)')+';color:'+(n<=curNota?'var(--on-accent)':'var(--text-dim)')+';border:1px solid var(--border);font-family:var(--mono);font-size:14px;font-weight:700;width:40px;height:40px;cursor:pointer;border-radius:3px;">'+n+'</button>';}).join('')+
+        '</div>'+
+      '</div>'+
+      '<div><label style="font-family:var(--mono);font-size:10px;color:var(--text-muted);letter-spacing:0.1em;text-transform:uppercase;display:block;margin-bottom:6px;margin-top:6px;">Observações (opcional)</label>'+
+        '<textarea id="tavObs" class="cxp-input" style="width:100%;min-height:80px;resize:vertical;" placeholder="Comentários, justificativa, sugestões…">'+esc(curObs)+'</textarea>'+
+      '</div>'+
+      '<div id="tavErr" style="font-family:var(--mono);font-size:10px;color:var(--warn);display:none;"></div>'+
+    '</div>'+
+    '<div class="cxp-foot">'+
+      '<button class="cxp-btn" onclick="closeTriagemAvaliarModal()">Cancelar</button>'+
+      '<button class="cxp-btn primary" id="tavSaveBtn" onclick="_tavSave()">Cadastrar avaliação</button>'+
+    '</div></div>';
+  var modal=document.getElementById('tavModal');
+  if(!modal){modal=document.createElement('div');modal.id='tavModal';modal.style.cssText='display:flex;position:fixed;inset:0;background:rgba(0,0,0,0.78);z-index:700;align-items:center;justify-content:center;padding:20px;';document.body.appendChild(modal);}
+  modal.innerHTML=html;modal.style.display='flex';
+  window._tavCurNota=curNota;
+}
+function closeTriagemAvaliarModal(){var m=document.getElementById('tavModal');if(m)m.remove();}
+function _tavSetNota(n){
+  window._tavCurNota=n;
+  document.querySelectorAll('#tavStars .tav-star').forEach(function(b){
+    var bn=parseInt(b.dataset.n);
+    b.style.background=bn<=n?'var(--accent)':'var(--surface2)';
+    b.style.color=bn<=n?'var(--on-accent)':'var(--text-dim)';
+  });
+}
+async function _tavSave(){
+  var n=parseInt(window._tavCurNota)||0;
+  var obs=(document.getElementById('tavObs').value||'').trim();
+  var err=document.getElementById('tavErr');
+  if(!n||n<1||n>5){err.style.display='block';err.textContent='Selecione uma nota de 1 a 5.';return;}
+  var btn=document.getElementById('tavSaveBtn');if(btn){btn.disabled=true;btn.textContent='Salvando…';}
+  try{
+    var email=window._olgaUser.email;
+    await window._olgaTriagemAvaliacao.save(_triagemCode,email,n,obs);
+    // atualiza cache local
+    if(!triagemFilmesMap[_triagemCode].avaliacoes)triagemFilmesMap[_triagemCode].avaliacoes={};
+    triagemFilmesMap[_triagemCode].avaliacoes[email]={nota:n,obs:obs,ts:new Date().toISOString()};
+    closeTriagemAvaliarModal();
+    renderTriagemDetail();
+  }catch(e){
+    err.style.display='block';err.textContent='Erro: '+e.message;
+    if(btn){btn.disabled=false;btn.textContent='Cadastrar avaliação';}
+  }
+}
+
 /* ── edição ── */
 function startTriagemEdit(){_triagemOriginalData=JSON.parse(JSON.stringify(triagemFilmesMap[_triagemCode]||{}));_triagemEditing=true;renderTriagemDetail();}
 function cancelTriagemEdit(){_triagemEditing=false;renderTriagemDetail();}
@@ -26024,7 +26170,7 @@ async function doSaveTriagemFilm(){
 
 /* ── exclusão ── */
 async function deleteTriagemFilm(codigo){
-  if(!confirm('Excluir "'+codigo+'" da Triagem?\n\nEsta ação não pode ser desfeita.'))return;
+  if(!confirm('Excluir "'+codigo+'" da Curadoria e Seleção?\n\nEsta ação não pode ser desfeita.'))return;
   try{
     await window._olgaTriagem.remove(codigo);
     delete triagemFilmesMap[codigo];
@@ -26039,7 +26185,7 @@ function openTriagemCreate(){
   if(!_browserNav)history.pushState({olga:'triagem',trView:'create'},'');
   var cont=document.getElementById('triagem-container');if(!cont)return;
   var html='<div class="cat-detail">';
-  html+='<button class="cat-back" onclick="renderTriagem()">← Triagem</button>';
+  html+='<button class="cat-back" onclick="renderTriagem()">← Curadoria e Seleção</button>';
   html+='<div class="cat-actions"><span class="cat-msg" id="trSaveMsg"></span><button class="cat-cancel-btn" onclick="renderTriagem()">Cancelar</button><button class="cat-save-btn" onclick="doCreateTriagemFilm()">Criar</button></div>';
   html+='<div class="cat-header"><div class="cat-header-code">Novo filme (Triagem)</div></div>';
   html+=catBlock('Identificação',
@@ -26095,7 +26241,7 @@ async function doCreateTriagemFilm(){
 
 /* ── importar da Triagem para o Catálogo ── */
 async function importarDaTriagem(){
-  if(!window._olgaTriagem){alert('API de triagem não disponível.');return;}
+  if(!window._olgaTriagem){alert('API de Curadoria e Seleção não disponível.');return;}
   if(!window._olgaCatalogo){alert('API do catálogo não disponível.');return;}
   var candidatos=Object.values(triagemFilmesMap).filter(function(m){
     if((m.selecao||'')!=='FEST')return false;
@@ -26151,7 +26297,7 @@ async function ressincronizarPlataformasDaTriagem(){
   if(!window._olgaTriagem||!window._olgaCatalogo){alert('APIs não disponíveis.');return;}
   // se a Triagem não estiver carregada, carrega agora
   if(!Object.keys(triagemFilmesMap).length){
-    try{triagemFilmesMap=await window._olgaTriagem.load()||{};}catch(e){alert('Erro ao carregar Triagem: '+e.message);return;}
+    try{triagemFilmesMap=await window._olgaTriagem.load()||{};}catch(e){alert('Erro ao carregar Curadoria e Seleção: '+e.message);return;}
   }
   var pfFields=['ff_submission_id','ff_link','ff_rating','ff_category','ff_duration','ff_student','ff_school','ff_first_time','ff_other_credits','sfd_section','sfd_category','sfd_first_time','sfd_screening_format','sfd_ref','sfd_film_id','sfd_id','shooting_format','student_project','sfd_school','import_source','cpb'];
   var candidatos=[];
@@ -26168,8 +26314,8 @@ async function ressincronizarPlataformasDaTriagem(){
     });
     if(precisa)candidatos.push(cod);
   });
-  if(!candidatos.length){alert('Nenhum filme precisa de ressincronização.\n\nTodos os filmes do Catálogo que vieram da Triagem já têm os dados de plataforma atualizados.');return;}
-  if(!confirm('Ressincronizar '+candidatos.length+' filme'+(candidatos.length!==1?'s':'')+' do Catálogo com os dados de plataforma da Triagem?\n\nIsso só atualiza os campos do painel FilmFreeway/Short Film Depot; demais campos permanecem como estão.'))return;
+  if(!candidatos.length){alert('Nenhum filme precisa de ressincronização.\n\nTodos os filmes do Catálogo que vieram da Curadoria e Seleção já têm os dados de plataforma atualizados.');return;}
+  if(!confirm('Ressincronizar '+candidatos.length+' filme'+(candidatos.length!==1?'s':'')+' do Catálogo com os dados de plataforma da Curadoria e Seleção?\n\nIsso só atualiza os campos do painel FilmFreeway/Short Film Depot; demais campos permanecem como estão.'))return;
   var ok=0,erros=[];
   for(var i=0;i<candidatos.length;i++){
     var cod=candidatos[i];

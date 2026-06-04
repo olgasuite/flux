@@ -15858,7 +15858,7 @@ function renderDash(){
   html+=colBlock('kdm','KDM',kdmBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 04/06/2026 às 16:22';
+  var sysUpdate='última atualização do sistema · 04/06/2026 às 16:24';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -21464,7 +21464,10 @@ var IU_SCHEMAS={
       {f:'trailer',l:'Trailer URL',t:'s'},
       {f:'cpb',l:'CPB',t:'s'},
       {f:'keywords',l:'Palavras-chave',t:'a'},
-      {f:'responsaveis',l:'Responsáveis',t:'a'}
+      {f:'responsaveis',l:'Responsáveis',t:'a'},
+      {f:'student_project',l:'Projeto estudantil (sim/não)',t:'b'},
+      {f:'ff_first_time',l:'Primeiro filme (sim/não)',t:'b'},
+      {f:'ff_school',l:'Escola/instituição',t:'s'}
     ]
   },
   triagem:{
@@ -21535,28 +21538,31 @@ var IU_SCHEMAS={
     label:'Sessões', coll:'sessoes', idField:'session_id', api:'_olgaSessoes', needsEv:true,
     groupByFallback:'name',
     postProcess:function(d){
-      // Tenta resolver títulos→código LIMITADO ao evento selecionado. Filmes que existem
-      // em outro evento são tratados como faltantes (vão pro fluxo de criação).
+      // Resolve títulos→código ESTRITAMENTE no evento atual. Filme pertence ao evento
+      // se cat.evento === ev OU copia.evento === ev. Sem essa marcação explícita,
+      // não considera "do evento" (vai pro fluxo de criação).
       var ev=(window._iuState&&_iuState.event)||'';
-      function _evOf(cod){
-        var m=window.catalogoFilmesMap&&catalogoFilmesMap[cod];if(m&&m.evento)return m.evento;
-        var c=window.filmesMap&&filmesMap[cod];if(c&&c.evento)return c.evento;
-        return '';
+      function _belongsToEvent(cod){
+        if(!ev)return true;
+        var c=window.catalogoFilmesMap&&catalogoFilmesMap[cod];
+        var p=window.filmesMap&&filmesMap[cod];
+        if(c&&c.evento===ev)return true;
+        if(p&&p.evento===ev)return true;
+        return false;
       }
       function _resolveFilm(v){
         if(!v)return v;
-        // se já é código válido, exige que pertença ao evento
+        // se já é código E pertence ao evento, mantém
         if((window.catalogoFilmesMap&&catalogoFilmesMap[v])||(window.filmesMap&&filmesMap[v])){
-          var ce=_evOf(v);
-          if(!ev||ce===ev)return v;
-          // existe em outro evento → trata como faltante
+          if(_belongsToEvent(v))return v;
+          // existe mas em outro evento (ou sem evento marcado) → trata como faltante
         }
         var lv=String(v).toLowerCase().trim();
         if(window.catalogoFilmesMap){
           var ks=Object.keys(catalogoFilmesMap);
           for(var i=0;i<ks.length;i++){
+            if(!_belongsToEvent(ks[i]))continue;
             var m=catalogoFilmesMap[ks[i]];if(!m)continue;
-            if(ev&&m.evento&&m.evento!==ev)continue;
             var ts=[m.title,m.title_pt,m.original_title,m.english_title,m.system_name].filter(Boolean).map(function(t){return String(t).toLowerCase().trim();});
             if(ts.indexOf(lv)>=0)return ks[i];
           }
@@ -21597,25 +21603,7 @@ var IU_SCHEMAS={
       {f:'has_electronic_subtitles',l:'Leg. eletrônica',t:'b'},
       {f:'reserved_tickets',l:'Ing. reservados',t:'n'},
       {f:'available_accessibility',l:'Acessibilidade',t:'s'},
-      {f:'notes',l:'Obs',t:'s'},
-      // Campos do filme — usados só pra preencher entradas do catálogo quando o
-      // filme da sessão é criado automaticamente. Não vão pro doc da sessão.
-      {f:'_film_director',l:'Filme · Direção',t:'a'},
-      {f:'_film_countries',l:'Filme · Países',t:'a'},
-      {f:'_film_year',l:'Filme · Ano',t:'n'},
-      {f:'_film_runtime',l:'Filme · Duração (min)',t:'n'},
-      {f:'_film_original_language',l:'Filme · Idioma original',t:'s'},
-      {f:'_film_synopsis',l:'Filme · Sinopse',t:'s'},
-      {f:'_film_title_pt',l:'Filme · Título PT',t:'s'},
-      {f:'_film_original_title',l:'Filme · Título original',t:'s'},
-      {f:'_film_genre',l:'Filme · Gênero',t:'a'},
-      {f:'_film_film_type',l:'Filme · Metragem',t:'s'},
-      {f:'_film_student_project',l:'Filme · Projeto estudantil (sim/não)',t:'b'},
-      {f:'_film_ff_first_time',l:'Filme · Primeiro filme (sim/não)',t:'b'},
-      {f:'_film_ff_school',l:'Filme · Escola/instituição',t:'s'},
-      {f:'_film_uf',l:'Filme · UF',t:'a'},
-      {f:'_film_responsaveis',l:'Filme · Responsáveis',t:'a'},
-      {f:'_film_keywords',l:'Filme · Palavras-chave',t:'a'}
+      {f:'notes',l:'Obs',t:'s'}
     ]
   },
   vinhetas:{
@@ -22064,28 +22052,6 @@ function _iuFindMissingFilms(grouped){
   });
   return Object.keys(miss);
 }
-// Captura metadata _film_* das linhas brutas associada a cada filme faltante
-function _iuHarvestFilmMeta(){
-  var ev=_iuState.event;var pfm={};
-  _iuState.rows.forEach(function(row){
-    var d=_iuTransform(row);
-    if(!Array.isArray(d.films))return;
-    d.films.forEach(function(f){
-      if(!f)return;
-      var cat=window.catalogoFilmesMap&&catalogoFilmesMap[f];
-      var cop=window.filmesMap&&filmesMap[f];
-      if(cat&&(!ev||cat.evento===ev))return;
-      if(cop&&(!ev||cop.evento===ev))return;
-      if(!pfm[f])pfm[f]={};
-      Object.keys(d).forEach(function(k){
-        if(k.indexOf('_film_')!==0)return;
-        var cf=k.substring(6);var v=d[k];
-        if(v!==''&&v!=null&&!(Array.isArray(v)&&!v.length)&&!pfm[f][cf]){pfm[f][cf]=v;}
-      });
-    });
-  });
-  return pfm;
-}
 function _iuRenderStep3(){
   document.getElementById('iuStepLabel').textContent='3 · Pré-visualização';
   var sch=IU_SCHEMAS[_iuState.module];
@@ -22152,42 +22118,17 @@ async function _iuExecute(){
     if(missing.length){
       document.getElementById('iuProg').textContent='Criando '+missing.length+' filme(s) no catálogo…';
       var nameMap={};
-      var filmMeta=_iuHarvestFilmMeta();
       for(var mi=0;mi<missing.length;mi++){
         var nm=missing[mi];
         try{
           var suf=(typeof _catSuggestCode==='function')?_catSuggestCode(_iuState.event):String(mi+1).padStart(5,'0');
           var cod=_iuState.event+suf;
-          var meta=filmMeta[nm]||{};
-          var catData={
-            festival_code:cod,evento:_iuState.event,
-            system_name:nm,
-            title:meta.title_pt||nm,
-            title_pt:meta.title_pt||nm,
-            original_title:meta.original_title||'',
-            director:meta.director||[],
-            countries:meta.countries||[],
-            year:meta.year||null,
-            runtime:meta.runtime||null,
-            original_language:meta.original_language||'',
-            synopsis:meta.synopsis||'',
-            genre:meta.genre||[],
-            film_type:meta.film_type||'',
-            student_project:meta.student_project||'',
-            ff_student:meta.student_project||'',
-            ff_first_time:meta.ff_first_time||'',
-            ff_school:meta.ff_school||'',
-            sfd_school:meta.ff_school||'',
-            uf:meta.uf||[],
-            responsaveis:meta.responsaveis||[],
-            keywords:meta.keywords||[],
-            selecao:'FEST',forma_selecao:'importador'
-          };
-          var copData={festival_code:cod,event_name:_iuState.event,title:meta.title_pt||nm,original_language:meta.original_language||'',status:'Aguardando'};
+          var catData={festival_code:cod,evento:_iuState.event,system_name:nm,title:nm,title_pt:nm,selecao:'FEST',forma_selecao:'importador'};
+          var copData={festival_code:cod,event_name:_iuState.event,title:nm,status:'Aguardando'};
           if(window._olgaCatalogo)await window._olgaCatalogo.save(cod,catData);
           if(window._olgaCopias)try{await window._olgaCopias.save(cod,copData);}catch(_){}
           if(window.catalogoFilmesMap)catalogoFilmesMap[cod]=catData;
-          if(window.filmesArr)filmesArr.push({codigo:cod,evento:_iuState.event,titulo:meta.title_pt||nm});
+          if(window.filmesArr)filmesArr.push({codigo:cod,evento:_iuState.event,titulo:nm});
           nameMap[nm]=cod;
         }catch(eC){console.warn('cria filme:',nm,eC);}
       }
@@ -22196,10 +22137,6 @@ async function _iuExecute(){
         if(Array.isArray(d.films))d.films=d.films.map(function(f){return nameMap[f]||f;});
       });
     }
-  }
-  // Remove campos _film_* do payload da sessão (eram metadados pra criar filmes)
-  if(_iuState.module==='sessoes'){
-    grouped.forEach(function(d){Object.keys(d).forEach(function(k){if(k.indexOf('_film_')===0)delete d[k];});});
   }
   var api=window[sch.api];
   var existingMap=null;
@@ -23441,7 +23378,7 @@ function _sxcPrint(){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 04/06/2026 às 16:22</span></div>
+<div id="page-footer"><span>última atualização · 04/06/2026 às 16:24</span></div>
 
 </div>
 

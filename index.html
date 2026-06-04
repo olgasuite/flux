@@ -4164,6 +4164,9 @@ html[data-theme]:not([data-theme="win98"]){--mono:var(--sans);}
     createSala: async function(fields) {
       var ref = await addDoc(collection(db, 'cinemas'), fields);
       return ref.id;
+    },
+    removeSala: async function(docId) {
+      await deleteDoc(doc(db, 'cinemas', docId));
     }
   };
 
@@ -6062,6 +6065,7 @@ window.addEventListener('DOMContentLoaded',function(){
       <div class="cem-body" id="cemBody"></div>
       <div class="cem-footer">
         <span class="cem-status" id="cemStatus"></span>
+        <button class="cem-btn-cancel" id="cemDeleteBtn" onclick="deleteCinemaSala()" style="display:none;color:var(--warn);border-color:var(--warn);margin-right:auto;">× Excluir sala</button>
         <button class="cem-btn-cancel" onclick="closeCinemaEdit()">Cancelar</button>
         <button class="cem-btn-save" id="cemSaveBtn" onclick="saveCinemaEdit()">Salvar</button>
       </div>
@@ -7677,6 +7681,7 @@ function _sessoesRenderBatchBar(){
     +(filtered.length&&!allFilteredSelected?'<button onclick="_sessoesBatchSelectAllFiltered()">selecionar todas</button>':'')
     +(n>0?'<button onclick="_sessoesBatchClearAll()">desmarcar todas</button>':'')
     +'<button class="sess-batch-primary" '+(n===0?'disabled style="opacity:0.4;cursor:not-allowed;"':'onclick="openSessoesAplicarTemplate()"')+'>+ Aplicar template de vinhetas</button>'
+    +'<button class="sess-batch-primary" '+(n===0?'disabled style="opacity:0.4;cursor:not-allowed;"':'onclick="openSessoesBatchEdit()"')+'>✎ Editar em lote</button>'
     +'<button onclick="_sessoesBatchToggleMode()" style="margin-left:auto;">Cancelar</button>';
 }
 
@@ -7726,6 +7731,110 @@ function _sessoesRenderTemplateList(evs,evCounts){
   listEl.innerHTML=rows.length?rows.join(''):'<div style="font-family:var(--mono);font-size:10px;color:var(--text-muted);">Nenhum template disponível.</div>';
 }
 function closeSessoesAplicarTemplate(){document.getElementById('sessoesAplicarTemplateModal').style.display='none';}
+
+/* ── Batch edit de sessões ── */
+function openSessoesBatchEdit(){
+  if(!_sessoesBatchSelected.size)return;
+  var sel=Array.from(_sessoesBatchSelected).map(function(n){return sessoesMap[n];}).filter(Boolean);
+  if(!sel.length)return;
+  // Eventos das sessões selecionadas (pra montar dropdowns contextuais)
+  var evs=Array.from(new Set(sel.map(function(s){return s.evento;}).filter(Boolean)));
+  // Mostras e submostras disponíveis (filtradas pelos eventos das sessões)
+  var allProgs=(_progData&&_progData.programs||[]).filter(function(p){return!p.data.auto&&(!evs.length||evs.indexOf(p.data.event_id)>=0);});
+  var progOpts='<option value="">— não alterar —</option><option value="__none__">— remover (sem mostra) —</option>'+allProgs.map(function(p){return'<option value="'+esc(p.id)+'">'+esc(p.data.name||p.id)+'</option>';}).join('');
+  var allSubs=(_progData&&_progData.subprograms||[]);
+  var subOpts='<option value="">— não alterar —</option><option value="__none__">— remover (sem submostra) —</option>'+allSubs.map(function(s){return'<option value="'+esc(s.id)+'">'+esc(s.data.name||s.id)+'</option>';}).join('');
+  // Salas disponíveis (todas as registradas)
+  var salas=(cinemasArr||[]).map(function(c){return c.sala;}).filter(Boolean).sort();
+  var salaOpts='<option value="">— não alterar —</option>'+salas.map(function(s){return'<option value="'+esc(s)+'">'+esc(s)+'</option>';}).join('');
+  var simNaoOpts='<option value="">— não alterar —</option><option value="Sim">Sim</option><option value="Não">Não</option>';
+  function fld(label,inp){return'<div style="display:flex;flex-direction:column;gap:4px;"><label style="font-family:var(--mono);font-size:9px;color:var(--text-muted);letter-spacing:0.08em;text-transform:uppercase;">'+label+'</label>'+inp+'</div>';}
+  var html='<div style="display:flex;align-items:center;justify-content:space-between;padding:14px 20px;border-bottom:1px solid var(--border);">'
+    +'<span style="font-family:var(--mono);font-size:11px;font-weight:600;letter-spacing:0.18em;text-transform:uppercase;color:var(--accent);">Editar em lote · '+sel.length+' sessão(ões)</span>'
+    +'<button onclick="closeSessoesBatchEdit()" style="background:none;border:none;color:var(--text-muted);font-size:18px;cursor:pointer;">×</button>'
+    +'</div>'
+    +'<div style="padding:18px 20px;display:flex;flex-direction:column;gap:14px;max-height:60vh;overflow-y:auto;">'
+    +'<div style="font-family:var(--mono);font-size:10px;color:var(--text-muted);">Campos com "— não alterar —" são ignorados. Apenas campos preenchidos serão aplicados.</div>'
+    +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">'
+    +fld('Sala (cinema)','<select id="sbeVenue" class="cat-input">'+salaOpts+'</select>')
+    +fld('Mostra','<select id="sbeProgram" class="cat-input">'+progOpts+'</select>')
+    +fld('Submostra','<select id="sbeSubprogram" class="cat-input">'+subOpts+'</select>')
+    +fld('Nome da sessão (substitui)','<input id="sbeName" class="cat-input" placeholder="deixe vazio para não alterar">')
+    +fld('Apresentação','<select id="sbeApresentacao" class="cat-input">'+simNaoOpts+'</select>')
+    +fld('Debate','<select id="sbeDebate" class="cat-input">'+simNaoOpts+'</select>')
+    +fld('Para convidados','<select id="sbeForGuests" class="cat-input">'+simNaoOpts+'</select>')
+    +fld('Leg. eletrônica','<select id="sbeLegElet" class="cat-input">'+simNaoOpts+'</select>')
+    +fld('Acessibilidade','<select id="sbeAcess" class="cat-input">'+simNaoOpts+'</select>')
+    +fld('Ingressos reservados','<input id="sbeReserved" class="cat-input" type="number" min="0" placeholder="ex: 30">')
+    +'</div>'
+    +'<div id="sbeErr" style="font-family:var(--mono);font-size:10px;color:var(--warn);display:none;"></div>'
+    +'<div id="sbeProg" style="font-family:var(--mono);font-size:10px;color:var(--text-muted);"></div>'
+    +'</div>'
+    +'<div style="padding:12px 20px;border-top:1px solid var(--border);display:flex;gap:8px;justify-content:flex-end;">'
+    +'<button onclick="closeSessoesBatchEdit()" style="font-family:var(--mono);font-size:10px;padding:7px 14px;background:transparent;color:var(--text-dim);border:1px solid var(--border);cursor:pointer;">Cancelar</button>'
+    +'<button id="sbeSaveBtn" onclick="executeSessoesBatchEdit()" style="font-family:var(--mono);font-size:10px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;padding:7px 20px;background:var(--accent);color:var(--on-accent);border:none;cursor:pointer;">Aplicar alterações</button>'
+    +'</div>';
+  var modal=document.getElementById('sessoesBatchEditModal');
+  if(!modal){modal=document.createElement('div');modal.id='sessoesBatchEditModal';modal.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,0.78);z-index:700;display:flex;align-items:center;justify-content:center;padding:20px;';document.body.appendChild(modal);}
+  modal.innerHTML='<div style="background:var(--surface);border:1px solid var(--border);width:100%;max-width:760px;max-height:90vh;display:flex;flex-direction:column;color:var(--text);">'+html+'</div>';
+  modal.style.display='flex';
+}
+function closeSessoesBatchEdit(){var m=document.getElementById('sessoesBatchEditModal');if(m)m.style.display='none';}
+async function executeSessoesBatchEdit(){
+  var sel=Array.from(_sessoesBatchSelected).map(function(n){return sessoesMap[n];}).filter(Boolean);
+  if(!sel.length){closeSessoesBatchEdit();return;}
+  function v(id){var el=document.getElementById(id);return el?el.value:'';}
+  var venue=v('sbeVenue');
+  var program=v('sbeProgram');
+  var subprogram=v('sbeSubprogram');
+  var nameNew=v('sbeName').trim();
+  var apr=v('sbeApresentacao');
+  var deb=v('sbeDebate');
+  var fg=v('sbeForGuests');
+  var le=v('sbeLegElet');
+  var ac=v('sbeAcess');
+  var rt=v('sbeReserved').trim();
+  if(!venue&&!program&&!subprogram&&!nameNew&&!apr&&!deb&&!fg&&!le&&!ac&&!rt){
+    var err=document.getElementById('sbeErr');err.textContent='Nenhum campo foi alterado.';err.style.display='block';return;
+  }
+  var btn=document.getElementById('sbeSaveBtn');if(btn){btn.disabled=true;btn.textContent='Aplicando…';}
+  var prog=document.getElementById('sbeProg');
+  var ok=0,errs=[];
+  for(var i=0;i<sel.length;i++){
+    var s=sel[i];
+    try{
+      var data={
+        session_id:s.nome,name:s.name||'',event_name:s.evento||'',
+        date:s.date?s.date.toISOString().slice(0,10):'',
+        time:s.time&&s.time.str&&s.time.str!=='?'?s.time.str:'',
+        venue_name:s.cinema||'',program_id:s.program_id||'',subprogram_id:s.subprogram_id||'',
+        session_description:s.session_description||'',films:s.filmes||[],bumpers:s.vinhetas||[],
+        template_id:s.template_id||'',
+        guests:s.convidados||'',has_introduction:s.apresentacao||'',has_debate:s.col_ag||'',for_guests:s.para_convidados||'',
+        has_electronic_subtitles:s.leg_eletronica||'',reserved_tickets:s.ingressos||'',
+        available_accessibility:s.acessibilidades||'',
+        total_audience:s.publico||'',total_revenue:s.renda||'',notes:s.notes||''
+      };
+      // Aplica overrides
+      if(venue)data.venue_name=venue;
+      if(program==='__none__'){data.program_id='';data.subprogram_id='';}else if(program)data.program_id=program;
+      if(subprogram==='__none__')data.subprogram_id='';else if(subprogram)data.subprogram_id=subprogram;
+      if(nameNew)data.name=nameNew;
+      if(apr)data.has_introduction=apr;
+      if(deb)data.has_debate=deb;
+      if(fg)data.for_guests=fg;
+      if(le)data.has_electronic_subtitles=le;
+      if(ac)data.available_accessibility=ac;
+      if(rt)data.reserved_tickets=rt;
+      await window._olgaSessoes.save(s._docId||s.nome,data);
+      ok++;
+    }catch(e){errs.push(s.nome+': '+e.message);}
+    if(prog)prog.textContent='Processando '+(i+1)+'/'+sel.length+' · ✓ '+ok+(errs.length?' · ⚠ '+errs.length:'');
+  }
+  if(btn){btn.disabled=false;btn.textContent='Aplicar alterações';}
+  if(prog)prog.innerHTML='<span style="color:var(--ok);">✓ Concluído · '+ok+' atualizada(s)</span>'+(errs.length?'<br><span style="color:var(--warn);">⚠ '+errs.length+' erro(s): '+esc(errs.slice(0,3).join('; '))+(errs.length>3?'…':'')+'</span>':'');
+  setTimeout(function(){closeSessoesBatchEdit();_sessoesBatchToggleMode(false);renderSessoes();},1200);
+}
 async function applySessoesTemplate(eventId,tmplIdx){
   var tmpls=_vinTemplatesCache[eventId]||[];
   if(tmplIdx<0||tmplIdx>=tmpls.length)return;
@@ -8499,6 +8608,7 @@ function openCinemaEdit(sala, complexoCtx){
   var status=document.getElementById('cemStatus');
   status.className='cem-status';status.textContent='';
   document.getElementById('cemSaveBtn').disabled=false;
+  var _cemDelBtn=document.getElementById('cemDeleteBtn');if(_cemDelBtn)_cemDelBtn.style.display='none';
 
   var all=getAllCinemas();
 
@@ -8511,6 +8621,8 @@ function openCinemaEdit(sala, complexoCtx){
       _salaFields(sala, c.evento||'', false)+
       _telaFields(c)+
       _equipFields(c);
+    // Botão Excluir só pra admin
+    if(_cemDelBtn&&window._olgaUser&&window._olgaUser.role==='admin')_cemDelBtn.style.display='';
 
   }else if(complexoCtx&&sala==='__complexo__'){
     // ── MODE: edit complexo metadata only ────────────────────────────────────
@@ -8591,6 +8703,32 @@ function closeCinemaEdit(){
 }
 
 function _cemVal(id){var el=document.getElementById(id);return el?(el.value||'').trim():'';}
+
+async function deleteCinemaSala(){
+  if(!(window._olgaUser&&window._olgaUser.role==='admin')){alert('Apenas admin pode excluir salas.');return;}
+  if(!_cemSala){return;}
+  var all=getAllCinemas();var c=all.map[_cemSala]||{};
+  if(!c.docId){alert('docId não encontrado pra esta sala.');return;}
+  // Verifica vínculos: sessões nessa sala
+  var sessVinc=(sessoesArr||[]).filter(function(s){return s.cinema===_cemSala;}).length;
+  var msg='Excluir a sala "'+_cemSala+'"?';
+  if(sessVinc>0)msg+='\n\n⚠ '+sessVinc+' sessão(ões) está(ão) referenciando essa sala. Elas vão ficar com referência morta (vinculo quebrado).';
+  msg+='\n\nEsta ação é IRREVERSÍVEL.';
+  if(!confirm(msg))return;
+  if(sessVinc>0&&!confirm('Confirme novamente: excluir "'+_cemSala+'"?'))return;
+  var btn=document.getElementById('cemDeleteBtn');if(btn){btn.disabled=true;btn.textContent='Excluindo…';}
+  try{
+    await window._olgaCinemas.removeSala(c.docId);
+    window._logFirestoreEdit&&window._logFirestoreEdit('delete',c.docId,{},'cinemas','cinemas');
+    // remove do cache em memória
+    if(Array.isArray(cinemasArr)){var ix=cinemasArr.findIndex(function(x){return x.docId===c.docId;});if(ix>=0)cinemasArr.splice(ix,1);}
+    closeCinemaEdit();
+    if(typeof renderCinemas==='function')renderCinemas();
+  }catch(e){
+    alert('Erro ao excluir: '+e.message);
+    if(btn){btn.disabled=false;btn.textContent='× Excluir sala';}
+  }
+}
 
 async function saveCinemaEdit(){
   var btn=document.getElementById('cemSaveBtn');
@@ -15862,7 +16000,7 @@ function renderDash(){
   html+=colBlock('kdm','KDM',kdmBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 04/06/2026 às 16:36';
+  var sysUpdate='última atualização do sistema · 04/06/2026 às 16:40';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -21815,7 +21953,7 @@ var IU_SCHEMAS={
 var _iuState={module:'',event:'',rows:[],headers:[],map:{},defaults:{}};
 
 function openImportadorUniversal(){
-  _iuState={module:'',event:'',rows:[],headers:[],map:{},defaults:{}};
+  _iuState={module:'',event:'',rows:[],headers:[],map:{},defaults:{},_loadedPersistedMap:false,selectedSheets:null,sheetInfo:null,workbook:null};
   document.getElementById('iuModal').style.display='flex';
   _iuRenderStep1();
 }
@@ -21847,7 +21985,7 @@ function _iuRenderStep1(){
   var body=
     '<div style="display:flex;flex-direction:column;gap:14px;">'
     +'<div><label style="font-family:var(--mono);font-size:10px;color:var(--text-muted);letter-spacing:0.1em;text-transform:uppercase;display:block;margin-bottom:6px;">Módulo destino</label>'
-      +'<select id="iuMod" onchange="_iuState.module=this.value;_iuRenderStep1();" style="padding:6px 10px;background:var(--bg);border:1px solid var(--border);color:var(--text);font-family:var(--mono);font-size:11px;border-radius:3px;min-width:300px;">'+modOpts+'</select>'
+      +'<select id="iuMod" onchange="_iuState.module=this.value;_iuState.map={};_iuState.defaults={};_iuState._loadedPersistedMap=false;_iuRenderStep1();" style="padding:6px 10px;background:var(--bg);border:1px solid var(--border);color:var(--text);font-family:var(--mono);font-size:11px;border-radius:3px;min-width:300px;">'+modOpts+'</select>'
     +'</div>'
     +(_iuState.module&&IU_SCHEMAS[_iuState.module].needsEv?
       '<div><label style="font-family:var(--mono);font-size:10px;color:var(--text-muted);letter-spacing:0.1em;text-transform:uppercase;display:block;margin-bottom:6px;">Evento (padrão para a planilha — sobrescreve coluna se ausente)</label>'
@@ -21871,24 +22009,95 @@ function _iuReadFile(input){
     try{
       var data=new Uint8Array(e.target.result);
       var wb=XLSX.read(data,{type:'array',cellDates:true});
-      var ws=wb.Sheets[wb.SheetNames[0]];
-      var json=XLSX.utils.sheet_to_json(ws,{raw:false,defval:'',dateNF:'yyyy-mm-dd'});
-      if(!json.length){msg.textContent='Planilha vazia.';return;}
-      _iuState.rows=json;
-      _iuState.headers=Object.keys(json[0]);
-      msg.textContent=json.length+' linha(s) detectada(s) · '+_iuState.headers.length+' coluna(s).';
-      _iuRenderStep2();
+      _iuState.workbook=wb;
+      _iuState._loadedPersistedMap=false; // re-aplica persistência ao trocar de arquivo
+      var sheetNames=wb.SheetNames||[];
+      if(!sheetNames.length){msg.textContent='Arquivo sem abas.';return;}
+      // Conta linhas por aba (pré-leitura rápida)
+      _iuState.sheetInfo=sheetNames.map(function(nm){
+        var ws=wb.Sheets[nm];
+        var json=XLSX.utils.sheet_to_json(ws,{raw:false,defval:'',dateNF:'yyyy-mm-dd'});
+        return{name:nm,rows:json.length,cols:json.length?Object.keys(json[0]).length:0,_data:json};
+      });
+      if(sheetNames.length===1){
+        // Só uma aba: vai direto pra mapping
+        _iuState.selectedSheets=[sheetNames[0]];
+        _iuApplySheets();
+        msg.textContent=_iuState.rows.length+' linha(s) detectada(s) · '+_iuState.headers.length+' coluna(s).';
+        _iuRenderStep2();
+      }else{
+        // Múltiplas abas: pede pro usuário escolher
+        msg.textContent=sheetNames.length+' abas detectadas — escolha abaixo.';
+        _iuRenderSheetPicker();
+      }
     }catch(err){msg.textContent='Erro ao ler arquivo: '+err.message;}
   };
   reader.readAsArrayBuffer(f);
+}
+function _iuRenderSheetPicker(){
+  if(!_iuState.sheetInfo)return;
+  var defaults=_iuState.selectedSheets||[_iuState.sheetInfo[0].name];
+  var list=_iuState.sheetInfo.map(function(si){
+    var checked=defaults.indexOf(si.name)>=0;
+    return'<label style="display:flex;align-items:center;gap:8px;padding:6px 10px;background:var(--surface2);border-radius:3px;cursor:pointer;font-family:var(--mono);font-size:11px;">'
+      +'<input type="checkbox" data-sheet="'+esc(si.name).replace(/"/g,'&quot;')+'"'+(checked?' checked':'')+' onchange="_iuToggleSheet(this)">'
+      +'<strong style="color:var(--text);">'+esc(si.name)+'</strong>'
+      +'<span style="color:var(--text-muted);">· '+si.rows+' linha(s) · '+si.cols+' coluna(s)</span>'
+    +'</label>';
+  }).join('');
+  // Insere um bloco abaixo do iuMsg
+  var existing=document.getElementById('iuSheetPicker');
+  if(existing)existing.remove();
+  var box=document.createElement('div');box.id='iuSheetPicker';
+  box.style.cssText='margin-top:10px;padding:10px;background:var(--bg);border:1px solid var(--border);border-radius:4px;';
+  box.innerHTML='<div style="font-family:var(--mono);font-size:10px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:var(--accent);margin-bottom:8px;">Selecione abas para importar (linhas serão unidas)</div>'
+    +'<div style="display:flex;flex-direction:column;gap:4px;max-height:200px;overflow-y:auto;">'+list+'</div>'
+    +'<button onclick="_iuApplySheetsAndContinue()" style="margin-top:12px;font-family:var(--mono);font-size:10px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;padding:7px 18px;background:var(--accent);color:var(--on-accent);border:none;cursor:pointer;border-radius:3px;">Continuar com abas selecionadas →</button>';
+  document.getElementById('iuMsg').after(box);
+}
+function _iuToggleSheet(cb){
+  _iuState.selectedSheets=_iuState.selectedSheets||[];
+  var nm=cb.getAttribute('data-sheet');
+  if(cb.checked){if(_iuState.selectedSheets.indexOf(nm)<0)_iuState.selectedSheets.push(nm);}
+  else{_iuState.selectedSheets=_iuState.selectedSheets.filter(function(x){return x!==nm;});}
+}
+function _iuApplySheets(){
+  // União dos cabeçalhos + concatenação das linhas das abas selecionadas
+  var sel=_iuState.selectedSheets||[];
+  var info=_iuState.sheetInfo||[];
+  var rows=[];var headers=[];var headerSet={};
+  sel.forEach(function(nm){
+    var si=info.find(function(x){return x.name===nm;});if(!si)return;
+    (si._data||[]).forEach(function(r){rows.push(r);Object.keys(r).forEach(function(h){if(!headerSet[h]){headerSet[h]=true;headers.push(h);}});});
+  });
+  _iuState.rows=rows;_iuState.headers=headers;
+}
+function _iuApplySheetsAndContinue(){
+  var sel=(_iuState.selectedSheets||[]).slice();
+  if(!sel.length){document.getElementById('iuMsg').textContent='Selecione ao menos uma aba.';return;}
+  _iuApplySheets();
+  var p=document.getElementById('iuSheetPicker');if(p)p.remove();
+  if(!_iuState.rows.length){document.getElementById('iuMsg').textContent='Abas selecionadas vazias.';return;}
+  _iuRenderStep2();
 }
 
 function _iuRenderStep2(){
   var sch=IU_SCHEMAS[_iuState.module];if(!sch)return;
   document.getElementById('iuStepLabel').textContent='2 · Mapeamento';
-  // sugestão automática: para cada campo do sistema, encontra a coluna da planilha
-  // mais provável (por nome ou label). Só sugere se ainda não há mapeamento.
   var hdrs=_iuState.headers;
+  // 1) Carrega mapeamento persistido do usuário pra esse módulo, filtrado pelas
+  // colunas presentes na planilha atual (colunas que não existem voltam ao placeholder)
+  if(!_iuState._loadedPersistedMap){
+    var persisted=_iuLoadMappingPersist();
+    if(persisted&&typeof persisted==='object'){
+      Object.keys(persisted).forEach(function(c){
+        if(hdrs.indexOf(c)>=0&&!_iuState.map[c])_iuState.map[c]=persisted[c];
+      });
+    }
+    _iuState._loadedPersistedMap=true;
+  }
+  // 2) sugestão automática: para cada campo do sistema, encontra a coluna da planilha
+  // mais provável (por nome ou label). Só sugere se ainda não há mapeamento.
   function _normalize(s){return String(s||'').toLowerCase().replace(/[\s_·\-\/\.]+/g,'').replace(/[áàâã]/g,'a').replace(/[éê]/g,'e').replace(/[íï]/g,'i').replace(/[óôõö]/g,'o').replace(/[úü]/g,'u').replace(/[ç]/g,'c');}
   sch.fields.forEach(function(fd){
     var alreadyMapped=Object.keys(_iuState.map).some(function(c){return _iuState.map[c]===fd.f;});
@@ -21950,7 +22159,18 @@ function _iuMapField(fieldName,colName){
   // libera o campo de qualquer coluna anterior, depois associa à nova (se houver)
   Object.keys(_iuState.map).forEach(function(c){if(_iuState.map[c]===fieldName)delete _iuState.map[c];});
   if(colName)_iuState.map[colName]=fieldName;
+  _iuSaveMappingPersist();
   _iuRenderStep2();
+}
+function _iuMappingStorageKey(){
+  var em=(window._olgaUser&&window._olgaUser.email)||'anon';
+  return 'iu_mapping_'+_iuState.module+'_'+em;
+}
+function _iuSaveMappingPersist(){
+  try{localStorage.setItem(_iuMappingStorageKey(),JSON.stringify(_iuState.map));}catch(e){}
+}
+function _iuLoadMappingPersist(){
+  try{var raw=localStorage.getItem(_iuMappingStorageKey());if(!raw)return null;return JSON.parse(raw);}catch(e){return null;}
 }
 function _iuUpdateReqHint(){
   var sch=IU_SCHEMAS[_iuState.module];if(!sch)return;
@@ -23443,7 +23663,7 @@ function _sxcPrint(){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 04/06/2026 às 16:36</span></div>
+<div id="page-footer"><span>última atualização · 04/06/2026 às 16:40</span></div>
 
 </div>
 

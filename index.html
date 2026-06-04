@@ -4806,7 +4806,8 @@ html[data-theme]:not([data-theme="win98"]){--mono:var(--sans);}
     try{var vt=await getDoc(doc(db,'vin_templates',evId));if(vt.exists())vinTplN=1;}catch(e){}
     return{filmes:filmesN,copias:copiasN,triagem:triagemN,sessoes:sessoesN,programs:programsN,subprograms:subprogramsN,vinhetas:vinhetasN,guests:guestsN,hotels:hotelsN,flights:flightsN,transfers:transfersN,bookings:bookingsN,vin_templates:vinTplN};
   };
-  window._olgaCascadeDeleteEvento = async function(evId){
+  window._olgaCascadeDeleteEvento = async function(evId, onProgress){
+    function _step(label, count){if(typeof onProgress==='function')try{onProgress(label, count);}catch(e){}}
     async function _delByField(colName,field){
       var s=await getDocs(query(collection(db,colName),where(field,'==',evId)));
       var ps=[];s.forEach(function(d){ps.push(deleteDoc(d.ref));});
@@ -4823,6 +4824,7 @@ html[data-theme]:not([data-theme="win98"]){--mono:var(--sans);}
       var bps=[];bSnap.forEach(function(d){bps.push(deleteDoc(d.ref));});
       await Promise.all(bps);bookingsN+=bps.length;
     }
+    _step('reservas de hotel',bookingsN);
     // filmes do catálogo: união de (campo evento) + (códigos das cópias) antes de apagar
     var filmesCodes=new Set();
     try{
@@ -4838,19 +4840,21 @@ html[data-theme]:not([data-theme="win98"]){--mono:var(--sans);}
     for(var ci=0;ci<filmesCodesArr.length;ci++){
       try{await deleteDoc(doc(db,'filmes',filmesCodesArr[ci]));filmesN++;}catch(e){}
     }
-    var copiasN=await _delByField('copias','event_name');
-    var triagemN=await _delByField('triagem','evento');
-    var sessoesN=await _delByField('sessoes','event_name');
-    var programsN=await _delByField('programs','event_id');
-    var subprogramsN=await _delByField('subprograms','event_id');
-    var vinhetasN=await _delByField('vinhetas','event_name');
-    var guestsN=await _delByField('guests','event_id');
-    var hotelsN=await _delByField('hotels','event_id');
-    var flightsN=await _delByField('flights','event_id');
-    var transfersN=await _delByField('transfers','event_id');
+    _step('filmes (catálogo)',filmesN);
+    var copiasN=await _delByField('copias','event_name');_step('cópias',copiasN);
+    var triagemN=await _delByField('triagem','evento');_step('triagem',triagemN);
+    var sessoesN=await _delByField('sessoes','event_name');_step('sessões',sessoesN);
+    var programsN=await _delByField('programs','event_id');_step('mostras',programsN);
+    var subprogramsN=await _delByField('subprograms','event_id');_step('submostras',subprogramsN);
+    var vinhetasN=await _delByField('vinhetas','event_name');_step('vinhetas',vinhetasN);
+    var guestsN=await _delByField('guests','event_id');_step('convidados',guestsN);
+    var hotelsN=await _delByField('hotels','event_id');_step('hotéis',hotelsN);
+    var flightsN=await _delByField('flights','event_id');_step('voos',flightsN);
+    var transfersN=await _delByField('transfers','event_id');_step('transportes',transfersN);
     var vinTplN=0;
     try{await deleteDoc(doc(db,'vin_templates',evId));vinTplN=1;}catch(e){}
-    await deleteDoc(doc(db,'eventos',evId));
+    _step('templates de vinheta',vinTplN);
+    await deleteDoc(doc(db,'eventos',evId));_step('evento',1);
     return{filmes:filmesN,copias:copiasN,triagem:triagemN,sessoes:sessoesN,programs:programsN,subprograms:subprogramsN,vinhetas:vinhetasN,guests:guestsN,hotels:hotelsN,flights:flightsN,transfers:transfersN,bookings:bookingsN,vin_templates:vinTplN};
   };
 
@@ -15858,7 +15862,7 @@ function renderDash(){
   html+=colBlock('kdm','KDM',kdmBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 04/06/2026 às 16:34';
+  var sysUpdate='última atualização do sistema · 04/06/2026 às 16:36';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -18129,19 +18133,51 @@ async function deleteEvento(id,label){
   msg+='\n\nEsta operação é IRREVERSÍVEL. Deseja continuar?';
   if(!confirm(msg))return;
   if(total>0&&!confirm('Confirme novamente: excluir definitivamente "'+label+'" e '+total+' registro(s) vinculado(s)?'))return;
+  // Cria modal de progresso
+  var modal=document.createElement('div');
+  modal.id='_evDelModal';
+  modal.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,0.82);z-index:900;display:flex;align-items:center;justify-content:center;padding:20px;';
+  modal.innerHTML='<div style="background:var(--surface);border:1px solid var(--border);padding:22px;min-width:420px;max-width:520px;color:var(--text);">'
+    +'<div style="font-family:var(--mono);font-size:11px;font-weight:600;letter-spacing:0.18em;text-transform:uppercase;color:var(--accent);margin-bottom:14px;">Excluindo evento "'+esc(label)+'"</div>'
+    +'<div id="_evDelMsg" style="font-family:var(--mono);font-size:11px;color:var(--text);margin-bottom:10px;">Iniciando…</div>'
+    +'<div style="height:8px;background:var(--surface2);border-radius:4px;overflow:hidden;margin-bottom:14px;"><div id="_evDelBar" style="height:100%;background:var(--accent);width:0%;transition:width 0.25s;"></div></div>'
+    +'<div id="_evDelLog" style="font-family:var(--mono);font-size:10px;color:var(--text-dim);max-height:200px;overflow:auto;line-height:1.5;"></div>'
+    +'</div>';
+  document.body.appendChild(modal);
+  var TOTAL_STEPS=14;var doneSteps=0;
+  function _onStep(stageLabel,count){
+    doneSteps++;
+    var pct=Math.min(100,Math.round((doneSteps/TOTAL_STEPS)*100));
+    var msg=document.getElementById('_evDelMsg');
+    var bar=document.getElementById('_evDelBar');
+    var log=document.getElementById('_evDelLog');
+    if(msg)msg.textContent='Etapa '+doneSteps+'/'+TOTAL_STEPS+' · '+stageLabel;
+    if(bar)bar.style.width=pct+'%';
+    if(log){var e=document.createElement('div');e.textContent='✓ '+stageLabel+': '+count;log.appendChild(e);log.scrollTop=log.scrollHeight;}
+  }
   try{
-    var result=await window._olgaCascadeDeleteEvento(id);
+    var result=await window._olgaCascadeDeleteEvento(id,_onStep);
     window._logFirestoreEdit&&window._logFirestoreEdit('delete',id,{cascade:result},'eventos','eventos');
     // limpa o evento de toda estrutura em memória pra pills e dropdowns sumirem na hora
     try{delete eventColors[id];}catch(e){}
-    [activeEventsFicha,activeEventsGrade,activeEventsGrade2,activeEventsSessoes,activeEventsIngest,activeEventsBusca,activeEventsVinhetas,activeEventsProjecao,activeEventsCatalogo,activeEventsProgramacao,activeEventsKDM,activeEventsBilheteria,activeEventsReceptivo,activeEventsRevista,activeEventsTriagem].forEach(function(s){try{if(s&&s.delete)s.delete(id);}catch(e){}});
+    [activeEventsFicha,activeEventsGrade,activeEventsGrade2,activeEventsSessoes,activeEventsIngest,activeEventsBusca,activeEventsVinhetas,activeEventsProjecao,activeEventsCatalogo,activeEventsProgramacao,activeEventsKDM,activeEventsBilheteria,activeEventsReceptivo,activeEventsRevista,activeEventsTriagem,typeof activeEventsLanding!=='undefined'?activeEventsLanding:null].forEach(function(s){try{if(s&&s.delete)s.delete(id);}catch(e){}});
     if(Array.isArray(_adminEventos))_adminEventos=_adminEventos.filter(function(e){return e.id!==id;});
     if(window._adminEventosFullCache)window._adminEventosFullCache=window._adminEventosFullCache.filter(function(e){return e.id!==id;});
     if(window._olgaEventosCache)window._olgaEventosCache=window._olgaEventosCache.filter(function(e){return (e.id||e.nome)!==id;});
     if(typeof currentMode==='string'&&currentMode)rebuildPillsForMode(currentMode);
+    if(typeof buildLandingPills==='function')buildLandingPills();
     _equipeInvalidateRender();
-    alert('Evento "'+label+'" excluído. Total removido: '+(Object.values(result).reduce(function(a,b){return a+b;},0)+1)+' documento(s).');
-  }catch(e){alert('Erro ao excluir: '+e.message);}
+    var total=Object.values(result).reduce(function(a,b){return a+b;},0)+1;
+    var msgEl=document.getElementById('_evDelMsg');
+    if(msgEl)msgEl.innerHTML='<span style="color:var(--ok);">✓ Concluído · '+total+' documento(s) removido(s)</span>';
+    setTimeout(function(){var m=document.getElementById('_evDelModal');if(m)m.remove();},1500);
+  }catch(e){
+    var msgEl2=document.getElementById('_evDelMsg');
+    if(msgEl2)msgEl2.innerHTML='<span style="color:var(--warn);">⚠ Erro: '+esc(e.message)+'</span>';
+    // botão pra fechar manualmente em caso de erro
+    var box=modal.firstElementChild;
+    if(box){var b=document.createElement('button');b.textContent='Fechar';b.style.cssText='margin-top:14px;font-family:var(--mono);font-size:10px;padding:6px 12px;background:transparent;border:1px solid var(--border);color:var(--text);cursor:pointer;';b.onclick=function(){modal.remove();};box.appendChild(b);}
+  }
 }
 async function importarEventosExistentes(){
   if(!confirm('Criar registros no Firestore para todos os eventos ainda não cadastrados?\n\nOs eventos serão criados com os estados e datas derivados dos cinemas e sessões existentes. O nome de exibição ficará em branco para você preencher depois.'))return;
@@ -23407,7 +23443,7 @@ function _sxcPrint(){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 04/06/2026 às 16:34</span></div>
+<div id="page-footer"><span>última atualização · 04/06/2026 às 16:36</span></div>
 
 </div>
 

@@ -15858,7 +15858,7 @@ function renderDash(){
   html+=colBlock('kdm','KDM',kdmBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 04/06/2026 às 16:24';
+  var sysUpdate='última atualização do sistema · 04/06/2026 às 16:30';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -21422,6 +21422,7 @@ var IU_RULES_HTML='<details style="margin-top:8px;padding:10px;background:var(--
 +'<p><strong>2. Campos com múltiplos valores</strong> (diretores, países, gêneros, palavras-chave, responsáveis, avaliadores, etc.) — separar com <code>;</code> ponto-e-vírgula. Ex: <code>João Silva; Maria Souza</code></p>'
 +'<p><strong>3. Datas:</strong> formato <code>AAAA-MM-DD</code> ou <code>DD/MM/AAAA</code>. Excel formatado como data também aceita.</p>'
 +'<p><strong>4. Horários:</strong> formato <code>HH:MM</code> (14:30).</p>'
++'<p><strong>4b. Durações:</strong> em <strong>Catálogo</strong> e <strong>Triagem</strong> o campo Duração é em <strong>minutos</strong> (aceita também <code>HH:MM:SS</code> e converte). No <strong>Acervo Técnico</strong> (Cópias), a Duração DCP é <strong>H:MM:SS</strong>, mas aceita também número de minutos (1-3 dígitos · ex: <code>21</code> vira <code>0:21:00</code>; <code>120</code> vira <code>2:00:00</code>). <strong>NÃO são aceitos</strong>: <code>MM:SS</code>, <code>1h30m</code>, <code>1h30</code> ou similares — vão dar valor vazio.</p>'
 +'<p><strong>5. Sim/Não:</strong> use <code>sim</code> / <code>não</code> (ou <code>yes</code>/<code>no</code>/<code>true</code>/<code>false</code>).</p>'
 +'<p><strong>6. Conflitos (ID já existe):</strong> operação é <strong>MERGE</strong>. Campos vazios na planilha NÃO sobrescrevem o que já existe; campos preenchidos sobrescrevem. Você verá no preview quantas linhas serão criadas vs. mescladas.</p>'
 +'<p><strong>7. Campos obrigatórios:</strong> cada módulo tem campos obrigatórios (ex: catálogo precisa de Código e Evento). Se a planilha não tiver, você pode definir um valor padrão na etapa de mapeamento.</p>'
@@ -21443,7 +21444,7 @@ var IU_SCHEMAS={
       {f:'original_title',l:'Título original',t:'s'},
       {f:'english_title',l:'Título em inglês',t:'s'},
       {f:'year',l:'Ano',t:'n'},
-      {f:'runtime',l:'Duração (min)',t:'n'},
+      {f:'runtime',l:'Duração (min)',t:'dur'},
       {f:'director',l:'Diretor(es)',t:'a'},
       {f:'countries',l:'Países',t:'a'},
       {f:'producers',l:'Produtores',t:'a'},
@@ -21481,7 +21482,7 @@ var IU_SCHEMAS={
       {f:'original_title',l:'Título original',t:'s'},
       {f:'english_title',l:'Título em inglês',t:'s'},
       {f:'year',l:'Ano',t:'n'},
-      {f:'runtime',l:'Duração (min)',t:'n'},
+      {f:'runtime',l:'Duração (min)',t:'dur'},
       {f:'director',l:'Diretor(es)',t:'a'},
       {f:'countries',l:'Países',t:'a'},
       {f:'production_company',l:'Produção',t:'a'},
@@ -21524,7 +21525,7 @@ var IU_SCHEMAS={
       {f:'cpl_id',l:'CPL',t:'s'},
       {f:'ov_cpl_id',l:'CPL OV',t:'s'},
       {f:'dcp_resolution',l:'Resolução',t:'s'},
-      {f:'dcp_duration',l:'Duração DCP',t:'s'},
+      {f:'dcp_duration',l:'Duração DCP (H:MM:SS)',t:'durHMS'},
       {f:'dcp_size',l:'Tamanho DCP',t:'s'},
       {f:'dcp_fps',l:'FPS',t:'s'},
       {f:'storage_location',l:'Localização',t:'s'},
@@ -21868,7 +21869,7 @@ function _iuRenderStep2(){
     var curCol='';Object.keys(_iuState.map).forEach(function(c){if(_iuState.map[c]===fd.f)curCol=c;});
     var sel=curCol?colOpts.replace('value="'+esc(curCol).replace(/"/g,'&quot;')+'"','value="'+esc(curCol).replace(/"/g,'&quot;')+'" selected'):colOpts;
     var sample=(curCol&&_iuState.rows[0])?String(_iuState.rows[0][curCol]||'').slice(0,80):'';
-    var typeLbl={s:'texto',a:'lista (;)',n:'número',b:'sim/não',d:'data',t:'hora',e:'enum'}[fd.t]||fd.t;
+    var typeLbl={s:'texto',a:'lista (;)',n:'número',b:'sim/não',d:'data',t:'hora',e:'enum',dur:'duração (min)',durHMS:'duração (H:MM:SS)'}[fd.t]||fd.t;
     return'<tr>'
       +'<td style="padding:5px 8px;border:1px solid var(--border);font-family:var(--mono);font-size:10px;color:var(--text);">'+esc(fd.l)+(fd.req?' <span style="color:var(--warn);">*</span>':'')+'</td>'
       +'<td style="padding:5px 8px;border:1px solid var(--border);font-family:var(--mono);font-size:9px;color:var(--text-muted);">'+typeLbl+'</td>'
@@ -22023,6 +22024,27 @@ function _iuCoerce(v,t){
     return s.split(/[;]\s*/).map(function(x){return x.trim();}).filter(Boolean);
   }
   if(t==='n'){var n=parseInt(String(v).replace(/[^\d-]/g,''),10);return isNaN(n)?'':n;}
+  if(t==='dur'){
+    // Duração em MINUTOS — aceita Date, fração de dia, HH:MM:SS, M:SS, ou número
+    if(v instanceof Date){var h=v.getHours(),mm=v.getMinutes(),ss=v.getSeconds();var tot=h*60+mm+Math.round(ss/60);if(tot>0)return tot;}
+    if(typeof v==='number'&&v>0&&v<1)return Math.round(v*24*60);
+    var s=String(v).trim();
+    var m3=s.match(/^(\d+):(\d{1,2}):(\d{1,2})$/);if(m3)return Math.round((+m3[1]*3600+ +m3[2]*60+ +m3[3])/60);
+    var m2=s.match(/^(\d+):(\d{1,2})$/);if(m2)return +m2[1];
+    var num=parseInt(s.replace(/[^\d-]/g,''),10);return isNaN(num)?'':num;
+  }
+  if(t==='durHMS'){
+    // Duração em formato H:MM:SS (string). Aceita: número de minutos (1-3 dígitos),
+    // HH:MM:SS, H:MM:SS, Date (Excel), ou fração de dia. Outros formatos retornam vazio.
+    if(v===''||v==null)return '';
+    function fmt(h,m,sec){return h+':'+String(m).padStart(2,'0')+':'+String(sec).padStart(2,'0');}
+    if(v instanceof Date)return fmt(v.getHours(),v.getMinutes(),v.getSeconds());
+    if(typeof v==='number'&&v>0&&v<1){var tot=Math.round(v*24*3600);return fmt(Math.floor(tot/3600),Math.floor((tot%3600)/60),tot%60);}
+    var s=String(v).trim();if(!s)return '';
+    var m3=s.match(/^(\d{1,2}):(\d{2}):(\d{2})$/);if(m3)return fmt(+m3[1],+m3[2],+m3[3]);
+    var mn=s.match(/^(\d{1,3})$/);if(mn){var min=+mn[1];return fmt(Math.floor(min/60),min%60,0);}
+    return ''; // formatos como MM:SS, H:MM, Hh, HhMMm não são aceitos
+  }
   if(t==='b'){var x=String(v).toLowerCase().trim();return(x==='sim'||x==='yes'||x==='true'||x==='1')?'Sim':(x==='não'||x==='nao'||x==='no'||x==='false'||x==='0')?'Não':'';}
   if(t==='d'){
     if(v instanceof Date)return v.toISOString().slice(0,10);
@@ -23378,7 +23400,7 @@ function _sxcPrint(){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 04/06/2026 às 16:24</span></div>
+<div id="page-footer"><span>última atualização · 04/06/2026 às 16:30</span></div>
 
 </div>
 

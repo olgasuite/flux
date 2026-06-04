@@ -5211,7 +5211,7 @@ html[data-theme]:not([data-theme="win98"]){--mono:var(--sans);}
     } catch(e) { console.warn('static load:', e); }
 
     // Subscriptions onSnapshot — real-time push para 8 coleções voláteis
-    var pendingFirst = new Set(['copias','sessoes','cinemas','vinhetas','filmes','programs','subprograms','eventos','triagem']);
+    var pendingFirst = new Set(['copias','sessoes','cinemas','vinhetas','filmes','programs','subprograms','eventos']);
     var initialApplied = false;
     var snapLabel = 'Firestore · ' + (new Date()).toLocaleDateString('pt-BR') + ' ' + (new Date()).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
     function _olgaFinalizeInitial() {
@@ -5273,9 +5273,17 @@ html[data-theme]:not([data-theme="win98"]){--mono:var(--sans);}
       unsubs.push(onSnapshot(collection(db,'programs'),                                                                                     _onSnap('programs',    parseProgramsSnap),    _onSnapErr('programs')));
       unsubs.push(onSnapshot(collection(db,'subprograms'),                                                                                  _onSnap('subprograms', parseSubprogramsSnap), _onSnapErr('subprograms')));
       unsubs.push(onSnapshot(_evFilter ? query(collection(db,'eventos'),  where('nome','in',_evFilter))      : collection(db,'eventos'),   _onSnap('eventos',     parseEventosSnap),     _onSnapErr('eventos')));
-      unsubs.push(onSnapshot(collection(db,'triagem'),                                                                                      _onSnap('triagem',     parseTriagemSnap),     _onSnapErr('triagem')));
       window._olgaSnapshotUnsubs = unsubs;
       window._olgaSnapshotsActive = true;
+      // Triagem: subscription lazy — só ativa quando o usuário entra no módulo
+      window._triagemActivateSnapshot = function(){
+        if(window._triagemSnapActive)return;
+        try{
+          var u=onSnapshot(collection(db,'triagem'),_onSnap('triagem',parseTriagemSnap),_onSnapErr('triagem'));
+          if(window._olgaSnapshotUnsubs)window._olgaSnapshotUnsubs.push(u);
+          window._triagemSnapActive=true;
+        }catch(e){console.warn('triagem snap:',e);}
+      };
     } catch (err) {
       window._olgaLoading = false;
       console.error('Firestore subscribe error:', err);
@@ -6626,7 +6634,7 @@ function switchMode(mode,noPush){
   if(mode==='equipe')renderEquipe();
   if(mode==='programacao')renderProgramacao();
   if(mode==='catalogo'){if(!_browserNav)_catResetState();renderCatalogo();}
-  if(mode==='triagem'){if(!_browserNav&&typeof _triagemResetState==='function')_triagemResetState();if(typeof renderTriagem==='function')renderTriagem();}
+  if(mode==='triagem'){if(typeof window._triagemActivateSnapshot==='function')window._triagemActivateSnapshot();if(!_browserNav&&typeof _triagemResetState==='function')_triagemResetState();if(typeof renderTriagem==='function')renderTriagem();}
   if(mode==='busca'){
     var bl=document.getElementById('buscaLoading'),be2=document.getElementById('buscaEmpty'),br=document.getElementById('busca-results');
     bl.style.display='flex';be2.style.display='none';br.style.display='none';
@@ -15850,7 +15858,7 @@ function renderDash(){
   html+=colBlock('kdm','KDM',kdmBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 02/06/2026 às 16:10';
+  var sysUpdate='última atualização do sistema · 02/06/2026 às 16:14';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -21822,25 +21830,29 @@ function _iuReadFile(input){
 function _iuRenderStep2(){
   var sch=IU_SCHEMAS[_iuState.module];if(!sch)return;
   document.getElementById('iuStepLabel').textContent='2 · Mapeamento';
-  // sugestão automática: para cada header da planilha, tenta achar um campo do esquema com label/f compatível
+  // sugestão automática: para cada campo do sistema, encontra a coluna da planilha
+  // mais provável (por nome ou label). Só sugere se ainda não há mapeamento.
   var hdrs=_iuState.headers;
-  hdrs.forEach(function(h){
-    if(_iuState.map[h]===undefined){
-      var nrm=h.toLowerCase().replace(/[\s_·-]+/g,'');
-      var match=sch.fields.find(function(fd){
-        return fd.f.toLowerCase().replace(/_/g,'')===nrm||fd.l.toLowerCase().replace(/[\s_·-]+/g,'')===nrm;
-      });
-      _iuState.map[h]=match?match.f:'';
-    }
+  function _normalize(s){return String(s||'').toLowerCase().replace(/[\s_·\-\/\.]+/g,'').replace(/[áàâã]/g,'a').replace(/[éê]/g,'e').replace(/[íï]/g,'i').replace(/[óôõö]/g,'o').replace(/[úü]/g,'u').replace(/[ç]/g,'c');}
+  sch.fields.forEach(function(fd){
+    var alreadyMapped=Object.keys(_iuState.map).some(function(c){return _iuState.map[c]===fd.f;});
+    if(alreadyMapped)return;
+    var nf=_normalize(fd.f),nl=_normalize(fd.l);
+    var hit=hdrs.find(function(h){var n=_normalize(h);return n===nf||n===nl;});
+    if(hit)_iuState.map[hit]=fd.f;
   });
-  var fieldOpts='<option value="">— ignorar —</option>'+sch.fields.map(function(fd){return'<option value="'+fd.f+'">'+esc(fd.l)+(fd.req?' *':'')+'</option>';}).join('');
-  var rows=hdrs.map(function(h){
-    var sel=_iuState.map[h]||'';
-    var sample=(_iuState.rows[0]&&_iuState.rows[0][h])||'';
+  var colOpts='<option value="">— não mapear —</option>'+hdrs.map(function(h){return'<option value="'+esc(h).replace(/"/g,'&quot;')+'">'+esc(h)+'</option>';}).join('');
+  var rows=sch.fields.map(function(fd){
+    // coluna atualmente mapeada pra esse campo (se houver)
+    var curCol='';Object.keys(_iuState.map).forEach(function(c){if(_iuState.map[c]===fd.f)curCol=c;});
+    var sel=curCol?colOpts.replace('value="'+esc(curCol).replace(/"/g,'&quot;')+'"','value="'+esc(curCol).replace(/"/g,'&quot;')+'" selected'):colOpts;
+    var sample=(curCol&&_iuState.rows[0])?String(_iuState.rows[0][curCol]||'').slice(0,80):'';
+    var typeLbl={s:'texto',a:'lista (;)',n:'número',b:'sim/não',d:'data',t:'hora',e:'enum'}[fd.t]||fd.t;
     return'<tr>'
-      +'<td style="padding:5px 8px;border:1px solid var(--border);font-family:var(--mono);font-size:10px;color:var(--text);">'+esc(h)+'</td>'
-      +'<td style="padding:5px 8px;border:1px solid var(--border);font-family:var(--sans);font-size:10px;color:var(--text-muted);max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+esc(String(sample).slice(0,80))+'</td>'
-      +'<td style="padding:5px;border:1px solid var(--border);"><select onchange="_iuState.map[\''+esc(h).replace(/'/g,"\\'")+'\']=this.value;_iuUpdateReqHint()" style="width:100%;padding:4px 6px;background:var(--bg);border:1px solid var(--border);color:var(--text);font-family:var(--mono);font-size:10px;">'+fieldOpts.replace('value="'+sel+'"','value="'+sel+'" selected')+'</select></td>'
+      +'<td style="padding:5px 8px;border:1px solid var(--border);font-family:var(--mono);font-size:10px;color:var(--text);">'+esc(fd.l)+(fd.req?' <span style="color:var(--warn);">*</span>':'')+'</td>'
+      +'<td style="padding:5px 8px;border:1px solid var(--border);font-family:var(--mono);font-size:9px;color:var(--text-muted);">'+typeLbl+'</td>'
+      +'<td style="padding:5px;border:1px solid var(--border);"><select onchange="_iuMapField(\''+fd.f+'\',this.value)" style="width:100%;padding:4px 6px;background:var(--bg);border:1px solid var(--border);color:var(--text);font-family:var(--mono);font-size:10px;">'+sel+'</select></td>'
+      +'<td style="padding:5px 8px;border:1px solid var(--border);font-family:var(--sans);font-size:10px;color:var(--text-muted);max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+esc(sample)+'</td>'
     +'</tr>';
   }).join('');
   // Campos required que ainda precisam ser preenchidos via defaults
@@ -21868,13 +21880,19 @@ function _iuRenderStep2(){
       +'<span style="font-family:var(--mono);font-size:10px;color:var(--text-muted);">'+_iuState.rows.length+' linha(s) · '+_iuState.headers.length+' coluna(s)</span>'
     +'</div>'
     +'<table style="width:100%;border-collapse:collapse;font-family:var(--mono);font-size:10px;">'
-      +'<thead><tr style="background:var(--surface2);"><th style="padding:6px 8px;border:1px solid var(--border);text-align:left;text-transform:uppercase;letter-spacing:0.06em;font-size:9px;color:var(--accent);">Coluna da planilha</th><th style="padding:6px 8px;border:1px solid var(--border);text-align:left;text-transform:uppercase;letter-spacing:0.06em;font-size:9px;color:var(--accent);">Amostra</th><th style="padding:6px 8px;border:1px solid var(--border);text-align:left;text-transform:uppercase;letter-spacing:0.06em;font-size:9px;color:var(--accent);">Campo do sistema</th></tr></thead>'
+      +'<thead><tr style="background:var(--surface2);"><th style="padding:6px 8px;border:1px solid var(--border);text-align:left;text-transform:uppercase;letter-spacing:0.06em;font-size:9px;color:var(--accent);">Campo do sistema</th><th style="padding:6px 8px;border:1px solid var(--border);text-align:left;text-transform:uppercase;letter-spacing:0.06em;font-size:9px;color:var(--accent);">Tipo</th><th style="padding:6px 8px;border:1px solid var(--border);text-align:left;text-transform:uppercase;letter-spacing:0.06em;font-size:9px;color:var(--accent);">Coluna da planilha</th><th style="padding:6px 8px;border:1px solid var(--border);text-align:left;text-transform:uppercase;letter-spacing:0.06em;font-size:9px;color:var(--accent);">Amostra</th></tr></thead>'
       +'<tbody>'+rows+'</tbody></table>'
     +defaultsHtml
     +'<div id="iuReqHint" style="margin-top:10px;font-family:var(--mono);font-size:10px;color:var(--text-muted);"></div>';
   document.getElementById('iuBody').innerHTML=body;
   document.getElementById('iuFoot').innerHTML='<button class="cxp-btn" onclick="_iuRenderStep1()">← Voltar</button><button class="cxp-btn primary" onclick="_iuRenderStep3()">Pré-visualizar →</button>';
   _iuUpdateReqHint();
+}
+function _iuMapField(fieldName,colName){
+  // libera o campo de qualquer coluna anterior, depois associa à nova (se houver)
+  Object.keys(_iuState.map).forEach(function(c){if(_iuState.map[c]===fieldName)delete _iuState.map[c];});
+  if(colName)_iuState.map[colName]=fieldName;
+  _iuRenderStep2();
 }
 function _iuUpdateReqHint(){
   var sch=IU_SCHEMAS[_iuState.module];if(!sch)return;
@@ -21997,6 +22015,19 @@ function _iuCoerce(v,t){
   return String(v).trim();
 }
 
+function _iuFindMissingFilms(grouped){
+  if(_iuState.module!=='sessoes')return[];
+  var miss={};
+  grouped.forEach(function(d){
+    if(!Array.isArray(d.films))return;
+    d.films.forEach(function(f){
+      if(!f)return;
+      if((window.catalogoFilmesMap&&catalogoFilmesMap[f])||(window.filmesMap&&filmesMap[f]))return;
+      miss[f]=true;
+    });
+  });
+  return Object.keys(miss);
+}
 function _iuRenderStep3(){
   document.getElementById('iuStepLabel').textContent='3 · Pré-visualização';
   var sch=IU_SCHEMAS[_iuState.module];
@@ -22028,9 +22059,21 @@ function _iuRenderStep3(){
     +'<span style="color:var(--warn);">já existentes (MERGE): '+dup+'</span>'
     +(noId>0?' · <span style="color:var(--warn);">sem ID: '+noId+'</span>':'')
     +'</div>';
+  // Aviso de filmes não encontrados no catálogo (somente importação de sessões)
+  var missing=_iuFindMissingFilms(grouped);
+  var missingHtml='';
+  if(missing.length){
+    if(_iuState.createMissing===undefined)_iuState.createMissing=true;
+    var sample=missing.slice(0,15);
+    missingHtml='<div style="margin-top:12px;padding:10px;background:rgba(220,180,80,0.10);border:1px solid var(--warn);font-family:var(--mono);font-size:11px;">'
+      +'<div style="color:var(--warn);font-weight:600;margin-bottom:6px;">⚠ '+missing.length+' filme(s) referenciados não estão no catálogo</div>'
+      +'<div style="font-size:10px;color:var(--text-dim);margin-bottom:8px;max-height:80px;overflow:auto;line-height:1.6;">'+sample.map(function(n){return esc(n);}).join(' · ')+(missing.length>sample.length?(' · …e mais '+(missing.length-sample.length)):'')+'</div>'
+      +'<label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:10px;color:var(--text);"><input type="checkbox" id="iuCreateMissing"'+(_iuState.createMissing?' checked':'')+' onchange="_iuState.createMissing=this.checked"> Criar automaticamente no catálogo (com nome + código sequencial, evento <strong>'+esc(_iuState.event||'—')+'</strong>)</label>'
+    +'</div>';
+  }
   document.getElementById('iuBody').innerHTML=
     '<div style="font-family:var(--mono);font-size:10px;color:var(--text-muted);margin-bottom:8px;">Mostrando '+Math.min(8,grouped.length)+' de '+grouped.length+' registro(s) processado(s)</div>'
-    +tableHtml+msg;
+    +tableHtml+msg+missingHtml;
   document.getElementById('iuFoot').innerHTML='<button class="cxp-btn" onclick="_iuRenderStep2()">← Mapeamento</button><button class="cxp-btn primary" onclick="_iuExecute()">Importar '+grouped.length+' registro(s)</button>';
 }
 
@@ -22045,6 +22088,32 @@ async function _iuExecute(){
   var grouped=_iuGroupedRows();
   var body=document.getElementById('iuBody');
   body.innerHTML='<div style="font-family:var(--mono);font-size:11px;color:var(--text);"><div id="iuProg" style="margin-bottom:10px;">Processando 0/'+grouped.length+'…</div><div id="iuProgBar" style="height:6px;background:var(--surface2);border-radius:3px;overflow:hidden;margin-bottom:14px;"><div id="iuProgFill" style="height:100%;background:var(--accent);width:0%;transition:width 0.2s;"></div></div><div id="iuLog" style="max-height:300px;overflow-y:auto;font-size:10px;color:var(--text-dim);"></div></div>';
+  // Cria filmes faltantes no catálogo antes de salvar as sessões (se usuário pediu)
+  if(_iuState.module==='sessoes'&&_iuState.createMissing&&_iuState.event){
+    var missing=_iuFindMissingFilms(grouped);
+    if(missing.length){
+      document.getElementById('iuProg').textContent='Criando '+missing.length+' filme(s) no catálogo…';
+      var nameMap={};
+      for(var mi=0;mi<missing.length;mi++){
+        var nm=missing[mi];
+        try{
+          var suf=(typeof _catSuggestCode==='function')?_catSuggestCode(_iuState.event):String(mi+1).padStart(5,'0');
+          var cod=_iuState.event+suf;
+          var catData={festival_code:cod,evento:_iuState.event,system_name:nm,title:nm,title_pt:nm,selecao:'FEST',forma_selecao:'importador'};
+          var copData={festival_code:cod,event_name:_iuState.event,title:nm,status:'Aguardando'};
+          if(window._olgaCatalogo)await window._olgaCatalogo.save(cod,catData);
+          if(window._olgaCopias)try{await window._olgaCopias.save(cod,copData);}catch(_){}
+          if(window.catalogoFilmesMap)catalogoFilmesMap[cod]=catData;
+          if(window.filmesArr)filmesArr.push({codigo:cod,evento:_iuState.event,titulo:nm});
+          nameMap[nm]=cod;
+        }catch(eC){console.warn('cria filme:',nm,eC);}
+      }
+      // Atualiza films arrays nos grouped pra usar os novos códigos
+      grouped.forEach(function(d){
+        if(Array.isArray(d.films))d.films=d.films.map(function(f){return nameMap[f]||f;});
+      });
+    }
+  }
   var api=window[sch.api];
   var existingMap=null;
   if(sch.coll==='filmes')existingMap=catalogoFilmesMap;
@@ -23265,7 +23334,7 @@ function _sxcPrint(){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 02/06/2026 às 16:10</span></div>
+<div id="page-footer"><span>última atualização · 02/06/2026 às 16:14</span></div>
 
 </div>
 

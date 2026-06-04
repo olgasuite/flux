@@ -15850,7 +15850,7 @@ function renderDash(){
   html+=colBlock('kdm','KDM',kdmBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 02/06/2026 às 16:02';
+  var sysUpdate='última atualização do sistema · 02/06/2026 às 16:04';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -21417,6 +21417,8 @@ var IU_RULES_HTML='<details style="margin-top:8px;padding:10px;background:var(--
 +'<p><strong>5. Sim/Não:</strong> use <code>sim</code> / <code>não</code> (ou <code>yes</code>/<code>no</code>/<code>true</code>/<code>false</code>).</p>'
 +'<p><strong>6. Conflitos (ID já existe):</strong> operação é <strong>MERGE</strong>. Campos vazios na planilha NÃO sobrescrevem o que já existe; campos preenchidos sobrescrevem. Você verá no preview quantas linhas serão criadas vs. mescladas.</p>'
 +'<p><strong>7. Campos obrigatórios:</strong> cada módulo tem campos obrigatórios (ex: catálogo precisa de Código e Evento). Se a planilha não tiver, você pode definir um valor padrão na etapa de mapeamento.</p>'
++'<p><strong>8. Caracteres proibidos no ID:</strong> NÃO use barra <code>/</code> em campos que servem como ID de documento (codigo do filme, ID da sessão, etc.) — causa erro de gravação no Firestore. Outros caracteres especiais funcionam.</p>'
++'<p><strong>9. ID automático para sessões com nome:</strong> se você NÃO mapeia uma coluna pro ID da sessão MAS mapeia o nome, e várias linhas têm o mesmo nome, o sistema agrupa por nome e gera IDs sequenciais a partir do valor padrão (ex: <code>FEST24S001</code>, <code>FEST24S002</code>…).</p>'
 +'</div></details>';
 
 // Esquemas dos módulos importáveis.
@@ -21523,6 +21525,7 @@ var IU_SCHEMAS={
   },
   sessoes:{
     label:'Sessões', coll:'sessoes', idField:'session_id', api:'_olgaSessoes', needsEv:true,
+    groupByFallback:'name',
     postProcess:function(d){
       // tenta resolver títulos de filme → código (via catalogoFilmesMap/filmesMap)
       function _resolveFilm(v){
@@ -21909,34 +21912,40 @@ function _iuTransform(row){
   return out;
 }
 function _iuGroupedRows(){
-  // Transforma todas as linhas e agrupa por ID: linhas com mesmo ID viram um único
-  // registro com union dos campos array (filmes, vinhetas etc.) e first-non-empty
-  // pros campos escalares.
-  // Se o ID vem só de default (sem coluna mapeada), gera sequenciais <default><001>.
+  // Pipeline: transform → postProcess → agrupar.
+  // Chave de agrupamento: ID se mapeado; senão groupByFallback (ex: name) se mapeado.
+  // IDs sequenciais são atribuídos por GRUPO (não por linha) quando ID veio só do default.
   var sch=IU_SCHEMAS[_iuState.module];
   var idMapped=sch.idField&&Object.values(_iuState.map).indexOf(sch.idField)>=0;
   var idDefault=sch.idField?(_iuState.defaults[sch.idField]||''):'';
-  var useSeq=sch.idField&&!idMapped&&idDefault;
+  var fbField=sch.groupByFallback&&Object.values(_iuState.map).indexOf(sch.groupByFallback)>=0?sch.groupByFallback:null;
   var existingMap=sch.coll==='filmes'?catalogoFilmesMap:sch.coll==='copias'?filmesMap:sch.coll==='triagem'?(window.triagemFilmesMap||{}):sch.coll==='sessoes'?sessoesMap:null;
-  var seq=0;
   var raw=_iuState.rows.map(function(row){
     var d=_iuTransform(row);
-    if(useSeq){
-      var cand;do{seq++;cand=idDefault+String(seq).padStart(3,'0');}while(existingMap&&existingMap[cand]);
-      d[sch.idField]=cand;
-    }
-    // post-processamento por linha (resolve FKs, nomes→códigos) ANTES de agrupar,
-    // assim o agrupamento une corretamente quando o mesmo filme vier por nome ou código
     if(typeof sch.postProcess==='function'){try{d=sch.postProcess(d)||d;}catch(e){}}
     return d;
   });
   if(!sch.idField)return raw;
+  var seq=0;
+  function nextSeq(){var cand;do{seq++;cand=idDefault+String(seq).padStart(3,'0');}while(existingMap&&existingMap[cand]);return cand;}
+  var groupKey=idMapped?sch.idField:(fbField||null);
+  if(!groupKey){
+    // sem chave de agrupamento: cada linha vira registro. Atribui ID sequencial se necessário.
+    raw.forEach(function(d){if(!d[sch.idField]&&idDefault)d[sch.idField]=nextSeq();});
+    return raw;
+  }
   var groups={},order=[];
   raw.forEach(function(d){
-    var id=sch.idField==='__docid__'?d['__docid__']:d[sch.idField];
-    if(!id){order.push({_noid:true,d:d});return;}
-    if(!groups[id]){groups[id]=d;order.push({id:id});return;}
-    var prev=groups[id];
+    var key=d[groupKey];
+    if(!key){
+      if(!d[sch.idField]&&idDefault)d[sch.idField]=nextSeq();
+      order.push({_solo:true,d:d});return;
+    }
+    if(!groups[key]){
+      if(!d[sch.idField]&&idDefault)d[sch.idField]=nextSeq();
+      groups[key]=d;order.push({k:key});return;
+    }
+    var prev=groups[key];
     Object.keys(d).forEach(function(k){
       var fd=sch.fields.find(function(x){return x.f===k;});
       var v=d[k];
@@ -21949,7 +21958,7 @@ function _iuGroupedRows(){
       }
     });
   });
-  return order.map(function(o){return o._noid?o.d:groups[o.id];});
+  return order.map(function(o){return o._solo?o.d:groups[o.k];});
 }
 function _iuCoerce(v,t){
   if(v===null||v===undefined)return '';
@@ -23240,7 +23249,7 @@ function _sxcPrint(){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 02/06/2026 às 16:02</span></div>
+<div id="page-footer"><span>última atualização · 02/06/2026 às 16:04</span></div>
 
 </div>
 

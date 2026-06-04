@@ -4121,7 +4121,7 @@ html[data-theme]:not([data-theme="win98"]){--mono:var(--sans);}
         if(Array.isArray(r['bumpers'])&&r['bumpers'].length){r['bumpers'].forEach(function(vc){var vcs=_fs(vc);if(vcs&&vcs!=='-'&&!/^=/.test(vcs))vin2.push(vcs);});}
         else{for(var vi=1;vi<=10;vi++){var vc=_fs(r['bumper_'+vi]);if(vc&&vc!=='-'&&!/^=/.test(vc))vin2.push(vc);}}
         var dv=_fs(r['date']),tv=_fs(r['time']);
-        var s={nome:nome,cinema:_fs(r['venue_name']),dia:_fd(dv),hora:tv?tv.slice(0,5):'—',filmes:codes,date:_pd(dv),time:_pt(tv),evento:evento,vinhetas:vin2,convidados:_fs(r['guests']),apresentacao:_fs(r['has_introduction']),publico:_fs(r['total_audience']),renda:_fs(r['total_revenue']),ingressos:_fs(r['reserved_tickets']),leg_eletronica:_fs(r['has_electronic_subtitles']),acessibilidades:_fs(r['available_accessibility']),col_ag:_fs(r['has_debate']),para_convidados:_fs(r['for_guests']),name:_fs(r['name']),program_id:_fs(r['program_id']),_docId:d.id,subprogram_id:_fs(r['subprogram_id']),session_description:_fs(r['session_description']),notes:_fs(r['notes'])};
+        var s={nome:nome,cinema:_fs(r['venue_name']),dia:_fd(dv),hora:tv?tv.slice(0,5):'—',filmes:codes,date:_pd(dv),time:_pt(tv),evento:evento,vinhetas:vin2,convidados:_fs(r['guests']),apresentacao:_fs(r['has_introduction']),publico:_fs(r['total_audience']),renda:_fs(r['total_revenue']),ingressos:_fs(r['reserved_tickets']),leg_eletronica:_fs(r['has_electronic_subtitles']),acessibilidades:_fs(r['available_accessibility']),col_ag:_fs(r['has_debate']),para_convidados:_fs(r['for_guests']),name:_fs(r['name']),program_id:_fs(r['program_id']),_docId:d.id,subprogram_id:_fs(r['subprogram_id']),session_description:_fs(r['session_description']),notes:_fs(r['notes']),template_id:_fs(r['template_id'])};
         a2.push(s);m2[nome]=s;
         codes.forEach(function(c){if(!r2[c])r2[c]=[];r2[c].push(nome);});
         vin2.forEach(function(c){if(!vr2[c])vr2[c]=[];vr2[c].push(nome);});
@@ -5006,7 +5006,8 @@ html[data-theme]:not([data-theme="win98"]){--mono:var(--sans);}
           acessibilidades: fs(r['available_accessibility']), col_ag: fs(r['has_debate']), para_convidados: fs(r['for_guests']),
           name: fs(r['name']), program_id: fs(r['program_id']), _docId: doc.id,
           subprogram_id: fs(r['subprogram_id']), session_description: fs(r['session_description']),
-          notes: fs(r['notes'])
+          notes: fs(r['notes']),
+          template_id: fs(r['template_id'])
         };
         arr.push(s); map[nome] = s;
         codes.forEach(function(c) { if (!brev[c]) brev[c] = []; brev[c].push(nome); });
@@ -5883,6 +5884,9 @@ window.addEventListener('DOMContentLoaded',function(){
     <div class="landing-logo-flux">Flux</div>
   </div>
   <div class="landing-badge">sistema de gestão de festivais de cinema</div>
+  <div style="text-align:center;margin:8px 0 0 0;">
+    <button id="btnImportadorUniversal" onclick="openImportadorUniversal()" style="font-family:var(--mono);font-size:10px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;padding:7px 16px;background:var(--accent-dim);color:var(--accent);border:1px solid var(--accent);cursor:pointer;border-radius:4px;display:none;">⤒ Importador universal de planilhas</button>
+  </div>
   <div class="landing-modules">
     <div class="module-card disabled" id="modCardDash" onclick="moduleCardClick('dash')">
       <div class="module-icon"><i data-lucide="bar-chart-2"></i></div>
@@ -6470,6 +6474,11 @@ function applyParsedData(d,filename){
   ['tabProjecao','tabFicha','tabGrade','tabGrade2','tabSessoes','tabVinhetas','tabIngest','tabCinemas','tabKDM','tabDash','tabReceptivo','tabBilheteria','tabCatalogo','tabTriagem','tabProgramacao','tabRevista','navSubFicha','navSubIngest','navSubGrade2','navSubAcervo','navSubConvidados','navSubHoteis','navSubVoos','navSubTransporte'].forEach(function(id){document.getElementById(id).disabled=false;});
   if(window._olgaUser&&window._olgaUser.role==='admin'){document.getElementById('tabEquipe').disabled=false;}
   ['modCardProjecao','modCardGrade','modCardSessoes','modCardVinhetas','modCardCinemas','modCardKDM','modCardDash','modCardReceptivo','modCardBilheteria','modCardCatalogo','modCardTriagem','modCardProgramacao','modCardRevista'].forEach(function(id){document.getElementById(id).classList.remove('disabled');});
+  var _btnIU=document.getElementById('btnImportadorUniversal');
+  if(_btnIU){
+    var _canImport=window._olgaUser&&(window._olgaUser.role==='admin'||window._olgaUser.role==='editor');
+    _btnIU.style.display=_canImport?'':'none';
+  }
   buildGradeDays();window._gradeYearsOpen=null;window._grade2YearsOpen=null;window._dashYearsOpen=null;buildFichaFilters();buildGradeFilters();buildGrade2Filters();buildSessoesFilters();buildProjecaoFilters();buildVinhetasFilters();buildBuscaFilters();buildIngestDays();buildIngestFilters();buildBuscaFilterPanel();buildCinemasFilters();buildDashFilters();buildCatalogoFilters();buildTriagemFilters();buildBilheteriaFilters();buildRevistaFilters();if(!currentMode)buildLandingPills();
   if(fileNameEl){fileNameEl.textContent=filename||'arquivo carregado';fileNameEl.classList.add('loaded');}
   window._olgaDataLabel=filename||null;
@@ -6840,9 +6849,13 @@ function renderFicha(nome,s){
   // vinhetas strip (between header and film table)
   var vinhetasHtml='';
   var totalVinSecs=0;
-  if(s.vinhetas&&s.vinhetas.length){
+  var _effB=window._effectiveBumpers?_effectiveBumpers(s):(s.vinhetas||[]);
+  if(s.template_id&&s.evento&&typeof _vinTemplatesCache!=='undefined'&&_vinTemplatesCache[s.evento]===undefined&&window._ensureVinTemplatesLoaded){
+    window._ensureVinTemplatesLoaded(s.evento,function(){if(typeof renderFicha==='function')renderFicha();});
+  }
+  if(_effB&&_effB.length){
     var vMap={};vinhetasArr.forEach(function(v){vMap[v.codigo]=v;});
-    var tags=s.vinhetas.map(function(cod){
+    var tags=_effB.map(function(cod){
       var info=vMap[cod];
       var display=info&&info.cpl?info.cpl:cod;
       var t=display.length>20?display.slice(0,20)+'…':display;
@@ -15836,7 +15849,7 @@ function renderDash(){
   html+=colBlock('kdm','KDM',kdmBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 02/06/2026 às 15:48';
+  var sysUpdate='última atualização do sistema · 02/06/2026 às 15:54';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -15953,7 +15966,7 @@ var _progData={programs:[],subprograms:[]};
 var _usedIds={films:{},programs:{},subprograms:{},sessoes:{}};
 var _progProgramEditId=null,_progSubprogramEditId=null,_progSubprogramProgramId=null;
 var _progSessaoEditNome=null,_progSessaoContextProgramId=null,_progSessaoContextSubId=null;
-var _progSessaoFilmsArr=[],_progSessaoBumpersArr=[],_progSessaoVinOnly=false;
+var _progSessaoFilmsArr=[],_progSessaoBumpersArr=[],_progSessaoVinOnly=false,_progSessaoTemplateId='';
 var _progSessaoConvidadosTags=[],_progSessaoEvento='';
 var _progVinTemplates=[];
 var _progFiltroTitulo='',_progFiltroComplexo='',_progFiltroCinema='',_progFiltroData='';
@@ -16604,9 +16617,13 @@ function _progRenderSessao(sessaoNome){
   }
   var vinhetasHtml='';
   var totalVinSecs=0;
-  if(s.vinhetas&&s.vinhetas.length){
+  var _effB=window._effectiveBumpers?_effectiveBumpers(s):(s.vinhetas||[]);
+  if(s.template_id&&s.evento&&typeof _vinTemplatesCache!=='undefined'&&_vinTemplatesCache[s.evento]===undefined&&window._ensureVinTemplatesLoaded){
+    window._ensureVinTemplatesLoaded(s.evento,function(){if(typeof _progRenderSessao==='function')_progRenderSessao(sessaoNome);});
+  }
+  if(_effB&&_effB.length){
     var vMap={};vinhetasArr.forEach(function(v){vMap[v.codigo]=v;});
-    var tags=s.vinhetas.map(function(cod){
+    var tags=_effB.map(function(cod){
       var info=vMap[cod];var display=info&&info.nome?info.nome:cod;
       var t=display.length>20?display.slice(0,20)+'…':display;
       if(info&&info.duracao){var dv=info.duracao.toString().trim();var m3=dv.match(/^(\d+):(\d{2}):(\d{2})$/);var m2=dv.match(/^(\d+):(\d{2})$/);if(m3)totalVinSecs+=parseInt(m3[1])*3600+parseInt(m3[2])*60+parseInt(m3[3]);else if(m2)totalVinSecs+=parseInt(m2[1])*60+parseInt(m2[2]);else{var nv=parseFloat(dv.replace(',','.'));if(!isNaN(nv))totalVinSecs+=Math.round(nv);}}
@@ -16810,14 +16827,34 @@ async function deleteProgVinTemplate(programId,idx){
 var _progVinTmplEventId=null,_progVinTmplList=[],_progVinTmplEditIdx=-1,_progVinTmplBumpers=[];
 // Cache de templates por evento: {eventId: [{name, bumpers}]}
 var _vinTemplatesCache={};
+function _newTmplId(){return't_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,8);}
 
 async function _loadVinTemplates(eventId){
   if(!window._olgaVinTemplates)return[];
   if(_vinTemplatesCache[eventId]!==undefined)return _vinTemplatesCache[eventId];
   var t=await window._olgaVinTemplates.load(eventId);
+  // backfill: templates antigos sem id ganham um (não persiste — só pra resolver no client)
+  if(Array.isArray(t))t.forEach(function(x){if(x&&!x.id)x.id=_newTmplId();});
   _vinTemplatesCache[eventId]=t;
   return t;
 }
+// Resolve as vinhetas efetivas da sessão: se ela tem template_id e o template existe
+// em cache, devolve os bumpers do template (vínculo vivo). Senão devolve s.vinhetas.
+window._effectiveBumpers=function(s){
+  if(!s)return[];
+  if(s.template_id&&s.evento){
+    var tpls=_vinTemplatesCache[s.evento]||[];
+    var t=tpls.find(function(x){return x&&x.id===s.template_id;});
+    if(t)return Array.isArray(t.bumpers)?t.bumpers:[];
+  }
+  return Array.isArray(s.vinhetas)?s.vinhetas:[];
+};
+// Pré-carrega templates do evento (se ainda não em cache) e re-renderiza ao concluir
+window._ensureVinTemplatesLoaded=function(evId,onReady){
+  if(!evId)return;
+  if(_vinTemplatesCache[evId]!==undefined){if(typeof onReady==='function')onReady();return;}
+  _loadVinTemplates(evId).then(function(){if(typeof onReady==='function')onReady();}).catch(function(){});
+};
 
 async function openProgVinTemplatesModal(eventId){
   _progVinTmplEventId=eventId;
@@ -16886,8 +16923,13 @@ function _progVinTmplSaveItem(){
   var name=(document.getElementById('progVinTmplName').value||'').trim();
   if(!name){alert('Nome do template obrigatório.');return;}
   var item={name:name,bumpers:_progVinTmplBumpers.slice()};
-  if(_progVinTmplEditIdx>=0){_progVinTmplList[_progVinTmplEditIdx]=item;}
-  else{_progVinTmplList.push(item);}
+  if(_progVinTmplEditIdx>=0){
+    // preserva id ao editar
+    var prevId=_progVinTmplList[_progVinTmplEditIdx]&&_progVinTmplList[_progVinTmplEditIdx].id;
+    item.id=prevId||_newTmplId();
+    _progVinTmplList[_progVinTmplEditIdx]=item;
+  }
+  else{item.id=_newTmplId();_progVinTmplList.push(item);}
   _progVinTmplEditIdx=-1;_progVinTmplBumpers=[];
   _progRenderVinTmplList();_progRenderVinTmplForm(false);
 }
@@ -16931,6 +16973,8 @@ async function saveProgVinTemplatesModal(){
     await window._olgaVinTemplates.save(_progVinTmplEventId,_progVinTmplList);
     _vinTemplatesCache[_progVinTmplEventId]=JSON.parse(JSON.stringify(_progVinTmplList));
     closeProgVinTemplatesModal();_progRender();
+    // Re-renderiza a view ativa pra refletir o vínculo vivo (ficha de projeção etc.)
+    if(typeof _olgaRerenderActive==='function')_olgaRerenderActive();
   }catch(e){var el=document.getElementById('progVinTemplatesModalErr');el.textContent='Erro: '+e.message;el.style.display='block';}
   finally{btn.disabled=false;btn.textContent='Salvar templates';}
 }
@@ -17016,7 +17060,8 @@ function openProgSessaoModal(sessaoNome,programId,subprogramId){
   }).sort(function(a,b){return a.sala.localeCompare(b.sala,'pt-BR',{sensitivity:'base'});});
   var cinemaOpts=cinemasFilt.map(function(c){return'<option value="'+esc(c.sala)+'"'+(s&&s.cinema===c.sala?' selected':'')+'>'+esc(c.sala)+'</option>';}).join('');
   _progSessaoFilmsArr=s?s.filmes.slice():[];
-  _progSessaoBumpersArr=s?s.vinhetas.slice():[];
+  _progSessaoBumpersArr=s?(s.vinhetas||[]).slice():[];
+  _progSessaoTemplateId=(s&&s.template_id)||'';
   // Vinheta templates select
   var evTemplates=_vinTemplatesCache[ev]||[];
   var tmplOpts=evTemplates.map(function(t,i){return'<option value="'+i+'">'+esc(t.name||'Template '+(i+1))+'</option>';}).join('');
@@ -17177,11 +17222,11 @@ function _progRenderBumpersEdit(){
       +'<span style="font-family:var(--mono);font-size:9px;color:var(--text-muted);">'+esc(cod)+'</span>'
       +(i>0?'<button style="background:none;border:none;cursor:pointer;color:var(--text-muted);padding:0 2px;" onclick="_progBumpersMv('+i+',-1)">↑</button>':'<span style="width:18px;"></span>')
       +(i<_progSessaoBumpersArr.length-1?'<button style="background:none;border:none;cursor:pointer;color:var(--text-muted);padding:0 2px;" onclick="_progBumpersMv('+i+',1)">↓</button>':'<span style="width:18px;"></span>')
-      +'<button style="background:none;border:none;cursor:pointer;color:var(--warn);font-size:14px;padding:0 2px;line-height:1;" onclick="_progSessaoBumpersArr.splice('+i+',1);_progRenderBumpersEdit()">×</button>'
+      +'<button style="background:none;border:none;cursor:pointer;color:var(--warn);font-size:14px;padding:0 2px;line-height:1;" onclick="_progSessaoBumpersArr.splice('+i+',1);_progSessaoTemplateId=\'\';_progRenderBumpersEdit()">×</button>'
       +'</div>';
   }).join('');
 }
-function _progBumpersMv(i,d){var a=_progSessaoBumpersArr,j=i+d;if(j<0||j>=a.length)return;var t=a[i];a[i]=a[j];a[j]=t;_progRenderBumpersEdit();}
+function _progBumpersMv(i,d){var a=_progSessaoBumpersArr,j=i+d;if(j<0||j>=a.length)return;var t=a[i];a[i]=a[j];a[j]=t;_progSessaoTemplateId='';_progRenderBumpersEdit();}
 function _progBumperAutocomplete(){
   var q=(document.getElementById('progBumperSearch').value||'').trim().toLowerCase();
   var res=document.getElementById('progBumperResults');
@@ -17193,7 +17238,7 @@ function _progBumperAutocomplete(){
   res.innerHTML=matches.map(function(v){return'<div class="prog-autocomplete-item" onmousedown="_progAddBumper(\''+esc(v.codigo)+'\')">'+esc(v.nome||v.codigo)+' <span style="color:var(--text-muted);">'+esc(v.codigo)+'</span></div>';}).join('');
   res.style.display='block';
 }
-function _progAddBumper(cod){if(_progSessaoBumpersArr.indexOf(cod)<0)_progSessaoBumpersArr.push(cod);document.getElementById('progBumperSearch').value='';document.getElementById('progBumperResults').style.display='none';_progRenderBumpersEdit();}
+function _progAddBumper(cod){if(_progSessaoBumpersArr.indexOf(cod)<0)_progSessaoBumpersArr.push(cod);document.getElementById('progBumperSearch').value='';document.getElementById('progBumperResults').style.display='none';_progSessaoTemplateId='';_progRenderBumpersEdit();}
 function _progApplyVinTemplate(){
   var sel=document.getElementById('progVinTemplateApply');if(!sel||!sel.value)return;
   var prog=_progData.programs.find(function(p){return p.id===_progSessaoContextProgramId;});
@@ -17201,7 +17246,10 @@ function _progApplyVinTemplate(){
   var templates=_vinTemplatesCache[ev]||[];
   var idx=parseInt(sel.value);
   if(isNaN(idx)||idx<0||idx>=templates.length)return;
-  _progSessaoBumpersArr=(templates[idx].bumpers||[]).slice();_progRenderBumpersEdit();sel.value='';
+  var tpl=templates[idx];
+  _progSessaoBumpersArr=(tpl.bumpers||[]).slice();
+  _progSessaoTemplateId=tpl.id||'';
+  _progRenderBumpersEdit();sel.value='';
 }
 async function saveProgSessaoModal(){
   var nome=_progSessaoEditNome||(document.getElementById('progSessaoId').value||'').trim();
@@ -17212,7 +17260,7 @@ async function saveProgSessaoModal(){
       date:ex.date?ex.date.toISOString().slice(0,10):'',
       time:ex.time&&ex.time.str&&ex.time.str!=='?'?ex.time.str:'',
       venue_name:ex.cinema||'',program_id:ex.program_id||'',subprogram_id:ex.subprogram_id||'',
-      session_description:ex.session_description||'',films:ex.filmes||[],bumpers:_progSessaoBumpersArr,
+      session_description:ex.session_description||'',films:ex.filmes||[],bumpers:_progSessaoBumpersArr,template_id:_progSessaoTemplateId||'',
       guests:ex.convidados||'',has_introduction:ex.apresentacao||'',has_debate:ex.col_ag||'',for_guests:ex.para_convidados||'',
       has_electronic_subtitles:ex.leg_eletronica||'',reserved_tickets:ex.ingressos||'',
       available_accessibility:ex.acessibilidades||'',
@@ -17240,7 +17288,7 @@ async function saveProgSessaoModal(){
     program_id:_progSessaoContextProgramId||'',
     subprogram_id:(document.getElementById('progSessaoSubprogramSelect').value)||_progSessaoContextSubId||'',
     session_description:(document.getElementById('progSessaoDesc').value||'').trim(),
-    films:_progSessaoFilmsArr,bumpers:_progSessaoBumpersArr,
+    films:_progSessaoFilmsArr,bumpers:_progSessaoBumpersArr,template_id:_progSessaoTemplateId||'',
     guests:_progSessaoConvidadosTags.join(', '),
     has_introduction:document.getElementById('progSessaoApresentacao').checked?'Sim':'Não',
     has_debate:document.getElementById('progSessaoDebate').checked?'Sim':'Não',
@@ -21340,9 +21388,626 @@ window.addEventListener('popstate',function(e){
       <button class="cxp-btn" onclick="closeCatExportModal()">Fechar</button>
       <button class="cxp-btn primary" onclick="_catExpPrint()">⎙ Imprimir</button>
       <button class="cxp-btn primary" onclick="_catExpExportCSV()">⤓ CSV</button>
+      <button class="cxp-btn primary" onclick="_catExpExportXLSX()">⤓ XLSX</button>
     </div>
   </div>
 </div>
+
+<!-- ═══ IMPORTADOR UNIVERSAL ═══ -->
+<div id="iuModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.82);z-index:650;align-items:center;justify-content:center;padding:20px;overflow-y:auto;">
+  <div style="background:var(--surface);border:1px solid var(--border);width:100%;max-width:1100px;max-height:92vh;display:flex;flex-direction:column;color:var(--text);">
+    <div style="padding:14px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;font-family:var(--mono);font-size:11px;font-weight:600;letter-spacing:0.18em;text-transform:uppercase;color:var(--accent);">
+      <span>Importador Universal · <span id="iuStepLabel">Configurar</span></span>
+      <button onclick="closeImportadorUniversal()" style="background:none;border:none;color:var(--text-muted);font-size:20px;cursor:pointer;line-height:1;">×</button>
+    </div>
+    <div id="iuBody" style="padding:14px 20px;overflow-y:auto;flex:1;"></div>
+    <div id="iuFoot" style="padding:12px 20px;border-top:1px solid var(--border);display:flex;gap:8px;justify-content:flex-end;flex-shrink:0;flex-wrap:wrap;"></div>
+  </div>
+</div>
+
+<script>
+/* ═══ IMPORTADOR UNIVERSAL · regras + schemas + UI ═══ */
+
+var IU_RULES_HTML='<details style="margin-top:8px;padding:10px;background:var(--surface2);border:1px solid var(--border);border-radius:3px;"><summary style="cursor:pointer;font-family:var(--mono);font-size:10px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:var(--accent);">Regras da importação · clique para expandir</summary><div style="margin-top:10px;font-family:var(--sans);font-size:11px;color:var(--text-dim);line-height:1.6;">'
++'<p><strong>1. Formato aceito:</strong> XLSX (Excel) ou CSV. A primeira linha deve conter o cabeçalho com os nomes das colunas. Sem linhas em branco entre dados.</p>'
++'<p><strong>2. Campos com múltiplos valores</strong> (diretores, países, gêneros, palavras-chave, responsáveis, avaliadores, etc.) — separar com <code>;</code> ponto-e-vírgula. Ex: <code>João Silva; Maria Souza</code></p>'
++'<p><strong>3. Datas:</strong> formato <code>AAAA-MM-DD</code> ou <code>DD/MM/AAAA</code>. Excel formatado como data também aceita.</p>'
++'<p><strong>4. Horários:</strong> formato <code>HH:MM</code> (14:30).</p>'
++'<p><strong>5. Sim/Não:</strong> use <code>sim</code> / <code>não</code> (ou <code>yes</code>/<code>no</code>/<code>true</code>/<code>false</code>).</p>'
++'<p><strong>6. Conflitos (ID já existe):</strong> operação é <strong>MERGE</strong>. Campos vazios na planilha NÃO sobrescrevem o que já existe; campos preenchidos sobrescrevem. Você verá no preview quantas linhas serão criadas vs. mescladas.</p>'
++'<p><strong>7. Campos obrigatórios:</strong> cada módulo tem campos obrigatórios (ex: catálogo precisa de Código e Evento). Se a planilha não tiver, você pode definir um valor padrão na etapa de mapeamento.</p>'
++'</div></details>';
+
+// Esquemas dos módulos importáveis.
+// f=nome do campo, l=label, t=tipo (s/a/n/b/d/t/e), req=obrigatório?, opts=opções (enum)
+var IU_SCHEMAS={
+  catalogo:{
+    label:'Catálogo (filmes)', coll:'filmes', idField:'festival_code', api:'_olgaCatalogo', needsEv:true,
+    fields:[
+      {f:'festival_code',l:'Código',t:'s',req:true},
+      {f:'evento',l:'Evento',t:'s',req:true},
+      {f:'system_name',l:'Nome no sistema',t:'s'},
+      {f:'title_pt',l:'Título PT',t:'s'},
+      {f:'title',l:'Título',t:'s'},
+      {f:'original_title',l:'Título original',t:'s'},
+      {f:'english_title',l:'Título em inglês',t:'s'},
+      {f:'year',l:'Ano',t:'n'},
+      {f:'runtime',l:'Duração (min)',t:'n'},
+      {f:'director',l:'Diretor(es)',t:'a'},
+      {f:'countries',l:'Países',t:'a'},
+      {f:'producers',l:'Produtores',t:'a'},
+      {f:'production_company',l:'Produção',t:'a'},
+      {f:'distribution_company',l:'Distribuição',t:'a'},
+      {f:'synopsis',l:'Sinopse',t:'s'},
+      {f:'synopsis_en',l:'Sinopse EN',t:'s'},
+      {f:'website',l:'Website',t:'s'},
+      {f:'genre',l:'Gênero',t:'a'},
+      {f:'film_type',l:'Metragem',t:'s'},
+      {f:'content_rating',l:'Classificação',t:'s'},
+      {f:'original_language',l:'Idioma original',t:'s'},
+      {f:'contact_email',l:'Email contato',t:'s'},
+      {f:'awards',l:'Prêmios',t:'a'},
+      {f:'uf',l:'UF',t:'a'},
+      {f:'selecao',l:'Seleção',t:'e',opts:['','FEST','NÃO FEST','SUPLENTE','CONVIDADO','VISIONAMENTO']},
+      {f:'screener',l:'Screener URL',t:'s'},
+      {f:'trailer',l:'Trailer URL',t:'s'},
+      {f:'cpb',l:'CPB',t:'s'},
+      {f:'keywords',l:'Palavras-chave',t:'a'},
+      {f:'responsaveis',l:'Responsáveis',t:'a'}
+    ]
+  },
+  triagem:{
+    label:'Curadoria e Seleção (triagem)', coll:'triagem', idField:'festival_code', api:'_olgaTriagem', needsEv:true,
+    fields:[
+      {f:'festival_code',l:'Código',t:'s',req:true},
+      {f:'evento',l:'Evento',t:'s',req:true},
+      {f:'system_name',l:'Nome no sistema',t:'s'},
+      {f:'title_pt',l:'Título PT',t:'s'},
+      {f:'title',l:'Título',t:'s'},
+      {f:'original_title',l:'Título original',t:'s'},
+      {f:'english_title',l:'Título em inglês',t:'s'},
+      {f:'year',l:'Ano',t:'n'},
+      {f:'runtime',l:'Duração (min)',t:'n'},
+      {f:'director',l:'Diretor(es)',t:'a'},
+      {f:'countries',l:'Países',t:'a'},
+      {f:'production_company',l:'Produção',t:'a'},
+      {f:'distribution_company',l:'Distribuição',t:'a'},
+      {f:'synopsis',l:'Sinopse',t:'s'},
+      {f:'synopsis_en',l:'Sinopse EN',t:'s'},
+      {f:'genre',l:'Gênero',t:'a'},
+      {f:'film_type',l:'Metragem',t:'s'},
+      {f:'original_language',l:'Idioma original',t:'s'},
+      {f:'contact_email',l:'Email contato',t:'s'},
+      {f:'screener',l:'Screener URL',t:'s'},
+      {f:'trailer',l:'Trailer URL',t:'s'},
+      {f:'selecao',l:'Seleção',t:'e',opts:['','FEST','NÃO FEST','SUPLENTE','CONVIDADO','VISIONAMENTO']},
+      {f:'uf',l:'UF',t:'a'},
+      {f:'keywords',l:'Palavras-chave',t:'a'},
+      {f:'responsaveis',l:'Responsáveis',t:'a'},
+      {f:'avaliadores',l:'Avaliadores (emails)',t:'a'},
+      {f:'ff_school',l:'Escola (FF)',t:'s'},
+      {f:'sfd_school',l:'Escola (SFD)',t:'s'},
+      {f:'ff_student',l:'Estudantil (FF)',t:'s'},
+      {f:'student_project',l:'Estudantil (SFD)',t:'s'},
+      {f:'ff_first_time',l:'Primeiro filme',t:'s'}
+    ]
+  },
+  copias:{
+    label:'Acervo Técnico (cópias)', coll:'copias', idField:'festival_code', api:'_olgaCopias', needsEv:true,
+    fields:[
+      {f:'festival_code',l:'Código',t:'s',req:true},
+      {f:'event_name',l:'Evento',t:'s',req:true},
+      {f:'title',l:'Título',t:'s'},
+      {f:'original_language',l:'Idioma original',t:'s'},
+      {f:'dcp_subtitle_code',l:'Legenda DCP',t:'s'},
+      {f:'vf_subtitle_code',l:'Legenda VF',t:'s'},
+      {f:'projection_lens',l:'Lente',t:'s'},
+      {f:'audio_format',l:'Som',t:'s'},
+      {f:'status',l:'Status',t:'s'},
+      {f:'notes',l:'Obs',t:'s'},
+      {f:'dcp_creator',l:'Criador DCP',t:'s'},
+      {f:'has_kdm',l:'KDM',t:'s'},
+      {f:'cpl_id',l:'CPL',t:'s'},
+      {f:'ov_cpl_id',l:'CPL OV',t:'s'},
+      {f:'dcp_resolution',l:'Resolução',t:'s'},
+      {f:'dcp_duration',l:'Duração DCP',t:'s'},
+      {f:'dcp_size',l:'Tamanho DCP',t:'s'},
+      {f:'dcp_fps',l:'FPS',t:'s'},
+      {f:'storage_location',l:'Localização',t:'s'},
+      {f:'exhibition_format',l:'Formato de exibição',t:'e',opts:['','DCP','arquivo','35mm','16mm','Super 8mm','HDCAM','Outro']},
+      {f:'exhibition_format_notes',l:'Obs formato',t:'s'},
+      {f:'legenda_exibicao',l:'Legenda de exibição',t:'e',opts:['ORIGINAL','ELETRÔNICA EM PORTUGUÊS','ELETRÔNICA EM INGLÊS','ELETRÔNICA LSE']},
+      {f:'accessibility_features',l:'Acessibilidade',t:'s'}
+    ]
+  },
+  sessoes:{
+    label:'Sessões', coll:'sessoes', idField:'session_id', api:'_olgaSessoes', needsEv:true,
+    fields:[
+      {f:'session_id',l:'ID da sessão',t:'s',req:true},
+      {f:'event_name',l:'Evento',t:'s',req:true},
+      {f:'date',l:'Data',t:'d',req:true},
+      {f:'time',l:'Hora',t:'t',req:true},
+      {f:'venue_name',l:'Sala (cinema)',t:'s',req:true},
+      {f:'name',l:'Nome da sessão',t:'s'},
+      {f:'films',l:'Códigos dos filmes',t:'a'},
+      {f:'bumpers',l:'Vinhetas',t:'a'},
+      {f:'program_id',l:'Mostra',t:'s'},
+      {f:'subprogram_id',l:'Submostra',t:'s'},
+      {f:'session_description',l:'Descrição',t:'s'},
+      {f:'guests',l:'Convidados',t:'s'},
+      {f:'has_introduction',l:'Apresentação',t:'b'},
+      {f:'has_debate',l:'Debate',t:'b'},
+      {f:'for_guests',l:'Para convidados',t:'b'},
+      {f:'has_electronic_subtitles',l:'Leg. eletrônica',t:'b'},
+      {f:'reserved_tickets',l:'Ing. reservados',t:'n'},
+      {f:'available_accessibility',l:'Acessibilidade',t:'s'},
+      {f:'notes',l:'Obs',t:'s'}
+    ]
+  },
+  vinhetas:{
+    label:'Vinhetas', coll:'vinhetas', idField:'bumper_code', api:'_olgaVinhetas', needsEv:true,
+    fields:[
+      {f:'bumper_code',l:'Código',t:'s',req:true},
+      {f:'event_name',l:'Evento',t:'s',req:true},
+      {f:'title',l:'Nome',t:'s'},
+      {f:'cpl_id',l:'CPL',t:'s'},
+      {f:'projection_lens',l:'Lente',t:'s'},
+      {f:'audio_format',l:'Som',t:'s'},
+      {f:'duration',l:'Duração',t:'s'},
+      {f:'file_link',l:'Link',t:'s'},
+      {f:'notes',l:'Obs',t:'s'}
+    ]
+  },
+  cinemas:{
+    label:'Cinemas (salas)', coll:'cinemas', idField:null, api:'_olgaCinemas', needsEv:false,
+    fields:[
+      {f:'venue_name',l:'Sala',t:'s',req:true},
+      {f:'complex_name',l:'Complexo',t:'s',req:true},
+      {f:'state',l:'UF',t:'s'},
+      {f:'address',l:'Endereço',t:'s'},
+      {f:'kdm_email',l:'Email KDM',t:'s'},
+      {f:'mgmt_email',l:'Email gerência',t:'s'},
+      {f:'server_model',l:'Servidor (modelo)',t:'s'},
+      {f:'server_serial',l:'Servidor (serial)',t:'s'},
+      {f:'projector_model',l:'Projetor',t:'s'},
+      {f:'sound_system',l:'Som',t:'s'},
+      {f:'screen_aspect_ratio',l:'Proporção da tela',t:'s'},
+      {f:'seat_count',l:'Assentos',t:'n'},
+      {f:'cineassist_system',l:'CineAssist',t:'s'},
+      {f:'tms_system',l:'TMS',t:'s'},
+      {f:'screen_height',l:'Tela H',t:'s'},
+      {f:'screen_width',l:'Tela W',t:'s'},
+      {f:'utc_offset',l:'UTC offset',t:'s'},
+      {f:'notes',l:'Obs',t:'s'}
+    ]
+  },
+  programs:{
+    label:'Mostras', coll:'programs', idField:'__docid__', api:'_olgaPrograms', needsEv:true,
+    fields:[
+      {f:'__docid__',l:'ID da mostra (doc)',t:'s',req:true},
+      {f:'event_id',l:'Evento',t:'s',req:true},
+      {f:'name',l:'Nome',t:'s',req:true},
+      {f:'program_description',l:'Texto curatorial',t:'s'},
+      {f:'competitive',l:'Competitivo',t:'b'},
+      {f:'popular_vote',l:'Voto popular',t:'b'}
+    ]
+  },
+  subprograms:{
+    label:'Submostras', coll:'subprograms', idField:'__docid__', api:'_olgaSubprograms', needsEv:false,
+    fields:[
+      {f:'__docid__',l:'ID da submostra (doc)',t:'s',req:true},
+      {f:'program_id',l:'Mostra (program_id)',t:'s',req:true},
+      {f:'name',l:'Nome',t:'s',req:true},
+      {f:'program_description',l:'Descrição',t:'s'}
+    ]
+  },
+  eventos:{
+    label:'Eventos', coll:'eventos', idField:'__docid__', api:'_olgaEventos', needsEv:false,
+    fields:[
+      {f:'__docid__',l:'ID do evento (doc)',t:'s',req:true},
+      {f:'nome',l:'Nome',t:'s',req:true},
+      {f:'nome_exibicao',l:'Nome de exibição',t:'s'},
+      {f:'estados',l:'Estados (UF)',t:'a'},
+      {f:'data_inicio',l:'Data início',t:'d'},
+      {f:'data_fim',l:'Data fim',t:'d'},
+      {f:'tipo_acesso',l:'Tipo de acesso',t:'s'},
+      {f:'texto_curatorial',l:'Texto curatorial',t:'s'}
+    ]
+  },
+  guests:{
+    label:'Receptivo · Convidados', coll:'guests', idField:'__docid__', api:'_olgaGuests', needsEv:true, optionalId:true,
+    fields:[
+      {f:'__docid__',l:'ID (opcional · vazio cria novo)',t:'s'},
+      {f:'name',l:'Nome',t:'s',req:true},
+      {f:'event_id',l:'Evento',t:'s',req:true},
+      {f:'roles',l:'Funções',t:'a'},
+      {f:'_contact_email',l:'Email',t:'s'},
+      {f:'_contact_phone',l:'Telefone',t:'s'},
+      {f:'arrival_date',l:'Data chegada',t:'d'},
+      {f:'departure_date',l:'Data partida',t:'d'},
+      {f:'hotel_checkin_date',l:'Check-in',t:'d'},
+      {f:'hotel_checkout_date',l:'Check-out',t:'d'},
+      {f:'mostras',l:'Mostras (ids)',t:'a'},
+      {f:'submostras',l:'Submostras (nomes)',t:'a'},
+      {f:'filmes',l:'Filmes (códigos)',t:'a'},
+      {f:'notes',l:'Observações',t:'s'}
+    ],
+    postProcess:function(d){
+      // junta _contact_email e _contact_phone em contact:{email,phone}
+      var c={};if(d._contact_email)c.email=d._contact_email;if(d._contact_phone)c.phone=d._contact_phone;
+      if(Object.keys(c).length)d.contact=c;
+      delete d._contact_email;delete d._contact_phone;
+      return d;
+    }
+  },
+  hotels:{
+    label:'Receptivo · Hotéis', coll:'hotels', idField:'__docid__', api:'_olgaHotels', needsEv:true, optionalId:true,
+    fields:[
+      {f:'__docid__',l:'ID (opcional · vazio cria novo)',t:'s'},
+      {f:'name',l:'Nome',t:'s',req:true},
+      {f:'event_id',l:'Evento',t:'s',req:true},
+      {f:'address',l:'Endereço',t:'s'},
+      {f:'contact',l:'Contato',t:'s'},
+      {f:'notes',l:'Observações',t:'s'}
+    ]
+  },
+  flights:{
+    label:'Receptivo · Voos', coll:'flights', idField:'__docid__', api:'_olgaFlights', needsEv:true, optionalId:true,
+    fields:[
+      {f:'__docid__',l:'ID (opcional · vazio cria novo)',t:'s'},
+      {f:'event_id',l:'Evento',t:'s',req:true},
+      {f:'guest_id',l:'ID do convidado (opcional)',t:'s'},
+      {f:'_guest_name',l:'Nome do convidado (busca p/ vincular)',t:'s'},
+      {f:'type',l:'Tipo (chegada/partida)',t:'e',opts:['','chegada','partida']},
+      {f:'flight_number',l:'Número do voo',t:'s'},
+      {f:'origin',l:'Origem',t:'s'},
+      {f:'destination',l:'Destino',t:'s'},
+      {f:'datetime',l:'Data e hora (YYYY-MM-DDTHH:MM)',t:'s'},
+      {f:'notes',l:'Observações',t:'s'}
+    ],
+    postProcess:function(d){
+      if(!d.guest_id&&d._guest_name&&window._recepGuests){
+        var nm=String(d._guest_name).trim().toLowerCase();var ev=d.event_id;
+        var g=(window._recepGuests||[]).find(function(x){return x.data&&(x.data.name||'').toLowerCase()===nm&&(!ev||x.data.event_id===ev);});
+        if(g)d.guest_id=g.id;
+      }
+      delete d._guest_name;
+      return d;
+    }
+  },
+  transfers:{
+    label:'Receptivo · Transportes', coll:'transfers', idField:'__docid__', api:'_olgaTransfers', needsEv:true, optionalId:true,
+    fields:[
+      {f:'__docid__',l:'ID (opcional · vazio cria novo)',t:'s'},
+      {f:'event_id',l:'Evento',t:'s',req:true},
+      {f:'guest_id',l:'ID do convidado (opcional)',t:'s'},
+      {f:'_guest_name',l:'Nome do convidado (busca p/ vincular)',t:'s'},
+      {f:'category',l:'Categoria (chegada/partida/interno)',t:'e',opts:['','chegada','partida','interno']},
+      {f:'vehicle_type',l:'Tipo de veículo',t:'s'},
+      {f:'origin',l:'Origem',t:'s'},
+      {f:'destination',l:'Destino',t:'s'},
+      {f:'datetime',l:'Data e hora (YYYY-MM-DDTHH:MM)',t:'s'},
+      {f:'status',l:'Status',t:'s'},
+      {f:'notes',l:'Observações',t:'s'}
+    ],
+    postProcess:function(d){
+      if(!d.guest_id&&d._guest_name&&window._recepGuests){
+        var nm=String(d._guest_name).trim().toLowerCase();var ev=d.event_id;
+        var g=(window._recepGuests||[]).find(function(x){return x.data&&(x.data.name||'').toLowerCase()===nm&&(!ev||x.data.event_id===ev);});
+        if(g)d.guest_id=g.id;
+      }
+      delete d._guest_name;
+      return d;
+    }
+  }
+};
+
+var _iuState={module:'',event:'',rows:[],headers:[],map:{},defaults:{}};
+
+function openImportadorUniversal(){
+  _iuState={module:'',event:'',rows:[],headers:[],map:{},defaults:{}};
+  document.getElementById('iuModal').style.display='flex';
+  _iuRenderStep1();
+}
+function closeImportadorUniversal(){document.getElementById('iuModal').style.display='none';}
+
+function _iuModulesAllowed(){
+  var u=window._olgaUser;if(!u)return[];
+  // Editor com modulos_edicao restrito → só os listados; admin/editor sem restrição → todos
+  var allowedKeys=Object.keys(IU_SCHEMAS);
+  if(u.role==='admin')return allowedKeys;
+  if(u.role==='editor'){
+    if(!u.modulos_edicao||!u.modulos_edicao.length)return allowedKeys;
+    return allowedKeys.filter(function(k){
+      // mapear chave IU para a "modulo" do sistema de permissões
+      var modMap={catalogo:'catalogo',triagem:'triagem',copias:'busca',sessoes:'programacao',vinhetas:'vinhetas',cinemas:'cinemas',programs:'programacao',subprograms:'programacao',eventos:'equipe',guests:'receptivo',hotels:'receptivo',flights:'receptivo',transfers:'receptivo'};
+      return u.modulos_edicao.indexOf(modMap[k])>=0;
+    });
+  }
+  return[];
+}
+
+function _iuRenderStep1(){
+  document.getElementById('iuStepLabel').textContent='1 · Configurar';
+  var mods=_iuModulesAllowed();
+  var modOpts='<option value="">— selecionar —</option>'+mods.map(function(k){return'<option value="'+k+'"'+(_iuState.module===k?' selected':'')+'>'+esc(IU_SCHEMAS[k].label)+'</option>';}).join('');
+  var evOpts='<option value="">— selecionar —</option>'+Object.keys(eventColors||{}).sort().map(function(e){return'<option value="'+esc(e)+'"'+(_iuState.event===e?' selected':'')+'>'+esc(e)+'</option>';}).join('');
+  var body=
+    '<div style="display:flex;flex-direction:column;gap:14px;">'
+    +'<div><label style="font-family:var(--mono);font-size:10px;color:var(--text-muted);letter-spacing:0.1em;text-transform:uppercase;display:block;margin-bottom:6px;">Módulo destino</label>'
+      +'<select id="iuMod" onchange="_iuState.module=this.value;_iuRenderStep1();" style="padding:6px 10px;background:var(--bg);border:1px solid var(--border);color:var(--text);font-family:var(--mono);font-size:11px;border-radius:3px;min-width:300px;">'+modOpts+'</select>'
+    +'</div>'
+    +(_iuState.module&&IU_SCHEMAS[_iuState.module].needsEv?
+      '<div><label style="font-family:var(--mono);font-size:10px;color:var(--text-muted);letter-spacing:0.1em;text-transform:uppercase;display:block;margin-bottom:6px;">Evento (padrão para a planilha — sobrescreve coluna se ausente)</label>'
+        +'<select id="iuEv" onchange="_iuState.event=this.value;" style="padding:6px 10px;background:var(--bg);border:1px solid var(--border);color:var(--text);font-family:var(--mono);font-size:11px;border-radius:3px;min-width:260px;">'+evOpts+'</select>'
+      +'</div>':'')
+    +(_iuState.module?'<div><label style="font-family:var(--mono);font-size:10px;color:var(--text-muted);letter-spacing:0.1em;text-transform:uppercase;display:block;margin-bottom:6px;">Planilha (.xlsx ou .csv)</label>'
+      +'<input type="file" id="iuFile" accept=".xlsx,.xls,.csv" onchange="_iuReadFile(this)" style="font-family:var(--mono);font-size:11px;color:var(--text);">'
+    +'</div>':'')
+    +IU_RULES_HTML
+    +'<div id="iuMsg" style="font-family:var(--mono);font-size:10px;color:var(--warn);"></div>'
+    +'</div>';
+  document.getElementById('iuBody').innerHTML=body;
+  document.getElementById('iuFoot').innerHTML='<button class="cxp-btn" onclick="closeImportadorUniversal()">Cancelar</button>';
+}
+
+function _iuReadFile(input){
+  var f=input.files&&input.files[0];if(!f)return;
+  var msg=document.getElementById('iuMsg');msg.textContent='Lendo arquivo…';
+  var reader=new FileReader();
+  reader.onload=function(e){
+    try{
+      var data=new Uint8Array(e.target.result);
+      var wb=XLSX.read(data,{type:'array',cellDates:true});
+      var ws=wb.Sheets[wb.SheetNames[0]];
+      var json=XLSX.utils.sheet_to_json(ws,{raw:false,defval:'',dateNF:'yyyy-mm-dd'});
+      if(!json.length){msg.textContent='Planilha vazia.';return;}
+      _iuState.rows=json;
+      _iuState.headers=Object.keys(json[0]);
+      msg.textContent=json.length+' linha(s) detectada(s) · '+_iuState.headers.length+' coluna(s).';
+      _iuRenderStep2();
+    }catch(err){msg.textContent='Erro ao ler arquivo: '+err.message;}
+  };
+  reader.readAsArrayBuffer(f);
+}
+
+function _iuRenderStep2(){
+  var sch=IU_SCHEMAS[_iuState.module];if(!sch)return;
+  document.getElementById('iuStepLabel').textContent='2 · Mapeamento';
+  // sugestão automática: para cada header da planilha, tenta achar um campo do esquema com label/f compatível
+  var hdrs=_iuState.headers;
+  hdrs.forEach(function(h){
+    if(_iuState.map[h]===undefined){
+      var nrm=h.toLowerCase().replace(/[\s_·-]+/g,'');
+      var match=sch.fields.find(function(fd){
+        return fd.f.toLowerCase().replace(/_/g,'')===nrm||fd.l.toLowerCase().replace(/[\s_·-]+/g,'')===nrm;
+      });
+      _iuState.map[h]=match?match.f:'';
+    }
+  });
+  var fieldOpts='<option value="">— ignorar —</option>'+sch.fields.map(function(fd){return'<option value="'+fd.f+'">'+esc(fd.l)+(fd.req?' *':'')+'</option>';}).join('');
+  var rows=hdrs.map(function(h){
+    var sel=_iuState.map[h]||'';
+    var sample=(_iuState.rows[0]&&_iuState.rows[0][h])||'';
+    return'<tr>'
+      +'<td style="padding:5px 8px;border:1px solid var(--border);font-family:var(--mono);font-size:10px;color:var(--text);">'+esc(h)+'</td>'
+      +'<td style="padding:5px 8px;border:1px solid var(--border);font-family:var(--sans);font-size:10px;color:var(--text-muted);max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+esc(String(sample).slice(0,80))+'</td>'
+      +'<td style="padding:5px;border:1px solid var(--border);"><select onchange="_iuState.map[\''+esc(h).replace(/'/g,"\\'")+'\']=this.value;_iuUpdateReqHint()" style="width:100%;padding:4px 6px;background:var(--bg);border:1px solid var(--border);color:var(--text);font-family:var(--mono);font-size:10px;">'+fieldOpts.replace('value="'+sel+'"','value="'+sel+'" selected')+'</select></td>'
+    +'</tr>';
+  }).join('');
+  // Campos required que ainda precisam ser preenchidos via defaults
+  var reqMissing=sch.fields.filter(function(fd){
+    if(!fd.req)return false;
+    var mapped=Object.values(_iuState.map).indexOf(fd.f)>=0;
+    if(mapped)return false;
+    // event_name/evento pode ser suprido pelo evento padrão
+    if(sch.needsEv&&(fd.f==='evento'||fd.f==='event_name'||fd.f==='event_id')&&_iuState.event)return false;
+    return true;
+  });
+  var defaultsHtml=reqMissing.length?'<div style="margin-top:14px;padding:10px;background:rgba(220,180,80,0.1);border:1px solid var(--warn);border-radius:3px;">'
+    +'<div style="font-family:var(--mono);font-size:10px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:var(--warn);margin-bottom:8px;">⚠ Campos obrigatórios sem coluna mapeada — defina um valor padrão</div>'
+    +reqMissing.map(function(fd){
+      var cur=_iuState.defaults[fd.f]||'';
+      var inp=fd.t==='e'?'<select onchange="_iuState.defaults[\''+fd.f+'\']=this.value">'+fd.opts.map(function(o){return'<option value="'+esc(o)+'"'+(cur===o?' selected':'')+'>'+esc(o||'—')+'</option>';}).join('')+'</select>'
+        :'<input type="text" value="'+esc(cur)+'" oninput="_iuState.defaults[\''+fd.f+'\']=this.value">';
+      return'<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;"><label style="font-family:var(--mono);font-size:10px;min-width:160px;">'+esc(fd.l)+':</label>'+inp+'</div>';
+    }).join('')
+    +'</div>':'';
+  var body=
+    '<div style="display:flex;align-items:center;gap:12px;margin-bottom:10px;flex-wrap:wrap;">'
+      +'<span style="font-family:var(--mono);font-size:10px;color:var(--text-muted);">Módulo: <strong style="color:var(--accent);">'+esc(sch.label)+'</strong></span>'
+      +(_iuState.event?'<span style="font-family:var(--mono);font-size:10px;color:var(--text-muted);">Evento padrão: <strong style="color:var(--accent);">'+esc(_iuState.event)+'</strong></span>':'')
+      +'<span style="font-family:var(--mono);font-size:10px;color:var(--text-muted);">'+_iuState.rows.length+' linha(s) · '+_iuState.headers.length+' coluna(s)</span>'
+    +'</div>'
+    +'<table style="width:100%;border-collapse:collapse;font-family:var(--mono);font-size:10px;">'
+      +'<thead><tr style="background:var(--surface2);"><th style="padding:6px 8px;border:1px solid var(--border);text-align:left;text-transform:uppercase;letter-spacing:0.06em;font-size:9px;color:var(--accent);">Coluna da planilha</th><th style="padding:6px 8px;border:1px solid var(--border);text-align:left;text-transform:uppercase;letter-spacing:0.06em;font-size:9px;color:var(--accent);">Amostra</th><th style="padding:6px 8px;border:1px solid var(--border);text-align:left;text-transform:uppercase;letter-spacing:0.06em;font-size:9px;color:var(--accent);">Campo do sistema</th></tr></thead>'
+      +'<tbody>'+rows+'</tbody></table>'
+    +defaultsHtml
+    +'<div id="iuReqHint" style="margin-top:10px;font-family:var(--mono);font-size:10px;color:var(--text-muted);"></div>';
+  document.getElementById('iuBody').innerHTML=body;
+  document.getElementById('iuFoot').innerHTML='<button class="cxp-btn" onclick="_iuRenderStep1()">← Voltar</button><button class="cxp-btn primary" onclick="_iuRenderStep3()">Pré-visualizar →</button>';
+  _iuUpdateReqHint();
+}
+function _iuUpdateReqHint(){
+  var sch=IU_SCHEMAS[_iuState.module];if(!sch)return;
+  var hint=document.getElementById('iuReqHint');if(!hint)return;
+  var mapped=Object.values(_iuState.map).filter(Boolean);
+  var missing=sch.fields.filter(function(fd){
+    if(!fd.req)return false;
+    if(mapped.indexOf(fd.f)>=0)return false;
+    if(sch.needsEv&&(fd.f==='evento'||fd.f==='event_name'||fd.f==='event_id')&&_iuState.event)return false;
+    if(_iuState.defaults[fd.f])return false;
+    return true;
+  });
+  if(missing.length){
+    hint.style.color='var(--warn)';
+    hint.textContent='⚠ Obrigatórios faltando: '+missing.map(function(f){return f.l;}).join(', ');
+  }else{
+    hint.style.color='var(--ok)';
+    hint.textContent='✓ Todos os obrigatórios cobertos.';
+  }
+}
+
+function _iuTransform(row){
+  var sch=IU_SCHEMAS[_iuState.module];
+  var out={};
+  Object.keys(_iuState.map).forEach(function(h){
+    var f=_iuState.map[h];if(!f)return;
+    var fd=sch.fields.find(function(x){return x.f===f;});
+    if(!fd)return;
+    var raw=row[h];
+    out[f]=_iuCoerce(raw,fd.t);
+  });
+  // defaults pra obrigatórios não mapeados
+  Object.keys(_iuState.defaults).forEach(function(f){
+    if(out[f]===undefined||out[f]===''||(Array.isArray(out[f])&&!out[f].length)){
+      var fd=sch.fields.find(function(x){return x.f===f;});
+      out[f]=_iuCoerce(_iuState.defaults[f],fd?fd.t:'s');
+    }
+  });
+  // evento padrão
+  if(sch.needsEv&&_iuState.event){
+    ['evento','event_name','event_id'].forEach(function(k){
+      var hasK=sch.fields.some(function(fd){return fd.f===k;});
+      if(hasK&&!out[k])out[k]=_iuState.event;
+    });
+  }
+  return out;
+}
+function _iuCoerce(v,t){
+  if(v===null||v===undefined)return '';
+  if(t==='a'){
+    if(Array.isArray(v))return v.map(function(x){return String(x).trim();}).filter(Boolean);
+    var s=String(v).trim();if(!s)return [];
+    return s.split(/[;]\s*/).map(function(x){return x.trim();}).filter(Boolean);
+  }
+  if(t==='n'){var n=parseInt(String(v).replace(/[^\d-]/g,''),10);return isNaN(n)?'':n;}
+  if(t==='b'){var x=String(v).toLowerCase().trim();return(x==='sim'||x==='yes'||x==='true'||x==='1')?'Sim':(x==='não'||x==='nao'||x==='no'||x==='false'||x==='0')?'Não':'';}
+  if(t==='d'){
+    if(v instanceof Date)return v.toISOString().slice(0,10);
+    var s=String(v).trim();
+    var m=s.match(/^(\d{4})-(\d{2})-(\d{2})/);if(m)return m[1]+'-'+m[2]+'-'+m[3];
+    m=s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})/);
+    if(m){var yy=m[3].length===2?('20'+m[3]):m[3];return yy+'-'+m[2].padStart(2,'0')+'-'+m[1].padStart(2,'0');}
+    return s;
+  }
+  if(t==='t'){var s=String(v).trim();var m=s.match(/^(\d{1,2}):(\d{2})/);return m?(m[1].padStart(2,'0')+':'+m[2]):s;}
+  return String(v).trim();
+}
+
+function _iuRenderStep3(){
+  document.getElementById('iuStepLabel').textContent='3 · Pré-visualização';
+  var sch=IU_SCHEMAS[_iuState.module];
+  // amostra: primeiras 8 linhas transformadas
+  var sample=_iuState.rows.slice(0,8).map(_iuTransform);
+  var mappedFields=sch.fields.filter(function(fd){
+    return Object.values(_iuState.map).indexOf(fd.f)>=0||_iuState.defaults[fd.f]||(sch.needsEv&&(fd.f==='evento'||fd.f==='event_name'||fd.f==='event_id')&&_iuState.event);
+  });
+  // contagem de duplicates por id
+  var existingMap=null;
+  if(sch.coll==='filmes')existingMap=catalogoFilmesMap;
+  else if(sch.coll==='copias')existingMap=filmesMap;
+  else if(sch.coll==='triagem')existingMap=window.triagemFilmesMap||{};
+  else if(sch.coll==='sessoes')existingMap=sessoesMap;
+  var dup=0,nw=0,noId=0;
+  _iuState.rows.forEach(function(r){
+    var t=_iuTransform(r);
+    var id=sch.idField&&sch.idField!=='__docid__'?t[sch.idField]:(sch.idField==='__docid__'?t['__docid__']:null);
+    if(!id&&sch.idField){if(sch.optionalId){nw++;return;}noId++;return;}
+    if(existingMap&&id&&existingMap[id])dup++;else nw++;
+  });
+  var tableHtml='<div style="overflow:auto;max-height:280px;border:1px solid var(--border);"><table style="border-collapse:collapse;font-family:var(--mono);font-size:10px;">'
+    +'<thead><tr style="background:var(--surface2);position:sticky;top:0;">'+mappedFields.map(function(fd){return'<th style="padding:5px 8px;border:1px solid var(--border);text-align:left;font-size:9px;color:var(--accent);text-transform:uppercase;white-space:nowrap;">'+esc(fd.l)+'</th>';}).join('')+'</tr></thead>'
+    +'<tbody>'+sample.map(function(r){return'<tr>'+mappedFields.map(function(fd){var v=r[fd.f];if(Array.isArray(v))v=v.join(', ');return'<td style="padding:4px 8px;border:1px solid var(--border);max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+esc(String(v==null?'':v))+'</td>';}).join('')+'</tr>';}).join('')+'</tbody></table></div>';
+  var msg='<div style="margin-top:12px;padding:10px;background:var(--surface2);border:1px solid var(--border);font-family:var(--mono);font-size:11px;">'
+    +'Total: <strong>'+_iuState.rows.length+'</strong> linha(s) · '
+    +'<span style="color:var(--ok);">novos: '+nw+'</span> · '
+    +'<span style="color:var(--warn);">já existentes (MERGE): '+dup+'</span>'
+    +(noId>0?' · <span style="color:var(--warn);">sem ID: '+noId+'</span>':'')
+    +'</div>';
+  document.getElementById('iuBody').innerHTML=
+    '<div style="font-family:var(--mono);font-size:10px;color:var(--text-muted);margin-bottom:8px;">Mostrando '+Math.min(8,_iuState.rows.length)+' de '+_iuState.rows.length+' linha(s)</div>'
+    +tableHtml+msg;
+  document.getElementById('iuFoot').innerHTML='<button class="cxp-btn" onclick="_iuRenderStep2()">← Mapeamento</button><button class="cxp-btn primary" onclick="_iuExecute()">Importar '+_iuState.rows.length+' linha(s)</button>';
+}
+
+async function _iuExecute(){
+  var sch=IU_SCHEMAS[_iuState.module];
+  document.getElementById('iuStepLabel').textContent='4 · Importando';
+  document.getElementById('iuFoot').innerHTML='';
+  var body=document.getElementById('iuBody');
+  body.innerHTML='<div style="font-family:var(--mono);font-size:11px;color:var(--text);"><div id="iuProg" style="margin-bottom:10px;">Processando 0/'+_iuState.rows.length+'…</div><div id="iuProgBar" style="height:6px;background:var(--surface2);border-radius:3px;overflow:hidden;margin-bottom:14px;"><div id="iuProgFill" style="height:100%;background:var(--accent);width:0%;transition:width 0.2s;"></div></div><div id="iuLog" style="max-height:300px;overflow-y:auto;font-size:10px;color:var(--text-dim);"></div></div>';
+  // Receptivo: garante _recepGuests carregado pra resolução de nome→id em voos/transportes
+  if((sch.coll==='flights'||sch.coll==='transfers')&&window._olgaGuests&&(!window._recepGuests||!window._recepGuests.length)){
+    try{window._recepGuests=await window._olgaGuests.list();}catch(e){}
+  }
+  var api=window[sch.api];
+  var existingMap=null;
+  if(sch.coll==='filmes')existingMap=catalogoFilmesMap;
+  else if(sch.coll==='copias')existingMap=filmesMap;
+  else if(sch.coll==='triagem')existingMap=window.triagemFilmesMap||{};
+  else if(sch.coll==='sessoes')existingMap=sessoesMap;
+  var ok=0,err=0,errors=[];
+  for(var i=0;i<_iuState.rows.length;i++){
+    var row=_iuState.rows[i];
+    var data=_iuTransform(row);
+    // post-processamento específico do módulo (FK lookup, nesting de contact, etc)
+    if(typeof sch.postProcess==='function'){try{data=sch.postProcess(data)||data;}catch(ePP){}}
+    var id=null;
+    if(sch.idField==='__docid__')id=data['__docid__']||null;
+    else if(sch.idField)id=data[sch.idField]||null;
+    // remove o campo __docid__ do payload final (não é dado do doc)
+    if('__docid__' in data)delete data['__docid__'];
+    try{
+      if(!id&&sch.idField&&!sch.optionalId){throw new Error('ID ausente');}
+      // Merge com existente se houver
+      var existing=existingMap&&id?existingMap[id]:null;
+      var finalData=data;
+      if(existing){
+        finalData={};Object.keys(existing).forEach(function(k){finalData[k]=existing[k];});
+        Object.keys(data).forEach(function(k){
+          var v=data[k];
+          if(v===''||v==null)return;
+          if(Array.isArray(v)&&!v.length)return;
+          finalData[k]=v;
+        });
+      }
+      // chamada da API certa
+      if(sch.coll==='cinemas'){await api.createSala(finalData);}
+      else if(sch.api==='_olgaCatalogo'||sch.api==='_olgaTriagem'){await api.save(id,finalData,existing||null);}
+      else if(sch.api==='_olgaCopias'){await api.save(id,finalData,existing||null);}
+      else{await api.save(id,finalData);}
+      ok++;
+    }catch(e){err++;errors.push((id||'(linha '+(i+1)+')')+': '+e.message);}
+    var pct=Math.round(((i+1)/_iuState.rows.length)*100);
+    document.getElementById('iuProg').textContent='Processando '+(i+1)+'/'+_iuState.rows.length+' · ✓ '+ok+(err?' · ⚠ '+err:'');
+    document.getElementById('iuProgFill').style.width=pct+'%';
+    if(errors.length){
+      document.getElementById('iuLog').innerHTML=errors.slice(-10).map(function(e){return'<div style="color:var(--warn);">⚠ '+esc(e)+'</div>';}).join('');
+    }
+    if(i%5===4)await new Promise(function(r){setTimeout(r,0);});
+  }
+  document.getElementById('iuProg').textContent='Concluído: '+ok+' importado(s) · '+err+' erro(s)';
+  document.getElementById('iuFoot').innerHTML='<button class="cxp-btn primary" onclick="closeImportadorUniversal()">Fechar</button>';
+}
+
+/* Helper genérico de download XLSX (usa SheetJS já carregado) */
+function _iuExportXLSX(headers,rows,filename){
+  var aoa=[headers.slice()];rows.forEach(function(r){aoa.push(r.slice());});
+  var ws=XLSX.utils.aoa_to_sheet(aoa);
+  var wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'Dados');
+  XLSX.writeFile(wb,filename);
+}
+
+/* Adicionar XLSX no Catálogo · Exportar Especial */
+function _catExpExportXLSX(){
+  if(!_catExpColumns||!_catExpColumns.length){alert('Selecione ao menos uma coluna.');return;}
+  var rows=_catExpBuildRows();
+  var headers=_catExpColumns.map(function(c){return c.l;});
+  var name=(document.getElementById('cxpTplName').value||'export')+'_'+new Date().toISOString().slice(0,10)+'.xlsx';
+  _iuExportXLSX(headers,rows,name);
+}
+</script>
 
 <script>
 /* ═══ EXPORTAR ESPECIAL · CATÁLOGO ═══ */
@@ -21778,6 +22443,13 @@ function _sxcExportCSV(){
   var name='exportar_para_cinemas_'+new Date().toISOString().slice(0,10)+'.csv';
   var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;document.body.appendChild(a);a.click();setTimeout(function(){URL.revokeObjectURL(a.href);a.remove();},100);
 }
+function _sxcExportXLSX(){
+  var headers=['VENDAS','DATA','CINEMA (SALA)','HORÁRIO','TÍTULO PT','TÍTULO ORIGINAL','MIN','APRESENT.','DEBATE','ACESSIB.','LEGENDA','BLQ PADRÃO (10%)','BLQ EXTRA','BLQ TOTAL'];
+  var rows=_sxcRows.map(function(r){var bpVal=r.blqPadMode==='vender_tudo'?'VENDER TUDO':String(r.blqPadVal);return[r.vendas,r.data,r.cinema,r.horario,r.titulo_pt,r.titulo_orig,r.mins,r.apresentacao,r.debate,r.acessibilidade,r.legenda,bpVal,r.blqExt,_sxcBlqTotal(r)];});
+  var name='exportar_para_cinemas_'+new Date().toISOString().slice(0,10)+'.xlsx';
+  if(typeof _iuExportXLSX==='function')_iuExportXLSX(headers,rows,name);
+  else{var ws=XLSX.utils.aoa_to_sheet([headers].concat(rows));var wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'Dados');XLSX.writeFile(wb,name);}
+}
 function _sxcPrint(){
   var headers=['VENDAS','DATA','CINEMA (SALA)','HORÁRIO','TÍTULO PT','TÍTULO ORIGINAL','MIN','APRESENT.','DEBATE','ACESSIB.','LEGENDA','BLQ PADRÃO (10%)','BLQ EXTRA','BLQ TOTAL'];
   var thead='<tr>'+headers.map(function(h){return'<th>'+esc(h)+'</th>';}).join('')+'</tr>';
@@ -21828,6 +22500,7 @@ function _sxcPrint(){
       <button class="sxc-btn" onclick="closeSessoesExportCinemas()">Fechar</button>
       <button class="sxc-btn primary" onclick="_sxcPrint()">⎙ Imprimir</button>
       <button class="sxc-btn primary" onclick="_sxcExportCSV()">⤓ CSV</button>
+      <button class="sxc-btn primary" onclick="_sxcExportXLSX()">⤓ XLSX</button>
     </div>
   </div>
 </div>
@@ -22491,7 +23164,7 @@ function _sxcPrint(){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 02/06/2026 às 15:48</span></div>
+<div id="page-footer"><span>última atualização · 02/06/2026 às 15:54</span></div>
 
 </div>
 

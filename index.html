@@ -5643,6 +5643,7 @@ window.addEventListener('DOMContentLoaded',function(){
     </div>
   </div>
   <button class="nav-tab" id="tabRevista" disabled onclick="switchMode('revista')" title="Revista"><span class="tab-icon"><i data-lucide="book-open"></i></span><span class="nav-label"> Revista</span></button>
+  <button class="nav-tab" id="tabImportador" onclick="openImportadorUniversal()" style="display:none" title="Importador universal"><span class="tab-icon"><i data-lucide="upload"></i></span><span class="nav-label"> Importador</span></button>
   <button class="nav-tab" id="tabEquipe" disabled onclick="switchMode('equipe')" style="display:none" title="Administração"><span class="tab-icon"><i data-lucide="shield"></i></span><span class="nav-label"> Administração</span></button>
 </nav>
 
@@ -5950,7 +5951,7 @@ window.addEventListener('DOMContentLoaded',function(){
       <div class="module-name">Revista</div>
       <div class="module-desc">Publicação editorial com mostras e programação do evento</div>
     </div>
-    <div class="module-card disabled" id="modCardImportador" onclick="openImportadorUniversal()" style="display:none;">
+    <div class="module-card" id="modCardImportador" onclick="openImportadorUniversal()" style="display:none;">
       <div class="module-icon"><i data-lucide="upload"></i></div>
       <div class="module-name">Importador</div>
       <div class="module-desc">Importação universal de planilhas para qualquer módulo</div>
@@ -6476,12 +6477,9 @@ function applyParsedData(d,filename){
   ['tabProjecao','tabFicha','tabGrade','tabGrade2','tabSessoes','tabVinhetas','tabIngest','tabCinemas','tabKDM','tabDash','tabReceptivo','tabBilheteria','tabCatalogo','tabTriagem','tabProgramacao','tabRevista','navSubFicha','navSubIngest','navSubGrade2','navSubAcervo','navSubConvidados','navSubHoteis','navSubVoos','navSubTransporte'].forEach(function(id){document.getElementById(id).disabled=false;});
   if(window._olgaUser&&window._olgaUser.role==='admin'){document.getElementById('tabEquipe').disabled=false;}
   ['modCardProjecao','modCardGrade','modCardSessoes','modCardVinhetas','modCardCinemas','modCardKDM','modCardDash','modCardReceptivo','modCardBilheteria','modCardCatalogo','modCardTriagem','modCardProgramacao','modCardRevista'].forEach(function(id){document.getElementById(id).classList.remove('disabled');});
-  var _cardIU=document.getElementById('modCardImportador');
-  if(_cardIU){
-    var _canImport=window._olgaUser&&(window._olgaUser.role==='admin'||window._olgaUser.role==='editor');
-    _cardIU.style.display=_canImport?'':'none';
-    _cardIU.classList.remove('disabled');
-  }
+  var _canImport=window._olgaUser&&(window._olgaUser.role==='admin'||window._olgaUser.role==='editor');
+  var _tabIU=document.getElementById('tabImportador');if(_tabIU)_tabIU.style.display=_canImport?'':'none';
+  var _cardIU=document.getElementById('modCardImportador');if(_cardIU)_cardIU.style.display=_canImport?'':'none';
   buildGradeDays();window._gradeYearsOpen=null;window._grade2YearsOpen=null;window._dashYearsOpen=null;buildFichaFilters();buildGradeFilters();buildGrade2Filters();buildSessoesFilters();buildProjecaoFilters();buildVinhetasFilters();buildBuscaFilters();buildIngestDays();buildIngestFilters();buildBuscaFilterPanel();buildCinemasFilters();buildDashFilters();buildCatalogoFilters();buildTriagemFilters();buildBilheteriaFilters();buildRevistaFilters();if(!currentMode)buildLandingPills();
   if(fileNameEl){fileNameEl.textContent=filename||'arquivo carregado';fileNameEl.classList.add('loaded');}
   window._olgaDataLabel=filename||null;
@@ -15852,7 +15850,7 @@ function renderDash(){
   html+=colBlock('kdm','KDM',kdmBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 02/06/2026 às 15:56';
+  var sysUpdate='última atualização do sistema · 02/06/2026 às 15:58';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -21734,11 +21732,8 @@ function _iuRenderStep1(){
   document.getElementById('iuStepLabel').textContent='1 · Configurar';
   var mods=_iuModulesAllowed();
   var modOpts='<option value="">— selecionar —</option>'+mods.map(function(k){return'<option value="'+k+'"'+(_iuState.module===k?' selected':'')+'>'+esc(IU_SCHEMAS[k].label)+'</option>';}).join('');
-  // eventos: só os ativos do usuário (perfil). Admin sem restrição vê todos do sistema.
-  var _u=window._olgaUser;
-  var _evList;
-  if(_u&&_u.eventos&&_u.eventos.length)_evList=_u.eventos.slice().sort();
-  else _evList=Object.keys(eventColors||{}).sort();
+  // eventos: só os ativos selecionados nos pills do landing
+  var _evList=(typeof activeEventsLanding!=='undefined'&&activeEventsLanding&&activeEventsLanding.size)?Array.from(activeEventsLanding).sort():[];
   var evOpts='<option value="">— selecionar —</option>'+_evList.map(function(e){return'<option value="'+esc(e)+'"'+(_iuState.event===e?' selected':'')+'>'+esc(e)+'</option>';}).join('');
   var body=
     '<div style="display:flex;flex-direction:column;gap:14px;">'
@@ -23172,7 +23167,7 @@ function _sxcPrint(){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 02/06/2026 às 15:56</span></div>
+<div id="page-footer"><span>última atualização · 02/06/2026 às 15:58</span></div>
 
 </div>
 

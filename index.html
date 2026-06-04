@@ -15850,7 +15850,7 @@ function renderDash(){
   html+=colBlock('kdm','KDM',kdmBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 02/06/2026 às 16:08';
+  var sysUpdate='última atualização do sistema · 02/06/2026 às 16:10';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -21628,13 +21628,24 @@ var IU_SCHEMAS={
     ]
   },
   subprograms:{
-    label:'Submostras', coll:'subprograms', idField:'__docid__', api:'_olgaSubprograms', needsEv:false,
+    label:'Submostras', coll:'subprograms', idField:'__docid__', api:'_olgaSubprograms', needsEv:true,
     fields:[
       {f:'__docid__',l:'ID da submostra (doc)',t:'s',req:true},
       {f:'program_id',l:'Mostra (program_id)',t:'s',req:true},
+      {f:'event_id',l:'Evento',t:'s'},
       {f:'name',l:'Nome',t:'s',req:true},
-      {f:'program_description',l:'Descrição',t:'s'}
-    ]
+      {f:'subprogram_description',l:'Descrição',t:'s'},
+      {f:'competitive',l:'Competitivo',t:'b'},
+      {f:'popular_vote',l:'Voto popular',t:'b'}
+    ],
+    postProcess:function(d){
+      // se event_id não veio na planilha, deriva da mostra parent
+      if(!d.event_id&&d.program_id&&window._progData&&_progData.programs){
+        var p=_progData.programs.find(function(x){return x.id===d.program_id;});
+        if(p&&p.data&&p.data.event_id)d.event_id=p.data.event_id;
+      }
+      return d;
+    }
   },
   eventos:{
     label:'Eventos', coll:'eventos', idField:'__docid__', api:'_olgaEventos', needsEv:false,
@@ -23254,7 +23265,7 @@ function _sxcPrint(){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 02/06/2026 às 16:08</span></div>
+<div id="page-footer"><span>última atualização · 02/06/2026 às 16:10</span></div>
 
 </div>
 

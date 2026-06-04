@@ -15850,7 +15850,7 @@ function renderDash(){
   html+=colBlock('kdm','KDM',kdmBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 02/06/2026 às 15:58';
+  var sysUpdate='última atualização do sistema · 02/06/2026 às 16:02';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -21523,6 +21523,37 @@ var IU_SCHEMAS={
   },
   sessoes:{
     label:'Sessões', coll:'sessoes', idField:'session_id', api:'_olgaSessoes', needsEv:true,
+    postProcess:function(d){
+      // tenta resolver títulos de filme → código (via catalogoFilmesMap/filmesMap)
+      function _resolveFilm(v){
+        if(!v)return v;
+        if((window.filmesMap&&filmesMap[v])||(window.catalogoFilmesMap&&catalogoFilmesMap[v]))return v;
+        var lv=String(v).toLowerCase().trim();
+        if(window.catalogoFilmesMap){
+          var ks=Object.keys(catalogoFilmesMap);
+          for(var i=0;i<ks.length;i++){
+            var m=catalogoFilmesMap[ks[i]];if(!m)continue;
+            var ts=[m.title,m.title_pt,m.original_title,m.english_title,m.system_name].filter(Boolean).map(function(t){return String(t).toLowerCase().trim();});
+            if(ts.indexOf(lv)>=0)return ks[i];
+          }
+        }
+        return v;
+      }
+      function _resolveBumper(v){
+        if(!v)return v;
+        if(window.vinhetasArr){
+          var found=window.vinhetasArr.find(function(b){return b.codigo===v;});
+          if(found)return v;
+          var lv=String(v).toLowerCase().trim();
+          var hit=window.vinhetasArr.find(function(b){return(b.nome||'').toLowerCase().trim()===lv||(b.cpl||'').toLowerCase().trim()===lv;});
+          if(hit)return hit.codigo;
+        }
+        return v;
+      }
+      if(Array.isArray(d.films))d.films=d.films.map(_resolveFilm);
+      if(Array.isArray(d.bumpers))d.bumpers=d.bumpers.map(_resolveBumper);
+      return d;
+    },
     fields:[
       {f:'session_id',l:'ID da sessão',t:'s',req:true},
       {f:'event_name',l:'Evento',t:'s',req:true},
@@ -21530,8 +21561,8 @@ var IU_SCHEMAS={
       {f:'time',l:'Hora',t:'t',req:true},
       {f:'venue_name',l:'Sala (cinema)',t:'s',req:true},
       {f:'name',l:'Nome da sessão',t:'s'},
-      {f:'films',l:'Códigos dos filmes',t:'a'},
-      {f:'bumpers',l:'Vinhetas',t:'a'},
+      {f:'films',l:'Filmes (código ou nome)',t:'a'},
+      {f:'bumpers',l:'Vinhetas (código ou nome)',t:'a'},
       {f:'program_id',l:'Mostra',t:'s'},
       {f:'subprogram_id',l:'Submostra',t:'s'},
       {f:'session_description',l:'Descrição',t:'s'},
@@ -21877,6 +21908,49 @@ function _iuTransform(row){
   }
   return out;
 }
+function _iuGroupedRows(){
+  // Transforma todas as linhas e agrupa por ID: linhas com mesmo ID viram um único
+  // registro com union dos campos array (filmes, vinhetas etc.) e first-non-empty
+  // pros campos escalares.
+  // Se o ID vem só de default (sem coluna mapeada), gera sequenciais <default><001>.
+  var sch=IU_SCHEMAS[_iuState.module];
+  var idMapped=sch.idField&&Object.values(_iuState.map).indexOf(sch.idField)>=0;
+  var idDefault=sch.idField?(_iuState.defaults[sch.idField]||''):'';
+  var useSeq=sch.idField&&!idMapped&&idDefault;
+  var existingMap=sch.coll==='filmes'?catalogoFilmesMap:sch.coll==='copias'?filmesMap:sch.coll==='triagem'?(window.triagemFilmesMap||{}):sch.coll==='sessoes'?sessoesMap:null;
+  var seq=0;
+  var raw=_iuState.rows.map(function(row){
+    var d=_iuTransform(row);
+    if(useSeq){
+      var cand;do{seq++;cand=idDefault+String(seq).padStart(3,'0');}while(existingMap&&existingMap[cand]);
+      d[sch.idField]=cand;
+    }
+    // post-processamento por linha (resolve FKs, nomes→códigos) ANTES de agrupar,
+    // assim o agrupamento une corretamente quando o mesmo filme vier por nome ou código
+    if(typeof sch.postProcess==='function'){try{d=sch.postProcess(d)||d;}catch(e){}}
+    return d;
+  });
+  if(!sch.idField)return raw;
+  var groups={},order=[];
+  raw.forEach(function(d){
+    var id=sch.idField==='__docid__'?d['__docid__']:d[sch.idField];
+    if(!id){order.push({_noid:true,d:d});return;}
+    if(!groups[id]){groups[id]=d;order.push({id:id});return;}
+    var prev=groups[id];
+    Object.keys(d).forEach(function(k){
+      var fd=sch.fields.find(function(x){return x.f===k;});
+      var v=d[k];
+      if(fd&&fd.t==='a'&&Array.isArray(v)){
+        var arr=Array.isArray(prev[k])?prev[k].slice():[];
+        v.forEach(function(x){if(arr.indexOf(x)===-1)arr.push(x);});
+        prev[k]=arr;
+      }else if(v!==''&&v!=null&&!Array.isArray(v)&&(prev[k]===''||prev[k]==null)){
+        prev[k]=v;
+      }
+    });
+  });
+  return order.map(function(o){return o._noid?o.d:groups[o.id];});
+}
 function _iuCoerce(v,t){
   if(v===null||v===undefined)return '';
   if(t==='a'){
@@ -21901,49 +21975,51 @@ function _iuCoerce(v,t){
 function _iuRenderStep3(){
   document.getElementById('iuStepLabel').textContent='3 · Pré-visualização';
   var sch=IU_SCHEMAS[_iuState.module];
-  // amostra: primeiras 8 linhas transformadas
-  var sample=_iuState.rows.slice(0,8).map(_iuTransform);
+  // agrupa linhas com mesmo ID (ex: 1 linha por filme → 1 sessão com lista de filmes)
+  var grouped=_iuGroupedRows();
+  var sample=grouped.slice(0,8);
   var mappedFields=sch.fields.filter(function(fd){
     return Object.values(_iuState.map).indexOf(fd.f)>=0||_iuState.defaults[fd.f]||(sch.needsEv&&(fd.f==='evento'||fd.f==='event_name'||fd.f==='event_id')&&_iuState.event);
   });
-  // contagem de duplicates por id
   var existingMap=null;
   if(sch.coll==='filmes')existingMap=catalogoFilmesMap;
   else if(sch.coll==='copias')existingMap=filmesMap;
   else if(sch.coll==='triagem')existingMap=window.triagemFilmesMap||{};
   else if(sch.coll==='sessoes')existingMap=sessoesMap;
   var dup=0,nw=0,noId=0;
-  _iuState.rows.forEach(function(r){
-    var t=_iuTransform(r);
+  grouped.forEach(function(t){
     var id=sch.idField&&sch.idField!=='__docid__'?t[sch.idField]:(sch.idField==='__docid__'?t['__docid__']:null);
     if(!id&&sch.idField){if(sch.optionalId){nw++;return;}noId++;return;}
     if(existingMap&&id&&existingMap[id])dup++;else nw++;
   });
+  var mergedFromInput=_iuState.rows.length-grouped.length;
   var tableHtml='<div style="overflow:auto;max-height:280px;border:1px solid var(--border);"><table style="border-collapse:collapse;font-family:var(--mono);font-size:10px;">'
     +'<thead><tr style="background:var(--surface2);position:sticky;top:0;">'+mappedFields.map(function(fd){return'<th style="padding:5px 8px;border:1px solid var(--border);text-align:left;font-size:9px;color:var(--accent);text-transform:uppercase;white-space:nowrap;">'+esc(fd.l)+'</th>';}).join('')+'</tr></thead>'
     +'<tbody>'+sample.map(function(r){return'<tr>'+mappedFields.map(function(fd){var v=r[fd.f];if(Array.isArray(v))v=v.join(', ');return'<td style="padding:4px 8px;border:1px solid var(--border);max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+esc(String(v==null?'':v))+'</td>';}).join('')+'</tr>';}).join('')+'</tbody></table></div>';
   var msg='<div style="margin-top:12px;padding:10px;background:var(--surface2);border:1px solid var(--border);font-family:var(--mono);font-size:11px;">'
-    +'Total: <strong>'+_iuState.rows.length+'</strong> linha(s) · '
+    +(mergedFromInput>0?'<div style="margin-bottom:6px;color:var(--accent);">⚭ '+_iuState.rows.length+' linhas da planilha → <strong>'+grouped.length+' registro(s)</strong> (linhas com mesmo ID foram agrupadas)</div>':'')
+    +'Total: <strong>'+grouped.length+'</strong> registro(s) · '
     +'<span style="color:var(--ok);">novos: '+nw+'</span> · '
     +'<span style="color:var(--warn);">já existentes (MERGE): '+dup+'</span>'
     +(noId>0?' · <span style="color:var(--warn);">sem ID: '+noId+'</span>':'')
     +'</div>';
   document.getElementById('iuBody').innerHTML=
-    '<div style="font-family:var(--mono);font-size:10px;color:var(--text-muted);margin-bottom:8px;">Mostrando '+Math.min(8,_iuState.rows.length)+' de '+_iuState.rows.length+' linha(s)</div>'
+    '<div style="font-family:var(--mono);font-size:10px;color:var(--text-muted);margin-bottom:8px;">Mostrando '+Math.min(8,grouped.length)+' de '+grouped.length+' registro(s) processado(s)</div>'
     +tableHtml+msg;
-  document.getElementById('iuFoot').innerHTML='<button class="cxp-btn" onclick="_iuRenderStep2()">← Mapeamento</button><button class="cxp-btn primary" onclick="_iuExecute()">Importar '+_iuState.rows.length+' linha(s)</button>';
+  document.getElementById('iuFoot').innerHTML='<button class="cxp-btn" onclick="_iuRenderStep2()">← Mapeamento</button><button class="cxp-btn primary" onclick="_iuExecute()">Importar '+grouped.length+' registro(s)</button>';
 }
 
 async function _iuExecute(){
   var sch=IU_SCHEMAS[_iuState.module];
   document.getElementById('iuStepLabel').textContent='4 · Importando';
   document.getElementById('iuFoot').innerHTML='';
-  var body=document.getElementById('iuBody');
-  body.innerHTML='<div style="font-family:var(--mono);font-size:11px;color:var(--text);"><div id="iuProg" style="margin-bottom:10px;">Processando 0/'+_iuState.rows.length+'…</div><div id="iuProgBar" style="height:6px;background:var(--surface2);border-radius:3px;overflow:hidden;margin-bottom:14px;"><div id="iuProgFill" style="height:100%;background:var(--accent);width:0%;transition:width 0.2s;"></div></div><div id="iuLog" style="max-height:300px;overflow-y:auto;font-size:10px;color:var(--text-dim);"></div></div>';
   // Receptivo: garante _recepGuests carregado pra resolução de nome→id em voos/transportes
   if((sch.coll==='flights'||sch.coll==='transfers')&&window._olgaGuests&&(!window._recepGuests||!window._recepGuests.length)){
     try{window._recepGuests=await window._olgaGuests.list();}catch(e){}
   }
+  var grouped=_iuGroupedRows();
+  var body=document.getElementById('iuBody');
+  body.innerHTML='<div style="font-family:var(--mono);font-size:11px;color:var(--text);"><div id="iuProg" style="margin-bottom:10px;">Processando 0/'+grouped.length+'…</div><div id="iuProgBar" style="height:6px;background:var(--surface2);border-radius:3px;overflow:hidden;margin-bottom:14px;"><div id="iuProgFill" style="height:100%;background:var(--accent);width:0%;transition:width 0.2s;"></div></div><div id="iuLog" style="max-height:300px;overflow-y:auto;font-size:10px;color:var(--text-dim);"></div></div>';
   var api=window[sch.api];
   var existingMap=null;
   if(sch.coll==='filmes')existingMap=catalogoFilmesMap;
@@ -21951,11 +22027,8 @@ async function _iuExecute(){
   else if(sch.coll==='triagem')existingMap=window.triagemFilmesMap||{};
   else if(sch.coll==='sessoes')existingMap=sessoesMap;
   var ok=0,err=0,errors=[];
-  for(var i=0;i<_iuState.rows.length;i++){
-    var row=_iuState.rows[i];
-    var data=_iuTransform(row);
-    // post-processamento específico do módulo (FK lookup, nesting de contact, etc)
-    if(typeof sch.postProcess==='function'){try{data=sch.postProcess(data)||data;}catch(ePP){}}
+  for(var i=0;i<grouped.length;i++){
+    var data=grouped[i];
     var id=null;
     if(sch.idField==='__docid__')id=data['__docid__']||null;
     else if(sch.idField)id=data[sch.idField]||null;
@@ -21982,8 +22055,8 @@ async function _iuExecute(){
       else{await api.save(id,finalData);}
       ok++;
     }catch(e){err++;errors.push((id||'(linha '+(i+1)+')')+': '+e.message);}
-    var pct=Math.round(((i+1)/_iuState.rows.length)*100);
-    document.getElementById('iuProg').textContent='Processando '+(i+1)+'/'+_iuState.rows.length+' · ✓ '+ok+(err?' · ⚠ '+err:'');
+    var pct=Math.round(((i+1)/grouped.length)*100);
+    document.getElementById('iuProg').textContent='Processando '+(i+1)+'/'+grouped.length+' · ✓ '+ok+(err?' · ⚠ '+err:'');
     document.getElementById('iuProgFill').style.width=pct+'%';
     if(errors.length){
       document.getElementById('iuLog').innerHTML=errors.slice(-10).map(function(e){return'<div style="color:var(--warn);">⚠ '+esc(e)+'</div>';}).join('');
@@ -23167,7 +23240,7 @@ function _sxcPrint(){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 02/06/2026 às 15:58</span></div>
+<div id="page-footer"><span>última atualização · 02/06/2026 às 16:02</span></div>
 
 </div>
 

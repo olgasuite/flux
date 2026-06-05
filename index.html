@@ -5291,6 +5291,21 @@ html[data-theme]:not([data-theme="win98"]){--mono:var(--sans);}
           window._triagemSnapActive=true;
         }catch(e){console.warn('triagem snap:',e);}
       };
+      // Expostos pro modo planilha (offline read-only): permite que o loader
+      // de planilha reaproveite os parsers e desligue os listeners do Firestore.
+      window._olgaParsers = {
+        copias: parseCopiasSnap, sessoes: parseSessoesSnap, cinemas: parseCinemasSnap,
+        vinhetas: parseVinhetasSnap, filmes: parseFilmesSnap,
+        programs: parseProgramsSnap, subprograms: parseSubprogramsSnap,
+        eventos: parseEventosSnap, triagem: parseTriagemSnap
+      };
+      window._olgaFinalizeInitial = _olgaFinalizeInitial;
+      window._olgaSnapshotsUnsubAll = function(){
+        (window._olgaSnapshotUnsubs||[]).forEach(function(u){ try{u();}catch(e){} });
+        window._olgaSnapshotUnsubs = [];
+        window._olgaSnapshotsActive = false;
+        window._triagemSnapActive = false;
+      };
     } catch (err) {
       window._olgaLoading = false;
       console.error('Firestore subscribe error:', err);
@@ -5877,6 +5892,8 @@ window.addEventListener('DOMContentLoaded',function(){
   <button class="print-btn" onclick="openEquipeNewUser()">+ novo usuário</button>
   <button class="print-btn" onclick="openEventoModal(null)" style="margin-left:6px;">+ novo evento</button>
   <button class="print-btn" onclick="importarEventosExistentes()" style="margin-left:6px;">↓ importar eventos</button>
+  <button class="print-btn" data-keep-readonly="1" onclick="document.getElementById('planilhaModeInput').click()" style="margin-left:6px;" title="Carrega uma planilha local (gerada pelo backup-to-xlsx.js) e entra em modo leitura offline">↑ trabalhar a partir de planilha local</button>
+  <input type="file" id="planilhaModeInput" accept=".xlsx,.xls" style="display:none" onchange="(function(i){var f=i.files&&i.files[0];if(!f)return;var r=new FileReader();r.onload=function(e){_olgaLoadPlanilha(e.target.result,f.name);};r.readAsArrayBuffer(f);i.value='';})(this)">
   <span class="result-count" id="equipeCount"></span>
 </div>
 <div class="mode-bar hidden" id="barVinhetas">
@@ -5972,10 +5989,10 @@ window.addEventListener('DOMContentLoaded',function(){
       <div class="module-desc">Importação universal de planilhas para qualquer módulo</div>
     </div>
   </div>
-  <div class="landing-drop" id="landingDrop">
+  <div class="landing-drop" id="landingDrop" style="display:none;">
     <div class="drop-icon">📂</div>
-    <div class="drop-label">Carregar sistema_olga.xlsx</div>
-    <div class="drop-sub">clique ou arraste o arquivo aqui</div>
+    <div class="drop-label">Carregando…</div>
+    <div class="drop-sub"></div>
   </div>
 </div>
 
@@ -6398,11 +6415,11 @@ var fileInput=document.getElementById('fileInput');
 var fileNameEl=document.getElementById('fileName');
 var landingDrop=document.getElementById('landingDrop');
 
+// Entrada de planilha agora é exclusiva do painel de Administração — via
+// botão "↑ trabalhar a partir de planilha local". O drop area da landing
+// foi desativado: drag/drop/click no landingDrop não dispara mais loadFile.
+// O elemento permanece para o _olgaLoadFirestore mostrar status de erro.
 fileInput.addEventListener('change',function(e){var f=e.target.files[0];if(f)loadFile(f);});
-landingDrop.addEventListener('click',function(){if(!dataLoaded)fileInput.click();});
-landingDrop.addEventListener('dragover',function(e){e.preventDefault();landingDrop.classList.add('drag-over');});
-landingDrop.addEventListener('dragleave',function(){landingDrop.classList.remove('drag-over');});
-landingDrop.addEventListener('drop',function(e){e.preventDefault();landingDrop.classList.remove('drag-over');var f=e.dataTransfer.files[0];if(f)loadFile(f);});
 
 function loadFile(file){
   fileLastModified=file.lastModified?new Date(file.lastModified):null;
@@ -6564,6 +6581,210 @@ function parseWorkbook(data,filename){
   var events=Array.from(evSet);
   applyParsedData({filmesMap:filmesMap,filmesArr:filmesArr,sessoesArr:sessoesArr,sessoesMap:sessoesMap,buscaReverseSessoes:buscaReverseSessoes,cinemasArr:cinemasArr,vinhetasArr:vinhetasArr,vinhetaReverseSessoes:vinhetaReverseSessoes,events:events},filename);
 }
+
+// ═══ MODO PLANILHA (read-only offline) ═══════════════════════════════════════
+// Lê a planilha gerada pelo backup-to-xlsx.js (schema completo do Firestore)
+// e popula os mesmos caches que o snapshot do Firestore preencheria. Depois,
+// bloqueia toda escrita — alterações precisam ser feitas na planilha local.
+//
+// Convenções de coluna (geradas pelo exporter):
+//   nome       → primitivo            nome[]   → array (sep "; ")
+//   nome.sub   → objeto raso          nome@ts  → timestamp ISO
+//   JSON inline ({...} ou [...])     → objeto/array profundo
+function _planilhaUnflatten(row){
+  var out={};
+  for(var k in row){
+    if(!Object.prototype.hasOwnProperty.call(row,k))continue;
+    var raw=row[k];
+    var key=k, isArr=false, isTs=false;
+    if(key.length>=2&&key.slice(-2)==='[]'){isArr=true;key=key.slice(0,-2);}
+    if(key.length>=3&&key.slice(-3)==='@ts'){isTs=true;key=key.slice(0,-3);}
+    var v=raw;
+    if(v instanceof Date){/* SheetJS já parseou */}
+    else if(typeof v==='string'){
+      var s=v.trim();
+      if(s===''){continue;}
+      if(isArr)v=s.split(';').map(function(x){return x.trim();}).filter(Boolean);
+      else if(isTs){var d=new Date(s);v=isNaN(d)?s:d;}
+      else if(s.charAt(0)==='{'||s.charAt(0)==='['){try{v=JSON.parse(s);}catch(e){v=s;}}
+      else v=s;
+    }
+    if(v===undefined||v===null)continue;
+    // dot-notation → re-aninha
+    if(key.indexOf('.')>=0){
+      var parts=key.split('.');
+      var cur=out;
+      for(var i=0;i<parts.length-1;i++){
+        if(typeof cur[parts[i]]!=='object'||cur[parts[i]]===null||cur[parts[i]] instanceof Date||Array.isArray(cur[parts[i]]))cur[parts[i]]={};
+        cur=cur[parts[i]];
+      }
+      cur[parts[parts.length-1]]=v;
+    }else{
+      out[key]=v;
+    }
+  }
+  return out;
+}
+
+function _olgaPlanilhaShowBanner(filename){
+  var b=document.getElementById('olga-readonly-banner');
+  if(!b){
+    b=document.createElement('div');
+    b.id='olga-readonly-banner';
+    b.style.cssText='position:fixed;top:0;left:0;right:0;z-index:9999;background:#a87c1a;color:#fff;font-family:var(--mono);font-size:11px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;text-align:center;padding:6px 12px;border-bottom:1px solid rgba(0,0,0,0.2);';
+    document.body.appendChild(b);
+  }
+  b.textContent='◉ modo leitura · planilha local'+(filename?(' · '+filename):'')+' · alterações precisam ser feitas na planilha';
+  b.style.display='block';
+}
+
+// CSS de read-only: esconde os principais botões de escrita por padrão de
+// onclick. Brittle por design — adicione patterns aqui se algum botão de
+// escrita estiver passando.
+(function _olgaInjectReadOnlyCSS(){
+  if(document.getElementById('olga-readonly-css'))return;
+  var st=document.createElement('style');st.id='olga-readonly-css';
+  st.textContent='body.olga-read-only [onclick*="save"],'
+    +'body.olga-read-only [onclick*="Save"],'
+    +'body.olga-read-only [onclick*="salvar"],'
+    +'body.olga-read-only [onclick*="Salvar"],'
+    +'body.olga-read-only [onclick*="delete"],'
+    +'body.olga-read-only [onclick*="Delete"],'
+    +'body.olga-read-only [onclick*="excluir"],'
+    +'body.olga-read-only [onclick*="Excluir"],'
+    +'body.olga-read-only [onclick*="deletar"],'
+    +'body.olga-read-only [onclick*="Deletar"],'
+    +'body.olga-read-only [onclick*="remove"],'
+    +'body.olga-read-only [onclick*="Remove"],'
+    +'body.olga-read-only [onclick*="criar"],'
+    +'body.olga-read-only [onclick*="Criar"],'
+    +'body.olga-read-only [onclick*="novo"],'
+    +'body.olga-read-only [onclick*="Novo"],'
+    +'body.olga-read-only [onclick*="editar"],'
+    +'body.olga-read-only [onclick*="Editar"],'
+    +'body.olga-read-only [onclick*="adicionar"],'
+    +'body.olga-read-only [onclick*="Adicionar"],'
+    +'body.olga-read-only [onclick*="duplicar"],'
+    +'body.olga-read-only [onclick*="Duplicar"],'
+    +'body.olga-read-only [onclick*="importar"],'
+    +'body.olga-read-only [onclick*="Importar"],'
+    +'body.olga-read-only [onclick*="openImport"],'
+    +'body.olga-read-only [onclick*="openCat"],'
+    +'body.olga-read-only [onclick*="batchEdit"],'
+    +'body.olga-read-only [onclick*="ffStartImport"],'
+    +'body.olga-read-only [onclick*="sfdStartImport"]'
+    +'{display:none!important;}'
+    /* Mantém o botão de entrada da planilha em admin mesmo em modo leitura */
+    +'body.olga-read-only [data-keep-readonly="1"]{display:inline-flex!important;}';
+  document.head.appendChild(st);
+})();
+
+// Interceptor de fetch — defensivo: bloqueia qualquer PATCH/POST/DELETE/PUT
+// para o Firestore REST quando em modo leitura. Não afeta GET.
+(function _olgaInstallFetchGate(){
+  if(window._olgaFetchGated)return;
+  window._olgaFetchGated=true;
+  var orig=window.fetch;
+  window.fetch=function(input,init){
+    if(window._olgaReadOnly){
+      var url=typeof input==='string'?input:(input&&input.url)||'';
+      var method=((init&&init.method)||(input&&input.method)||'GET').toUpperCase();
+      if(/firestore\.googleapis\.com|127\.0\.0\.1:8080/.test(url)&&method!=='GET'){
+        return Promise.reject(new Error('modo planilha · escrita bloqueada ('+method+' '+url.replace(/^https?:\/\/[^/]+/,'')+')'));
+      }
+    }
+    return orig.apply(this,arguments);
+  };
+})();
+
+// Interceptor de clique — captura clicks em modo leitura e mostra toast se
+// o handler aparenta ser de escrita (defesa adicional caso o CSS não pegue).
+(function _olgaInstallClickGate(){
+  if(window._olgaClickGated)return;
+  window._olgaClickGated=true;
+  document.addEventListener('click',function(e){
+    if(!window._olgaReadOnly)return;
+    var t=e.target;
+    while(t&&t!==document.body){
+      var oc=t.getAttribute&&t.getAttribute('onclick');
+      if(oc&&/save|Save|salvar|delete|Delete|excluir|deletar|criar|Criar|novo|Novo|editar|Editar|adicionar|Adicionar|duplicar|importar|Importar|batchEdit/.test(oc)
+        &&!(t.getAttribute('data-keep-readonly')==='1')){
+        e.preventDefault();e.stopPropagation();
+        try{
+          var toast=document.createElement('div');
+          toast.style.cssText='position:fixed;bottom:40px;left:50%;transform:translateX(-50%);z-index:99999;background:#1e293b;color:#fff;padding:10px 18px;border-radius:4px;font-family:var(--mono);font-size:11px;letter-spacing:0.05em;box-shadow:0 4px 12px rgba(0,0,0,0.3);';
+          toast.textContent='modo leitura · edite a planilha local e recarregue';
+          document.body.appendChild(toast);
+          setTimeout(function(){toast.remove();},2200);
+        }catch(_){}
+        return false;
+      }
+      t=t.parentNode;
+    }
+  },true);
+})();
+
+function _olgaLoadPlanilha(buffer,filename){
+  if(!window._olgaParsers){
+    alert('Os parsers do Firestore ainda não foram inicializados. Faça login normalmente uma vez antes de carregar a planilha.');
+    return;
+  }
+  if(typeof window._olgaSnapshotsUnsubAll==='function')window._olgaSnapshotsUnsubAll();
+  window._olgaPlanilhaMode=true;
+  window._olgaReadOnly=true;
+  window._olgaDataMode='planilha';
+  // Mantém SnapshotsActive=true: caches passam a ser fonte autoritativa,
+  // funções _olga*.load() retornam direto do cache sem tocar a rede.
+  window._olgaSnapshotsActive=true;
+  window._triagemSnapActive=true; // bloqueia a ativação lazy do snapshot de triagem
+  document.body.classList.add('olga-read-only');
+
+  var wb=XLSX.read(new Uint8Array(buffer),{type:'array',cellDates:true});
+  var SHEETS=['copias','sessoes','cinemas','vinhetas','filmes','programs','subprograms','eventos','triagem'];
+
+  // Limpa caches que serão repopulados pelos parsers
+  filmesMap={};filmesArr=[];sessoesArr=[];sessoesMap={};
+  buscaReverseSessoes={};cinemasArr=[];vinhetasArr=[];vinhetaReverseSessoes={};
+  window._olgaEventosCache=[];window._adminEventosFullCache=[];
+  if(typeof catalogoFilmesMap!=='undefined')catalogoFilmesMap={};
+  if(typeof triagemFilmesMap!=='undefined')triagemFilmesMap={};
+  if(typeof _progData!=='undefined'){_progData.programs=[];_progData.subprograms=[];}
+
+  var counts={};
+  SHEETS.forEach(function(coll){
+    var sheet=wb.Sheets[coll]||wb.Sheets[coll.charAt(0).toUpperCase()+coll.slice(1)];
+    if(!sheet){counts[coll]=0;return;}
+    var rows=XLSX.utils.sheet_to_json(sheet,{raw:false,defval:''});
+    var docs=rows.map(_planilhaUnflatten);
+    counts[coll]=docs.length;
+    var fakeSnap={forEach:function(cb){docs.forEach(function(d){cb({id:d.id||d.festival_code||d.bumper_code||d.session_id||d.venue_name||'',data:function(){return d;}});});}};
+    try{window._olgaParsers[coll](fakeSnap);}
+    catch(e){console.warn('planilha parse '+coll+':',e);}
+  });
+  console.log('[planilha] docs por coleção:',counts);
+
+  // Replica o trabalho que _olgaFinalizeInitial faria
+  var evSet=new Set();
+  filmesArr.forEach(function(f){if(f.evento)evSet.add(f.evento);});
+  sessoesArr.forEach(function(s){if(s.evento)evSet.add(s.evento);});
+  cinemasArr.forEach(function(c){if(c.evento)c.evento.split(';').forEach(function(e){var t=e.trim();if(t)evSet.add(t);});});
+  vinhetasArr.forEach(function(v){if(v.evento)evSet.add(v.evento);});
+  (window._olgaEventosCache||[]).forEach(function(e){if(e.nome)evSet.add(e.nome);});
+  if(typeof applyParsedData==='function'){
+    applyParsedData({
+      filmesMap:filmesMap,filmesArr:filmesArr,
+      sessoesArr:sessoesArr,sessoesMap:sessoesMap,
+      buscaReverseSessoes:buscaReverseSessoes,
+      cinemasArr:cinemasArr,
+      vinhetasArr:vinhetasArr,vinhetaReverseSessoes:vinhetaReverseSessoes,
+      events:Array.from(evSet),
+      eventosFirestore:window._olgaEventosCache
+    },'planilha · '+(filename||'arquivo local'));
+  }
+  window._olgaDataLabel='planilha · '+(filename||'arquivo local');
+  _olgaPlanilhaShowBanner(filename);
+}
+window._olgaLoadPlanilha=_olgaLoadPlanilha;
 
 function goHome(){
   if(currentMode){
@@ -16000,7 +16221,7 @@ function renderDash(){
   html+=colBlock('kdm','KDM',kdmBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 04/06/2026 às 16:40';
+  var sysUpdate='última atualização do sistema · 04/06/2026 às 16:44';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -22036,48 +22257,40 @@ function _iuReadFile(input){
 }
 function _iuRenderSheetPicker(){
   if(!_iuState.sheetInfo)return;
-  var defaults=_iuState.selectedSheets||[_iuState.sheetInfo[0].name];
+  var picked=_iuState.selectedSheet||_iuState.sheetInfo[0].name;
   var list=_iuState.sheetInfo.map(function(si){
-    var checked=defaults.indexOf(si.name)>=0;
+    var checked=picked===si.name;
     return'<label style="display:flex;align-items:center;gap:8px;padding:6px 10px;background:var(--surface2);border-radius:3px;cursor:pointer;font-family:var(--mono);font-size:11px;">'
-      +'<input type="checkbox" data-sheet="'+esc(si.name).replace(/"/g,'&quot;')+'"'+(checked?' checked':'')+' onchange="_iuToggleSheet(this)">'
+      +'<input type="radio" name="iuSheetPick" data-sheet="'+esc(si.name).replace(/"/g,'&quot;')+'"'+(checked?' checked':'')+' onchange="_iuPickSheet(this)">'
       +'<strong style="color:var(--text);">'+esc(si.name)+'</strong>'
       +'<span style="color:var(--text-muted);">· '+si.rows+' linha(s) · '+si.cols+' coluna(s)</span>'
     +'</label>';
   }).join('');
-  // Insere um bloco abaixo do iuMsg
-  var existing=document.getElementById('iuSheetPicker');
-  if(existing)existing.remove();
+  var existing=document.getElementById('iuSheetPicker');if(existing)existing.remove();
   var box=document.createElement('div');box.id='iuSheetPicker';
   box.style.cssText='margin-top:10px;padding:10px;background:var(--bg);border:1px solid var(--border);border-radius:4px;';
-  box.innerHTML='<div style="font-family:var(--mono);font-size:10px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:var(--accent);margin-bottom:8px;">Selecione abas para importar (linhas serão unidas)</div>'
-    +'<div style="display:flex;flex-direction:column;gap:4px;max-height:200px;overflow-y:auto;">'+list+'</div>'
-    +'<button onclick="_iuApplySheetsAndContinue()" style="margin-top:12px;font-family:var(--mono);font-size:10px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;padding:7px 18px;background:var(--accent);color:var(--on-accent);border:none;cursor:pointer;border-radius:3px;">Continuar com abas selecionadas →</button>';
+  box.innerHTML='<div style="font-family:var(--mono);font-size:10px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:var(--accent);margin-bottom:8px;">Escolha a aba para importar</div>'
+    +'<div style="display:flex;flex-direction:column;gap:4px;max-height:240px;overflow-y:auto;">'+list+'</div>'
+    +'<button onclick="_iuApplySheetsAndContinue()" style="margin-top:12px;font-family:var(--mono);font-size:10px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;padding:7px 18px;background:var(--accent);color:var(--on-accent);border:none;cursor:pointer;border-radius:3px;">Continuar com aba selecionada →</button>';
   document.getElementById('iuMsg').after(box);
+  _iuState.selectedSheet=picked;
 }
-function _iuToggleSheet(cb){
-  _iuState.selectedSheets=_iuState.selectedSheets||[];
-  var nm=cb.getAttribute('data-sheet');
-  if(cb.checked){if(_iuState.selectedSheets.indexOf(nm)<0)_iuState.selectedSheets.push(nm);}
-  else{_iuState.selectedSheets=_iuState.selectedSheets.filter(function(x){return x!==nm;});}
+function _iuPickSheet(rb){
+  if(rb&&rb.checked)_iuState.selectedSheet=rb.getAttribute('data-sheet');
 }
 function _iuApplySheets(){
-  // União dos cabeçalhos + concatenação das linhas das abas selecionadas
-  var sel=_iuState.selectedSheets||[];
+  var nm=_iuState.selectedSheet;
   var info=_iuState.sheetInfo||[];
-  var rows=[];var headers=[];var headerSet={};
-  sel.forEach(function(nm){
-    var si=info.find(function(x){return x.name===nm;});if(!si)return;
-    (si._data||[]).forEach(function(r){rows.push(r);Object.keys(r).forEach(function(h){if(!headerSet[h]){headerSet[h]=true;headers.push(h);}});});
-  });
-  _iuState.rows=rows;_iuState.headers=headers;
+  var si=info.find(function(x){return x.name===nm;});
+  if(!si){_iuState.rows=[];_iuState.headers=[];return;}
+  _iuState.rows=(si._data||[]).slice();
+  _iuState.headers=_iuState.rows.length?Object.keys(_iuState.rows[0]):[];
 }
 function _iuApplySheetsAndContinue(){
-  var sel=(_iuState.selectedSheets||[]).slice();
-  if(!sel.length){document.getElementById('iuMsg').textContent='Selecione ao menos uma aba.';return;}
+  if(!_iuState.selectedSheet){document.getElementById('iuMsg').textContent='Selecione uma aba.';return;}
   _iuApplySheets();
   var p=document.getElementById('iuSheetPicker');if(p)p.remove();
-  if(!_iuState.rows.length){document.getElementById('iuMsg').textContent='Abas selecionadas vazias.';return;}
+  if(!_iuState.rows.length){document.getElementById('iuMsg').textContent='Aba selecionada está vazia.';return;}
   _iuRenderStep2();
 }
 
@@ -23663,7 +23876,7 @@ function _sxcPrint(){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 04/06/2026 às 16:40</span></div>
+<div id="page-footer"><span>última atualização · 04/06/2026 às 16:44</span></div>
 
 </div>
 

@@ -7858,9 +7858,33 @@ function _sessoesBatchToggleMode(forceOn){
   _sessoesRenderBatchBar();
 }
 var _sessoesBatchLastNome=null;
+// Ordem visual = a mesma usada pelo renderSessoes(): dia (passados primeiro
+// se a seção estiver expandida, depois presente/futuro), e dentro do dia
+// ordena por horário. shift-click usa essa ordem em vez de sessoesArr cru.
+function _sessoesGetVisualOrder(){
+  var filtered=_sessoesGetFiltered();
+  var byDay={},dayOrder=[];
+  filtered.forEach(function(s){
+    var k=s.date?s.date.toISOString().slice(0,10):'0000-00-00';
+    if(!byDay[k]){byDay[k]=[];dayOrder.push(k);}
+    byDay[k].push(s);
+  });
+  dayOrder.sort();
+  dayOrder.forEach(function(k){
+    byDay[k].sort(function(a,b){return(a.time?a.time.h*60+a.time.m:0)-(b.time?b.time.h*60+b.time.m:0);});
+  });
+  var today=new Date();today.setHours(0,0,0,0);
+  var todayKey=today.toISOString().slice(0,10);
+  var pastKeys=dayOrder.filter(function(k){return k<todayKey;});
+  var presentKeys=dayOrder.filter(function(k){return k>=todayKey;});
+  var ordered=[];
+  if(!_sessoesHidePast){pastKeys.forEach(function(k){byDay[k].forEach(function(s){ordered.push(s);});});}
+  presentKeys.forEach(function(k){byDay[k].forEach(function(s){ordered.push(s);});});
+  return ordered;
+}
 function _sessoesBatchToggleRow(nome,ev){
   if(ev&&ev.shiftKey&&_sessoesBatchLastNome&&_sessoesBatchLastNome!==nome){
-    var ordered=_sessoesGetFiltered().map(function(s){return s.nome;});
+    var ordered=_sessoesGetVisualOrder().map(function(s){return s.nome;});
     var i1=ordered.indexOf(_sessoesBatchLastNome),i2=ordered.indexOf(nome);
     if(i1>=0&&i2>=0){
       var lo=Math.min(i1,i2),hi=Math.max(i1,i2);
@@ -7965,8 +7989,19 @@ function openSessoesBatchEdit(){
   var progOpts='<option value="">— não alterar —</option><option value="__none__">— remover (sem mostra) —</option>'+allProgs.map(function(p){return'<option value="'+esc(p.id)+'">'+esc(p.data.name||p.id)+'</option>';}).join('');
   var allSubs=(_progData&&_progData.subprograms||[]);
   var subOpts='<option value="">— não alterar —</option><option value="__none__">— remover (sem submostra) —</option>'+allSubs.map(function(s){return'<option value="'+esc(s.id)+'">'+esc(s.data.name||s.id)+'</option>';}).join('');
-  // Salas disponíveis (todas as registradas)
-  var salas=(cinemasArr||[]).map(function(c){return c.sala;}).filter(Boolean).sort();
+  // Salas: restringe pela UF dos eventos das sessões selecionadas.
+  // Se algum evento não tiver `estados` cadastrado, ou se nenhum estado for derivado,
+  // mostra todas as salas (fallback seguro).
+  var ufSet=new Set();
+  var evFull=window._adminEventosFullCache||[];
+  evs.forEach(function(ev){
+    var match=evFull.find(function(e){return(e.data.nome||e.id)===ev;});
+    if(match&&Array.isArray(match.data.estados))match.data.estados.forEach(function(uf){if(uf)ufSet.add(uf);});
+  });
+  var salas=(cinemasArr||[])
+    .filter(function(c){return!ufSet.size||(c.estado&&ufSet.has(c.estado));})
+    .map(function(c){return c.sala;}).filter(Boolean).sort();
+  var ufLabel=ufSet.size?' · '+Array.from(ufSet).sort().join('/'):'';
   var salaOpts='<option value="">— não alterar —</option>'+salas.map(function(s){return'<option value="'+esc(s)+'">'+esc(s)+'</option>';}).join('');
   var simNaoOpts='<option value="">— não alterar —</option><option value="Sim">Sim</option><option value="Não">Não</option>';
   function fld(label,inp){return'<div style="display:flex;flex-direction:column;gap:4px;"><label style="font-family:var(--mono);font-size:9px;color:var(--text-muted);letter-spacing:0.08em;text-transform:uppercase;">'+label+'</label>'+inp+'</div>';}
@@ -7977,7 +8012,7 @@ function openSessoesBatchEdit(){
     +'<div style="padding:18px 20px;display:flex;flex-direction:column;gap:14px;max-height:60vh;overflow-y:auto;">'
     +'<div style="font-family:var(--mono);font-size:10px;color:var(--text-muted);">Campos com "— não alterar —" são ignorados. Apenas campos preenchidos serão aplicados.</div>'
     +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">'
-    +fld('Sala (cinema)','<select id="sbeVenue" class="cat-input">'+salaOpts+'</select>')
+    +fld('Sala (cinema)'+ufLabel,'<select id="sbeVenue" class="cat-input">'+salaOpts+'</select>')
     +fld('Mostra','<select id="sbeProgram" class="cat-input">'+progOpts+'</select>')
     +fld('Submostra','<select id="sbeSubprogram" class="cat-input">'+subOpts+'</select>')
     +fld('Nome da sessão (substitui)','<input id="sbeName" class="cat-input" placeholder="deixe vazio para não alterar">')
@@ -9665,7 +9700,7 @@ function goToProgFichaFromGrade(nomeSessao){
 }
 /* ═══════════════ RECEPTIVO ═══════════════ */
 var _recepGuests=[],_recepHotels=[],_recepBookings=[],_recepFlights=[],_recepTransfers=[];
-var _recepEvList=[],_recepEvFilter='',_recepSection='',_recepEditId=null,_recepParentId=null;
+var _recepEvList=[],_recepEvFilter='',_recepSection='',_recepEditId=null,_recepParentId=null,_recepSelectedEvent='';
 var _recepSort={sec:'',field:'',dir:1},_recepTransDate='',_recepTransVeh='',_recepHandlingPop=false;
 var _recepGuestSel=new Set();
 var _recepRoleFilter=new Set();
@@ -9846,7 +9881,30 @@ function _recepFlightLink(num){
   return'<a href="https://www.flightaware.com/live/flight/'+_re(num.replace(/\s/g,''))+'" target="_blank" rel="noopener" style="color:var(--accent);text-decoration:none;font-family:var(--mono);">'+_re(num)+'</a>';
 }
 function _recepGuestSelect(selId){
-  return _recepGuests.map(function(g){return'<option value="'+_re(g.id)+'"'+(g.id===selId?' selected':'')+'>'+_re(g.data.name||g.id)+'</option>';}).join('');
+  return _recepGuests.filter(function(g){return !_recepSelectedEvent||g.data.event_id===_recepSelectedEvent||g.id===selId;}).map(function(g){return'<option value="'+_re(g.id)+'"'+(g.id===selId?' selected':'')+'>'+_re(g.data.name||g.id)+'</option>';}).join('');
+}
+
+/* ─── SELETOR DE EVENTO (banco por evento) ─── */
+function _recepActiveEvKeys(){
+  return Array.from(activeEventsReceptivo).filter(function(k){return _recepEvLabel(k);}).sort(function(a,b){return _recepEvLabel(a).localeCompare(_recepEvLabel(b),undefined,{sensitivity:'base'});});
+}
+function _recepSyncSelectedEvent(){
+  var keys=_recepActiveEvKeys();
+  if(_recepSelectedEvent&&keys.indexOf(_recepSelectedEvent)<0)_recepSelectedEvent='';
+  if(!_recepSelectedEvent&&keys.length===1)_recepSelectedEvent=keys[0];
+}
+function _recepEventBankSelect(){
+  var keys=_recepActiveEvKeys();
+  var opts='<option value="">selecione o evento</option>'+keys.map(function(k){return'<option value="'+_re(k)+'"'+(k===_recepSelectedEvent?' selected':'')+'>'+_re(_recepEvLabel(k))+'</option>';}).join('');
+  return'<select class="recep-select" style="font-size:10px;padding:3px 7px;min-width:170px;margin-left:4px;" onchange="_recepOnEventChange(this.value)" title="Banco de convidados por evento">'+opts+'</select>';
+}
+window._recepOnEventChange=function(v){
+  _recepSelectedEvent=v;
+  var map={convidados:_renderConvidados,hoteis:_renderHoteis,voos:_renderVoos,transporte:_renderTransporte};
+  var fn=map[_recepSection];if(fn)fn();
+};
+function _recepSelectEventPrompt(){
+  return'<div style="padding:48px 24px;text-align:center;font-family:var(--mono);font-size:12px;color:var(--text-muted);">Selecione o evento para ver este banco.</div>';
 }
 
 /* ─── BANCO DE PESSOAS (equipe de filmes) ─── */
@@ -9932,6 +9990,7 @@ window._recepSyncTodasPessoas=async function(){
 /* ─── IMPORTAR PESSOA COMO CONVIDADO ─── */
 var _importPessoasSel=new Set();
 window.openImportPessoasModal=async function(){
+  if(!_recepSelectedEvent){alert('Selecione um evento primeiro.');return;}
   _importPessoasSel=new Set();
   _recepShowModal('<div class="recep-modal-box" style="max-width:700px;width:95vw;">'+
     '<div class="recep-modal-head"><span class="recep-modal-title">Importar pessoa como convidado</span><button class="recep-modal-close" onclick="_recepCloseModal()">×</button></div>'+
@@ -9951,7 +10010,7 @@ function _renderImportPessoas(filterFunc){
   var funcoes=['','diretor','fotografia','roteiro','montagem','som','direção de arte','figurino','elenco'];
   var guestNames=new Set(_recepGuests.map(function(g){return(g.data.name||'').toLowerCase().trim();}));
   var filtered=_recepPessoas.filter(function(p){
-    if(!activeEventsReceptivo.has(p.data.event_id))return false;
+    if(p.data.event_id!==_recepSelectedEvent)return false;
     if(filterFunc&&(p.data.funcoes||[]).indexOf(filterFunc)<0)return false;
     return true;
   }).sort(function(a,b){return(a.data.name||'').localeCompare(b.data.name||'',undefined,{sensitivity:'base'});});
@@ -9991,7 +10050,7 @@ window._importTogglePessoa=function(id){
 window._importToggleTodos=function(){
   var visíveis=_recepPessoas.filter(function(p){
     var filterFunc=(document.getElementById('ipFuncFilter')||{}).value||'';
-    if(!activeEventsReceptivo.has(p.data.event_id))return false;
+    if(p.data.event_id!==_recepSelectedEvent)return false;
     if(filterFunc&&(p.data.funcoes||[]).indexOf(filterFunc)<0)return false;
     return true;
   });
@@ -10007,7 +10066,7 @@ function _updateImportCount(){
   var btn=document.getElementById('importPessoasBtn');if(btn)btn.disabled=!n;
   var filterFunc=(document.getElementById('ipFuncFilter')||{}).value||'';
   var visíveis=_recepPessoas.filter(function(p){
-    if(!activeEventsReceptivo.has(p.data.event_id))return false;
+    if(p.data.event_id!==_recepSelectedEvent)return false;
     if(filterFunc&&(p.data.funcoes||[]).indexOf(filterFunc)<0)return false;
     return true;
   });
@@ -10053,6 +10112,121 @@ window._importarPessoasSelecionadas=async function(){
         window._logFirestoreEdit&&window._logFirestoreEdit('individual',existing.id,mergedData,'receptivo','convidados');
       }else{
         await window._olgaGuests.save(null,{name:p.name||'',event_id:p.event_id||'',roles:importRoles,contact:{email:'',phone:''},notes:'',arrival_date:'',departure_date:'',hotel_checkin_date:'',hotel_checkout_date:'',mostras:importProg.mostras,submostras:importProg.submostras,filmes:importFilmes,updated_at:_recepNow()});
+      }
+    }
+    _recepCloseModal();openRecepSection('convidados');
+  }catch(e){
+    if(btn){btn.disabled=false;btn.textContent='Importar';}
+    alert('Erro: '+e.message);
+  }
+};
+
+/* ─── IMPORTAR CONVIDADOS DAS SESSÕES ─── */
+var _importSessSel=new Set();
+var _importSessData=[];
+function _sessGuestKey(eventId,name){return(eventId||'')+'||'+(name||'').toLowerCase().trim();}
+function _buildSessGuests(){
+  var map={};
+  (sessoesArr||[]).forEach(function(s){
+    if(!s.evento||s.evento!==_recepSelectedEvent)return;
+    if(!s.convidados||!s.convidados.trim())return;
+    s.convidados.split(',').map(function(n){return n.trim();}).filter(Boolean).forEach(function(nome){
+      var key=_sessGuestKey(s.evento,nome);
+      if(!map[key])map[key]={name:nome,event_id:s.evento,filmes:[],mostras:[],submostras:[],sessions:[]};
+      var e=map[key];
+      (s.filmes||[]).forEach(function(c){if(e.filmes.indexOf(c)<0)e.filmes.push(c);});
+      if(s.program_id&&e.mostras.indexOf(s.program_id)<0)e.mostras.push(s.program_id);
+      if(s.subprogram_id){
+        var sub=(_progData.subprograms||[]).find(function(x){return x.id===s.subprogram_id;});
+        var subNome=sub&&sub.data&&sub.data.name?sub.data.name:s.subprogram_id;
+        if(e.submostras.indexOf(subNome)<0)e.submostras.push(subNome);
+      }
+      if(e.sessions.indexOf(s.nome)<0)e.sessions.push(s.nome);
+    });
+  });
+  return Object.keys(map).map(function(k){return map[k];}).sort(function(a,b){return a.name.localeCompare(b.name,undefined,{sensitivity:'base'});});
+}
+window.openImportSessoesModal=async function(){
+  if(!_recepSelectedEvent){alert('Selecione um evento primeiro.');return;}
+  _importSessSel=new Set();
+  _recepShowModal('<div class="recep-modal-box" style="max-width:760px;width:95vw;">'+
+    '<div class="recep-modal-head"><span class="recep-modal-title">Importar convidados das sessões</span><button class="recep-modal-close" onclick="_recepCloseModal()">×</button></div>'+
+    '<div id="importSessBody"><div style="padding:30px;font-family:var(--mono);font-size:11px;color:var(--text-muted);">Carregando sessões…</div></div>'+
+    '<div class="recep-modal-foot"><span id="importSessSel" style="font-family:var(--mono);font-size:10px;color:var(--text-muted);margin-right:auto;">0 selecionada(s)</span><button class="recep-btn-cancel" onclick="_recepCloseModal()">Cancelar</button><button class="recep-btn-save" id="importSessBtn" onclick="_importarSessoesSelecionadas()" disabled>Importar</button></div>'+
+  '</div>');
+  try{
+    await _ensureProgData();
+    _importSessData=_buildSessGuests();
+    _renderImportSess();
+  }catch(e){
+    var b=document.getElementById('importSessBody');
+    if(b)b.innerHTML='<div style="padding:20px;color:var(--warn);font-family:var(--mono);font-size:11px;">Erro: '+_re(e.message)+'</div>';
+  }
+};
+function _renderImportSess(){
+  var body=document.getElementById('importSessBody');if(!body)return;
+  var guestKeys=new Set(_recepGuests.map(function(g){return _sessGuestKey(g.data.event_id,g.data.name);}));
+  var rows=_importSessData.map(function(p,idx){
+    var jaCon=guestKeys.has(_sessGuestKey(p.event_id,p.name));
+    var checked=_importSessSel.has(idx);
+    var filmesStr=(p.filmes||[]).map(function(cod){var catF=(window.catalogoFilmesMap&&window.catalogoFilmesMap[cod])||{};var ff=(filmesArr||[]).find(function(f){return f.codigo===cod;});return catF.title_pt||(ff&&ff.titulo)||cod;}).join(', ')||'—';
+    return'<tr style="opacity:'+(jaCon?'0.5':'1')+'">'+
+      '<td style="width:24px;text-align:center;"><input type="checkbox" onchange="_importToggleSess('+idx+')" '+(checked?'checked':'')+'></td>'+
+      '<td style="font-family:var(--mono);font-size:10px;font-weight:600;color:var(--text);">'+_re(p.name)+(jaCon?' <span style="font-size:9px;color:var(--text-muted);">(já convidado)</span>':'')+'</td>'+
+      '<td style="font-family:var(--mono);font-size:10px;color:var(--text-muted);">'+_re(_recepEvLabel(p.event_id))+'</td>'+
+      '<td style="font-family:var(--mono);font-size:10px;color:var(--text-muted);text-align:center;">'+p.sessions.length+'</td>'+
+      '<td style="font-family:var(--mono);font-size:10px;color:var(--text-muted);max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="'+_re(filmesStr)+'">'+_re(filmesStr)+'</td>'+
+    '</tr>';
+  }).join('');
+  var totalNovos=_importSessData.filter(function(p){return !guestKeys.has(_sessGuestKey(p.event_id,p.name));}).length;
+  body.innerHTML=
+    '<div style="display:flex;gap:8px;padding:12px 18px;border-bottom:1px solid var(--border);align-items:center;">'+
+      '<button id="isToggleAllBtn" class="recep-print-btn" style="white-space:nowrap;" onclick="_importToggleTodosSess()">selecionar novos</button>'+
+      '<span style="font-family:var(--mono);font-size:10px;color:var(--text-muted);">'+_importSessData.length+' nome(s) · '+totalNovos+' novo(s)</span>'+
+    '</div>'+
+    '<div style="max-height:380px;overflow-y:auto;">'+
+    '<table class="recep-table"><thead><tr><th style="width:24px;"></th><th>Nome</th><th>Evento</th><th>Sessões</th><th>Filme(s)</th></tr></thead>'+
+    '<tbody>'+(rows||'<tr><td colspan="5" class="recep-empty">Nenhum convidado encontrado nas sessões dos eventos ativos.</td></tr>')+'</tbody></table></div>';
+  _updateImportSessCount();
+}
+window._importToggleSess=function(idx){
+  if(_importSessSel.has(idx))_importSessSel.delete(idx);else _importSessSel.add(idx);
+  _updateImportSessCount();
+};
+window._importToggleTodosSess=function(){
+  var guestKeys=new Set(_recepGuests.map(function(g){return _sessGuestKey(g.data.event_id,g.data.name);}));
+  var novos=[];_importSessData.forEach(function(p,idx){if(!guestKeys.has(_sessGuestKey(p.event_id,p.name)))novos.push(idx);});
+  var todosSel=novos.length>0&&novos.every(function(i){return _importSessSel.has(i);});
+  if(todosSel)novos.forEach(function(i){_importSessSel.delete(i);});
+  else novos.forEach(function(i){_importSessSel.add(i);});
+  _renderImportSess();
+};
+function _updateImportSessCount(){
+  var n=_importSessSel.size;
+  var lbl=document.getElementById('importSessSel');if(lbl)lbl.textContent=n+' selecionada(s)';
+  var btn=document.getElementById('importSessBtn');if(btn)btn.disabled=!n;
+  var guestKeys=new Set(_recepGuests.map(function(g){return _sessGuestKey(g.data.event_id,g.data.name);}));
+  var novos=[];_importSessData.forEach(function(p,idx){if(!guestKeys.has(_sessGuestKey(p.event_id,p.name)))novos.push(idx);});
+  var todosSel=novos.length>0&&novos.every(function(i){return _importSessSel.has(i);});
+  var tbtn=document.getElementById('isToggleAllBtn');if(tbtn)tbtn.textContent=todosSel?'desmarcar novos':'selecionar novos';
+}
+window._importarSessoesSelecionadas=async function(){
+  var btn=document.getElementById('importSessBtn');if(btn){btn.disabled=true;btn.textContent='Importando…';}
+  var selecionadas=_importSessData.filter(function(p,idx){return _importSessSel.has(idx);});
+  try{
+    for(var i=0;i<selecionadas.length;i++){
+      var p=selecionadas[i];
+      var existing=_recepGuests.find(function(g){return _sessGuestKey(g.data.event_id,g.data.name)===_sessGuestKey(p.event_id,p.name);});
+      if(existing){
+        var mergedFilmes=Array.from(new Set((existing.data.filmes||[]).concat(p.filmes)));
+        var mergedMostras=Array.from(new Set((existing.data.mostras||[]).concat(p.mostras)));
+        var existingSubsNorm=(existing.data.submostras||[]).map(function(v){var s=(_progData.subprograms||[]).find(function(x){return x.id===v;});return s&&s.data&&s.data.name?s.data.name:v;});
+        var mergedSubs=Array.from(new Set(existingSubsNorm.concat(p.submostras)));
+        var mergedData=Object.assign({},existing.data,{filmes:mergedFilmes,mostras:mergedMostras,submostras:mergedSubs,updated_at:_recepNow()});
+        await window._olgaGuests.save(existing.id,mergedData);
+        window._logFirestoreEdit&&window._logFirestoreEdit('individual',existing.id,mergedData,'receptivo','convidados');
+      }else{
+        await window._olgaGuests.save(null,{name:p.name,event_id:p.event_id,roles:['convidado'],contact:{email:'',phone:''},notes:'',arrival_date:'',departure_date:'',hotel_checkin_date:'',hotel_checkout_date:'',mostras:p.mostras,submostras:p.submostras,filmes:p.filmes,updated_at:_recepNow()});
       }
     }
     _recepCloseModal();openRecepSection('convidados');
@@ -10165,12 +10339,13 @@ function _gSubmostraSelect(id){
 window._gRemoveSub=function(i){_gSubsSel.splice(i,1);_gRenderSubChips();};
 
 function _renderConvidados(){
+  _recepSyncSelectedEvent();
   var canEdit=window._olgaCanEdit('receptivo');
   var hotelMap={};_recepHotels.forEach(function(h){hotelMap[h.id]=h.data.name||h.id;});
   var bookMap={};_recepBookings.forEach(function(b){if(b.data.guest_id)bookMap[b.data.guest_id]=hotelMap[b.data.hotel_id]||'—';});
   var filtered=_recepGuests.filter(function(g){
     var ev=g.data.event_id;
-    if(!ev||!activeEventsReceptivo.has(ev))return false;
+    if(!ev||ev!==_recepSelectedEvent)return false;
     if(_recepRoleFilter.size>0&&!(g.data.roles||[]).some(function(r){return _recepRoleFilter.has(r);}))return false;
     if(_recepGuestSearch){
       var q=_recepGuestSearch.toLowerCase();
@@ -10201,12 +10376,14 @@ function _renderConvidados(){
   document.getElementById('barReceptivo').innerHTML=
     '<button class="recep-back-btn" onclick="renderReceptivo()">← Receptivo</button>'+
     '<span class="recep-bar-title">Convidados</span>'+
+    _recepEventBankSelect()+
     '<button class="recep-print-btn" onclick="_recepPrint()">imprimir</button>'+
     (canEdit?'<button id="recepSyncPessoasBtn" class="recep-print-btn" onclick="window._recepSyncTodasPessoas()" title="Sincroniza diretores, equipe técnica e elenco de todos os filmes do catálogo para o banco de pessoas">sincronizar equipe e elenco</button>':'')+
     (canEdit?'<button class="recep-print-btn" onclick="openImportPessoasModal()">importar pessoa</button>':'')+
+    (canEdit?'<button class="recep-print-btn" onclick="openImportSessoesModal()" title="Lista os convidados informados nas sessões dos eventos ativos, sem duplicar quem já está cadastrado">importar das sessões</button>':'')+
     (canEdit?'<button id="recepBulkDelBtn" class="recep-btn-del" style="display:none;" onclick="_recepDeleteSelected()">excluir 0 selecionados</button>':'')+
     (canEdit?'<button class="recep-add-btn" onclick="openGuestModal(null)">+ Convidado</button>':'');
-  document.getElementById('receptivo-container').innerHTML=
+  document.getElementById('receptivo-container').innerHTML=_recepSelectedEvent?(
     '<div class="recep-pres-legend">'+
       '<span><span class="recep-pres-dot recep-pres-green"></span>presente</span>'+
       '<span><span class="recep-pres-dot recep-pres-yellow"></span>chegada</span>'+
@@ -10232,7 +10409,8 @@ function _renderConvidados(){
       _recepSortTh('Hotel','hotel','convidados')+
       '<th>Filmes · Mostras</th>'+
       '<th></th></tr></thead>'+
-    '<tbody>'+(rows||'<tr><td colspan="8" class="recep-empty">Nenhum convidado encontrado.</td></tr>')+'</tbody></table>';
+    '<tbody>'+(rows||'<tr><td colspan="8" class="recep-empty">Nenhum convidado encontrado.</td></tr>')+'</tbody></table>'
+  ):_recepSelectEventPrompt();
   buildPills(document.getElementById('headerEventFilters'),eventColors,activeEventsReceptivo,function(){_renderConvidados();});
 }
 
@@ -10250,7 +10428,7 @@ function openGuestModal(id,tmplData){
   var d=tmplData||(g?g.data:{});
   var curBook=id?_recepBookings.find(function(b){return b.data.guest_id===id;}):null;
   var curHotelId=curBook?curBook.data.hotel_id:'';
-  var evId=d.event_id||'';
+  var evId=d.event_id||_recepSelectedEvent||'';
   var hotelsFiltered=_recepHotels.filter(function(h){return!h.data.event_id||!evId||h.data.event_id===evId;});
   var hotelOpts='<option value="">— sem hotel —</option>'+hotelsFiltered.map(function(h){return'<option value="'+_re(h.id)+'"'+(h.id===curHotelId?' selected':'')+'>'+_re(h.data.name||h.id)+'</option>';}).join('');
   var roleCheck=function(r){return'<label class="recep-roles-row" style="margin:0;"><input type="checkbox" name="g_role" value="'+r+'"'+((d.roles||[]).indexOf(r)>=0?' checked':'')+'>'+r+'</label>';};
@@ -10449,8 +10627,9 @@ function _renderGuestDetail(guestId){
 
 /* ─── HOTÉIS ─── */
 function _renderHoteis(){
+  _recepSyncSelectedEvent();
   var canEdit=window._olgaCanEdit('receptivo');
-  var filtered=_recepHotels.filter(function(h){var ev=h.data.event_id;return!!ev&&activeEventsReceptivo.has(ev);});
+  var filtered=_recepHotels.filter(function(h){var ev=h.data.event_id;return!!ev&&ev===_recepSelectedEvent;});
   var keyFns={nome:function(h){return h.data.name||'';},evento:function(h){return _recepEvLabel(h.data.event_id)||'';},endereco:function(h){return h.data.address||'';},contato:function(h){return h.data.contact||'';}};
   var sorted=(_recepSort.sec==='hoteis'&&keyFns[_recepSort.field])?_recepApplySort(filtered,keyFns[_recepSort.field]):filtered.slice().sort(function(a,b){return(a.data.name||'').localeCompare(b.data.name||'',undefined,{sensitivity:'base'});});
   var rows=sorted.map(function(h){var hd=h.data,hid=_re(h.id);var cnt=_recepBookings.filter(function(b){return b.data.hotel_id===h.id;}).length;return'<tr>'+
@@ -10464,16 +10643,18 @@ function _renderHoteis(){
   document.getElementById('barReceptivo').innerHTML=
     '<button class="recep-back-btn" onclick="renderReceptivo()">← Receptivo</button>'+
     '<span class="recep-bar-title">Hotéis</span>'+
+    _recepEventBankSelect()+
     '<button class="recep-print-btn" onclick="_recepPrint()">imprimir</button>'+
     (canEdit?'<button class="recep-add-btn" onclick="openHotelModal(null)">+ Hotel</button>':'');
-  document.getElementById('receptivo-container').innerHTML=
+  document.getElementById('receptivo-container').innerHTML=_recepSelectedEvent?(
     '<table class="recep-table"><thead><tr>'+
       _recepSortTh('Nome','nome','hoteis')+
       _recepSortTh('Evento','evento','hoteis')+
       _recepSortTh('Endereço','endereco','hoteis')+
       _recepSortTh('Contato','contato','hoteis')+
       '<th>Reservas</th><th></th></tr></thead>'+
-    '<tbody>'+(rows||'<tr><td colspan="6" class="recep-empty">Nenhum hotel cadastrado.</td></tr>')+'</tbody></table>';
+    '<tbody>'+(rows||'<tr><td colspan="6" class="recep-empty">Nenhum hotel cadastrado.</td></tr>')+'</tbody></table>'
+  ):_recepSelectEventPrompt();
   buildPills(document.getElementById('headerEventFilters'),eventColors,activeEventsReceptivo,function(){_renderHoteis();});
 }
 function openHotelModal(id,tmplData){
@@ -10486,7 +10667,7 @@ function openHotelModal(id,tmplData){
     '<div id="recepMErr" class="recep-modal-err" style="margin:0 18px;"></div>'+
     '<div class="recep-modal-body">'+
       '<div class="recep-field"><label class="recep-label">Nome</label><input id="h_name" class="recep-input" value="'+_re(d.name||'')+'"></div>'+
-      '<div class="recep-field"><label class="recep-label">Evento</label><select id="h_event" class="recep-select"><option value="">—</option>'+_recepEvSelect(d.event_id||'')+'</select></div>'+
+      '<div class="recep-field"><label class="recep-label">Evento</label><select id="h_event" class="recep-select"><option value="">—</option>'+_recepEvSelect(d.event_id||_recepSelectedEvent||'')+'</select></div>'+
       '<div class="recep-field"><label class="recep-label">Endereço</label><input id="h_address" class="recep-input" value="'+_re(d.address||'')+'"></div>'+
       '<div class="recep-field"><label class="recep-label">Contato</label><input id="h_contact" class="recep-input" value="'+_re(d.contact||'')+'"></div>'+
       '<div class="recep-field"><label class="recep-label">Observações</label><textarea id="h_notes" class="recep-textarea">'+_re(d.notes||'')+'</textarea></div>'+
@@ -10573,9 +10754,10 @@ window.dupeBooking=function(id,guestId){var b=_recepBookings.find(function(x){re
 
 /* ─── VOOS ─── */
 function _renderVoos(){
+  _recepSyncSelectedEvent();
   var canEdit=window._olgaCanEdit('receptivo');
   var guestMap={};_recepGuests.forEach(function(g){guestMap[g.id]=g.data.name||g.id;});
-  var base=_recepFlights.filter(function(f){var ev=f.data.event_id;return!!ev&&activeEventsReceptivo.has(ev);});
+  var base=_recepFlights.filter(function(f){var ev=f.data.event_id;return!!ev&&ev===_recepSelectedEvent;});
   var keyFns={convidado:function(f){return guestMap[f.data.guest_id]||'';},tipo:function(f){return f.data.type||'';},voo:function(f){return f.data.flight_number||'';},rota:function(f){return(f.data.origin||'')+(f.data.destination?'→'+f.data.destination:'');},data:function(f){return f.data.datetime||'';}};
   var sorted=(_recepSort.sec==='voos'&&keyFns[_recepSort.field])?_recepApplySort(base,keyFns[_recepSort.field]):base.slice().sort(function(a,b){return(a.data.datetime||'').localeCompare(b.data.datetime||'');});
   var rows=sorted.map(function(f){var fd=f.data,fid=_re(f.id);return'<tr>'+
@@ -10589,9 +10771,10 @@ function _renderVoos(){
   document.getElementById('barReceptivo').innerHTML=
     '<button class="recep-back-btn" onclick="renderReceptivo()">← Receptivo</button>'+
     '<span class="recep-bar-title">Voos</span>'+
+    _recepEventBankSelect()+
     '<button class="recep-print-btn" onclick="_recepPrint()">imprimir</button>'+
     (canEdit?'<button class="recep-add-btn" onclick="openVooModal(null,null)">+ Voo</button>':'');
-  document.getElementById('receptivo-container').innerHTML=
+  document.getElementById('receptivo-container').innerHTML=_recepSelectedEvent?(
     '<table class="recep-table"><thead><tr>'+
       _recepSortTh('Convidado','convidado','voos')+
       _recepSortTh('Tipo','tipo','voos')+
@@ -10599,7 +10782,8 @@ function _renderVoos(){
       _recepSortTh('Rota','rota','voos')+
       _recepSortTh('Data/Hora','data','voos')+
       '<th></th></tr></thead>'+
-    '<tbody>'+(rows||'<tr><td colspan="6" class="recep-empty">Nenhum voo registrado.</td></tr>')+'</tbody></table>';
+    '<tbody>'+(rows||'<tr><td colspan="6" class="recep-empty">Nenhum voo registrado.</td></tr>')+'</tbody></table>'
+  ):_recepSelectEventPrompt();
   buildPills(document.getElementById('headerEventFilters'),eventColors,activeEventsReceptivo,function(){_renderVoos();});
 }
 function openVooModal(id,guestId,tmplData){
@@ -10614,7 +10798,7 @@ function openVooModal(id,guestId,tmplData){
     '<div id="recepMErr" class="recep-modal-err" style="margin:0 18px;"></div>'+
     '<div class="recep-modal-body">'+
       '<div class="recep-field"><label class="recep-label">Convidado</label><select id="v_guest" class="recep-select"'+(parentGid?' disabled':'')+'>'+_recepGuestSelect(gid)+'</select></div>'+
-      '<div class="recep-field"><label class="recep-label">Evento</label><select id="v_event" class="recep-select"><option value="">—</option>'+_recepEvSelect(d.event_id||'')+'</select></div>'+
+      '<div class="recep-field"><label class="recep-label">Evento</label><select id="v_event" class="recep-select"><option value="">—</option>'+_recepEvSelect(d.event_id||_recepSelectedEvent||'')+'</select></div>'+
       '<div class="recep-2col">'+
         '<div class="recep-field"><label class="recep-label">Tipo</label><select id="v_type" class="recep-select">'+selOpts(['chegada','partida'],d.type||'chegada')+'</select></div>'+
         '<div class="recep-field"><label class="recep-label">Número do voo</label><input id="v_num" class="recep-input" value="'+_re(d.flight_number||'')+'"></div>'+
@@ -10649,10 +10833,11 @@ window.dupeVoo=function(id,guestId){var f=_recepFlights.find(function(x){return 
 
 /* ─── TRANSPORTE ─── */
 function _renderTransporte(){
+  _recepSyncSelectedEvent();
   var canEdit=window._olgaCanEdit('receptivo');
   var guestMap={};_recepGuests.forEach(function(g){guestMap[g.id]=g.data.name||g.id;});
   var base=_recepTransfers.filter(function(t){
-    var ev=t.data.event_id;if(!ev||!activeEventsReceptivo.has(ev))return false;
+    var ev=t.data.event_id;if(!ev||ev!==_recepSelectedEvent)return false;
     if(_recepTransDate&&!(t.data.datetime||'').startsWith(_recepTransDate))return false;
     if(_recepTransVeh&&t.data.vehicle_type!==_recepTransVeh)return false;
     return true;
@@ -10671,11 +10856,12 @@ function _renderTransporte(){
   document.getElementById('barReceptivo').innerHTML=
     '<button class="recep-back-btn" onclick="renderReceptivo()">← Receptivo</button>'+
     '<span class="recep-bar-title">Transporte</span>'+
+    _recepEventBankSelect()+
     '<input type="date" class="recep-input" style="width:130px;font-size:10px;padding:3px 7px;" value="'+_re(_recepTransDate)+'" onchange="_recepTransDate=this.value;_renderTransporte()" title="Filtrar por data">'+
     (function(){var vs=[...new Set(_recepTransfers.map(function(t){return t.data.vehicle_type;}).filter(Boolean))].sort();return'<select class="recep-select" style="width:100px;font-size:10px;padding:3px 7px;" onchange="_recepTransVeh=this.value;_renderTransporte()"><option value="">Todos veículos</option>'+vs.map(function(v){return'<option value="'+_re(v)+'"'+(_recepTransVeh===v?' selected':'')+'>'+_re(v)+'</option>';}).join('')+'</select>';})()+
     '<button class="recep-print-btn" onclick="_recepPrint()">imprimir</button>'+
     (canEdit?'<button class="recep-add-btn" onclick="openTransferModal(null,null)">+ Transfer</button>':'');
-  document.getElementById('receptivo-container').innerHTML=
+  document.getElementById('receptivo-container').innerHTML=_recepSelectedEvent?(
     '<table class="recep-table"><thead><tr>'+
       _recepSortTh('Convidado','convidado','transporte')+
       _recepSortTh('Tipo','tipo','transporte')+
@@ -10684,7 +10870,8 @@ function _renderTransporte(){
       _recepSortTh('Data/Hora','data','transporte')+
       _recepSortTh('Status','status','transporte')+
       '<th></th></tr></thead>'+
-    '<tbody>'+(rows||'<tr><td colspan="7" class="recep-empty">Nenhum transfer registrado.</td></tr>')+'</tbody></table>';
+    '<tbody>'+(rows||'<tr><td colspan="7" class="recep-empty">Nenhum transfer registrado.</td></tr>')+'</tbody></table>'
+  ):_recepSelectEventPrompt();
   buildPills(document.getElementById('headerEventFilters'),eventColors,activeEventsReceptivo,function(){_renderTransporte();});
 }
 function openTransferModal(id,guestId,tmplData){
@@ -10699,7 +10886,7 @@ function openTransferModal(id,guestId,tmplData){
     '<div id="recepMErr" class="recep-modal-err" style="margin:0 18px;"></div>'+
     '<div class="recep-modal-body">'+
       '<div class="recep-field"><label class="recep-label">Convidado</label><select id="tr_guest" class="recep-select"'+(parentGid?' disabled':'')+'>'+_recepGuestSelect(gid)+'</select></div>'+
-      '<div class="recep-field"><label class="recep-label">Evento</label><select id="tr_event" class="recep-select"><option value="">—</option>'+_recepEvSelect(d.event_id||'')+'</select></div>'+
+      '<div class="recep-field"><label class="recep-label">Evento</label><select id="tr_event" class="recep-select"><option value="">—</option>'+_recepEvSelect(d.event_id||_recepSelectedEvent||'')+'</select></div>'+
       '<div class="recep-2col">'+
         '<div class="recep-field"><label class="recep-label">Categoria</label><select id="tr_cat" class="recep-select">'+selOpts(['chegada','partida','interno'],d.category||'chegada')+'</select></div>'+
         '<div class="recep-field"><label class="recep-label">Veículo</label><input id="tr_veh" class="recep-input" list="tr_veh_list" value="'+_re(d.vehicle_type||'')+'" placeholder="ex: van, uber…"><datalist id="tr_veh_list">'+[...new Set(_recepTransfers.map(function(t){return t.data.vehicle_type;}).filter(Boolean))].sort().map(function(v){return'<option value="'+_re(v)+'"></option>';}).join('')+'</datalist></div>'+
@@ -16221,7 +16408,7 @@ function renderDash(){
   html+=colBlock('kdm','KDM',kdmBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 04/06/2026 às 16:44';
+  var sysUpdate='última atualização do sistema · 07/06/2026 às 16:52';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -23876,7 +24063,7 @@ function _sxcPrint(){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 04/06/2026 às 16:44</span></div>
+<div id="page-footer"><span>última atualização · 07/06/2026 às 16:52</span></div>
 
 </div>
 

@@ -6302,7 +6302,7 @@ var fichaCinemaFilter='',_fichaComplexo='',_fichaFiltroData='';
 var vinhetasCinemaFilter='',vinhetasDayFilter='';
 var dashCinemaFilter='__todos__',dashDayFilter=new Set(),dashStatusSelected=null,dashStatSelected=null;
 var dashKdmCinemaFilter='',dashKdmStatusSelected=null;
-var _dashBlocksOpen={global:false,days:false,selecao:false,programacao:false,controle:false,kdm:false};
+var _dashBlocksOpen={global:false,bilheteria:false,days:false,selecao:false,programacao:false,controle:false,kdm:false};
 var _dashGlobalEvFilter='';
 var _dashSelEvFilter='';
 var dashBlockOpen={nums:true,days:true,control:true};
@@ -6806,6 +6806,7 @@ function goHome(){
       document.getElementById('bar'+cap).classList.add('hidden');
       document.getElementById(m+'-panel').classList.remove('active');
     });
+    if(_fpOpen){_fpOpen=false;var _fp=document.getElementById('filterPanel');if(_fp)_fp.classList.remove('open');var _fb=document.getElementById('filterToggleBtn');if(_fb)_fb.classList.remove('active');}
     document.getElementById('app').style.display='none';
     document.getElementById('landing').style.display='flex';
     buildLandingPills();
@@ -16420,7 +16421,7 @@ function renderDash(){
   html+=colBlock('kdm','KDM',kdmBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 07/06/2026 às 17:12';
+  var sysUpdate='última atualização do sistema · 07/06/2026 às 17:14';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -24266,7 +24267,7 @@ function _sxcPrint(){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 07/06/2026 às 17:12</span></div>
+<div id="page-footer"><span>última atualização · 07/06/2026 às 17:14</span></div>
 
 </div>
 

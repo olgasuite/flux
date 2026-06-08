@@ -4001,6 +4001,15 @@ html[data-theme]:not([data-theme="win98"]){--mono:var(--sans);}
 [data-theme="indexof"] a{color:#0000ee;text-decoration:underline;}
 [data-theme="indexof"] a:visited{color:#551a8b;}
 [data-theme="indexof"] .landing-olga-img{filter:none;}
+/* menu lateral = lista de links sublinhados em azul; módulo ativo = roxo (link visitado) */
+[data-theme="indexof"] .nav-tab,[data-theme="indexof"] .nav-sub-tab{font-family:'Times New Roman',Times,serif;background:none;color:#0000ee;}
+[data-theme="indexof"] .nav-tab:hover:not(:disabled),[data-theme="indexof"] .nav-sub-tab:hover{background:none;color:#0000ee;}
+[data-theme="indexof"] .nav-tab .nav-label,[data-theme="indexof"] .nav-sub-tab{text-decoration:underline;}
+[data-theme="indexof"] .nav-tab.active,[data-theme="indexof"] .nav-tab.active .nav-label,[data-theme="indexof"] .nav-sub-tab.active{color:#551a8b;}
+[data-theme="indexof"] .nav-tab:hover:not(:disabled)::before,[data-theme="indexof"] .nav-tab.active::before{display:none;}
+[data-theme="indexof"] .nav-tab.active{border-bottom-color:transparent;}
+/* ícones presentes apenas no landing principal, como no win98 */
+html[data-theme="indexof"]:not([data-theme="win98"]) .module-icon{display:flex!important;color:#0000ee;}
 </style>
 <script type="module">
   import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
@@ -7615,11 +7624,11 @@ function buildPills(container,evColors,activeSet,onToggle){
     else{p.style.background=_h2r(col.bg,isDarkPills?0.18:0.12);p.style.color=isDarkPills?col.bg:'var(--text-muted)';p.style.borderColor=_h2r(col.bg,isDarkPills?0.55:0.30);p.style.opacity='1';}
   }
   function setActive(p,col){
-    if(isIndexof){p.style.background='#551a8b';p.style.color='#fff';p.style.borderColor='transparent';p.style.opacity='';p.style.textDecoration='none';return;}
+    if(isIndexof){p.style.background='transparent';p.style.color='#551a8b';p.style.borderColor='transparent';p.style.opacity='';p.style.textDecoration='underline';return;}
     p.style.background=col.bg;p.style.color=col.text;p.style.borderColor='transparent';p.style.opacity='';
   }
-  function labelOnBg(){return isWin98?'#000080':isIndexof?'#551a8b':'transparent';}
-  function labelOnText(){return isWin98?'#fff':isIndexof?'#fff':isDarkPills?'var(--accent)':'var(--text)';}
+  function labelOnBg(){return isWin98?'#000080':'transparent';}
+  function labelOnText(){return isWin98?'#fff':isIndexof?'#551a8b':isDarkPills?'var(--accent)':'var(--text)';}
   function labelOffBg(){return isWin98?'#d4d0c8':'transparent';}
   function labelOffText(){return isWin98?'#000':isIndexof?'#0000ee':isDarkPills?'var(--accent)':'var(--text-dim)';}
   function allActive(){return events.every(function(ev){return activeSet.has(ev);});}
@@ -16447,7 +16456,7 @@ function renderDash(){
   html+=colBlock('kdm','KDM',kdmBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 07/06/2026 às 17:16';
+  var sysUpdate='última atualização do sistema · 07/06/2026 às 17:20';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -19726,8 +19735,8 @@ function renderCatalogo(){
   var _catActions2='';
   if(_catCanEdit)_catActions2+='<button class="cat-edit-btn" onclick="openCatCreate()">+ Novo filme</button>';
   if(_catCanEdit&&!window._olgaHasRestricao('catalogo.cadastro_lote'))_catActions2+='<button class="cat-edit-btn" onclick="openCatCreateBulk()">+ Múltiplos filmes</button>';
-  if(_catCanEdit&&!window._olgaHasRestricao('catalogo.filmfreeway'))_catActions2+='<button class="cat-edit-btn" style="background:var(--accent-dim);border-color:var(--accent);color:var(--accent);" onclick="openFFImport()">↓ FilmFreeway</button>';
-  if(_catCanEdit&&!window._olgaHasRestricao('catalogo.sfd'))_catActions2+='<button class="cat-edit-btn" style="background:var(--accent-dim);border-color:var(--accent);color:var(--accent);" onclick="openSFDImport()">↓ Short Film Depot</button>';
+  if(_catCanEdit&&!window._olgaHasRestricao('catalogo.filmfreeway'))_catActions2+='<button class="cat-edit-btn" onclick="openFFImport()">↓ FilmFreeway</button>';
+  if(_catCanEdit&&!window._olgaHasRestricao('catalogo.sfd'))_catActions2+='<button class="cat-edit-btn" onclick="openSFDImport()">↓ Short Film Depot</button>';
   if(_catCanEdit&&!window._olgaHasRestricao('catalogo.triagem'))_catActions2+='<button class="cat-edit-btn" style="background:rgba(80,200,120,0.12);border-color:rgba(80,200,120,0.55);color:var(--ok);" onclick="importarDaTriagem()">↓ Importar da Curadoria/Seleção</button>';
   if(_isAdmin)_catActions2+='<button class="cat-edit-btn" onclick="importCopiasToCatalog()">↓ Importar do Acervo</button>';
   if(_isAdmin)_catActions2+='<button class="cat-edit-btn" title="Copia campos FilmFreeway/Short Film Depot de filmes da Curadoria/Seleção para o Catálogo (útil para filmes importados antes da última atualização)" onclick="ressincronizarPlataformasDaTriagem()">↻ Sincronizar plataformas</button>';
@@ -24295,7 +24304,7 @@ function _sxcPrint(){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 07/06/2026 às 17:16</span></div>
+<div id="page-footer"><span>última atualização · 07/06/2026 às 17:20</span></div>
 
 </div>
 
@@ -27713,8 +27722,8 @@ function renderTriagem(){
   if(_hasTrActions){
     html+='<div class="cat-sf-actions" style="border-top:none;padding-top:0;">';
     html+='<button class="cat-edit-btn" onclick="openTriagemCreate()">+ Novo filme</button>';
-    if(!window._olgaHasRestricao('triagem.filmfreeway'))html+='<button class="cat-edit-btn" style="background:var(--accent-dim);border-color:var(--accent);color:var(--accent);" onclick="openFFImportTriagem()">↓ FilmFreeway</button>';
-    if(!window._olgaHasRestricao('triagem.sfd'))html+='<button class="cat-edit-btn" style="background:var(--accent-dim);border-color:var(--accent);color:var(--accent);" onclick="openSFDImportTriagem()">↓ Short Film Depot</button>';
+    if(!window._olgaHasRestricao('triagem.filmfreeway'))html+='<button class="cat-edit-btn" onclick="openFFImportTriagem()">↓ FilmFreeway</button>';
+    if(!window._olgaHasRestricao('triagem.sfd'))html+='<button class="cat-edit-btn" onclick="openSFDImportTriagem()">↓ Short Film Depot</button>';
     html+='</div>';
   }
   html+='<div class="cat-slots-bar" id="tr-slots-bar" style="display:'+(_triagemSlots.length?'flex':'none')+';">';

@@ -4955,6 +4955,7 @@ html[data-theme]:not([data-theme="win98"]){--mono:var(--sans);}
           obs: fs(r['notes']), cpl: fs(r['cpl_id']),
           resolucao: fs(r['dcp_resolution']), duracao: fs(r['dcp_duration']),
           gb: fs(r['dcp_size']), fps: fs(r['dcp_fps']),
+          bitrate: fs(r['dcp_bitrate']),
           cplOV: fs(r['ov_cpl_id']), acessibilidade: fs(r['accessibility_features']),
           exhibition_format: fs(r['exhibition_format']),
           exhibition_format_notes: fs(r['exhibition_format_notes']),
@@ -16419,7 +16420,7 @@ function renderDash(){
   html+=colBlock('kdm','KDM',kdmBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 07/06/2026 às 17:04';
+  var sysUpdate='última atualização do sistema · 07/06/2026 às 17:10';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -21308,7 +21309,7 @@ async function duplicateCatFilm(codigo){
   if(filmesMap[newCode]||catalogoFilmesMap[newCode]){alert('Código já existe: '+newCode);return;}
   var newMeta=Object.assign({},meta,{festival_code:newCode,evento:targetEv,title_pt:(meta.title_pt||'')+' (cópia)'});
   var newCopia={festival_code:newCode,event_name:targetEv};
-  ['title','original_language','dcp_subtitle_code','vf_subtitle_code','projection_lens','audio_format','status','notes','dcp_creator','has_kdm','subtitle_status','cpl_id','ov_cpl_id','dcp_resolution','dcp_duration','dcp_size','dcp_fps','storage_location','dcp_uuid','accessibility_features'].forEach(function(k){newCopia[k]=copia[k]||'';});
+  ['title','original_language','dcp_subtitle_code','vf_subtitle_code','projection_lens','audio_format','status','notes','dcp_creator','has_kdm','subtitle_status','cpl_id','ov_cpl_id','dcp_resolution','dcp_duration','dcp_size','dcp_bitrate','dcp_fps','storage_location','dcp_uuid','accessibility_features'].forEach(function(k){newCopia[k]=copia[k]||'';});
   try{
     await window._olgaCatalogo.save(newCode,newMeta);
     if(window._olgaCopias)await window._olgaCopias.save(newCode,newCopia);
@@ -21378,6 +21379,10 @@ async function openAcervoEdit(idx){
     +aeRow('GB',aeInp('gb',f.gb))
     +'</div>'
     +'<div class="cat-grid">'
+    +aeRow('Bitrate (Mbps)',aeInp('bitrate',f.bitrate))
+    +'<div></div>'
+    +'</div>'
+    +'<div class="cat-grid">'
     +aeRow('Storage / HD',aeInp('hd',f.hd))
     +aeRow('DCP Creator',aeInp('creator',f.col_k))
     +'</div>'
@@ -21405,6 +21410,7 @@ async function openAcervoEdit(idx){
     subtitle_status:f.col_n||'',cpl_id:f.cpl||'',
     ov_cpl_id:f.cplOV||'',dcp_resolution:f.resolucao||'',
     dcp_duration:f.duracao||'',dcp_size:f.gb||'',
+    dcp_bitrate:f.bitrate||'',
     dcp_fps:f.fps||'',storage_location:f.hd||'',
     dcp_uuid:f.dcp_uuid||'',accessibility_features:_aeAcessTags.join(', '),
     exhibition_format:f.exhibition_format||'',
@@ -21443,6 +21449,7 @@ async function doSaveAcervoEdit(){
     subtitle_status:aeVal('col_n'),cpl_id:aeVal('cpl'),
     ov_cpl_id:aeVal('cplOV'),dcp_resolution:aeVal('resolucao'),
     dcp_duration:aeVal('duracao'),dcp_size:aeVal('gb'),
+    dcp_bitrate:aeVal('bitrate'),
     dcp_fps:aeVal('fps'),storage_location:aeVal('hd'),
     dcp_uuid:aeVal('uuid'),accessibility_features:aeVal('acess'),
     exhibition_format:aeVal('exhibition_format'),
@@ -21472,6 +21479,7 @@ async function doSaveAcervoEdit(){
       m.status=data.status;m.obs=data.notes;m.col_k=data.dcp_creator;m.kdm=data.has_kdm;
       m.col_n=data.subtitle_status;m.cpl=data.cpl_id;m.cplOV=data.ov_cpl_id;
       m.resolucao=data.dcp_resolution;m.duracao=data.dcp_duration;m.gb=data.dcp_size;
+      m.bitrate=data.dcp_bitrate;
       m.fps=data.dcp_fps;m.hd=data.storage_location;m.dcp_uuid=data.dcp_uuid;
       m.acessibilidade=data.accessibility_features;m.dcp_link=data.dcp_link;m.file_link=data.file_link;
       m.exhibition_format=data.exhibition_format;m.exhibition_format_notes=data.exhibition_format_notes;
@@ -21607,7 +21615,7 @@ async function handleDCPFolderSelect(files){
   // Parse all CPLs
   var parsed=[];
   for(var i=0;i<cplFiles.length;i++){
-    try{var r=await _parseCPL(cplFiles[i]);r.totalGB=totalGB;parsed.push(r);}catch(e){console.warn('CPL parse error',e);}
+    try{var r=await _parseCPL(cplFiles[i]);r.totalGB=totalGB;r.totalBytes=totalBytes;parsed.push(r);}catch(e){console.warn('CPL parse error',e);}
   }
 
   if(!parsed.length){
@@ -21681,7 +21689,11 @@ function _dcpApply(cpl,totalGB,tipo){
   incoming.ae_fps      =cpl.fps;
   incoming.ae_uuid     =cpl.uuid;
   incoming.ae_kdm      =cpl.kdm; // "Sim" or "Não"
-  if(tipo==='OV') incoming.ae_gb=String(totalGB);
+  if(tipo==='OV'){
+    incoming.ae_gb=String(totalGB);
+    var _ds=cpl.durSecs||0;
+    if(cpl.totalBytes>0&&_ds>0)incoming.ae_bitrate=String(Math.round((cpl.totalBytes*8/_ds/1e6)*100)/100);
+  }
 
   // Check for overwrites
   var conflicts=[];
@@ -21721,7 +21733,7 @@ function _dcpApply(cpl,totalGB,tipo){
 }
 
 function _dcpFieldLabel(id){
-  var map={ae_creator:'DCP Creator',ae_cpl:'CPL (ContentTitle)',ae_resolucao:'Resolução',ae_duracao:'Duração',ae_fps:'FPS',ae_uuid:'DCP UUID',ae_kdm:'KDM',ae_gb:'GB'};
+  var map={ae_creator:'DCP Creator',ae_cpl:'CPL (ContentTitle)',ae_resolucao:'Resolução',ae_duracao:'Duração',ae_fps:'FPS',ae_uuid:'DCP UUID',ae_kdm:'KDM',ae_gb:'GB',ae_bitrate:'Bitrate (Mbps)'};
   return map[id]||id;
 }
 
@@ -21749,6 +21761,169 @@ function _dcpConfirmFill(){
   var panel=document.getElementById('dcpImportPanel');
   var p=panel._dcpPending;
   if(p)_dcpDoFill(p.incoming,p.tipo);
+}
+/* ── Importar metadados de arquivo de vídeo ── */
+function _snapFps(fps){
+  if(!fps||!isFinite(fps)||fps<=0)return'';
+  var std=[23.976,24,25,29.97,30,48,50,59.94,60];
+  var best=std[0],bd=Math.abs(fps-std[0]);
+  std.forEach(function(s){var d=Math.abs(fps-s);if(d<bd){bd=d;best=s;}});
+  if(bd<=0.6)return String(best);
+  return String(Math.round(fps*1000)/1000);
+}
+function _estimateFps(v){
+  return new Promise(function(resolve){
+    if(typeof v.requestVideoFrameCallback!=='function'){resolve('');return;}
+    var first=null,settled=false;
+    var to=setTimeout(function(){finish('');},4000);
+    function finish(val){if(settled)return;settled=true;clearTimeout(to);try{v.pause();}catch(e){}resolve(val);}
+    function cb(now,meta){
+      if(settled)return;
+      if(first===null){first={t:meta.mediaTime,f:meta.presentedFrames};}
+      else{
+        var dt=meta.mediaTime-first.t,df=meta.presentedFrames-first.f;
+        if(dt>=0.6&&df>0){finish(_snapFps(df/dt));return;}
+      }
+      v.requestVideoFrameCallback(cb);
+    }
+    v.requestVideoFrameCallback(cb);
+    var p=v.play();if(p&&p.catch)p.catch(function(){finish('');});
+  });
+}
+function _readVideoMeta(file){
+  return new Promise(function(resolve,reject){
+    var url=URL.createObjectURL(file);
+    var v=document.createElement('video');
+    v.preload='metadata';v.muted=true;v.playsInline=true;
+    var settled=false;
+    function finishWith(fps){
+      if(settled)return;settled=true;
+      var res=(v.videoWidth&&v.videoHeight)?(v.videoWidth+'x'+v.videoHeight):'';
+      var bytes=file.size||0;
+      var gb=bytes/(1024*1024*1024);
+      var gbStr=gb>=1?String(Math.round(gb*100)/100):String(Math.round(gb*1000)/1000);
+      var dur=(isFinite(v.duration)&&v.duration>0)?v.duration:0;
+      var brStr=dur>0?String(Math.round((bytes*8/dur/1e6)*100)/100):'';
+      try{v.pause();}catch(e){}
+      URL.revokeObjectURL(url);
+      resolve({resolution:res,fps:fps||'',gb:gbStr,bitrate:brStr});
+    }
+    v.onerror=function(){if(settled)return;settled=true;URL.revokeObjectURL(url);reject(new Error('formato não suportado pelo navegador'));};
+    v.onloadedmetadata=function(){_estimateFps(v).then(finishWith).catch(function(){finishWith('');});};
+    v.src=url;
+  });
+}
+/* mediainfo.js (WASM): lê metadados direto dos headers do arquivo, sem reproduzir */
+var MI_VER='0.3.4';
+var _miInstance=null,_miLoadPromise=null;
+function _loadMediaInfo(){
+  if(_miInstance)return Promise.resolve(_miInstance);
+  if(_miLoadPromise)return _miLoadPromise;
+  _miLoadPromise=new Promise(function(resolve,reject){
+    function init(){
+      var factory=window.MediaInfo&&(window.MediaInfo.default||window.MediaInfo);
+      if(typeof factory!=='function'){reject(new Error('mediainfo indisponível'));return;}
+      var opts={format:'object',locateFile:function(path){return'https://unpkg.com/mediainfo.js@'+MI_VER+'/dist/'+(path||'MediaInfoModule.wasm');}};
+      var done=false;
+      function ok(mi){if(done)return;done=true;_miInstance=mi;resolve(mi);}
+      try{var ret=factory(opts,ok);if(ret&&typeof ret.then==='function')ret.then(ok).catch(reject);}
+      catch(e){reject(e);}
+    }
+    if(window.MediaInfo){init();return;}
+    var s=document.createElement('script');
+    s.src='https://unpkg.com/mediainfo.js@'+MI_VER+'/dist/umd/index.min.js';
+    s.onload=init;
+    s.onerror=function(){reject(new Error('falha ao carregar mediainfo.js'));};
+    document.head.appendChild(s);
+  });
+  _miLoadPromise.catch(function(){_miLoadPromise=null;});
+  return _miLoadPromise;
+}
+function _miReadChunk(file){
+  return function(chunkSize,offset){
+    return new Promise(function(resolve,reject){
+      var r=new FileReader();
+      r.onload=function(e){resolve(new Uint8Array(e.target.result));};
+      r.onerror=function(){reject(r.error);};
+      r.readAsArrayBuffer(file.slice(offset,offset+chunkSize));
+    });
+  };
+}
+function _miExtract(result,file){
+  var tracks=(result&&result.media&&result.media.track)||[];
+  function byType(t){return tracks.filter(function(x){return x['@type']===t;})[0]||{};}
+  var gen=byType('General'),vid=byType('Video');
+  var w=parseInt(vid.Width||0),h=parseInt(vid.Height||0);
+  var res=(w&&h)?(w+'x'+h):'';
+  var fr=parseFloat(vid.FrameRate||gen.FrameRate||'');
+  var fps=(fr&&isFinite(fr))?String(Math.round(fr*1000)/1000):'';
+  var br=parseFloat(vid.BitRate||vid.BitRate_Nominal||gen.OverallBitRate||'');
+  var bitrate=(br&&isFinite(br))?String(Math.round((br/1e6)*100)/100):'';
+  var bytes=parseFloat(gen.FileSize)||file.size||0;
+  var gb=bytes/(1024*1024*1024);
+  var gbStr=gb>=1?String(Math.round(gb*100)/100):String(Math.round(gb*1000)/1000);
+  return{resolution:res,fps:fps,gb:gbStr,bitrate:bitrate};
+}
+async function _readMediaInfoMeta(file){
+  var mi=await _loadMediaInfo();
+  var result=await mi.analyzeData(function(){return file.size;},_miReadChunk(file));
+  if(typeof result==='string'){try{result=JSON.parse(result);}catch(e){}}
+  return _miExtract(result,file);
+}
+async function handleVideoFileSelect(input){
+  var file=input.files&&input.files[0];
+  input.value='';
+  if(!file)return;
+  var panel=document.getElementById('dcpImportPanel');
+  panel.style.display='flex';
+  panel.innerHTML='<div style="font-family:var(--mono);font-size:10px;color:var(--text-muted);">Lendo metadados do arquivo…</div>';
+  var meta=null,miErr=null;
+  try{
+    meta=await _readMediaInfoMeta(file);
+  }catch(e){
+    miErr=e;
+    try{meta=await _readVideoMeta(file);}
+    catch(e2){
+      panel.innerHTML='<div style="font-family:var(--mono);font-size:10px;color:var(--warn);">⚠ Não foi possível ler o arquivo: '+((e2&&e2.message)||(miErr&&miErr.message)||'erro')+'</div>';
+      return;
+    }
+  }
+  _videoFileApply({ae_cpl:file.name,ae_resolucao:meta.resolution,ae_fps:meta.fps,ae_gb:meta.gb,ae_bitrate:meta.bitrate});
+}
+function _videoFileApply(incoming){
+  var panel=document.getElementById('dcpImportPanel');
+  var conflicts=[];
+  Object.keys(incoming).forEach(function(id){
+    var el=document.getElementById(id);if(!el)return;
+    var cur=(el.tagName==='SELECT'?el.options[el.selectedIndex].value:el.value||'').trim();
+    var nv=(incoming[id]||'').trim();
+    if(cur&&nv&&cur!==nv)conflicts.push({id:id,label:_dcpFieldLabel(id),from:cur,to:nv});
+  });
+  if(conflicts.length){
+    var rows=conflicts.map(function(c){
+      return'<tr><td style="font-family:var(--mono);font-size:9px;color:var(--text-muted);padding:3px 8px;white-space:nowrap;">'+c.label+'</td>'
+        +'<td style="font-family:var(--mono);font-size:9px;padding:3px 8px;color:var(--warn);max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="'+c.from+'">'+c.from+'</td>'
+        +'<td style="font-family:var(--mono);font-size:9px;padding:3px 8px;color:#60c88a;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="'+c.to+'">'+c.to+'</td>'
+      +'</tr>';
+    }).join('');
+    panel._dcpPending={incoming:incoming,tipo:'FILE'};
+    panel.innerHTML=
+      '<div style="font-family:var(--mono);font-size:8px;font-weight:600;letter-spacing:0.14em;text-transform:uppercase;color:var(--warn);">⚠ Campos já preenchidos serão substituídos</div>'
+      +'<table style="width:100%;border-collapse:collapse;">'
+        +'<thead><tr>'
+          +'<th style="font-family:var(--mono);font-size:7.5px;letter-spacing:0.12em;text-transform:uppercase;color:var(--text-muted);padding:2px 8px;text-align:left;">Campo</th>'
+          +'<th style="font-family:var(--mono);font-size:7.5px;letter-spacing:0.12em;text-transform:uppercase;color:var(--warn);padding:2px 8px;text-align:left;">Atual</th>'
+          +'<th style="font-family:var(--mono);font-size:7.5px;letter-spacing:0.12em;text-transform:uppercase;color:#60c88a;padding:2px 8px;text-align:left;">Novo</th>'
+        +'</tr></thead>'
+        +'<tbody>'+rows+'</tbody>'
+      +'</table>'
+      +'<div style="display:flex;gap:8px;justify-content:flex-end;">'
+        +'<button onclick="document.getElementById(&quot;dcpImportPanel&quot;).style.display=&quot;none&quot;;" style="font-family:var(--mono);font-size:9px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;padding:5px 12px;background:transparent;color:var(--text-muted);border:1px solid var(--border);cursor:pointer;">Cancelar</button>'
+        +'<button onclick="_dcpConfirmFill()" style="font-family:var(--mono);font-size:9px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;padding:5px 14px;background:var(--accent);color:var(--on-accent);border:none;cursor:pointer;">Confirmar e preencher</button>'
+      +'</div>';
+  }else{
+    _dcpDoFill(incoming,'FILE');
+  }
 }
 function closeAcervoEditModal(){document.getElementById('acervoEditModal').style.display='none';}
 
@@ -23937,6 +24112,8 @@ function _sxcPrint(){
       <div style="display:flex;align-items:center;gap:8px;">
         <input type="file" id="dcpFolderInput" webkitdirectory style="display:none;" onchange="handleDCPFolderSelect(this.files)">
         <button onclick="document.getElementById('dcpFolderInput').click()" style="font-family:var(--mono);font-size:9px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;padding:5px 12px;background:transparent;color:var(--accent);border:1px solid var(--accent);cursor:pointer;white-space:nowrap;">↑ Importar DCP</button>
+        <input type="file" id="videoFileInput" accept="video/*" style="display:none;" onchange="handleVideoFileSelect(this)">
+        <button onclick="document.getElementById('videoFileInput').click()" style="font-family:var(--mono);font-size:9px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;padding:5px 12px;background:transparent;color:var(--accent);border:1px solid var(--accent);cursor:pointer;white-space:nowrap;">↑ Importar arquivo</button>
         <button onclick="closeAcervoEditModal()" style="background:none;border:none;color:var(--text-muted);font-size:18px;cursor:pointer;line-height:1;">×</button>
       </div>
     </div>
@@ -24086,7 +24263,7 @@ function _sxcPrint(){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 07/06/2026 às 17:04</span></div>
+<div id="page-footer"><span>última atualização · 07/06/2026 às 17:10</span></div>
 
 </div>
 

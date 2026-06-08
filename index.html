@@ -16419,7 +16419,7 @@ function renderDash(){
   html+=colBlock('kdm','KDM',kdmBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 07/06/2026 às 17:02';
+  var sysUpdate='última atualização do sistema · 07/06/2026 às 17:04';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -17286,6 +17286,7 @@ function openProgProgramModal(id,eventId){
   var _ppfx=document.getElementById('progProgramIdPrefix');if(_ppfx)_ppfx.textContent=ev||'';
   document.getElementById('progProgramName').value=d.name||'';
   document.getElementById('progProgramDesc').value=d.program_description||'';
+  document.getElementById('progProgramApoios').value=d.apoios||'';
   document.getElementById('progProgramCompetitive').checked=!!(d.competitive);
   document.getElementById('progProgramPopularVote').checked=!!(d.popular_vote);
   document.getElementById('progProgramModalErr').style.display='none';
@@ -17315,6 +17316,7 @@ async function saveProgProgramModal(){
     event_id:document.getElementById('progProgramEventId').value||'',
     name:(document.getElementById('progProgramName').value||'').trim(),
     program_description:(document.getElementById('progProgramDesc').value||'').trim(),
+    apoios:(document.getElementById('progProgramApoios').value||'').trim(),
     competitive:document.getElementById('progProgramCompetitive').checked,
     popular_vote:document.getElementById('progProgramPopularVote').checked,
     vinheta_templates:(existing&&existing.data&&existing.data.vinheta_templates)||[],
@@ -18572,6 +18574,7 @@ function openEventoModal(id){
   document.getElementById('eventoDataFim').value=d.data_fim||'';
   document.getElementById('eventoEstadosList').innerHTML=estadosHtml;
   document.getElementById('eventoTextoCuratorial').value=d.texto_curatorial||'';
+  document.getElementById('eventoApoios').value=d.apoios||'';
   // Tipo de acesso (pago/gratuito) — sem default pra não atribuir valor errado a registros antigos
   var _evTipoAcesso=(d.tipo_acesso||'').toLowerCase();
   document.querySelectorAll('input[name="eventoTipoAcesso"]').forEach(function(r){r.checked=(r.value===_evTipoAcesso);});
@@ -18641,7 +18644,8 @@ async function saveEvento(){
     data_inicio:document.getElementById('eventoDataInicio').value||'',
     data_fim:document.getElementById('eventoDataFim').value||'',
     tipo_acesso:_tipoR?_tipoR.value:'',
-    texto_curatorial:(document.getElementById('eventoTextoCuratorial').value||'').trim()
+    texto_curatorial:(document.getElementById('eventoTextoCuratorial').value||'').trim(),
+    apoios:(document.getElementById('eventoApoios').value||'').trim()
   };
   // mescla com dados existentes para preservar campos como `nome` e `cor`
   var prev=_adminEventos&&_adminEventos.find(function(e){return e.id===id;});
@@ -23442,6 +23446,10 @@ function _sxcPrint(){
         <label class="prog-modal-label">Descrição</label>
         <textarea id="progProgramDesc" class="prog-modal-textarea" placeholder="Texto curatorial da mostra (opcional)"></textarea>
       </div>
+      <div class="prog-modal-field">
+        <label class="prog-modal-label">Realização · Patrocínio · Apoio · Edital</label>
+        <textarea id="progProgramApoios" class="prog-modal-textarea" placeholder="Apoios específicos desta mostra, caso difiram dos do evento (opcional)"></textarea>
+      </div>
       <div style="display:flex;gap:20px;flex-wrap:wrap;">
         <label class="prog-modal-check-row"><input type="checkbox" id="progProgramCompetitive"> Competitivo</label>
         <label class="prog-modal-check-row"><input type="checkbox" id="progProgramPopularVote"> Voto popular</label>
@@ -23994,6 +24002,10 @@ function _sxcPrint(){
         <label style="font-family:var(--mono);font-size:8px;font-weight:600;letter-spacing:0.14em;text-transform:uppercase;color:var(--text-muted);">Texto curatorial</label>
         <textarea id="eventoTextoCuratorial" rows="6" style="font-family:var(--sans);font-size:12px;background:var(--bg);color:var(--text);border:1px solid var(--border2);padding:8px 10px;outline:none;resize:vertical;line-height:1.5;" placeholder="Texto de abertura do evento — aparecerá na primeira página da revista, ao lado do título do evento."></textarea>
       </div>
+      <div style="display:flex;flex-direction:column;gap:4px;">
+        <label style="font-family:var(--mono);font-size:8px;font-weight:600;letter-spacing:0.14em;text-transform:uppercase;color:var(--text-muted);">Realização · Patrocínio · Apoio · Edital</label>
+        <textarea id="eventoApoios" rows="4" style="font-family:var(--sans);font-size:12px;background:var(--bg);color:var(--text);border:1px solid var(--border2);padding:8px 10px;outline:none;resize:vertical;line-height:1.5;" placeholder="Anote livremente: realização, patrocínio, apoio, edital etc. do evento."></textarea>
+      </div>
     </div>
     <div id="eventoModalErr" style="display:none;font-family:var(--mono);font-size:10px;color:var(--warn);padding:8px 22px;background:rgba(255,180,171,0.06);border-top:1px solid rgba(255,180,171,0.15);flex-shrink:0;"></div>
     <div style="padding:14px 22px;border-top:1px solid var(--border);display:flex;gap:10px;justify-content:flex-end;flex-shrink:0;">
@@ -24074,7 +24086,7 @@ function _sxcPrint(){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 07/06/2026 às 17:02</span></div>
+<div id="page-footer"><span>última atualização · 07/06/2026 às 17:04</span></div>
 
 </div>
 

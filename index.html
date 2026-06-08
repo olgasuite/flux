@@ -16332,7 +16332,7 @@ function renderDash(){
         return'<button class="dash-sess-link" onclick="goToFicha(\''+safe+'\')">'+
           '<span class="dash-sess-cinema">'+s.cinema+'</span>'+
           (dt?'<span class="dash-sess-cinema">'+esc(dt)+'</span>':'')+
-          esc(stripEvPrefix(s.nome,s.evento))+'</button>';
+          '</button>';
       }).join('');
       ctrlBody+='<div class="dash-film-card" style="border-left-color:'+(col?col.bg:'var(--border2)')+'">'+
         '<div class="dash-film-top">'+
@@ -16411,7 +16411,7 @@ function renderDash(){
   html+=colBlock('kdm','KDM',kdmBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 07/06/2026 às 16:54';
+  var sysUpdate='última atualização do sistema · 07/06/2026 às 16:56';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -24066,7 +24066,7 @@ function _sxcPrint(){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 07/06/2026 às 16:54</span></div>
+<div id="page-footer"><span>última atualização · 07/06/2026 às 16:56</span></div>
 
 </div>
 

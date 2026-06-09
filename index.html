@@ -16509,7 +16509,7 @@ function renderDash(){
   html+=colBlock('kdm','KDM',kdmBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 07/06/2026 às 17:28';
+  var sysUpdate='última atualização do sistema · 07/06/2026 às 17:32';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -20251,6 +20251,13 @@ async function doSaveCat(){
     if(!isNaN(_runtimeNew)&&_runtimeNew>0){data.runtime=_runtimeNew;}
     else if(_runtimeInp&&_runtimeInp.value===''){data.runtime=null;}
     else if(catalogoFilmesMap[_catCode]&&catalogoFilmesMap[_catCode].runtime){data.runtime=catalogoFilmesMap[_catCode].runtime;}
+    // alterar o runtime quando a duração técnica (dcp_duration) já existe exige confirmação
+    var _oldRt=(catalogoFilmesMap[_catCode]&&catalogoFilmesMap[_catCode].runtime)||null;
+    var _newRt=(typeof data.runtime==='number'&&data.runtime>0)?data.runtime:(data.runtime===null?null:_oldRt);
+    var _copDur=((filmesMap[_catCode]&&filmesMap[_catCode].duracao)||'').trim();
+    if(_copDur&&_newRt!==_oldRt){
+      if(!confirm('A DURAÇÃO DESSE FILME JÁ FOI PREENCHIDA NA ANÁLISE TÉCNICA, TEM CERTEZA QUE QUER ALTERÁ-LA?')){if(msg){msg.className='cat-msg';msg.textContent='';}return;}
+    }
     await window._olgaCatalogo.save(_catCode,data,_catOriginalData);
     window._logFirestoreEdit&&window._logFirestoreEdit('individual',_catCode,data,'catalogo','filmes');
     catalogoFilmesMap[_catCode]=data;
@@ -21316,6 +21323,17 @@ function _showCinMerge(codigo,atual,novo,btn,rawCd,fonte){
       await window._olgaCatalogo.save(codigo,merged);
       window._logFirestoreEdit&&window._logFirestoreEdit('individual',codigo,merged,'catalogo','filmes');
       catalogoFilmesMap[codigo]=merged;
+      // preenche o dcp_duration técnico a partir do runtime, somente se estiver vazio (nunca sobrescreve)
+      try{
+        var _rt=parseInt(merged.runtime,10);
+        var _cop=filmesMap[codigo];
+        if(_rt>0&&_cop&&!(_cop.duracao&&_cop.duracao.trim())&&window._olgaCopias){
+          var _hmms=_catMinToHMMSS(_rt);
+          await window._olgaCopias.save(codigo,{dcp_duration:_hmms},{dcp_duration:''});
+          _cop.duracao=_hmms;
+          window._logFirestoreEdit&&window._logFirestoreEdit('individual',codigo,{dcp_duration:_hmms},'acervo','copias');
+        }
+      }catch(e){console.warn('Falha ao preencher dcp_duration a partir do runtime:',e);}
       if(btn){btn.disabled=false;btn.textContent='↓ Filmografia Brasileira';}
       renderCatDetail();
     }catch(e){
@@ -21553,9 +21571,9 @@ async function doSaveAcervoEdit(){
       try{
         var _cm=Object.assign({},catalogoFilmesMap[f.codigo]);
         _cm.original_language=data.original_language;
-        // sincronizar duração: dcp_duration (H:MM:SS) → runtime (minutos)
+        // sincronizar duração: dcp_duration (H:MM:SS) → runtime (minutos), apenas quando há valor (nunca apaga o runtime)
         var _dcpSecs=_parseDurSecs(data.dcp_duration);
-        if(_dcpSecs>0){_cm.runtime=Math.round(_dcpSecs/60);} else if(!data.dcp_duration){_cm.runtime=null;}
+        if(_dcpSecs>0){_cm.runtime=Math.round(_dcpSecs/60);}
         await window._olgaCatalogo.save(f.codigo,_cm);
         catalogoFilmesMap[f.codigo]=_cm;
       }catch(e){}
@@ -24359,7 +24377,7 @@ function _sxcPrint(){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 07/06/2026 às 17:28</span></div>
+<div id="page-footer"><span>última atualização · 07/06/2026 às 17:32</span></div>
 
 </div>
 

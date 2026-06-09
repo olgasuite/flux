@@ -4011,6 +4011,8 @@ html[data-theme]:not([data-theme="win98"]){--mono:var(--sans);}
   --sans:'Segoe WPC','Segoe UI',system-ui,-apple-system,sans-serif;
   --mono:'Consolas','Menlo','Monaco','Courier New',monospace;
 }
+/* códigos/labels em monospace (Consolas) como no editor — sobrepõe a regra que faz --mono=--sans nos temas escuros */
+html[data-theme="vscode"]:not([data-theme="win98"]){--mono:'Consolas','Menlo','Monaco','Courier New',monospace;}
 [data-theme="vscode"] body{background:var(--bg);color:var(--text);}
 [data-theme="vscode"] header{background:#323233;border-bottom-color:#3c3c3c;}
 [data-theme="vscode"] .col-header-row,[data-theme="vscode"] .time-gutter-header,[data-theme="vscode"] .col-header{background:var(--bg);}
@@ -16507,7 +16509,7 @@ function renderDash(){
   html+=colBlock('kdm','KDM',kdmBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 07/06/2026 às 17:26';
+  var sysUpdate='última atualização do sistema · 07/06/2026 às 17:28';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -24357,7 +24359,7 @@ function _sxcPrint(){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 07/06/2026 às 17:26</span></div>
+<div id="page-footer"><span>última atualização · 07/06/2026 às 17:28</span></div>
 
 </div>
 

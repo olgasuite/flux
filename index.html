@@ -4080,6 +4080,8 @@ html[data-theme="indexof"]:not([data-theme="win98"]) .module-icon{display:flex!i
 .leg-film-files .leg-meta-field{min-width:160px;}
 .leg-files-help{flex:1;min-width:240px;align-self:center;font-family:var(--mono);font-size:9px;line-height:1.5;color:var(--text-muted);}
 .leg-files-help strong{color:var(--text-dim);font-weight:600;}
+.leg-star{color:var(--warn);font-weight:700;margin-left:3px;}
+.ficha-leg-note{font-family:var(--mono);font-size:9px;color:var(--warn);padding:6px 24px;line-height:1.45;}
 .leg-file-slot{display:flex;align-items:center;gap:6px;min-width:0;}
 .leg-file-link{font-family:var(--mono);font-size:10px;color:var(--accent);text-decoration:none;word-break:break-all;cursor:pointer;}
 .leg-file-link:hover{text-decoration:underline;}
@@ -7062,6 +7064,12 @@ function switchMode(mode,noPush){
 
 /* UTILS */
 function clean(v){return(!v||v==='-'||v==='0')?'':v;}
+// Info de legendagem eletrônica de uma sessão: tipos de legenda eletrônica (legenda_exibicao) dos filmes, flag leg.elet. e operadores
+function _legSessEletInfo(s){
+  var idiomas=[];
+  if(s&&s.filmes)s.filmes.forEach(function(c){var f=filmesMap[c];if(!f)return;var ov=_legendaExibOverride(f);if(ov&&idiomas.indexOf(ov)<0)idiomas.push(ov);});
+  return {legSim:!!(s&&(s.leg_eletronica||'').toString().trim().toUpperCase()==='SIM'),idiomas:idiomas,operadores:(s&&s.operador||[]).slice()};
+}
 function fmtDateStr(val){if(!val)return'—';var iso=val.match?val.match(/^(\d{4})-(\d{2})-(\d{2})$/):null;var d=iso?new Date(+iso[1],+iso[2]-1,+iso[3]):new Date(val);if(isNaN(d))return val;return d.toLocaleDateString('pt-BR',{weekday:'short',day:'2-digit',month:'2-digit',year:'2-digit'});}
 function fmtTimeStr(val){if(!val)return'—';if(typeof val==='string'&&/^\d{1,2}:\d{2}/.test(val))return val.slice(0,5);var d=new Date(val);if(!isNaN(d))return d.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});return val;}
 // Parse any duration string/number to total seconds
@@ -7219,6 +7227,8 @@ function renderFicha(nome,s){
   films.forEach(function(f){totalSecs+=_parseDurSecs(f.duracao);var g=parseFloat((f.gb||'').toString().replace(',','.'));if(!isNaN(g))totalGB+=g;});
   var totalDur=totalSecs>0?_secsToHMS(totalSecs):'0:00:00';
   var totalGBStr=totalGB>0?totalGB.toFixed(0)+' GB':'—';
+  var sessLegSim=(s.leg_eletronica||'').toString().trim().toUpperCase()==='SIM';
+  var _legStar=false;
   var rows=films.map(function(f,idx){
     var titulo=clean(f.titulo)||f.codigo,hd=clean(f.hd),lente=clean(f.lente),som=clean(f.som),legenda=clean(f.legenda),vf=clean(f.vf),kdm=f.kdm||'não',cpl=clean(f.cpl),obs=clean(f.obs),dur=clean(f.duracao),res=clean(f.resolucao),fps=clean(f.fps),gb=clean(f.gb),acessF=clean(f.acessibilidade),exh=clean(f.exhibition_format);
     var hdTag=hd?'<span class="film-hd">'+hd+'</span>':'';
@@ -7227,6 +7237,7 @@ function renderFicha(nome,s){
     if(vf)legParts.push('<span class="leg-text leg-vf-entry"><span class="leg-vf-label">VF</span> <span class="leg-dcnc">'+_fmtDcncCode(vf)+'</span></span>');
     else if(legenda)legParts.push('<span class="leg-text leg-dcnc">'+_fmtDcncCode(legenda)+'</span>');
     var legCell=legParts.length?'<div class="leg-stack">'+legParts.join('')+'</div>':'<span style="color:var(--text-muted)">—</span>';
+    if(!sessLegSim&&_legendaExibOverride(f)){legCell+='<span class="leg-star" title="sem operador de legendagem eletrônica">*</span>';_legStar=true;}
     var _idiomaVal=clean((catalogoFilmesMap&&catalogoFilmesMap[f.codigo]&&catalogoFilmesMap[f.codigo].original_language)||'')||clean(f.idioma);
     var idiomaCell=_idiomaVal?'<span class="idioma-text">'+_idiomaVal+'</span>':'<span style="color:var(--text-muted)">—</span>';
     var fpsgb='<div class="fps-gb"><span class="fps-val">'+(fps||'—')+'</span>'+(gb?'<span class="gb-val">'+gb+' GB</span>':'')+'</div>';
@@ -7249,7 +7260,7 @@ function renderFicha(nome,s){
   // extra panel (right side of header)
   function feRow(label,value){if(!value)return'';return'<div class="fe-row"><span class="fe-label">'+label+'</span><span class="fe-value accent">'+value+'</span></div>';}
   function feCheck(label,val){var checked=(val||'').toLowerCase()==='sim';return'<div class="fe-check"><span class="fe-box'+(checked?' checked':'')+'">'+( checked?'✕':'')+'</span><span>'+label+'</span></div>';}
-  var hasExtra=s.convidados||s.apresentacao||s.ingressos||s.leg_eletronica||s.col_ag||s.acessibilidades||s.para_convidados;
+  var hasExtra=s.convidados||s.apresentacao||s.ingressos||s.leg_eletronica||s.col_ag||s.acessibilidades||s.para_convidados||(s.operador&&s.operador.length);
   var extraHtml='';
   if(hasExtra){
     var checkFields=(s.apresentacao||s.leg_eletronica||s.col_ag||s.acessibilidades||s.para_convidados)?'<div class="fe-checks">'+feCheck('Apresentação',s.apresentacao)+feCheck('Leg. elet.',s.leg_eletronica)+feCheck('Debate',s.col_ag)+feCheck('Acessibilidade',s.acessibilidades)+feCheck('P/ convidados',s.para_convidados)+'</div>':'';
@@ -7268,6 +7279,7 @@ function renderFicha(nome,s){
       (s.convidados?feRow('Convidados',s.convidados):'')+
       (s.ingressos?feRow('Ing. reservados',s.ingressos):'')+
       checkFields+
+      (s.operador&&s.operador.length?feRow('Operador(es)',esc(s.operador.join(', '))+' <span style="opacity:0.6;font-weight:400;">(op. de leg.)</span>'):'')+
       (acessLabel?feRow('Recursos acessib.',acessLabel):'')+
     '</div>';
   }
@@ -7309,7 +7321,8 @@ function renderFicha(nome,s){
   var _fpUtcTag=_fpCi.utc_offset?'<span style="font-family:var(--mono);font-size:9px;color:var(--text-muted);margin-left:5px;opacity:0.75;">('+_fpCi.utc_offset+')</span>':'';
   var _fichaNavSafe=nome.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
   var _fichaNavBtn=window._olgaHasRestricao('projecao.btn_programacao')?'':'<div class="ficha-nav-bar"><button class="prog-btn-sm" onclick="_goToProgFromFicha(\''+_fichaNavSafe+'\')">← ficha de programação</button></div>';
-  document.getElementById('fichaWrap').innerHTML=_fichaNavBtn+'<div class="ficha"><div class="ficha-header"><div class="ficha-header-main"><div class="ficha-session-wrap"><div class="ficha-session-name" title="'+esc(nome)+'">'+esc(stripEvPrefix(nome,s.evento))+'</div>'+(s.name?'<div class="prog-sess-display-name-ficha">'+esc(s.name)+'</div>':'')+eventoBadge+(fichaRatingBadge?fichaRatingBadge:'')+'</div><div class="ficha-meta"><div class="meta-item"><div class="meta-label">Cinema</div><div class="meta-value">'+(s.cinema||'—')+_fpUtcTag+'</div></div><div class="meta-item"><div class="meta-label">Data</div><div class="meta-value">'+s.dia+'</div></div><div class="meta-item"><div class="meta-label">Hora</div><div class="meta-value">'+s.hora+'</div></div><div class="meta-item"><div class="meta-label">Filmes</div><div class="meta-value highlight">'+films.length+'</div></div></div></div>'+extraHtml+'</div>'+vinhetasHtml+'<div class="film-table-wrap"><table><thead><tr><th>#</th><th>Filme</th><th class="center">Lente</th><th class="center">Som</th><th>Legenda</th><th class="center">Idioma</th><th class="center">KDM</th><th>CPL</th><th>Duração</th><th>OBS</th><th class="center">Res</th><th class="center">FPS · GB</th><th class="center" title="Acessibilidade"><svg width="13" height="13" viewBox="0 0 24 24" style="stroke:currentColor;stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round;vertical-align:middle;"><circle cx="11" cy="4" r="1"/><path d="m11 9 2 7h5l-1.5 3"/><path d="M9 9H7l1 7"/><path d="M13.5 19a4.5 4.5 0 1 1-9 0 4.5 4.5 0 0 1 9 0z"/></svg></th></tr></thead><tbody>'+(rows||'<tr><td colspan="13" style="text-align:center;color:var(--text-muted);padding:24px">Nenhum filme encontrado para esta sessão.</td></tr>')+'</tbody></table></div><div class="ficha-footer"><div class="footer-total">Duração total dos filmes: <strong>'+totalDur+'</strong>'+(totalVinSecs>0?' &nbsp;·&nbsp; Vinhetas: <strong>'+_secsToHMS(totalVinSecs)+'</strong>':'')+' &nbsp;·&nbsp; Tamanho: <strong>'+totalGBStr+'</strong></div><div class="footer-stamp">OLGA · '+new Date().toLocaleString('pt-BR')+'</div></div></div>';
+  var legFootnote=_legStar?'<div class="ficha-leg-note">*não existe um operador de legendagem eletrônica associado a esta sessão, consulte a equipe de programação para confirmar se esta sessão contará com este recurso</div>':'';
+  document.getElementById('fichaWrap').innerHTML=_fichaNavBtn+'<div class="ficha"><div class="ficha-header"><div class="ficha-header-main"><div class="ficha-session-wrap"><div class="ficha-session-name" title="'+esc(nome)+'">'+esc(stripEvPrefix(nome,s.evento))+'</div>'+(s.name?'<div class="prog-sess-display-name-ficha">'+esc(s.name)+'</div>':'')+eventoBadge+(fichaRatingBadge?fichaRatingBadge:'')+'</div><div class="ficha-meta"><div class="meta-item"><div class="meta-label">Cinema</div><div class="meta-value">'+(s.cinema||'—')+_fpUtcTag+'</div></div><div class="meta-item"><div class="meta-label">Data</div><div class="meta-value">'+s.dia+'</div></div><div class="meta-item"><div class="meta-label">Hora</div><div class="meta-value">'+s.hora+'</div></div><div class="meta-item"><div class="meta-label">Filmes</div><div class="meta-value highlight">'+films.length+'</div></div></div></div>'+extraHtml+'</div>'+vinhetasHtml+'<div class="film-table-wrap"><table><thead><tr><th>#</th><th>Filme</th><th class="center">Lente</th><th class="center">Som</th><th>Legenda</th><th class="center">Idioma</th><th class="center">KDM</th><th>CPL</th><th>Duração</th><th>OBS</th><th class="center">Res</th><th class="center">FPS · GB</th><th class="center" title="Acessibilidade"><svg width="13" height="13" viewBox="0 0 24 24" style="stroke:currentColor;stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round;vertical-align:middle;"><circle cx="11" cy="4" r="1"/><path d="m11 9 2 7h5l-1.5 3"/><path d="M9 9H7l1 7"/><path d="M13.5 19a4.5 4.5 0 1 1-9 0 4.5 4.5 0 0 1 9 0z"/></svg></th></tr></thead><tbody>'+(rows||'<tr><td colspan="13" style="text-align:center;color:var(--text-muted);padding:24px">Nenhum filme encontrado para esta sessão.</td></tr>')+'</tbody></table></div>'+legFootnote+'<div class="ficha-footer"><div class="footer-total">Duração total dos filmes: <strong>'+totalDur+'</strong>'+(totalVinSecs>0?' &nbsp;·&nbsp; Vinhetas: <strong>'+_secsToHMS(totalVinSecs)+'</strong>':'')+' &nbsp;·&nbsp; Tamanho: <strong>'+totalGBStr+'</strong></div><div class="footer-stamp">OLGA · '+new Date().toLocaleString('pt-BR')+'</div></div></div>';
 }
 
 function _goToFichaFromProg(nome){
@@ -11580,7 +11593,15 @@ function _legSaveOperador(nome){
 function _legAddOperador(nome,name){
   var s=sessoesMap[nome];if(!s)return;
   if(!Array.isArray(s.operador))s.operador=[];
-  if(s.operador.indexOf(name)<0){s.operador=s.operador.concat([name]);_legSaveOperador(nome);}
+  if(s.operador.indexOf(name)<0){
+    s.operador=s.operador.concat([name]);
+    var partial={subtitle_operators:s.operador};
+    // associar um operador marca a sessão como leg. eletrônica = Sim (por padrão)
+    if((s.leg_eletronica||'').toString().trim().toUpperCase()!=='SIM'){s.leg_eletronica='Sim';partial.has_electronic_subtitles='Sim';}
+    if(window._olgaSessoes)window._olgaSessoes.saveField(s._docId||nome,partial)
+      .then(function(){window._logFirestoreEdit&&window._logFirestoreEdit('individual',nome,partial,'legendagem','sessoes');})
+      .catch(function(err){alert('Erro ao salvar operador: '+err.message);});
+  }
   renderLegendagem();
 }
 window._legRemoveOperador=function(nome,idx){
@@ -14762,16 +14783,12 @@ function showTooltip(ev,s){
   var iconTag='<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-2px;margin-right:5px;opacity:.7"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>';
   var iconUsers='<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-2px;margin-right:5px;opacity:.7"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>';
   var iconSub='<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-2px;margin-right:5px;opacity:.7"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>';
-  var legSim=s.leg_eletronica&&s.leg_eletronica.toUpperCase()==='SIM';
+  var legInfo=_legSessEletInfo(s);
   var convStr=s.convidados&&s.convidados.trim()?s.convidados.trim():'';
   var extraRows='';
-  if(convStr||legSim){
-    extraRows+='<div class="tt-row">';
-    if(convStr)extraRows+=iconUsers+'<span>'+convStr+'</span>';
-    if(convStr&&legSim)extraRows+=' &nbsp;·&nbsp; ';
-    if(legSim)extraRows+=iconSub+'<span>Leg. eletrônica</span>';
-    extraRows+='</div>';
-  }
+  if(convStr)extraRows+='<div class="tt-row">'+iconUsers+'<span>'+convStr+'</span></div>';
+  if(legInfo.legSim||legInfo.idiomas.length)extraRows+='<div class="tt-row">'+iconSub+'<span>'+esc(legInfo.idiomas.length?('Leg. eletrônica · '+legInfo.idiomas.join(', ')):'Leg. eletrônica')+'</span></div>';
+  if(legInfo.operadores.length)extraRows+='<div class="tt-row">'+iconUsers+'<span>Op. de leg.: '+esc(legInfo.operadores.join(', '))+'</span></div>';
   var _ttHeader=s.name&&s.name!==s.nome?esc(s.name)+' <span style="opacity:0.55;font-weight:400;">'+esc(stripEvPrefix(s.nome,s.evento))+'</span>':esc(stripEvPrefix(s.nome,s.evento));
   tip.innerHTML='<div class="tt-name">'+_ttHeader+'</div><div class="tt-row">'+iconCal+'<span>'+esc(s.dia)+'</span></div><div class="tt-row">'+iconClock+'<span>'+esc((s.time?s.time.str:'—')+(durStr?' · '+durStr:''))+'</span></div><div class="tt-row">'+iconScreen+'<span>'+esc(s.cinema||'')+'</span></div>'+(s.evento?'<div class="tt-row">'+iconTag+'<span>'+esc(s.evento)+'</span></div>':'')+extraRows+(fl?'<div class="tt-films">'+fl+'</div>':'');
   tip.style.display='block';moveTooltip(ev);
@@ -15801,6 +15818,7 @@ function _buildBatchCopiasForm(){
     return'<div class="batch-fld"><div class="batch-fld-label">Formato de exibição</div><select class="batch-fld-inp" id="bfc_exhibition_format"><option value="">— não alterar</option>'+opts.map(function(o){return'<option value="'+esc(o)+'">'+esc(o)+'</option>';}).join('')+'</select></div>';
   }
   function ta(id,label){return'<div class="batch-fld batch-full"><div class="batch-fld-label">'+label+'</div><textarea class="batch-fld-inp batch-fld-ta" id="bfc_'+id+'" placeholder="deixe vazio para não alterar"></textarea></div>';}
+  function legExibSel(){var opts=['ORIGINAL','ELETRÔNICA EM PORTUGUÊS','ELETRÔNICA EM INGLÊS','ELETRÔNICA LSE'];return'<div class="batch-fld"><div class="batch-fld-label">Legenda de exibição</div><select class="batch-fld-inp" id="bfc_legenda_exibicao"><option value="">— não alterar</option>'+opts.map(function(o){return'<option value="'+esc(o)+'">'+esc(o)+'</option>';}).join('')+'</select></div>';}
   return inpDl('status','Status',statusVals)
     +kdmSel()
     +inpDl('lente','Lente',lentes)
@@ -15811,6 +15829,7 @@ function _buildBatchCopiasForm(){
     +inp('legenda','Legenda (código)')
     +inp('vf','VF (código)')
     +inp('col_n','Status Legenda')
+    +legExibSel()
     +'<div class="batch-fld batch-full"><div class="batch-fld-label">Acessibilidade</div><div class="convidados-tag-wrap" id="bfc_acess_wrap" onclick="var i=document.getElementById(\'bfc_acess_inp\');if(i)i.focus()"></div><input type="hidden" id="bfc_acess"><div style="display:flex;gap:14px;margin-top:6px;"><label style="font-family:var(--mono);font-size:9px;display:flex;align-items:center;gap:4px;cursor:pointer;"><input type="radio" name="bfc_acess_mode" value="incluir" checked> Incluir</label><label style="font-family:var(--mono);font-size:9px;display:flex;align-items:center;gap:4px;cursor:pointer;"><input type="radio" name="bfc_acess_mode" value="substituir"> Substituir</label></div></div>'
     +ta('obs','Observações');
 }
@@ -15849,6 +15868,7 @@ async function executeBatchCopiasSave(){
     {form:'legenda',fs:'dcp_subtitle_code',int:'legenda'},
     {form:'vf',fs:'vf_subtitle_code',int:'vf'},
     {form:'col_n',fs:'subtitle_status',int:'col_n'},
+    {form:'legenda_exibicao',fs:'legenda_exibicao',int:'legenda_exibicao'},
     {form:'obs',fs:'notes',int:'obs'}
   ];
   var patch={};
@@ -15879,6 +15899,8 @@ async function executeBatchCopiasSave(){
         exhibition_format:'exhibition_format' in patch?patch.exhibition_format:(f.exhibition_format||''),
         exhibition_format_notes:'exhibition_format_notes' in patch?patch.exhibition_format_notes:(f.exhibition_format_notes||''),
         accessibility_features:(function(){if(!_bfcAcessTags.length)return f.acessibilidade||'';if(_bfcAcessMode==='substituir')return _bfcAcessTags.join(', ');var ex=(f.acessibilidade||'').split(/[,;\/\n]+/).map(function(t){return t.trim();}).filter(Boolean);var mg=ex.slice();_bfcAcessTags.forEach(function(t){if(mg.indexOf(t)<0)mg.push(t);});return mg.join(', ');})(),
+        legenda_exibicao:'legenda_exibicao' in patch?patch.legenda_exibicao:(f.legenda_exibicao||''),
+        dcp_bitrate:f.bitrate||'', translator:f.tradutor||[],
         dcp_link:f.dcp_link||'', file_link:f.file_link||''
       };
       await window._olgaCopias.save(cod,data);
@@ -17042,7 +17064,7 @@ function renderDash(){
   html+=colBlock('legendagem','Legendagem',legBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 11/06/2026 às 09:29';
+  var sysUpdate='última atualização do sistema · 11/06/2026 às 12:11';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -17798,7 +17820,7 @@ function _progRenderSessao(sessaoNome){
   var ratingBadge=_ratingMax?_catRatingBadge(_ratingMax):'';
   function feRow(label,value){if(!value)return'';return'<div class="fe-row"><span class="fe-label">'+label+'</span><span class="fe-value accent">'+esc(value)+'</span></div>';}
   function feCheck(label,val){var checked=(val||'').toLowerCase()==='sim';return'<div class="fe-check"><span class="fe-box'+(checked?' checked':'')+'">'+( checked?'✕':'')+'</span><span>'+label+'</span></div>';}
-  var hasExtra=s.convidados||s.apresentacao||s.ingressos||s.leg_eletronica||s.col_ag||s.acessibilidades||s.para_convidados;
+  var hasExtra=s.convidados||s.apresentacao||s.ingressos||s.leg_eletronica||s.col_ag||s.acessibilidades||s.para_convidados||(s.operador&&s.operador.length);
   var extraHtml='';
   if(hasExtra){
     var checkFields=(s.apresentacao||s.leg_eletronica||s.col_ag||s.acessibilidades||s.para_convidados)?'<div class="fe-checks">'+feCheck('Apresentação',s.apresentacao)+feCheck('Leg. elet.',s.leg_eletronica)+feCheck('Debate',s.col_ag)+feCheck('Acessibilidade',s.acessibilidades)+feCheck('P/ convidados',s.para_convidados)+'</div>':'';
@@ -17806,7 +17828,7 @@ function _progRenderSessao(sessaoNome){
     if((s.acessibilidades||'').toLowerCase()==='sim'){
       films.forEach(function(f){if(f.acessibilidade){f.acessibilidade.split(/[,;\/\n]+/).forEach(function(a){var t=a.trim();if(t&&acessSet2.indexOf(t)<0)acessSet2.push(t);});}});
     }
-    extraHtml='<div class="ficha-extra">'+(s.convidados?feRow('Convidados',s.convidados):'')+(s.ingressos?feRow('Ing. reservados',s.ingressos):'')+checkFields+(acessSet2.length?feRow('Recursos acessib.',acessSet2.join(' · ')):'')+'</div>';
+    extraHtml='<div class="ficha-extra">'+(s.convidados?feRow('Convidados',s.convidados):'')+(s.ingressos?feRow('Ing. reservados',s.ingressos):'')+checkFields+(s.operador&&s.operador.length?feRow('Operador(es)',esc(s.operador.join(', '))+' <span style="opacity:0.6;font-weight:400;">(op. de leg.)</span>'):'')+(acessSet2.length?feRow('Recursos acessib.',acessSet2.join(' · ')):'')+'</div>';
   }
   var vinhetasHtml='';
   var totalVinSecs=0;
@@ -17827,6 +17849,8 @@ function _progRenderSessao(sessaoNome){
     if(totalVinSecs>0){var vh=Math.floor(totalVinSecs/3600),vm=Math.floor((totalVinSecs%3600)/60),vs=totalVinSecs%60;var durSum=vh>0?(vh+"h"+String(vm).padStart(2,'0')+"'"):(vm>0?(vs>0?vm+"'"+String(vs).padStart(2,'0')+'"':vm+"'"):(vs+'"'));tags+='<span style="font-family:var(--mono);font-size:9px;color:var(--text-muted);margin-left:6px;border-left:1px solid var(--border);padding-left:8px;">'+durSum+'</span>';}
     vinhetasHtml='<div class="ficha-vinhetas"><span class="ficha-vinhetas-label">Vinhetas</span>'+tags+'</div>';
   }
+  var sessLegSim=(s.leg_eletronica||'').toString().trim().toUpperCase()==='SIM';
+  var _legStar=false;
   var rows=films.map(function(f,idx){
     var _fRaw=filmesMap[f.codigo]||{};
     var _legOv=_legendaExibOverride(_fRaw);
@@ -17839,6 +17863,7 @@ function _progRenderSessao(sessaoNome){
       else if(f.legenda)legParts.push('<span class="leg-text leg-cldr">'+_fmtDcncToName(f.legenda)+'</span>');
       legCell=legParts.length?'<div class="leg-stack">'+legParts.join('')+'</div>':'<span style="color:var(--text-muted)">—</span>';
     }
+    if(!sessLegSim&&_legOv){legCell+='<span class="leg-star" title="sem operador de legendagem eletrônica">*</span>';_legStar=true;}
     var idiomaCell=f.idioma?'<span class="idioma-text">'+esc(f.idioma)+'</span>':'<span style="color:var(--text-muted)">—</span>';
     var acessCell=f.acessibilidade?'<div style="font-size:9px;line-height:1.4;color:var(--text-dim);max-width:100px;overflow:hidden;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;">'+esc(f.acessibilidade)+'</div>':'<span style="color:var(--text-muted)">—</span>';
     var paisCell=f.countries&&f.countries.length?progCountriesCell(f.countries):'<span style="color:var(--text-muted)">—</span>';
@@ -17882,6 +17907,7 @@ function _progRenderSessao(sessaoNome){
   html+=vinhetasHtml;
   if(s.session_description)html+='<div class="prog-sess-desc-block">'+esc(s.session_description)+'</div>';
   html+='<div class="film-table-wrap"><table><thead><tr><th>#</th><th>Título PT</th><th>Duração</th><th class="center">Idioma</th><th>Legendas</th><th class="center">KDM</th><th class="center" title="Acessibilidade"><svg width="13" height="13" viewBox="0 0 24 24" style="stroke:currentColor;stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round;vertical-align:middle;"><circle cx="11" cy="4" r="1"/><path d="m11 9 2 7h5l-1.5 3"/><path d="M9 9H7l1 7"/><path d="M13.5 19a4.5 4.5 0 1 1-9 0 4.5 4.5 0 0 1 9 0z"/></svg></th><th>País</th></tr></thead><tbody>'+(rows||'<tr><td colspan="8" style="text-align:center;color:var(--text-muted);padding:24px">Nenhum filme encontrado para esta sessão.</td></tr>')+'</tbody></table></div>';
+  if(_legStar)html+='<div class="ficha-leg-note">*não existe um operador de legendagem eletrônica associado a esta sessão, consulte a equipe de programação para confirmar se esta sessão contará com este recurso</div>';
   html+='<div class="ficha-footer"><div class="footer-total">Duração total dos filmes: <strong>'+totalDur+'</strong>'+(totalVinSecs>0?' &nbsp;·&nbsp; Vinhetas: <strong>'+Math.floor(totalVinSecs/3600)+'h'+String(Math.floor((totalVinSecs%3600)/60)).padStart(2,'0')+'</strong>':'')+'</div><div class="footer-stamp">OLGA · '+new Date().toLocaleString('pt-BR')+'</div></div></div>';
   c.innerHTML=html+'</div>';
   document.getElementById('progBarDynamic').innerHTML=bHtml;
@@ -18829,6 +18855,7 @@ var _EQUIPE_RESTRICOES=[
   {k:'catalogo.triagem',label:'Catálogo · Ocultar botão "Importar da Curadoria/Seleção"'},
   {k:'catalogo.cadastro_lote',label:'Catálogo · Ocultar botão "+ Múltiplos filmes"'},
   {k:'catalogo.exportar_especial',label:'Catálogo · Ocultar botão "Exportar especial"'},
+  {k:'catalogo.editar_legendas',label:'Catálogo · PERMITIR editar LEGENDAS e LEGENDA DE EXIBIÇÃO (cópia) no catálogo'},
   {k:'busca.exportar_especial',label:'Acervo Técnico · Ocultar botão "Exportar especial"'},
   {k:'sessoes.exportar_cinemas',label:'Sessões · Ocultar botão "Exportar para cinemas"'},
   {k:'triagem.filmfreeway',label:'Curadoria/Seleção · Ocultar botão FilmFreeway'},
@@ -20402,6 +20429,7 @@ function renderCatDetail(){
   var dirArr=Array.isArray(meta.director)?meta.director:(meta.director?[meta.director]:[]);
   var dirDisplay=dirArr.join(', ');
   var _legOvCat=_legendaExibOverride(copia);
+  var _catEditLeg=canEdit&&(window._olgaUser.role==='admin'||(window._olgaHasRestricao&&window._olgaHasRestricao('catalogo.editar_legendas')))&&!!filmesMap[_catCode];
   var legDisplay;
   if(_legOvCat){legDisplay=esc(_legOvCat);}
   else{
@@ -20462,7 +20490,7 @@ function renderCatDetail(){
   }
   html+='</div>';
   html+=catBlock('Técnico',
-    '<div class="cat-grid">'+catFld('Legendas',legDisplay)+'</div>'
+    '<div class="cat-grid">'+catFld('Legendas',(_catEditing&&_catEditLeg)?catInp('copia_legenda',copia.legenda||''):legDisplay)+catFld('Legenda de exibição',(_catEditing&&_catEditLeg)?('<select class="cat-input" id="catf_legenda_exibicao">'+['ORIGINAL','ELETRÔNICA EM PORTUGUÊS','ELETRÔNICA EM INGLÊS','ELETRÔNICA LSE'].map(function(o){return'<option value="'+o+'"'+((copia.legenda_exibicao||'ORIGINAL').toUpperCase()===o?' selected':'')+'>'+o+'</option>';}).join('')+'</select>'):esc(copia.legenda_exibicao||'ORIGINAL'))+'</div>'
     +'<div class="cat-grid">'+catFld('Metragem',_catEditing?catInp('film_type',meta.film_type||''):(meta.film_type||'\u2014'))+catFld('Classificação etária',_catEditing?'<select class="cat-input" id="catf_content_rating"><option value="">—</option>'+['L','10','12','14','16','18'].map(function(r){return'<option value="'+r+'"'+(meta.content_rating===r?' selected':'')+'>'+r+'</option>';}).join('')+'</select>':_catRatingBadge(meta.content_rating))+'</div>'
     +'<div class="cat-grid">'+catFld('Duração',_catEditing?'<input class="cat-input" id="catf_runtime" type="number" min="0" placeholder="minutos" value="'+esc(meta.runtime||'')+'">':(dur||copia.duracao||'\u2014'))+catFld('Acessibilidade',copia.acessibilidade||'\u2014')+'</div>'
     +(function(){
@@ -20798,6 +20826,9 @@ async function doSaveCat(){
     var _cf=filmesMap[_catCode];
     if(_cf&&window._olgaCopias){
       try{
+        // edição opcional de LEGENDAS / LEGENDA DE EXIBIÇÃO direto no catálogo (sob permissão)
+        var _legInp=document.getElementById('catf_copia_legenda');if(_legInp)_cf.legenda=(_legInp.value||'').trim();
+        var _exibInp=document.getElementById('catf_legenda_exibicao');if(_exibInp)_cf.legenda_exibicao=_exibInp.value||'ORIGINAL';
         // sincronizar duração: runtime (minutos) → dcp_duration (H:MM:SS) se a duração mudou no Catálogo
         var _dcpDur=_cf.duracao||'';
         if(typeof data.runtime==='number'&&data.runtime>0){
@@ -20806,7 +20837,7 @@ async function doSaveCat(){
         }else if(data.runtime===null){
           _dcpDur='';
         }
-        await window._olgaCopias.save(_catCode,{festival_code:_catCode,event_name:_cf.evento||'',title:_cf.titulo||'',original_language:data.original_language||'',dcp_subtitle_code:_cf.legenda||'',vf_subtitle_code:_cf.vf||'',projection_lens:_cf.lente||'',audio_format:_cf.som||'',status:_cf.status||'',notes:_cf.obs||'',dcp_creator:_cf.col_k||'',has_kdm:_cf.kdm||'',subtitle_status:_cf.col_n||'',cpl_id:_cf.cpl||'',ov_cpl_id:_cf.cplOV||'',dcp_resolution:_cf.resolucao||'',dcp_duration:_dcpDur,dcp_size:_cf.gb||'',dcp_bitrate:_cf.bitrate||'',dcp_fps:_cf.fps||'',storage_location:_cf.hd||'',dcp_uuid:_cf.dcp_uuid||'',accessibility_features:_cf.acessibilidade||'',dcp_link:_cf.dcp_link||'',file_link:_cf.file_link||'',translator:_cf.tradutor||[]});
+        await window._olgaCopias.save(_catCode,{festival_code:_catCode,event_name:_cf.evento||'',title:_cf.titulo||'',original_language:data.original_language||'',legenda_exibicao:_cf.legenda_exibicao||'',dcp_subtitle_code:_cf.legenda||'',vf_subtitle_code:_cf.vf||'',projection_lens:_cf.lente||'',audio_format:_cf.som||'',status:_cf.status||'',notes:_cf.obs||'',dcp_creator:_cf.col_k||'',has_kdm:_cf.kdm||'',subtitle_status:_cf.col_n||'',cpl_id:_cf.cpl||'',ov_cpl_id:_cf.cplOV||'',dcp_resolution:_cf.resolucao||'',dcp_duration:_dcpDur,dcp_size:_cf.gb||'',dcp_bitrate:_cf.bitrate||'',dcp_fps:_cf.fps||'',storage_location:_cf.hd||'',dcp_uuid:_cf.dcp_uuid||'',accessibility_features:_cf.acessibilidade||'',dcp_link:_cf.dcp_link||'',file_link:_cf.file_link||'',translator:_cf.tradutor||[]});
         _cf.idioma=data.original_language||'';
         _cf.duracao=_dcpDur;
       }catch(e){}
@@ -21980,6 +22011,13 @@ async function openAcervoEdit(idx){
     +aeRow('Idioma',langTagHtml('lw_ae_idioma','ae_idioma','Idioma…'))
     +aeRow('Legendas',aeInp('legenda',f.legenda))
     +'</div>'
+    +aeRow('Legenda de exibição',(function(){
+      var lopts=['ORIGINAL','ELETRÔNICA EM PORTUGUÊS','ELETRÔNICA EM INGLÊS','ELETRÔNICA LSE'];
+      var cur=(f.legenda_exibicao||'ORIGINAL').toUpperCase();
+      return '<select class="cat-input" id="ae_legenda_exibicao">'
+        +lopts.map(function(o){return'<option value="'+esc(o)+'"'+(cur===o?' selected':'')+'>'+esc(o)+'</option>';}).join('')
+        +'</select>';
+    })())
     +aeRow('VF',aeInp('vf',f.vf))
     +'<div class="cat-grid">'
     +aeRow('Lente',aeDatalist('lente',f.lente,'lente',listOpts(lentes)))
@@ -21995,13 +22033,6 @@ async function openAcervoEdit(idx){
     })())
     +aeRow('Observações do formato','<input class="cat-input" id="ae_exhibition_format_notes" type="text" value="'+esc(f.exhibition_format_notes||'')+'" placeholder="(opcional)">')
     +'</div>'
-    +aeRow('Legenda de exibição',(function(){
-      var lopts=['ORIGINAL','ELETRÔNICA EM PORTUGUÊS','ELETRÔNICA EM INGLÊS','ELETRÔNICA LSE'];
-      var cur=(f.legenda_exibicao||'ORIGINAL').toUpperCase();
-      return '<select class="cat-input" id="ae_legenda_exibicao">'
-        +lopts.map(function(o){return'<option value="'+esc(o)+'"'+(cur===o?' selected':'')+'>'+esc(o)+'</option>';}).join('')
-        +'</select>';
-    })())
     +'<div class="cat-grid">'
     +aeRow('Status',aeDatalist('status',f.status,'status',listOpts(statusVals)))
     +aeRow('KDM','<select class="cat-input" id="ae_kdm"><option value="Não"'+((!f.kdm||f.kdm.toLowerCase()!=='sim')?' selected':'')+'>Não</option><option value="Sim"'+((f.kdm&&f.kdm.toLowerCase()==='sim')?' selected':'')+'>Sim</option></select>')
@@ -24912,7 +24943,7 @@ function _sxcPrint(){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 11/06/2026 às 09:29</span></div>
+<div id="page-footer"><span>última atualização · 11/06/2026 às 12:11</span></div>
 
 </div>
 

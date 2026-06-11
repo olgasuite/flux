@@ -7071,6 +7071,7 @@ function switchMode(mode,noPush){
 
 /* UTILS */
 function clean(v){return(!v||v==='-'||v==='0')?'':v;}
+function _hideGuests(){return !!(window._olgaHasRestricao&&window._olgaHasRestricao('convidados.ocultar'));}
 // Info de legendagem eletrônica de uma sessão: tipos de legenda eletrônica (legenda_exibicao) dos filmes, flag leg.elet. e operadores
 function _legSessEletInfo(s){
   var idiomas=[];
@@ -7283,7 +7284,7 @@ function renderFicha(nome,s){
     }
     var acessLabel=acessSet.length?acessSet.join(' · '):'';
     extraHtml='<div class="ficha-extra">'+
-      (s.convidados?feRow('Convidados',s.convidados):'')+
+      (s.convidados&&!_hideGuests()?feRow('Convidados',s.convidados):'')+
       (s.ingressos?feRow('Ing. reservados',s.ingressos):'')+
       checkFields+
       (s.operador&&s.operador.length?feRow('Operador(es)',esc(s.operador.join(', '))+' <span style="opacity:0.6;font-weight:400;">(op. de leg.)</span>'):'')+
@@ -14791,7 +14792,7 @@ function showTooltip(ev,s){
   var iconUsers='<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-2px;margin-right:5px;opacity:.7"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>';
   var iconSub='<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-2px;margin-right:5px;opacity:.7"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>';
   var legInfo=_legSessEletInfo(s);
-  var convStr=s.convidados&&s.convidados.trim()?s.convidados.trim():'';
+  var convStr=(!_hideGuests()&&s.convidados&&s.convidados.trim())?s.convidados.trim():'';
   var extraRows='';
   if(convStr)extraRows+='<div class="tt-row">'+iconUsers+'<span>'+convStr+'</span></div>';
   if(legInfo.legSim||legInfo.idiomas.length)extraRows+='<div class="tt-row">'+iconSub+'<span>'+esc(legInfo.idiomas.length?('Leg. eletrônica · '+legInfo.idiomas.join(', ')):'Leg. eletrônica')+'</span></div>';
@@ -16384,7 +16385,7 @@ function renderDash(){
           return(!st||st==='-'||st.toUpperCase().includes('ERRO'));
         });
         var extras=[];
-        if(s.convidados)extras.push('Convidados: '+s.convidados);
+        if(s.convidados&&!_hideGuests())extras.push('Convidados: '+s.convidados);
         if(s.apresentacao&&s.apresentacao.toUpperCase()==='SIM')extras.push('Apresentação ✓');
         if(s.leg_eletronica&&s.leg_eletronica.toUpperCase()==='SIM')extras.push('Leg. elet. ✓');
         if(s.col_ag&&s.col_ag.toUpperCase()==='SIM')extras.push('Debate ✓');
@@ -17071,7 +17072,7 @@ function renderDash(){
   html+=colBlock('legendagem','Legendagem',legBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 11/06/2026 às 13:55';
+  var sysUpdate='última atualização do sistema · 11/06/2026 às 14:03';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -17835,7 +17836,7 @@ function _progRenderSessao(sessaoNome){
     if((s.acessibilidades||'').toLowerCase()==='sim'){
       films.forEach(function(f){if(f.acessibilidade){f.acessibilidade.split(/[,;\/\n]+/).forEach(function(a){var t=a.trim();if(t&&acessSet2.indexOf(t)<0)acessSet2.push(t);});}});
     }
-    extraHtml='<div class="ficha-extra">'+(s.convidados?feRow('Convidados',s.convidados):'')+(s.ingressos?feRow('Ing. reservados',s.ingressos):'')+checkFields+(s.operador&&s.operador.length?feRow('Operador(es)',esc(s.operador.join(', '))+' <span style="opacity:0.6;font-weight:400;">(op. de leg.)</span>'):'')+(acessSet2.length?feRow('Recursos acessib.',acessSet2.join(' · ')):'')+'</div>';
+    extraHtml='<div class="ficha-extra">'+(s.convidados&&!_hideGuests()?feRow('Convidados',s.convidados):'')+(s.ingressos?feRow('Ing. reservados',s.ingressos):'')+checkFields+(s.operador&&s.operador.length?feRow('Operador(es)',esc(s.operador.join(', '))+' <span style="opacity:0.6;font-weight:400;">(op. de leg.)</span>'):'')+(acessSet2.length?feRow('Recursos acessib.',acessSet2.join(' · ')):'')+'</div>';
   }
   var vinhetasHtml='';
   var totalVinSecs=0;
@@ -18842,6 +18843,7 @@ var _EQUIPE_RESTRICOES=[
   {k:'sessoes.publico',label:'Sessões · Público'},
   {k:'sessoes.renda',label:'Sessões · Renda'},
   {k:'bilheteria.editar_bordero',label:'Bilheteria · PERMITIR editar Público, Renda e Ingressos (borderô)'},
+  {k:'convidados.ocultar',label:'Convidados · Ocultar nomes de convidados (fichas, sessões e dashboard)'},
   {k:'dashboard.publico',label:'Dashboard · Público (borderô)'},
   {k:'dashboard.renda',label:'Dashboard · Renda (borderô)'},
   {k:'dashboard.publico_total',label:'Dashboard · Público total'},
@@ -24950,7 +24952,7 @@ function _sxcPrint(){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 11/06/2026 às 13:55</span></div>
+<div id="page-footer"><span>última atualização · 11/06/2026 às 14:03</span></div>
 
 </div>
 
@@ -25411,7 +25413,7 @@ function _mobRenderSessaoFicha(params){
 
   // extra info
   var extraParts=[];
-  if(s.convidados)extraParts.push('Convidados: '+s.convidados);
+  if(s.convidados&&!_hideGuests())extraParts.push('Convidados: '+s.convidados);
   if(s.ingressos)extraParts.push('Ingressos reservados: '+s.ingressos);
   if(extraParts.length)html+='<div style="font-family:var(--mono);font-size:10px;color:var(--accent);background:rgba(255,186,32,0.07);border:1px solid rgba(255,186,32,0.2);border-radius:2px;padding:7px 10px;margin-bottom:10px;">'+extraParts.map(_mobEsc).join(' · ')+'</div>';
 
@@ -26516,7 +26518,7 @@ function _mobRenderProgSessao(params,noScroll){
   html+='<div class="mob-ficha-subtitulo">'+_mobEsc(s.cinema)+' · '+_mobEsc(s.dia||'')+(s.hora?' · '+_mobEsc(s.hora):'')+'</div>';
   if(s.session_description)html+='<div style="font-family:var(--mono);font-size:10px;color:var(--text-dim);margin-bottom:10px;line-height:1.5;">'+_mobEsc(s.session_description)+'</div>';
   var extraParts=[];
-  if(s.convidados)extraParts.push('Convidados: '+s.convidados);
+  if(s.convidados&&!_hideGuests())extraParts.push('Convidados: '+s.convidados);
   if(s.ingressos)extraParts.push('Ingressos reservados: '+s.ingressos);
   if(extraParts.length)html+='<div style="font-family:var(--mono);font-size:10px;color:var(--accent);background:rgba(255,186,32,0.07);border:1px solid rgba(255,186,32,0.2);border-radius:2px;padding:7px 10px;margin-bottom:10px;">'+extraParts.map(_mobEsc).join(' · ')+'</div>';
   var boxItems=[{label:'Apresentação',val:s.apresentacao},{label:'Leg. eletrônica',val:s.leg_eletronica},{label:'Debate',val:s.col_ag},{label:'Acessibilidade',val:s.acessibilidades},{label:'P/ convidados',val:s.para_convidados}];

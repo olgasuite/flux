@@ -7236,6 +7236,7 @@ function renderFicha(nome,s){
   var totalDur=totalSecs>0?_secsToHMS(totalSecs):'0:00:00';
   var totalGBStr=totalGB>0?totalGB.toFixed(0)+' GB':'—';
   var sessLegSim=(s.leg_eletronica||'').toString().trim().toUpperCase()==='SIM';
+  var _legSemOperador=sessLegSim&&!(s.operador&&s.operador.length);
   var _legStar=false;
   var rows=films.map(function(f,idx){
     var titulo=clean(f.titulo)||f.codigo,hd=clean(f.hd),lente=clean(f.lente),som=clean(f.som),legenda=clean(f.legenda),vf=clean(f.vf),kdm=f.kdm||'não',cpl=clean(f.cpl),obs=clean(f.obs),dur=clean(f.duracao),res=clean(f.resolucao),fps=clean(f.fps),gb=clean(f.gb),acessF=clean(f.acessibilidade),exh=clean(f.exhibition_format);
@@ -7245,7 +7246,7 @@ function renderFicha(nome,s){
     if(vf)legParts.push('<span class="leg-text leg-vf-entry"><span class="leg-vf-label">VF</span> <span class="leg-dcnc">'+_fmtDcncCode(vf)+'</span></span>');
     else if(legenda)legParts.push('<span class="leg-text leg-dcnc">'+_fmtDcncCode(legenda)+'</span>');
     var legCell=legParts.length?'<div class="leg-stack">'+legParts.join('')+'</div>':'<span style="color:var(--text-muted)">—</span>';
-    if(!sessLegSim&&_legendaExibOverride(f)){legCell+='<span class="leg-star" title="sem operador de legendagem eletrônica">*</span>';_legStar=true;}
+    if(_legSemOperador){legCell+='<span class="leg-star" title="sem operador de legendagem eletrônica">*</span>';_legStar=true;}
     var _idiomaVal=clean((catalogoFilmesMap&&catalogoFilmesMap[f.codigo]&&catalogoFilmesMap[f.codigo].original_language)||'')||clean(f.idioma);
     var idiomaCell=_idiomaVal?'<span class="idioma-text">'+_idiomaVal+'</span>':'<span style="color:var(--text-muted)">—</span>';
     var fpsgb='<div class="fps-gb"><span class="fps-val">'+(fps||'—')+'</span>'+(gb?'<span class="gb-val">'+gb+' GB</span>':'')+'</div>';
@@ -7287,7 +7288,7 @@ function renderFicha(nome,s){
       (s.convidados&&!_hideGuests()?feRow('Convidados',s.convidados):'')+
       (s.ingressos?feRow('Ing. reservados',s.ingressos):'')+
       checkFields+
-      (s.operador&&s.operador.length?feRow('Operador(es)',esc(s.operador.join(', '))+' <span style="opacity:0.6;font-weight:400;">(op. de leg.)</span>'):'')+
+      (s.operador&&s.operador.length?'<div class="fe-row"><span class="fe-value accent">'+esc(s.operador.join(', '))+' <span style="opacity:0.6;font-weight:400;">(op. de leg.)</span></span></div>':'')+
       (acessLabel?feRow('Recursos acessib.',acessLabel):'')+
     '</div>';
   }
@@ -17072,7 +17073,7 @@ function renderDash(){
   html+=colBlock('legendagem','Legendagem',legBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 11/06/2026 às 14:03';
+  var sysUpdate='última atualização do sistema · 11/06/2026 às 14:05';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -17836,7 +17837,7 @@ function _progRenderSessao(sessaoNome){
     if((s.acessibilidades||'').toLowerCase()==='sim'){
       films.forEach(function(f){if(f.acessibilidade){f.acessibilidade.split(/[,;\/\n]+/).forEach(function(a){var t=a.trim();if(t&&acessSet2.indexOf(t)<0)acessSet2.push(t);});}});
     }
-    extraHtml='<div class="ficha-extra">'+(s.convidados&&!_hideGuests()?feRow('Convidados',s.convidados):'')+(s.ingressos?feRow('Ing. reservados',s.ingressos):'')+checkFields+(s.operador&&s.operador.length?feRow('Operador(es)',esc(s.operador.join(', '))+' <span style="opacity:0.6;font-weight:400;">(op. de leg.)</span>'):'')+(acessSet2.length?feRow('Recursos acessib.',acessSet2.join(' · ')):'')+'</div>';
+    extraHtml='<div class="ficha-extra">'+(s.convidados&&!_hideGuests()?feRow('Convidados',s.convidados):'')+(s.ingressos?feRow('Ing. reservados',s.ingressos):'')+checkFields+(s.operador&&s.operador.length?'<div class="fe-row"><span class="fe-value accent">'+esc(s.operador.join(', '))+' <span style="opacity:0.6;font-weight:400;">(op. de leg.)</span></span></div>':'')+(acessSet2.length?feRow('Recursos acessib.',acessSet2.join(' · ')):'')+'</div>';
   }
   var vinhetasHtml='';
   var totalVinSecs=0;
@@ -17858,6 +17859,7 @@ function _progRenderSessao(sessaoNome){
     vinhetasHtml='<div class="ficha-vinhetas"><span class="ficha-vinhetas-label">Vinhetas</span>'+tags+'</div>';
   }
   var sessLegSim=(s.leg_eletronica||'').toString().trim().toUpperCase()==='SIM';
+  var _legSemOperador=sessLegSim&&!(s.operador&&s.operador.length);
   var _legStar=false;
   var rows=films.map(function(f,idx){
     var _fRaw=filmesMap[f.codigo]||{};
@@ -17871,7 +17873,7 @@ function _progRenderSessao(sessaoNome){
       else if(f.legenda)legParts.push('<span class="leg-text leg-cldr">'+_fmtDcncToName(f.legenda)+'</span>');
       legCell=legParts.length?'<div class="leg-stack">'+legParts.join('')+'</div>':'<span style="color:var(--text-muted)">—</span>';
     }
-    if(!sessLegSim&&_legOv){legCell+='<span class="leg-star" title="sem operador de legendagem eletrônica">*</span>';_legStar=true;}
+    if(_legSemOperador){legCell+='<span class="leg-star" title="sem operador de legendagem eletrônica">*</span>';_legStar=true;}
     var idiomaCell=f.idioma?'<span class="idioma-text">'+esc(f.idioma)+'</span>':'<span style="color:var(--text-muted)">—</span>';
     var acessCell=f.acessibilidade?'<div style="font-size:9px;line-height:1.4;color:var(--text-dim);max-width:100px;overflow:hidden;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;">'+esc(f.acessibilidade)+'</div>':'<span style="color:var(--text-muted)">—</span>';
     var paisCell=f.countries&&f.countries.length?progCountriesCell(f.countries):'<span style="color:var(--text-muted)">—</span>';
@@ -24952,7 +24954,7 @@ function _sxcPrint(){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 11/06/2026 às 14:03</span></div>
+<div id="page-footer"><span>última atualização · 11/06/2026 às 14:05</span></div>
 
 </div>
 

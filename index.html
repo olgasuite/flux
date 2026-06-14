@@ -141,7 +141,7 @@ header{
 
 /* ── CINEMA EDIT MODAL ── */
 #cinemaEditOverlay{position:fixed;inset:0;z-index:500;background:rgba(0,0,0,0.7);display:flex;align-items:flex-start;justify-content:center;padding:24px;overflow-y:auto;}
-#cinemaEditModal{background:var(--surface);border:1px solid var(--border2);width:100%;max-width:640px;height:auto;max-height:calc(90vh / var(--ui-boost));display:flex;flex-direction:column;overflow:hidden;}
+#cinemaEditModal{background:var(--surface);border:1px solid var(--border2);width:100%;max-width:640px;height:auto;max-height:calc(90vh / var(--modal-boost));display:flex;flex-direction:column;overflow:hidden;}
 .cem-header{padding:16px 20px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
 .cem-title{font-family:var(--mono);font-size:13px;font-weight:600;color:var(--accent);letter-spacing:0.06em;}
 .cem-close{background:none;border:none;color:var(--text-muted);font-size:16px;cursor:pointer;padding:2px 6px;line-height:1;}
@@ -4168,6 +4168,7 @@ html[data-theme="indexof"]:not([data-theme="win98"]) .module-icon{display:flex!i
 
 /* ─── BOOST DE TEXTO +30% (rótulo 100% do zoom = antigo 130%) ─── */
 :root{--ui-boost:1.3;} /* manter em sincronia com ZOOM_BASE no JS */
+:root{--modal-boost:calc(var(--ui-boost) * 0.8);} /* modais 20% menores que a escala geral */
 #landing{zoom:0.7692307692;} /* cancela o +30% no landing (segue igual a hoje) */
 /* fichas/modais que abrem em janelas separadas (fora do #main-content) sobem na mesma escala */
 .recep-modal-overlay>.recep-modal-box,
@@ -4176,7 +4177,7 @@ html[data-theme="indexof"]:not([data-theme="win98"]) .module-icon{display:flex!i
 #catCriaSessaoModal>div,#sessoesAplicarTemplateModal>div,#progBatchModal>div,
 #reservasModal>div,#equipeModal>div,#tplModal>div,#equipeDeleteModal>div,
 #ffImportModal>div,#sfdImportModal>div,#iuModal>div,#sxcModal>div,#catExpModal>div,
-#batchModal>div,#_cinMergeModal>div,#sessaoBorderoModal>div{zoom:var(--ui-boost);max-height:calc(90vh / var(--ui-boost))!important;overflow-y:auto;}
+#batchModal>div,#_cinMergeModal>div,#sessaoBorderoModal>div{zoom:var(--modal-boost);max-height:calc(90vh / var(--modal-boost))!important;overflow-y:auto;}
 </style>
 <script type="module">
   import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
@@ -17333,7 +17334,7 @@ function renderDash(){
   html+=colBlock('legendagem','Legendagem',legBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 14/06/2026 às 21:56';
+  var sysUpdate='última atualização do sistema · 14/06/2026 às 21:58';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -25262,7 +25263,7 @@ function _sxcPrint(){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 14/06/2026 às 21:56</span></div>
+<div id="page-footer"><span>última atualização · 14/06/2026 às 21:58</span></div>
 
 </div>
 

@@ -6358,7 +6358,7 @@ window.addEventListener('DOMContentLoaded',function(){
       <div class="cem-body" id="cemBody"></div>
       <div class="cem-footer">
         <span class="cem-status" id="cemStatus"></span>
-        <button class="cem-btn-cancel" id="cemDeleteBtn" onclick="deleteCinemaSala()" style="display:none;color:var(--warn);border-color:var(--warn);margin-right:auto;">× Excluir sala</button>
+        <button class="cem-btn-cancel" id="cemDeleteBtn" onclick="cemDelete()" style="display:none;color:var(--warn);border-color:var(--warn);margin-right:auto;">× Excluir sala</button>
         <button class="cem-btn-cancel" onclick="closeCinemaEdit()">Cancelar</button>
         <button class="cem-btn-save" id="cemSaveBtn" onclick="saveCinemaEdit()">Salvar</button>
       </div>
@@ -7206,6 +7206,17 @@ function _restVinhetaDoc(v){
     projection_lens:v.lente||'',audio_format:v.som||'',notes:v.obs||'',
     cpl_id:v.cpl||'',file_link:v.link||'',duration:v.duracao||''};
 }
+function _restCinemaDoc(c){
+  return{venue_name:c.sala||'',complex_name:c.complexo||'',server_model:c.servidor||'',
+    server_serial:c.serial||'',projector_model:c.projetor||'',seat_count:c.assentos||'',
+    screen_aspect_ratio:c.proporcao||'',sound_system:c.som||'',notes:c.obs||'',
+    cineassist_system:c.cineassista||'',tms_system:c.tms||'',storage_gb:c.storage_gb||'',
+    event_name:c.evento||'',state:c.estado||'',address:c.endereco||'',complex_phone:c.telefone||'',
+    kdm_email:c.email_kdm||'',mgmt_email:c.email_ger||'',screen_height:c.tela_h||'',
+    screen_width:c.tela_w||'',cert_subject:c.cert_subject||'',cert_issuer:c.cert_issuer||'',
+    cert_serial_hex:c.cert_serial_hex||'',cert_serial_dec:c.cert_serial_dec||'',
+    cert_thumbprint:c.cert_thumbprint||'',cert_filename:c.cert_filename||'',utc_offset:c.utc_offset||''};
+}
 function _olgaRestoreBackupFile(input){
   var file=input.files&&input.files[0];
   input.value='';
@@ -7248,6 +7259,11 @@ async function _olgaRestoreBackup(payload){
     plan.push({label:'vinheta '+v.codigo,fn:function(){return window._olgaVinhetas.save(v.codigo,_restVinhetaDoc(v));}});
     current.push({tipo:'vinheta',doc:vinhetasArr.find(function(x){return x.codigo===v.codigo;})||null});
   }
+  function planCinema(c){
+    if(!c||!c.sala)return;
+    plan.push({label:'cinema '+c.sala,fn:function(){return window._olgaCinemas.createSala(_restCinemaDoc(c));}});
+    current.push({tipo:'cinema',doc:(cinemasArr||[]).find(function(x){return x.sala===c.sala;})||null});
+  }
   payload.docs.forEach(function(item){
     if(!item)return;
     if(item.tipo&&item.doc!==undefined&&item.doc){
@@ -7261,6 +7277,7 @@ async function _olgaRestoreBackup(payload){
       else if(item.tipo==='mostra'&&dd.id)plan.push({label:'mostra '+dd.id,fn:function(){return window._olgaPrograms.save(dd.id,dd.data||{});}});
       else if(item.tipo==='submostra'&&dd.id)plan.push({label:'submostra '+dd.id,fn:function(){return window._olgaSubprograms.save(dd.id,dd.data||{});}});
       else if(item.tipo==='evento'&&dd.id)plan.push({label:'evento '+dd.id,fn:function(){return window._olgaEventos.save(dd.id,dd.data||{});}});
+      else if(item.tipo==='cinema')planCinema(dd);
     }else if(item.codigo!==undefined&&(item.filme!==undefined||item.copia!==undefined)){
       // backup de lote do catálogo: {codigo, filme, copia}
       planFilme(item.codigo,item.filme);
@@ -9310,7 +9327,7 @@ function openCinemaEdit(sala, complexoCtx){
       _telaFields(c)+
       _equipFields(c);
     // Botão Excluir só pra admin
-    if(_cemDelBtn&&window._olgaUser&&window._olgaUser.role==='admin')_cemDelBtn.style.display='';
+    if(_cemDelBtn&&window._olgaUser&&window._olgaUser.role==='admin'){_cemDelBtn.style.display='';_cemDelBtn.textContent='× Excluir sala';}
 
   }else if(complexoCtx&&sala==='__complexo__'){
     // ── MODE: edit complexo metadata only ────────────────────────────────────
@@ -9322,6 +9339,8 @@ function openCinemaEdit(sala, complexoCtx){
     body.innerHTML=
       _complexoFields(all, complexoCtx, ref.estado||'', ref.endereco||'', ref.email_kdm||'', ref.email_ger||'', ref.tms||'', ref.telefone||'')+
       '<div style="font-family:var(--mono);font-size:9px;color:var(--text-muted);padding:10px 0 4px;">As alterações de nome, estado e endereço serão aplicadas a todas as salas deste complexo.</div>';
+    // Botão Excluir complexo só pra admin
+    if(_cemDelBtn&&window._olgaUser&&window._olgaUser.role==='admin'){_cemDelBtn.style.display='';_cemDelBtn.textContent='× Excluir complexo';}
 
   }else{
     // ── MODE: new sala (optionally pre-fill complexo) ─────────────────────────
@@ -9392,6 +9411,11 @@ function closeCinemaEdit(){
 
 function _cemVal(id){var el=document.getElementById(id);return el?(el.value||'').trim():'';}
 
+function cemDelete(){
+  if(_cemMode==='complexo')return deleteCinemaComplexo();
+  return deleteCinemaSala();
+}
+
 async function deleteCinemaSala(){
   if(!(window._olgaUser&&window._olgaUser.role==='admin')){alert('Apenas admin pode excluir salas.');return;}
   if(!_cemSala){return;}
@@ -9406,6 +9430,7 @@ async function deleteCinemaSala(){
   if(sessVinc>0&&!confirm('Confirme novamente: excluir "'+_cemSala+'"?'))return;
   var btn=document.getElementById('cemDeleteBtn');if(btn){btn.disabled=true;btn.textContent='Excluindo…';}
   try{
+    _olgaPreBackup('exclusao-sala-'+_cemSala,[{tipo:'cinema',doc:c}],'sala excluída do módulo Cinemas');
     await window._olgaCinemas.removeSala(c.docId);
     window._logFirestoreEdit&&window._logFirestoreEdit('delete',c.docId,{},'cinemas','cinemas');
     // remove do cache em memória
@@ -9415,6 +9440,39 @@ async function deleteCinemaSala(){
   }catch(e){
     alert('Erro ao excluir: '+e.message);
     if(btn){btn.disabled=false;btn.textContent='× Excluir sala';}
+  }
+}
+
+async function deleteCinemaComplexo(){
+  if(!(window._olgaUser&&window._olgaUser.role==='admin')){alert('Apenas admin pode excluir complexos.');return;}
+  if(!_cemComplexo){return;}
+  var all=getAllCinemas();
+  var salasInCx=all.order.filter(function(s){return(all.map[s].complexo||s)===_cemComplexo;});
+  var salaObjs=salasInCx.map(function(s){return all.map[s];}).filter(function(c){return c&&c.docId;});
+  if(!salaObjs.length){alert('Nenhuma sala com docId encontrada neste complexo.');return;}
+  var sessVinc=(sessoesArr||[]).filter(function(s){return salasInCx.indexOf(s.cinema)>=0;}).length;
+  var msg='Excluir o complexo "'+_cemComplexo+'" e suas '+salaObjs.length+' sala(s)?';
+  if(sessVinc>0)msg+='\n\n⚠ '+sessVinc+' sessão(ões) está(ão) referenciando salas deste complexo. Elas vão ficar com referência morta (vinculo quebrado).';
+  msg+='\n\nEsta ação é IRREVERSÍVEL.';
+  if(!confirm(msg))return;
+  if(!confirm('Confirme novamente: excluir o complexo "'+_cemComplexo+'" ('+salaObjs.length+' sala(s))?'))return;
+  var btn=document.getElementById('cemDeleteBtn');if(btn){btn.disabled=true;btn.textContent='Excluindo…';}
+  try{
+    _olgaPreBackup('exclusao-complexo-'+_cemComplexo,salaObjs.map(function(c){return{tipo:'cinema',doc:c};}),'salas do complexo excluído');
+    var errs=[];
+    for(var i=0;i<salaObjs.length;i++){
+      try{await window._olgaCinemas.removeSala(salaObjs[i].docId);}
+      catch(e){errs.push((salaObjs[i].sala||salaObjs[i].docId)+': '+e.message);}
+    }
+    window._logFirestoreEdit&&window._logFirestoreEdit('delete',_cemComplexo,{complexo:_cemComplexo,salas:salaObjs.length,erros:errs.length},'cinemas','cinemas');
+    // remove do cache em memória
+    if(Array.isArray(cinemasArr)){salaObjs.forEach(function(o){var ix=cinemasArr.findIndex(function(x){return x.docId===o.docId;});if(ix>=0)cinemasArr.splice(ix,1);});}
+    closeCinemaEdit();
+    if(typeof renderCinemas==='function')renderCinemas();
+    if(errs.length)alert('Complexo excluído com erros:\n'+errs.slice(0,8).join('\n')+(errs.length>8?'\n…':''));
+  }catch(e){
+    alert('Erro ao excluir: '+e.message);
+    if(btn){btn.disabled=false;btn.textContent='× Excluir complexo';}
   }
 }
 
@@ -17275,7 +17333,7 @@ function renderDash(){
   html+=colBlock('legendagem','Legendagem',legBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 11/06/2026 às 21:46';
+  var sysUpdate='última atualização do sistema · 14/06/2026 às 21:48';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -25204,7 +25262,7 @@ function _sxcPrint(){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 11/06/2026 às 21:46</span></div>
+<div id="page-footer"><span>última atualização · 14/06/2026 às 21:48</span></div>
 
 </div>
 

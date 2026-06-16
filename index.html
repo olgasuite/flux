@@ -7263,8 +7263,13 @@ async function _olgaRestoreBackup(payload){
   }
   function planCinema(c){
     if(!c||!c.sala)return;
-    plan.push({label:'cinema '+c.sala,fn:function(){return window._olgaCinemas.createSala(_restCinemaDoc(c));}});
-    current.push({tipo:'cinema',doc:(cinemasArr||[]).find(function(x){return x.sala===c.sala;})||null});
+    var existing=(cinemasArr||[]).find(function(x){return x.sala===c.sala;});
+    if(existing&&existing.docId){
+      plan.push({label:'cinema '+c.sala,fn:function(){return window._olgaCinemas.saveSala(existing.docId,_restCinemaDoc(c));}});
+    }else{
+      plan.push({label:'cinema '+c.sala,fn:function(){return window._olgaCinemas.createSala(_restCinemaDoc(c));}});
+    }
+    current.push({tipo:'cinema',doc:existing||null});
   }
   payload.docs.forEach(function(item){
     if(!item)return;
@@ -9272,9 +9277,17 @@ function _complexoFields(all, cx, estado, endereco, emailKdm, emailGer, tms, tel
 }
 
 function _salaFields(nomeSala, evento, isNew){
+  var sel=(evento||'').split(';').map(function(s){return s.trim();}).filter(Boolean);
+  var allEv=Object.keys(eventColors||{}).sort(function(a,b){return a.localeCompare(b,'pt-BR');});
+  var evHtml=allEv.length?allEv.map(function(e){
+    var chk=sel.indexOf(e)!==-1?'checked':'';
+    return '<label style="display:inline-flex;align-items:center;gap:5px;font-family:var(--mono);font-size:10px;color:var(--text-dim);cursor:pointer;margin:0 12px 5px 0;"><input type="checkbox" class="cemSalaEvento" value="'+_esc(e)+'" '+chk+' style="accent-color:var(--accent);">'+_esc(e)+'</label>';
+  }).join(''):'<span style="font-family:var(--mono);font-size:10px;color:var(--text-muted);">Nenhum evento cadastrado.</span>';
   return _cemSection('Sala'+(isNew?' — nova':''))+
-    '<div class="cem-field"><label class="cem-label">Nome da sala'+(isNew?' <span style="color:var(--warn)">*</span>':'')+'</label><input class="cem-input" id="cemSalaNome" value="'+_esc(nomeSala)+'" placeholder="Ex: Sala 1"></div>';
+    '<div class="cem-field"><label class="cem-label">Nome da sala'+(isNew?' <span style="color:var(--warn)">*</span>':'')+'</label><input class="cem-input" id="cemSalaNome" value="'+_esc(nomeSala)+'" placeholder="Ex: Sala 1"></div>'+
+    '<div class="cem-field"><label class="cem-label">Eventos nesta sala</label><div style="display:flex;flex-wrap:wrap;padding:4px 0;">'+evHtml+'</div></div>';
 }
+function _cemSalaEventos(){var a=[];document.querySelectorAll('.cemSalaEvento:checked').forEach(function(c){a.push(c.value);});return a.join(';');}
 
 function _telaFields(c){
   c=c||{};
@@ -9515,9 +9528,10 @@ async function saveCinemaEdit(){
         if(addSalaEl&&addSalaEl.checked){
           var salaNome=g('cemSalaNome');
           if(!salaNome){status.className='cem-status err';status.textContent='Nome da sala é obrigatório quando "Cadastrar uma sala agora" está marcado.';btn.disabled=false;return;}
-          var sFields={venue_name:salaNome,complex_name:complexo,state:estado,address:endereco,complex_phone:g('cemTelefone'),kdm_email:g('cemEmailKdm'),mgmt_email:g('cemEmailGer'),server_model:g('cemServidor'),server_serial:g('cemSerial'),projector_model:g('cemProjetor'),sound_system:g('cemSom'),screen_aspect_ratio:g('cemProporcao'),seat_count:g('cemAssentos'),cineassist_system:g('cemCineassista'),notes:g('cemObs'),screen_height:g('cemTelaH'),screen_width:g('cemTelaW'),utc_offset:g('cemUtcOffset')};
+          var eventoSala3=_cemSalaEventos();
+          var sFields={venue_name:salaNome,event_name:eventoSala3,complex_name:complexo,state:estado,address:endereco,complex_phone:g('cemTelefone'),kdm_email:g('cemEmailKdm'),mgmt_email:g('cemEmailGer'),server_model:g('cemServidor'),server_serial:g('cemSerial'),projector_model:g('cemProjetor'),sound_system:g('cemSom'),screen_aspect_ratio:g('cemProporcao'),seat_count:g('cemAssentos'),cineassist_system:g('cemCineassista'),notes:g('cemObs'),screen_height:g('cemTelaH'),screen_width:g('cemTelaW'),utc_offset:g('cemUtcOffset')};
           var newId=await window._olgaCinemas.createSala(sFields);
-          cinemasArr.push({docId:newId,sala:salaNome,complexo:complexo,estado:estado,endereco:endereco,telefone:g('cemTelefone'),email_kdm:g('cemEmailKdm'),email_ger:g('cemEmailGer'),evento:'',servidor:g('cemServidor'),serial:g('cemSerial'),projetor:g('cemProjetor'),som:g('cemSom'),proporcao:g('cemProporcao'),assentos:g('cemAssentos'),tela_h:telaH2,tela_w:telaW2,cineassista:g('cemCineassista'),obs:'',utc_offset:g('cemUtcOffset'),cert_serial_hex:'',cert_serial_dec:'',cert_issuer:'',cert_subject:'',cert_thumbprint:'',cert_filename:'',cert_imported_at:null});
+          cinemasArr.push({docId:newId,sala:salaNome,complexo:complexo,estado:estado,endereco:endereco,telefone:g('cemTelefone'),email_kdm:g('cemEmailKdm'),email_ger:g('cemEmailGer'),evento:eventoSala3,servidor:g('cemServidor'),serial:g('cemSerial'),projetor:g('cemProjetor'),som:g('cemSom'),proporcao:g('cemProporcao'),assentos:g('cemAssentos'),tela_h:telaH2,tela_w:telaW2,cineassista:g('cemCineassista'),obs:'',utc_offset:g('cemUtcOffset'),cert_serial_hex:'',cert_serial_dec:'',cert_issuer:'',cert_subject:'',cert_thumbprint:'',cert_filename:'',cert_imported_at:null});
           status.className='cem-status ok';status.textContent='Complexo e sala criados ✓';
           setTimeout(function(){closeCinemaEdit();renderCinemas();openCinemaDetail(salaNome);},700);
         }else{
@@ -9549,10 +9563,11 @@ async function saveCinemaEdit(){
         var telaH=g('cemTelaH');var telaW=g('cemTelaW');
         var storageGB=g('cemStorageGB');
         if(!salaNome){status.className='cem-status err';status.textContent='Nome da sala é obrigatório.';btn.disabled=false;return;}
-        var salaFields={venue_name:salaNome,server_model:servidor,server_serial:serial,projector_model:projetor,sound_system:som,screen_aspect_ratio:proporcao,seat_count:assentos,cineassist_system:cineassista,notes:obs,screen_height:telaH,screen_width:telaW,storage_gb:storageGB,utc_offset:utcOffset};
+        var eventoSala=_cemSalaEventos();
+        var salaFields={venue_name:salaNome,event_name:eventoSala,server_model:servidor,server_serial:serial,projector_model:projetor,sound_system:som,screen_aspect_ratio:proporcao,seat_count:assentos,cineassist_system:cineassista,notes:obs,screen_height:telaH,screen_width:telaW,storage_gb:storageGB,utc_offset:utcOffset};
         await window._olgaCinemas.saveSala(c2.docId,salaFields);
         window._logFirestoreEdit&&window._logFirestoreEdit('individual',c2.docId,salaFields,'cinemas','cinemas');
-        Object.assign(c2,{sala:salaNome,servidor:servidor,serial:serial,projetor:projetor,som:som,proporcao:proporcao,assentos:assentos,cineassista:cineassista,obs:obs,tela_h:telaH,tela_w:telaW,storage_gb:storageGB,utc_offset:utcOffset});
+        Object.assign(c2,{sala:salaNome,evento:eventoSala,servidor:servidor,serial:serial,projetor:projetor,som:som,proporcao:proporcao,assentos:assentos,cineassista:cineassista,obs:obs,tela_h:telaH,tela_w:telaW,storage_gb:storageGB,utc_offset:utcOffset});
         status.className='cem-status ok';status.textContent='Salvo ✓';
         setTimeout(function(){closeCinemaEdit();renderCinemas();openCinemaDetail(salaNome);},700);
       }else{
@@ -9561,10 +9576,11 @@ async function saveCinemaEdit(){
         var endereco=g('cemEndereco');
         if(!salaNome){status.className='cem-status err';status.textContent='Nome da sala é obrigatório.';btn.disabled=false;return;}
         var telaH2=g('cemTelaH');var telaW2=g('cemTelaW');
-        var fields={venue_name:salaNome,complex_name:complexo,state:estado,address:endereco,complex_phone:g('cemTelefone'),kdm_email:g('cemEmailKdm'),mgmt_email:g('cemEmailGer'),server_model:servidor,server_serial:serial,projector_model:projetor,sound_system:som,screen_aspect_ratio:proporcao,seat_count:assentos,cineassist_system:cineassista,notes:obs,screen_height:telaH2,screen_width:telaW2,utc_offset:utcOffset};
+        var eventoSala2=_cemSalaEventos();
+        var fields={venue_name:salaNome,event_name:eventoSala2,complex_name:complexo,state:estado,address:endereco,complex_phone:g('cemTelefone'),kdm_email:g('cemEmailKdm'),mgmt_email:g('cemEmailGer'),server_model:servidor,server_serial:serial,projector_model:projetor,sound_system:som,screen_aspect_ratio:proporcao,seat_count:assentos,cineassist_system:cineassista,notes:obs,screen_height:telaH2,screen_width:telaW2,utc_offset:utcOffset};
         var newId=await window._olgaCinemas.createSala(fields);
         window._logFirestoreEdit&&window._logFirestoreEdit('individual',newId,fields,'cinemas','cinemas');
-        cinemasArr.push({docId:newId,sala:salaNome,complexo:complexo,estado:estado,endereco:endereco,telefone:g('cemTelefone'),evento:'',servidor:servidor,serial:serial,projetor:projetor,som:som,proporcao:proporcao,assentos:assentos,cineassista:cineassista,obs:'',utc_offset:utcOffset,cert_serial_hex:'',cert_serial_dec:'',cert_issuer:'',cert_subject:'',cert_thumbprint:'',cert_filename:'',cert_imported_at:null});
+        cinemasArr.push({docId:newId,sala:salaNome,complexo:complexo,estado:estado,endereco:endereco,telefone:g('cemTelefone'),evento:eventoSala2,servidor:servidor,serial:serial,projetor:projetor,som:som,proporcao:proporcao,assentos:assentos,cineassista:cineassista,obs:'',utc_offset:utcOffset,cert_serial_hex:'',cert_serial_dec:'',cert_issuer:'',cert_subject:'',cert_thumbprint:'',cert_filename:'',cert_imported_at:null});
         status.className='cem-status ok';status.textContent='Sala criada ✓';
         setTimeout(function(){closeCinemaEdit();renderCinemas();openCinemaDetail(salaNome);},700);
       }
@@ -17339,7 +17355,7 @@ function renderDash(){
   html+=colBlock('legendagem','Legendagem',legBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 14/06/2026 às 22:56';
+  var sysUpdate='última atualização do sistema · 14/06/2026 às 22:58';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -18949,14 +18965,17 @@ async function _catCriaSessApplyEvento(){
   document.getElementById('catCriaSessaoSubprogramRow').style.display='none';
   document.getElementById('catCriaSessaoSubprogram').innerHTML='<option value="">— sem submostra —</option>';
   // Sala — filtra por estados do evento
-  var evData=(_adminEventos||[]).find(function(e){return e.id===ev;});
-  var evEstados=evData&&evData.data&&evData.data.estados?new Set(evData.data.estados):null;
-  var cinemasFilt=(cinemasArr||[]).filter(function(c){
-    if(evEstados&&evEstados.size)return evEstados.has(c.estado);
-    return true;
-  }).sort(function(a,b){return a.sala.localeCompare(b.sala,'pt-BR',{sensitivity:'base'});});
+  // Salas associadas ao evento (campo event_name) aparecem primeiro; demais em seguida.
+  var _byName={},_ord=[];
+  (cinemasArr||[]).forEach(function(c){if(c.sala&&!_byName[c.sala]){_byName[c.sala]=c;_ord.push(c.sala);}});
+  function _salaAssoc(nome){var c=_byName[nome];return c&&(c.evento||'').split(';').map(function(s){return s.trim();}).indexOf(ev)!==-1;}
+  var _assoc=_ord.filter(_salaAssoc).sort(function(a,b){return a.localeCompare(b,'pt-BR',{sensitivity:'base'});});
+  var _outras=_ord.filter(function(n){return !_salaAssoc(n);}).sort(function(a,b){return a.localeCompare(b,'pt-BR',{sensitivity:'base'});});
+  function _opts(list){return list.map(function(n){return'<option value="'+esc(n)+'">'+esc(n)+'</option>';}).join('');}
   var cinemaSel=document.getElementById('catCriaSessaoCinema');
-  cinemaSel.innerHTML='<option value="">— selecionar sala —</option>'+cinemasFilt.map(function(c){return'<option value="'+esc(c.sala)+'">'+esc(c.sala)+'</option>';}).join('');
+  cinemaSel.innerHTML='<option value="">— selecionar sala —</option>'+
+    (_assoc.length?'<optgroup label="Salas do evento">'+_opts(_assoc)+'</optgroup>':'')+
+    (_outras.length?'<optgroup label="Outras salas">'+_opts(_outras)+'</optgroup>':'');
   if(_catCriaSessPrefillSala){
     if(!Array.prototype.some.call(cinemaSel.options,function(o){return o.value===_catCriaSessPrefillSala;})){
       var o=document.createElement('option');o.value=_catCriaSessPrefillSala;o.textContent=_catCriaSessPrefillSala;cinemaSel.appendChild(o);
@@ -19568,6 +19587,17 @@ function openEventoModal(id){
   document.getElementById('eventoDataInicio').value=d.data_inicio||'';
   document.getElementById('eventoDataFim').value=d.data_fim||'';
   document.getElementById('eventoEstadosList').innerHTML=estadosHtml;
+  // Salas deste evento (associação via event_name das salas)
+  var _salasOrd=(cinemasArr||[]).slice().filter(function(c){return c.docId&&c.sala;}).sort(function(a,b){
+    return (a.complexo||a.sala).localeCompare(b.complexo||b.sala,'pt-BR')||a.sala.localeCompare(b.sala,'pt-BR');
+  });
+  var salasHtml=_salasOrd.length?_salasOrd.map(function(c){
+    var chk=(c.evento||'').split(';').map(function(s){return s.trim();}).indexOf(id)!==-1?'checked':'';
+    var sub=c.complexo&&c.complexo!==c.sala?' <span style="color:var(--text-muted);">· '+esc(c.complexo)+'</span>':'';
+    return '<label style="display:flex;align-items:center;gap:6px;font-family:var(--mono);font-size:11px;color:var(--text-dim);cursor:pointer;padding:3px 0;">'+
+      '<input type="checkbox" class="eventoSalaChk" value="'+esc(c.docId)+'" '+chk+' style="accent-color:var(--accent);">'+esc(c.sala)+sub+'</label>';
+  }).join(''):'<span style="font-family:var(--mono);font-size:10px;color:var(--text-muted);">Nenhuma sala cadastrada.</span>';
+  document.getElementById('eventoSalasList').innerHTML=salasHtml;
   document.getElementById('eventoTextoCuratorial').value=d.texto_curatorial||'';
   document.getElementById('eventoApoios').value=d.apoios||'';
   // Tipo de acesso (pago/gratuito) — sem default pra não atribuir valor errado a registros antigos
@@ -19673,6 +19703,27 @@ async function saveEvento(){
       // re-renderiza views ativas
       if(typeof rebuildPillsForMode==='function')rebuildPillsForMode(currentMode);
       if(typeof switchMode==='function'&&currentMode)switchMode(currentMode,true);
+    }
+    // Associação de salas: grava event_name só nas salas que mudaram (em lote, com pré-backup)
+    var _checked={};document.querySelectorAll('#eventoSalasList .eventoSalaChk:checked').forEach(function(c){_checked[c.value]=1;});
+    var _salaChanges=[],_salaPre=[];
+    (cinemasArr||[]).forEach(function(c){
+      if(!c.docId)return;
+      var list=(c.evento||'').split(';').map(function(s){return s.trim();}).filter(Boolean);
+      var has=list.indexOf(id)!==-1, want=!!_checked[c.docId];
+      if(has===want)return;
+      if(want)list.push(id); else list=list.filter(function(x){return x!==id;});
+      _salaPre.push({tipo:'cinema',doc:Object.assign({},c)});
+      _salaChanges.push({c:c,ev:list.join(';')});
+    });
+    if(_salaChanges.length){
+      _olgaPreBackup('evento-salas-'+id,_salaPre,'associação de salas ao evento (campo event_name)');
+      for(var _si=0;_si<_salaChanges.length;_si++){
+        await window._olgaCinemas.saveSala(_salaChanges[_si].c.docId,{event_name:_salaChanges[_si].ev});
+        _salaChanges[_si].c.evento=_salaChanges[_si].ev;
+      }
+      window._logFirestoreEdit&&window._logFirestoreEdit('individual',id,{salas_alteradas:_salaChanges.length},'eventos','cinemas');
+      if(typeof renderCinemas==='function')renderCinemas();
     }
     closeEventoModal();
     _equipeInvalidateRender();
@@ -25253,6 +25304,10 @@ function _sxcPrint(){
         <div id="eventoEstadosList" style="display:flex;flex-direction:column;gap:2px;max-height:140px;overflow-y:auto;border:1px solid var(--border);padding:8px 10px;background:var(--bg);"></div>
       </div>
       <div style="display:flex;flex-direction:column;gap:6px;">
+        <label style="font-family:var(--mono);font-size:8px;font-weight:600;letter-spacing:0.14em;text-transform:uppercase;color:var(--text-muted);">Salas deste evento</label>
+        <div id="eventoSalasList" style="display:flex;flex-direction:column;gap:2px;max-height:160px;overflow-y:auto;border:1px solid var(--border);padding:8px 10px;background:var(--bg);"></div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:6px;">
         <label style="font-family:var(--mono);font-size:8px;font-weight:600;letter-spacing:0.14em;text-transform:uppercase;color:var(--text-muted);">Cor do evento</label>
         <div id="eventoCorSwatches" style="display:flex;flex-wrap:wrap;gap:6px;"></div>
         <div style="display:flex;align-items:center;gap:8px;">
@@ -25350,7 +25405,7 @@ function _sxcPrint(){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 14/06/2026 às 22:56</span></div>
+<div id="page-footer"><span>última atualização · 14/06/2026 às 22:58</span></div>
 
 </div>
 

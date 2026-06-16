@@ -17355,7 +17355,7 @@ function renderDash(){
   html+=colBlock('legendagem','Legendagem',legBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 14/06/2026 às 22:58';
+  var sysUpdate='última atualização do sistema · 16/06/2026 às 14:42';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -19577,7 +19577,7 @@ function openEventoModal(id){
   var estadosHtml=todosEstados.length?todosEstados.map(function(e){
     var chk=selEstados.indexOf(e)!==-1?'checked':'';
     return '<label style="display:flex;align-items:center;gap:6px;font-family:var(--mono);font-size:11px;color:var(--text-dim);cursor:pointer;padding:3px 0;">'+
-      '<input type="checkbox" value="'+esc(e)+'" '+chk+' style="accent-color:var(--accent);">'+esc(e)+'</label>';
+      '<input type="checkbox" value="'+esc(e)+'" '+chk+' onchange="_eventoRenderSalas()" style="accent-color:var(--accent);">'+esc(e)+'</label>';
   }).join(''):'<span style="font-family:var(--mono);font-size:10px;color:var(--text-muted);">Nenhum estado disponível nos cinemas cadastrados.</span>';
 
   document.getElementById('eventoModalTitle').textContent=id?'Editar evento · '+id:'Novo evento';
@@ -19587,17 +19587,7 @@ function openEventoModal(id){
   document.getElementById('eventoDataInicio').value=d.data_inicio||'';
   document.getElementById('eventoDataFim').value=d.data_fim||'';
   document.getElementById('eventoEstadosList').innerHTML=estadosHtml;
-  // Salas deste evento (associação via event_name das salas)
-  var _salasOrd=(cinemasArr||[]).slice().filter(function(c){return c.docId&&c.sala;}).sort(function(a,b){
-    return (a.complexo||a.sala).localeCompare(b.complexo||b.sala,'pt-BR')||a.sala.localeCompare(b.sala,'pt-BR');
-  });
-  var salasHtml=_salasOrd.length?_salasOrd.map(function(c){
-    var chk=(c.evento||'').split(';').map(function(s){return s.trim();}).indexOf(id)!==-1?'checked':'';
-    var sub=c.complexo&&c.complexo!==c.sala?' <span style="color:var(--text-muted);">· '+esc(c.complexo)+'</span>':'';
-    return '<label style="display:flex;align-items:center;gap:6px;font-family:var(--mono);font-size:11px;color:var(--text-dim);cursor:pointer;padding:3px 0;">'+
-      '<input type="checkbox" class="eventoSalaChk" value="'+esc(c.docId)+'" '+chk+' style="accent-color:var(--accent);">'+esc(c.sala)+sub+'</label>';
-  }).join(''):'<span style="font-family:var(--mono);font-size:10px;color:var(--text-muted);">Nenhuma sala cadastrada.</span>';
-  document.getElementById('eventoSalasList').innerHTML=salasHtml;
+  _eventoRenderSalas(); // salas filtradas pelos estados marcados
   document.getElementById('eventoTextoCuratorial').value=d.texto_curatorial||'';
   document.getElementById('eventoApoios').value=d.apoios||'';
   // Tipo de acesso (pago/gratuito) — sem default pra não atribuir valor errado a registros antigos
@@ -19659,6 +19649,27 @@ function _eventoGetEstados(){
   var checks=document.querySelectorAll('#eventoEstadosList input[type=checkbox]');
   var arr=[];checks.forEach(function(c){if(c.checked)arr.push(c.value);});return arr;
 }
+// Renderiza as salas do form de evento, limitadas aos estados marcados. Preserva as
+// escolhas atuais do usuário; salas fora dos estados marcados não aparecem (e não são
+// alteradas no save, que só mexe nas salas exibidas).
+function _eventoRenderSalas(){
+  var box=document.getElementById('eventoSalasList');if(!box)return;
+  var id=_eventoEditId||(document.getElementById('eventoCodigo').value||'').trim();
+  var estados=_eventoGetEstados();var estSet=estados.length?new Set(estados):null;
+  var prev={};box.querySelectorAll('.eventoSalaChk').forEach(function(b){prev[b.value]=b.checked;});
+  var ord=(cinemasArr||[]).slice().filter(function(c){
+    if(!c.docId||!c.sala)return false;
+    if(estSet&&!estSet.has(c.estado))return false;
+    return true;
+  }).sort(function(a,b){return (a.complexo||a.sala).localeCompare(b.complexo||b.sala,'pt-BR')||a.sala.localeCompare(b.sala,'pt-BR');});
+  box.innerHTML=ord.length?ord.map(function(c){
+    var saved=(c.evento||'').split(';').map(function(s){return s.trim();}).indexOf(id)!==-1;
+    var checked=(c.docId in prev)?prev[c.docId]:saved;
+    var sub=c.complexo&&c.complexo!==c.sala?' <span style="color:var(--text-muted);">· '+esc(c.complexo)+'</span>':'';
+    return '<label style="display:flex;align-items:center;gap:6px;font-family:var(--mono);font-size:11px;color:var(--text-dim);cursor:pointer;padding:3px 0;">'+
+      '<input type="checkbox" class="eventoSalaChk" value="'+esc(c.docId)+'" '+(checked?'checked':'')+' style="accent-color:var(--accent);">'+esc(c.sala)+sub+'</label>';
+  }).join(''):'<span style="font-family:var(--mono);font-size:10px;color:var(--text-muted);">'+(estSet?'Nenhuma sala nos estados selecionados.':'Selecione ao menos um estado para listar as salas.')+'</span>';
+}
 async function saveEvento(){
   var id=_eventoEditId||(document.getElementById('eventoCodigo').value||'').trim();
   if(!id){document.getElementById('eventoModalErr').textContent='O código é obrigatório.';document.getElementById('eventoModalErr').style.display='block';return;}
@@ -19704,13 +19715,14 @@ async function saveEvento(){
       if(typeof rebuildPillsForMode==='function')rebuildPillsForMode(currentMode);
       if(typeof switchMode==='function'&&currentMode)switchMode(currentMode,true);
     }
-    // Associação de salas: grava event_name só nas salas que mudaram (em lote, com pré-backup)
-    var _checked={};document.querySelectorAll('#eventoSalasList .eventoSalaChk:checked').forEach(function(c){_checked[c.value]=1;});
+    // Associação de salas: grava event_name só nas salas EXIBIDAS (limitadas pelo estado)
+    // que mudaram — salas fora dos estados marcados não são tocadas. Em lote, com pré-backup.
+    var _shown={};document.querySelectorAll('#eventoSalasList .eventoSalaChk').forEach(function(c){_shown[c.value]=c.checked;});
     var _salaChanges=[],_salaPre=[];
     (cinemasArr||[]).forEach(function(c){
-      if(!c.docId)return;
+      if(!c.docId||!(c.docId in _shown))return;
       var list=(c.evento||'').split(';').map(function(s){return s.trim();}).filter(Boolean);
-      var has=list.indexOf(id)!==-1, want=!!_checked[c.docId];
+      var has=list.indexOf(id)!==-1, want=_shown[c.docId];
       if(has===want)return;
       if(want)list.push(id); else list=list.filter(function(x){return x!==id;});
       _salaPre.push({tipo:'cinema',doc:Object.assign({},c)});
@@ -25405,7 +25417,7 @@ function _sxcPrint(){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 14/06/2026 às 22:58</span></div>
+<div id="page-footer"><span>última atualização · 16/06/2026 às 14:42</span></div>
 
 </div>
 

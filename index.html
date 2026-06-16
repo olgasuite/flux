@@ -17530,7 +17530,7 @@ function renderDash(){
   html+=colBlock('legendagem','Legendagem',legBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 16/06/2026 às 14:58';
+  var sysUpdate='última atualização do sistema · 16/06/2026 às 15:00';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -17718,6 +17718,13 @@ function _progGoSessao(nome,programId){
 }
 
 /* ── Landing ── */
+// Criar sessão a partir da raiz da programação — mostra opcional (— sem mostra —)
+function openProgCriaSessao(ev){
+  var evs=Array.from(activeEventsProgramacao||[]);
+  if(ev&&evs.indexOf(ev)<0)evs.unshift(ev);
+  if(!evs.length){alert('Nenhum evento ativo. Ative um evento para criar sessões.');return;}
+  openCatCriaSessao(null,{evento:ev||evs[0],eventos:evs,onSaved:function(){_progRender();}});
+}
 function _progRenderLanding(){
   var c=document.getElementById('programacao-container');
   var canEdit=window._olgaCanEdit('programacao');
@@ -17742,6 +17749,8 @@ function _progRenderLanding(){
     html+='<div class="prog-event-header"><span class="prog-event-badge" style="background:'+evColor.bg+';color:'+evColor.text+';">'+esc(ev)+'</span>';
     if(canEdit){
       html+='<button class="prog-btn-sm prog-btn-ghost" onclick="openProgProgramModal(null,\''+esc(ev)+'\')">+ nova mostra</button>';
+      if(!(window._olgaHasRestricao&&window._olgaHasRestricao('sessoes.somente_vinhetas')))
+        html+='<button class="prog-btn-sm prog-btn-ghost" onclick="openProgCriaSessao(\''+esc(ev)+'\')" style="margin-left:4px;">+ criar sessão</button>';
       var tmplCount=(_vinTemplatesCache[ev]||[]).length;
       html+='<button class="prog-btn-sm prog-btn-ghost" onclick="openProgVinTemplatesModal(\''+esc(ev)+'\')" style="margin-left:4px;">⊞ Templates de vinhetas'+(tmplCount?' ('+tmplCount+')':'')+'</button>';
     }
@@ -25646,7 +25655,7 @@ function _sxcPrint(){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 16/06/2026 às 14:58</span></div>
+<div id="page-footer"><span>última atualização · 16/06/2026 às 15:00</span></div>
 
 </div>
 

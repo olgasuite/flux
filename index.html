@@ -4372,7 +4372,8 @@ html[data-theme="indexof"]:not([data-theme="win98"]) .module-icon{display:flex!i
   window._olgaLegFiles = {
     list: async function(){ var snap=await getDocs(collection(db,'legendagem_files')); var arr=[]; snap.forEach(function(d){arr.push({id:d.id,data:d.data()});}); return arr; },
     get: async function(id){ var s=await getDoc(doc(db,'legendagem_files',id)); return s.exists()?s.data():null; },
-    saveField: async function(id, partial){ await setDoc(doc(db,'legendagem_files',id),partial,{merge:true}); }
+    saveField: async function(id, partial){ await setDoc(doc(db,'legendagem_files',id),partial,{merge:true}); },
+    remove: async function(id){ await deleteDoc(doc(db,'legendagem_files',id)); }
   };
 
   // API cinemas — escrita de campos cert_*
@@ -7285,6 +7286,8 @@ async function _olgaRestoreBackup(payload){
       else if(item.tipo==='submostra'&&dd.id)plan.push({label:'submostra '+dd.id,fn:function(){return window._olgaSubprograms.save(dd.id,dd.data||{});}});
       else if(item.tipo==='evento'&&dd.id)plan.push({label:'evento '+dd.id,fn:function(){return window._olgaEventos.save(dd.id,dd.data||{});}});
       else if(item.tipo==='cinema')planCinema(dd);
+    }else if(item.tipo==='legfile'&&item.id&&item.data&&window._olgaLegFiles){
+      plan.push({label:'legendagem '+item.id,fn:function(){return window._olgaLegFiles.saveField(item.id,item.data);}});
     }else if(item.codigo!==undefined&&(item.filme!==undefined||item.copia!==undefined)){
       // backup de lote do catálogo: {codigo, filme, copia}
       planFilme(item.codigo,item.filme);
@@ -8389,9 +8392,30 @@ function _sessoesRenderBatchBar(){
     +(n>0?'<button onclick="_sessoesBatchClearAll()">desmarcar todas</button>':'')
     +'<button class="sess-batch-primary" '+(n===0?'disabled style="opacity:0.4;cursor:not-allowed;"':'onclick="openSessoesAplicarTemplate()"')+'>+ Aplicar template de vinhetas</button>'
     +'<button class="sess-batch-primary" '+(n===0?'disabled style="opacity:0.4;cursor:not-allowed;"':'onclick="openSessoesBatchEdit()"')+'>✎ Editar em lote</button>'
+    +((window._olgaUser&&window._olgaCanEdit&&window._olgaCanEdit('programacao')&&!(window._olgaHasRestricao&&window._olgaHasRestricao('sessoes.somente_vinhetas')))?'<button class="sess-batch-primary" '+(n===0?'disabled style="opacity:0.4;cursor:not-allowed;"':'onclick="deleteSessoesBatch()" style="background:var(--warn);color:#1a0f00;"')+'>🗑 Excluir selecionadas</button>':'')
     +'<button onclick="_sessoesBatchToggleMode()" style="margin-left:auto;">Cancelar</button>';
 }
 
+function deleteSessoesBatch(){
+  if(!_sessoesBatchSelected.size)return;
+  var sel=Array.from(_sessoesBatchSelected).map(function(n){return sessoesMap[n];}).filter(Boolean);
+  if(!sel.length)return;
+  if(!confirm('Excluir '+sel.length+' sessão(ões) selecionada(s)?\n\nEsta ação não pode ser desfeita.'))return;
+  _olgaPreBackup('sessoes-batch-delete',sel.map(function(s){return Object.assign({},s);}),'sessões excluídas em lote');
+  (async function(){
+    var errs=[];
+    for(var i=0;i<sel.length;i++){
+      var sid=sel[i]._docId||sel[i].nome;
+      try{await window._olgaSessoes.remove(sid);if(window._olgaRegistry)await window._olgaRegistry.register('sessoes',sid);}
+      catch(e){errs.push(sel[i].nome+': '+e.message);}
+    }
+    _sessoesBatchSelected.clear();
+    _sessoesBatchToggleMode(false);
+    if(window._olgaLoadFirestore)await window._olgaLoadFirestore();
+    renderSessoes();
+    if(errs.length)alert('Concluído com erros:\n'+errs.slice(0,8).join('\n')+(errs.length>8?'\n…':''));
+  })();
+}
 async function openSessoesAplicarTemplate(){
   if(!_sessoesBatchSelected.size)return;
   var modal=document.getElementById('sessoesAplicarTemplateModal');
@@ -9633,6 +9657,17 @@ async function saveCinemaEdit(){
         var salaFields={venue_name:salaNome,event_name:eventoSala,server_model:servidor,server_serial:serial,projector_model:projetor,sound_system:som,screen_aspect_ratio:proporcao,seat_count:assentos,cineassist_system:cineassista,notes:obs,screen_height:telaH,screen_width:telaW,storage_gb:storageGB,utc_offset:utcOffset};
         await window._olgaCinemas.saveSala(c2.docId,salaFields);
         window._logFirestoreEdit&&window._logFirestoreEdit('individual',c2.docId,salaFields,'cinemas','cinemas');
+        // Renomeou a sala? Atualiza venue_name das sessões que a referenciam (evita duplicata
+        // "fantasma" em getAllCinemas). Best-effort: gravar sessoes exige permissão de programação.
+        if(salaNome!==_cemSala){
+          var _sesRen=(sessoesArr||[]).filter(function(s){return s.cinema===_cemSala;});
+          if(_sesRen.length){
+            _olgaPreBackup('rename-sala-'+_cemSala,_sesRen.map(function(s){return Object.assign({},s);}),'sessões renomeadas da sala "'+_cemSala+'" para "'+salaNome+'"');
+            for(var _ri=0;_ri<_sesRen.length;_ri++){
+              try{await window._olgaSessoes.saveField(_sesRen[_ri]._docId||_sesRen[_ri].nome,{venue_name:salaNome});_sesRen[_ri].cinema=salaNome;}catch(_e){}
+            }
+          }
+        }
         Object.assign(c2,{sala:salaNome,evento:eventoSala,servidor:servidor,serial:serial,projetor:projetor,som:som,proporcao:proporcao,assentos:assentos,cineassista:cineassista,obs:obs,tela_h:telaH,tela_w:telaW,storage_gb:storageGB,utc_offset:utcOffset});
         status.className='cem-status ok';status.textContent='Salvo ✓';
         setTimeout(function(){closeCinemaEdit();renderCinemas();openCinemaDetail(salaNome);},700);
@@ -11165,7 +11200,7 @@ function _renderGuestDetail(guestId){
   var gTrans=_recepTransfers.filter(function(t){return t.data.guest_id===guestId;}).sort(function(a,b){return(a.data.datetime||'').localeCompare(b.data.datetime||'');});
   var transRows=gTrans.map(function(t){var td=t.data,tid=_re(t.id);return'<tr>'+
     '<td>'+(td.category==='chegada'?'↓ chegada':td.category==='partida'?'↑ partida':'↔ interno')+'</td>'+
-    '<td>'+_re(td.origin||'')+(td.destination?' '+_mapsRouteLink(td.origin,td.destination)+' '+_re(td.destination):'')+'</td>'+
+    '<td>'+_re(_recepResolveLoc(td.origin,td.origin_ref))+((_recepResolveLoc(td.destination,td.destination_ref))?' '+_mapsRouteLink(_recepResolveLoc(td.origin,td.origin_ref),_recepResolveLoc(td.destination,td.destination_ref))+' '+_re(_recepResolveLoc(td.destination,td.destination_ref)):'')+'</td>'+
     '<td>'+_re(td.vehicle_type||'—')+'</td>'+
     '<td>'+_re(td.datetime?td.datetime.replace('T',' '):'—')+'</td>'+
     '<td><span class="recep-status recep-status-'+_re((td.status||'pendente').toLowerCase())+'">'+_re(td.status||'pendente')+'</span></td>'+
@@ -11425,7 +11460,7 @@ function _renderTransporte(){
   var rows=sorted.map(function(t){var td=t.data,tid=_re(t.id);var sc='recep-status recep-status-'+(td.status||'pendente').toLowerCase();return'<tr>'+
     '<td style="color:var(--text)">'+_re(guestMap[td.guest_id]||td.guest_id||'—')+'</td>'+
     '<td>'+(td.category==='chegada'?'↓ chegada':td.category==='partida'?'↑ partida':'↔ interno')+'</td>'+
-    '<td>'+_re(td.origin||'')+(td.destination?' '+_mapsRouteLink(td.origin,td.destination)+' '+_re(td.destination):'')+'</td>'+
+    '<td>'+_re(_recepResolveLoc(td.origin,td.origin_ref))+((_recepResolveLoc(td.destination,td.destination_ref))?' '+_mapsRouteLink(_recepResolveLoc(td.origin,td.origin_ref),_recepResolveLoc(td.destination,td.destination_ref))+' '+_re(_recepResolveLoc(td.destination,td.destination_ref)):'')+'</td>'+
     '<td>'+_re(td.vehicle_type||'—')+'</td>'+
     '<td>'+_re(td.datetime?td.datetime.replace('T',' '):'—')+'</td>'+
     '<td><span class="'+sc+'">'+_re(td.status||'pendente')+'</span></td>'+
@@ -11452,26 +11487,69 @@ function _renderTransporte(){
   ):_recepSelectEventPrompt();
   buildPills(document.getElementById('headerEventFilters'),eventColors,activeEventsReceptivo,function(){_renderTransporte();});
 }
-// Opções de local (cinemas + hotéis, com endereço) para preencher Origem/Destino do transfer
-function _recepLocalOptions(){
-  var html='<option value="">+ inserir cinema/hotel…</option>';
-  var cins=(cinemasArr||[]).filter(function(c){return c.sala;}).slice().sort(function(a,b){
-    return (a.complexo||a.sala).localeCompare(b.complexo||b.sala,'pt-BR')||a.sala.localeCompare(b.sala,'pt-BR');});
-  if(cins.length)html+='<optgroup label="Cinemas">'+cins.map(function(c){
-    var nome=(c.complexo&&c.complexo!==c.sala)?(c.sala+' · '+c.complexo):c.sala;
-    var val=nome+(c.endereco?(' — '+c.endereco):'');
-    return '<option value="'+_re(val)+'">'+_re(nome)+(c.endereco?'':' (sem endereço)')+'</option>';
+// Opções de local (complexos do evento + hotéis + aeroportos) p/ preencher Origem/Destino.
+// eventId limita aos cinemas/hotéis daquele evento; cinemas são agrupados por COMPLEXO.
+function _recepLocalOptions(eventId){
+  var html='<option value="">+ inserir local…</option>';
+  var seen={},comps=[];
+  (cinemasArr||[]).forEach(function(c){
+    if(!c.sala)return;
+    if(eventId){var evs=(c.evento||'').split(';').map(function(s){return s.trim();});if(evs.indexOf(eventId)===-1)return;}
+    var nome=c.complexo||c.sala;
+    if(seen[nome])return;seen[nome]=1;
+    comps.push({nome:nome,endereco:c.endereco||''});
+  });
+  comps.sort(function(a,b){return a.nome.localeCompare(b.nome,'pt-BR');});
+  if(comps.length)html+='<optgroup label="Cinemas (complexos)">'+comps.map(function(c){
+    return '<option value="cinema:'+_re(c.nome)+'">'+_re(c.nome)+(c.endereco?'':' (sem endereço)')+'</option>';
   }).join('')+'</optgroup>';
-  var hots=(_recepHotels||[]).slice().sort(function(a,b){return (a.data.name||'').localeCompare(b.data.name||'','pt-BR');});
+  var hots=(_recepHotels||[]).filter(function(h){return !eventId||!h.data.event_id||h.data.event_id===eventId;})
+    .slice().sort(function(a,b){return (a.data.name||'').localeCompare(b.data.name||'','pt-BR');});
   if(hots.length)html+='<optgroup label="Hotéis">'+hots.map(function(h){
-    var nome=h.data.name||h.id;var val=nome+(h.data.address?(' — '+h.data.address):'');
-    return '<option value="'+_re(val)+'">'+_re(nome)+(h.data.address?'':' (sem endereço)')+'</option>';
+    var nome=h.data.name||h.id;
+    return '<option value="hotel:'+_re(h.id)+'">'+_re(nome)+(h.data.address?'':' (sem endereço)')+'</option>';
   }).join('')+'</optgroup>';
-  // Aeroportos: valor = sigla (a rota/mapa resolve para o nome do aeroporto)
+  // Aeroportos: valor = air:SIGLA (sem vínculo; a rota/mapa resolve a sigla)
   html+='<optgroup label="Aeroportos">'+Object.keys(_AIRPORTS).sort().map(function(code){
-    return '<option value="'+code+'">'+code+' · '+_re(_AIRPORTS[code])+'</option>';
+    return '<option value="air:'+code+'">'+code+' · '+_re(_AIRPORTS[code])+'</option>';
   }).join('')+'</optgroup>';
   return html;
+}
+// Reconstrói os seletores de local quando o evento do transfer muda
+function _recepUpdateLocSelects(){
+  var ev=(document.getElementById('tr_event')||{}).value||'';
+  var opts=_recepLocalOptions(ev);
+  ['tr_orig_loc','tr_dest_loc'].forEach(function(id){var s=document.getElementById(id);if(s)s.innerHTML=opts;});
+}
+// Resolve um local: se há referência viva (hotel por id, cinema por complexo), devolve os
+// dados ATUAIS daquele cinema/hotel; se a referência não existe mais (deletado), devolve ''
+// (campo vazio, p/ o usuário reatribuir). Sem referência, devolve o texto livre salvo.
+function _recepResolveLoc(text,ref){
+  if(ref){
+    var i=ref.indexOf(':'),kind=i>=0?ref.slice(0,i):'',rest=i>=0?ref.slice(i+1):'';
+    if(kind==='cinema'){
+      var c=(cinemasArr||[]).find(function(x){return (x.complexo||x.sala)===rest;});
+      return c?((c.complexo||c.sala)+(c.endereco?(' — '+c.endereco):'')):'';
+    }
+    if(kind==='hotel'){
+      var h=(_recepHotels||[]).find(function(x){return x.id===rest;});
+      return h?((h.data.name||h.id)+(h.data.address?(' — '+h.data.address):'')):'';
+    }
+  }
+  return text||'';
+}
+// onchange do seletor: cinema/hotel gravam referência (vínculo vivo); aeroporto/texto não.
+function _recepPickLoc(which,value){
+  if(!value)return;
+  var refEl=document.getElementById('tr_'+which+'_ref'),txtEl=document.getElementById('tr_'+which);
+  var i=value.indexOf(':'),kind=i>=0?value.slice(0,i):'',rest=i>=0?value.slice(i+1):value;
+  if(kind==='cinema'||kind==='hotel'){
+    if(refEl)refEl.value=kind+':'+rest;
+    if(txtEl)txtEl.value=_recepResolveLoc('',kind+':'+rest);
+  }else{ // aeroporto (air:CODE) ou texto: sem referência
+    if(refEl)refEl.value='';
+    if(txtEl)txtEl.value=rest;
+  }
 }
 function openTransferModal(id,guestId,tmplData){
   _recepEditId=id;var parentGid=guestId||_recepParentId;
@@ -11485,14 +11563,14 @@ function openTransferModal(id,guestId,tmplData){
     '<div id="recepMErr" class="recep-modal-err" style="margin:0 18px;"></div>'+
     '<div class="recep-modal-body">'+
       '<div class="recep-field"><label class="recep-label">Convidado</label><select id="tr_guest" class="recep-select"'+(parentGid?' disabled':'')+'>'+_recepGuestSelect(gid)+'</select></div>'+
-      '<div class="recep-field"><label class="recep-label">Evento</label><select id="tr_event" class="recep-select"><option value="">—</option>'+_recepEvSelect(d.event_id||_recepSelectedEvent||'')+'</select></div>'+
+      '<div class="recep-field"><label class="recep-label">Evento</label><select id="tr_event" class="recep-select" onchange="_recepUpdateLocSelects()"><option value="">—</option>'+_recepEvSelect(d.event_id||_recepSelectedEvent||'')+'</select></div>'+
       '<div class="recep-2col">'+
         '<div class="recep-field"><label class="recep-label">Categoria</label><select id="tr_cat" class="recep-select">'+selOpts(['chegada','partida','interno'],d.category||'chegada')+'</select></div>'+
         '<div class="recep-field"><label class="recep-label">Veículo</label><input id="tr_veh" class="recep-input" list="tr_veh_list" value="'+_re(d.vehicle_type||'')+'" placeholder="ex: van, uber…"><datalist id="tr_veh_list">'+[...new Set(_recepTransfers.map(function(t){return t.data.vehicle_type;}).filter(Boolean))].sort().map(function(v){return'<option value="'+_re(v)+'"></option>';}).join('')+'</datalist></div>'+
       '</div>'+
       '<div class="recep-2col">'+
-        '<div class="recep-field"><label class="recep-label">Origem</label><input id="tr_orig" class="recep-input" value="'+_re(d.origin||'')+'"><select class="recep-select" style="margin-top:4px;font-size:10px;padding:3px 7px;" onchange="if(this.value){document.getElementById(\'tr_orig\').value=this.value;}this.selectedIndex=0;">'+_recepLocalOptions()+'</select></div>'+
-        '<div class="recep-field"><label class="recep-label">Destino</label><input id="tr_dest" class="recep-input" value="'+_re(d.destination||'')+'"><select class="recep-select" style="margin-top:4px;font-size:10px;padding:3px 7px;" onchange="if(this.value){document.getElementById(\'tr_dest\').value=this.value;}this.selectedIndex=0;">'+_recepLocalOptions()+'</select></div>'+
+        '<div class="recep-field"><label class="recep-label">Origem</label><input type="hidden" id="tr_orig_ref" value="'+_re(d.origin_ref||'')+'"><input id="tr_orig" class="recep-input" value="'+_re(_recepResolveLoc(d.origin||'',d.origin_ref||''))+'" oninput="document.getElementById(\'tr_orig_ref\').value=\'\';"><select id="tr_orig_loc" class="recep-select" style="margin-top:4px;font-size:10px;padding:3px 7px;" onchange="_recepPickLoc(\'orig\',this.value);this.selectedIndex=0;">'+_recepLocalOptions(d.event_id||_recepSelectedEvent||'')+'</select></div>'+
+        '<div class="recep-field"><label class="recep-label">Destino</label><input type="hidden" id="tr_dest_ref" value="'+_re(d.destination_ref||'')+'"><input id="tr_dest" class="recep-input" value="'+_re(_recepResolveLoc(d.destination||'',d.destination_ref||''))+'" oninput="document.getElementById(\'tr_dest_ref\').value=\'\';"><select id="tr_dest_loc" class="recep-select" style="margin-top:4px;font-size:10px;padding:3px 7px;" onchange="_recepPickLoc(\'dest\',this.value);this.selectedIndex=0;">'+_recepLocalOptions(d.event_id||_recepSelectedEvent||'')+'</select></div>'+
       '</div>'+
       '<div class="recep-2col">'+
         '<div class="recep-field"><label class="recep-label">Data e hora</label><input id="tr_dt" type="datetime-local" class="recep-input" value="'+_re(d.datetime||'')+'"></div>'+
@@ -11510,7 +11588,7 @@ function openTransferModal(id,guestId,tmplData){
 window.saveTransfer=async function(parentGid){
   var _tEv=document.getElementById('tr_event').value||'';
   if(!_tEv){var e=document.getElementById('recepMErr');e.textContent='Evento obrigatório.';e.style.display='block';return;}
-  var data={guest_id:document.getElementById('tr_guest').value||parentGid||'',event_id:_tEv,category:document.getElementById('tr_cat').value,vehicle_type:document.getElementById('tr_veh').value,origin:(document.getElementById('tr_orig').value||'').trim(),destination:(document.getElementById('tr_dest').value||'').trim(),datetime:document.getElementById('tr_dt').value,status:document.getElementById('tr_status').value,notes:(document.getElementById('tr_notes').value||'').trim(),updated_at:_recepNow()};
+  var data={guest_id:document.getElementById('tr_guest').value||parentGid||'',event_id:_tEv,category:document.getElementById('tr_cat').value,vehicle_type:document.getElementById('tr_veh').value,origin:(document.getElementById('tr_orig').value||'').trim(),destination:(document.getElementById('tr_dest').value||'').trim(),origin_ref:(document.getElementById('tr_orig_ref').value||''),destination_ref:(document.getElementById('tr_dest_ref').value||''),datetime:document.getElementById('tr_dt').value,status:document.getElementById('tr_status').value,notes:(document.getElementById('tr_notes').value||'').trim(),updated_at:_recepNow()};
   try{await window._olgaTransfers.save(_recepEditId,data);window._logFirestoreEdit&&window._logFirestoreEdit('individual',_recepEditId,data,'receptivo','transfers');_recepCloseModal();if(parentGid)openGuestDetail(parentGid);else openRecepSection('transporte');}
   catch(err){var e=document.getElementById('recepMErr');e.textContent='Erro: '+err.message;e.style.display='block';}
 };
@@ -15999,11 +16077,21 @@ async function _catBatchDelete(){
   if(!n)return;
   if(!confirm('Excluir '+n+' filme'+(n!==1?'s':'')+' permanentemente? Esta ação não pode ser desfeita.'))return;
   var codes=Array.from(_catBatchSel);
-  _olgaPreBackup('catalogo-batch-delete',codes.map(function(c){return{codigo:c,filme:catalogoFilmesMap[c]||null,copia:filmesMap[c]||null};}));
+  var bk=codes.map(function(c){return{codigo:c,filme:catalogoFilmesMap[c]||null,copia:filmesMap[c]||null};});
+  var seenSess={};codes.forEach(function(c){_olgaSessoesComFilme(c).forEach(function(s){if(!seenSess[s.nome]){seenSess[s.nome]=1;bk.push(s);}});});
+  // pré-imagem dos arquivos de legendagem (best-effort) para o backup
+  var legBkp={};
+  if(window._olgaLegFiles){for(var li=0;li<codes.length;li++){try{var ld=await window._olgaLegFiles.get(codes[li]);if(ld){legBkp[codes[li]]=ld;bk.push({tipo:'legfile',id:codes[li],data:ld});}}catch(_){}}}
+  _olgaPreBackup('catalogo-batch-delete',bk);
   var errors=[];
   for(var i=0;i<codes.length;i++){
     try{
+      if(window._olgaRegistry)await window._olgaRegistry.register('films',codes[i]);
       await window._olgaCatalogo.remove(codes[i]);
+      if(window._olgaCopias){try{await window._olgaCopias.remove(codes[i]);}catch(_){}}
+      await _olgaUnlinkFilm(codes[i]);
+      if(window._olgaLegFiles&&legBkp[codes[i]]){try{await window._olgaLegFiles.remove(codes[i]);}catch(_){}}
+      if(typeof _legFilesMap!=='undefined'&&_legFilesMap)delete _legFilesMap[codes[i]];
       if(catalogoFilmesMap)delete catalogoFilmesMap[codes[i]];
     }catch(e){errors.push(codes[i]+': '+e.message);}
   }
@@ -17442,7 +17530,7 @@ function renderDash(){
   html+=colBlock('legendagem','Legendagem',legBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 16/06/2026 às 14:48';
+  var sysUpdate='última atualização do sistema · 16/06/2026 às 14:58';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -18354,9 +18442,24 @@ async function saveProgProgramModal(){
 }
 function _progProgramErr(msg){var el=document.getElementById('progProgramModalErr');el.textContent=msg;el.style.display='block';}
 async function deleteProgram(id,label){
-  if(!confirm('Excluir a mostra "'+label+'"?\nAs sessões vinculadas perderão o vínculo.'))return;
-  try{if(window._olgaRegistry)await window._olgaRegistry.register('programs',id);await window._olgaPrograms.remove(id);window._logFirestoreEdit&&window._logFirestoreEdit('delete',id,{},'programacao','programs');_progData.programs=_progData.programs.filter(function(x){return x.id!==id;});_progRender();}
-  catch(e){alert('Erro: '+e.message);}
+  var sess=(sessoesArr||[]).filter(function(s){return s.program_id===id;});
+  var msg='Excluir a mostra "'+label+'"?';
+  if(sess.length)msg+='\n\n⚠ '+sess.length+' sessão(ões) vinculada(s) a esta mostra (inclusive em submostras) serão EXCLUÍDAS.';
+  msg+='\n\nEsta ação não pode ser desfeita.';
+  if(!confirm(msg))return;
+  try{
+    if(sess.length)_olgaPreBackup('exclusao-mostra-'+id,sess.map(function(s){return Object.assign({},s);}),'sessões da mostra excluída');
+    if(window._olgaRegistry)await window._olgaRegistry.register('programs',id);
+    await window._olgaPrograms.remove(id);
+    window._logFirestoreEdit&&window._logFirestoreEdit('delete',id,{},'programacao','programs');
+    for(var i=0;i<sess.length;i++){
+      var sid=sess[i]._docId||sess[i].nome;
+      try{await window._olgaSessoes.remove(sid);if(window._olgaRegistry)await window._olgaRegistry.register('sessoes',sid);}catch(e){}
+    }
+    _progData.programs=_progData.programs.filter(function(x){return x.id!==id;});
+    if(sess.length&&window._olgaLoadFirestore)await window._olgaLoadFirestore();
+    _progRender();
+  }catch(e){alert('Erro: '+e.message);}
 }
 function _progNextId(base,hasFn){
   var b=String(base||'').replace(/\.(\d+)$/,'');
@@ -18609,9 +18712,20 @@ async function saveProgSubprogramModal(){
 }
 function _progSubErr(msg){var el=document.getElementById('progSubprogramModalErr');el.textContent=msg;el.style.display='block';}
 async function deleteSubprogram(id,label){
-  if(!confirm('Excluir a submostra "'+label+'"?'))return;
-  try{if(window._olgaRegistry)await window._olgaRegistry.register('subprograms',id);await window._olgaSubprograms.remove(id);_progData.subprograms=_progData.subprograms.filter(function(x){return x.id!==id;});_progRender();}
-  catch(e){alert('Erro: '+e.message);}
+  var sess=(sessoesArr||[]).filter(function(s){return s.subprogram_id===id;});
+  var msg='Excluir a submostra "'+label+'"?';
+  if(sess.length)msg+='\n\n'+sess.length+' sessão(ões) ficará(ão) SEM MOSTRA (desvinculada(s), não excluída(s)).';
+  if(!confirm(msg))return;
+  try{
+    if(sess.length)_olgaPreBackup('exclusao-submostra-'+id,sess.map(function(s){return Object.assign({},s);}),'sessões desvinculadas da submostra');
+    if(window._olgaRegistry)await window._olgaRegistry.register('subprograms',id);
+    await window._olgaSubprograms.remove(id);
+    for(var i=0;i<sess.length;i++){
+      try{await window._olgaSessoes.saveField(sess[i]._docId||sess[i].nome,{program_id:'',subprogram_id:''});sess[i].program_id='';sess[i].subprogram_id='';}catch(e){}
+    }
+    _progData.subprograms=_progData.subprograms.filter(function(x){return x.id!==id;});
+    _progRender();
+  }catch(e){alert('Erro: '+e.message);}
 }
 async function duplicateSubprogram(id){
   var sub=_progData.subprograms.find(function(x){return x.id===id;});if(!sub)return;
@@ -21407,13 +21521,41 @@ function _catSuggestCode(ev){
   while(filmesMap[ev+String(n).padStart(5,'0')]||catalogoFilmesMap[ev+String(n).padStart(5,'0')]||(_usedIds.films&&_usedIds.films[ev+String(n).padStart(5,'0')])){n++;}
   return String(n).padStart(5,'0');
 }
+// Sessões vinculadas a um filme (pré-imagem p/ backup), antes de remover.
+function _olgaSessoesComFilme(codigo){
+  var names=(buscaReverseSessoes&&buscaReverseSessoes[codigo])?Array.from(new Set(buscaReverseSessoes[codigo])):[];
+  return names.map(function(n){return sessoesMap[n];})
+    .filter(function(s){return s&&Array.isArray(s.filmes)&&s.filmes.indexOf(codigo)>=0;})
+    .map(function(s){return Object.assign({},s,{filmes:s.filmes.slice()});});
+}
+// Remove o código do filme de todas as sessões vinculadas (campo films). Best-effort:
+// exige permissão de programação para gravar em sessoes (erros por linha são ignorados).
+async function _olgaUnlinkFilm(codigo){
+  if(!window._olgaSessoes||!buscaReverseSessoes)return;
+  var names=buscaReverseSessoes[codigo]?Array.from(new Set(buscaReverseSessoes[codigo])):[];
+  for(var i=0;i<names.length;i++){
+    var s=sessoesMap[names[i]];
+    if(!s||!Array.isArray(s.filmes)||s.filmes.indexOf(codigo)<0)continue;
+    var novos=s.filmes.filter(function(c){return c!==codigo;});
+    try{await window._olgaSessoes.saveField(s._docId||s.nome,{films:novos});s.filmes=novos;}catch(e){}
+  }
+}
 async function deleteCatFilm(codigo){
-  if(!confirm('Excluir o filme "'+codigo+'" do Catálogo e do Acervo Técnico?\n\nEsta ação não pode ser desfeita.'))return;
+  var sess=_olgaSessoesComFilme(codigo);
+  var aviso=sess.length?('\n\nO filme será removido de '+sess.length+' sessão(ões) vinculada(s).'):'';
+  if(!confirm('Excluir o filme "'+codigo+'" do Catálogo e do Acervo Técnico?'+aviso+'\n\nEsta ação não pode ser desfeita.'))return;
   try{
+    var legData=null;if(window._olgaLegFiles){try{legData=await window._olgaLegFiles.get(codigo);}catch(_){}}
+    var bk=[{codigo:codigo,filme:catalogoFilmesMap[codigo]||null,copia:filmesMap[codigo]||null}].concat(sess);
+    if(legData)bk.push({tipo:'legfile',id:codigo,data:legData});
+    _olgaPreBackup('exclusao-filme-'+codigo,bk,'filme, cópia, sessões e legendagem antes da exclusão');
     if(window._olgaRegistry)await window._olgaRegistry.register('films',codigo);
     await window._olgaCatalogo.remove(codigo);
     window._logFirestoreEdit&&window._logFirestoreEdit('delete',codigo,{},'catalogo','filmes');
     if(window._olgaCopias){try{await window._olgaCopias.remove(codigo);}catch(_){}}
+    await _olgaUnlinkFilm(codigo);
+    if(window._olgaLegFiles&&legData){try{await window._olgaLegFiles.remove(codigo);}catch(_){}}
+    if(typeof _legFilesMap!=='undefined'&&_legFilesMap)delete _legFilesMap[codigo];
     delete catalogoFilmesMap[codigo];
     _catView='search';_catCode=null;_catEditing=false;
     await window._olgaLoadFirestore();
@@ -25504,7 +25646,7 @@ function _sxcPrint(){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 16/06/2026 às 14:48</span></div>
+<div id="page-footer"><span>última atualização · 16/06/2026 às 14:58</span></div>
 
 </div>
 

@@ -9082,7 +9082,7 @@ function renderCinemas(){
     var editCxBtn=canEditCx?'<button class="bordero-btn" style="margin-right:4px;" onclick="event.stopPropagation();openCinemaEdit(null,\''+safeCx+'\')" title="Nova sala">+ Sala</button><button class="bordero-btn" style="margin-right:4px;" onclick="event.stopPropagation();openCinemaEdit(\'__complexo__\',\''+safeCx+'\')">✎ Editar complexo</button>':'';
     var emailLine=[]; if(cxData&&cxData.telefone)emailLine.push('TEL: '+_cinPhoneLink(cxData.telefone)); if(cxData&&cxData.email_kdm)emailLine.push('KDM: '+_cinEmailLinks(cxData.email_kdm)); if(cxData&&cxData.email_ger)emailLine.push('GER: '+_cinEmailLinks(cxData.email_ger));
     var tmsLine=cxData&&cxData.tms?'TMS: '+cxData.tms:'';
-    html+='<div class="cinemas-complexo"><div class="cinemas-complexo-header" style="display:flex;align-items:center;justify-content:space-between;gap:8px;"><div style="display:flex;flex-direction:column;gap:2px;"><span>'+cx+'</span>'+(cxEndereco||cxEstado?'<span style="font-family:var(--sans);font-size:10px;font-weight:400;letter-spacing:0;text-transform:none;color:var(--text-muted);">'+(cxEndereco||'')+(cxEndereco&&cxEstado?' · ':''  )+(cxEstado||'')+'</span>':'')+(tmsLine?'<span style="font-family:var(--mono);font-size:9px;color:var(--text-muted);margin-top:1px;">'+tmsLine+'</span>':'')+(emailLine.length?'<span style="font-family:var(--mono);font-size:9px;color:var(--text-muted);margin-top:1px;">'+emailLine.join(' · ')+'</span>':'')+'</div>'+editCxBtn+(function(){var sp=!window._olgaHasRestricao('cinemas.publico'),sr=!window._olgaHasRestricao('cinemas.renda');if(!sp&&!sr)return'';return'<span style="display:flex;gap:3px;">'+(sp?'<button class="bordero-btn" onclick="event.stopPropagation();openBordero(\''+safeCx+'\')">Público</button>':'')+(sr?'<button class="bordero-btn" onclick="event.stopPropagation();_openBorderoCxR(\''+safeCx+'\')">Renda</button>':'')+'</span>';})()+('</div>');
+    html+='<div class="cinemas-complexo"><div class="cinemas-complexo-header" style="display:flex;align-items:center;justify-content:space-between;gap:8px;"><div style="display:flex;flex-direction:column;gap:2px;"><span>'+cx+'</span>'+(cxEndereco||cxEstado?'<span style="font-family:var(--sans);font-size:10px;font-weight:400;letter-spacing:0;text-transform:none;color:var(--text-muted);">'+(cxEndereco?_mapsLink(cxEndereco,cxEstado):'')+(cxEndereco&&cxEstado?' · ':''  )+(cxEstado||'')+'</span>':'')+(tmsLine?'<span style="font-family:var(--mono);font-size:9px;color:var(--text-muted);margin-top:1px;">'+tmsLine+'</span>':'')+(emailLine.length?'<span style="font-family:var(--mono);font-size:9px;color:var(--text-muted);margin-top:1px;">'+emailLine.join(' · ')+'</span>':'')+'</div>'+editCxBtn+(function(){var sp=!window._olgaHasRestricao('cinemas.publico'),sr=!window._olgaHasRestricao('cinemas.renda');if(!sp&&!sr)return'';return'<span style="display:flex;gap:3px;">'+(sp?'<button class="bordero-btn" onclick="event.stopPropagation();openBordero(\''+safeCx+'\')">Público</button>':'')+(sr?'<button class="bordero-btn" onclick="event.stopPropagation();_openBorderoCxR(\''+safeCx+'\')">Renda</button>':'')+'</span>';})()+('</div>');
     html+='<div class="cinemas-grid">';
     byComplexo[cx].forEach(function(c){
       var allEvs=cinemaAllEvents(c);
@@ -9122,6 +9122,72 @@ function _cinEmailLinks(str){
 function _cinPhoneLink(str){
   var t=(str||'').trim();if(!t)return'';
   return'<a href="tel:'+_esc(t.replace(/[^0-9+]/g,''))+'" onclick="event.stopPropagation();" style="color:var(--accent);text-decoration:none;">'+_esc(t)+'</a>';
+}
+// Siglas IATA -> nome do aeroporto (com cidade) para o Maps resolver a localização.
+var _AIRPORTS={
+  // Brasil
+  GRU:'Aeroporto Internacional de São Paulo–Guarulhos',CGH:'Aeroporto de Congonhas, São Paulo',
+  VCP:'Aeroporto Internacional de Viracopos, Campinas',GIG:'Aeroporto Internacional do Galeão, Rio de Janeiro',
+  SDU:'Aeroporto Santos Dumont, Rio de Janeiro',BSB:'Aeroporto Internacional de Brasília',
+  CNF:'Aeroporto Internacional de Confins, Belo Horizonte',PLU:'Aeroporto da Pampulha, Belo Horizonte',
+  CWB:'Aeroporto Internacional Afonso Pena, Curitiba',POA:'Aeroporto Internacional Salgado Filho, Porto Alegre',
+  FLN:'Aeroporto Internacional Hercílio Luz, Florianópolis',SSA:'Aeroporto Internacional de Salvador',
+  REC:'Aeroporto Internacional do Recife/Guararapes',FOR:'Aeroporto Internacional Pinto Martins, Fortaleza',
+  CGB:'Aeroporto Internacional Marechal Rondon, Cuiabá',CGR:'Aeroporto Internacional de Campo Grande',
+  GYN:'Aeroporto de Goiânia Santa Genoveva',BEL:'Aeroporto Internacional de Belém Val de Cans',
+  MAO:'Aeroporto Internacional Eduardo Gomes, Manaus',NAT:'Aeroporto Internacional de Natal, São Gonçalo do Amarante',
+  JPA:'Aeroporto Internacional Castro Pinto, João Pessoa',MCZ:'Aeroporto Internacional Zumbi dos Palmares, Maceió',
+  AJU:'Aeroporto de Aracaju Santa Maria',THE:'Aeroporto de Teresina Senador Petrônio Portella',
+  SLZ:'Aeroporto Internacional de São Luís Marechal Cunha Machado',VIX:'Aeroporto de Vitória Eurico de Aguiar Salles',
+  IGU:'Aeroporto Internacional de Foz do Iguaçu',NVT:'Aeroporto Internacional de Navegantes',
+  JOI:'Aeroporto de Joinville Lauro Carneiro de Loyola',LDB:'Aeroporto de Londrina Governador José Richa',
+  MGF:'Aeroporto Regional de Maringá Sílvio Name Júnior',UDI:'Aeroporto de Uberlândia César Bombonato',
+  RAO:'Aeroporto de Ribeirão Preto Leite Lopes',PMW:'Aeroporto de Palmas Brigadeiro Lysias Rodrigues',
+  PVH:'Aeroporto Internacional de Porto Velho Jorge Teixeira',RBR:'Aeroporto Internacional de Rio Branco Plácido de Castro',
+  BVB:'Aeroporto Internacional de Boa Vista Atlas Brasil Cantanhede',MCP:'Aeroporto Internacional de Macapá Alberto Alcolumbre',
+  PNZ:'Aeroporto de Petrolina Senador Nilo Coelho',IOS:'Aeroporto de Ilhéus Jorge Amado',
+  BPS:'Aeroporto de Porto Seguro',STM:'Aeroporto de Santarém Maestro Wilson Fonseca',
+  IMP:'Aeroporto de Imperatriz Prefeito Renato Moreira',JDO:'Aeroporto de Juazeiro do Norte Orlando Bezerra de Menezes',
+  VDC:'Aeroporto de Vitória da Conquista Glauber Rocha',MOC:'Aeroporto de Montes Claros Mário Ribeiro',
+  CPV:'Aeroporto de Campina Grande João Suassuna',LEC:'Aeroporto de Lençóis, Chapada Diamantina',
+  FEN:'Aeroporto de Fernando de Noronha',CFB:'Aeroporto de Cabo Frio',
+  CAW:'Aeroporto de Campos dos Goytacazes Bartolomeu Lysandro',CCM:'Aeroporto de Criciúma Forquilhinha',
+  XAP:'Aeroporto de Chapecó Serafin Enoss Bertaso',CXJ:'Aeroporto de Caxias do Sul Hugo Cantergiani',
+  PFB:'Aeroporto de Passo Fundo Lauro Kurtz',PET:'Aeroporto de Pelotas João Simões Lopes Neto',
+  // Mundo (principais hubs)
+  LIS:'Aeroporto Humberto Delgado, Lisboa',OPO:'Aeroporto Francisco Sá Carneiro, Porto',
+  MAD:'Aeropuerto Adolfo Suárez Madrid–Barajas',BCN:'Aeropuerto Josep Tarradellas Barcelona–El Prat',
+  CDG:'Aéroport Paris–Charles de Gaulle',ORY:'Aéroport de Paris-Orly',
+  LHR:'London Heathrow Airport',LGW:'London Gatwick Airport',FCO:'Aeroporto di Roma–Fiumicino',
+  FRA:'Frankfurt Airport',MUC:'Munich Airport',AMS:'Amsterdam Airport Schiphol',ZRH:'Zurich Airport',
+  LIM:'Aeropuerto Internacional Jorge Chávez, Lima',SCL:'Aeropuerto Arturo Merino Benítez, Santiago',
+  EZE:'Aeropuerto Internacional Ministro Pistarini, Buenos Aires',AEP:'Aeroparque Jorge Newbery, Buenos Aires',
+  MVD:'Aeropuerto de Carrasco, Montevideo',ASU:'Aeropuerto Silvio Pettirossi, Asunción',
+  BOG:'Aeropuerto Internacional El Dorado, Bogotá',MEX:'Aeropuerto Internacional Benito Juárez, Ciudad de México',
+  PTY:'Aeropuerto Internacional de Tocumen, Panamá',MIA:'Miami International Airport',
+  JFK:'John F. Kennedy International Airport, New York',EWR:'Newark Liberty International Airport',
+  LAX:'Los Angeles International Airport',ATL:'Hartsfield–Jackson Atlanta International Airport',
+  ORD:'Chicago O\'Hare International Airport',IAH:'George Bush Intercontinental Airport, Houston',
+  YYZ:'Toronto Pearson International Airport',DXB:'Dubai International Airport',
+  DOH:'Hamad International Airport, Doha',IST:'Istanbul Airport',
+  HND:'Tokyo Haneda Airport',NRT:'Narita International Airport, Tokyo'
+};
+// Se o texto for uma sigla IATA conhecida (3 letras), devolve o nome do aeroporto; senão, o próprio texto.
+function _airportQuery(s){var k=(s||'').trim().toUpperCase();return (/^[A-Z]{3}$/.test(k)&&_AIRPORTS[k])?_AIRPORTS[k]:s;}
+// Endereço clicável -> abre o Google Maps na localização (esquema de URL, sem API/chave).
+// `extra` (ex.: estado/cidade) entra só na busca, melhorando a precisão sem aparecer no texto.
+function _mapsLink(endereco, extra){
+  var t=(endereco||'').trim();if(!t)return'';
+  var q=encodeURIComponent(_airportQuery(t)+(extra?(' '+extra):''));
+  return'<a href="https://www.google.com/maps/search/?api=1&query='+q+'" target="_blank" rel="noopener" onclick="event.stopPropagation();" style="color:var(--accent);text-decoration:none;">'+_esc(t)+'</a>';
+}
+// Seta "→" clicável que abre a ROTA no Google Maps entre origem e destino (sem API/chave).
+// Siglas de aeroporto são resolvidas para o nome. Sem os dois lados, devolve só a seta normal.
+function _mapsRouteLink(origin,destination){
+  var o=(origin||'').trim(),d=(destination||'').trim();
+  if(!o||!d)return'→';
+  var u='https://www.google.com/maps/dir/?api=1&origin='+encodeURIComponent(_airportQuery(o))+'&destination='+encodeURIComponent(_airportQuery(d));
+  return'<a href="'+u+'" target="_blank" rel="noopener" onclick="event.stopPropagation();" title="Ver rota no Google Maps" style="color:var(--accent);text-decoration:none;font-weight:700;">→</a>';
 }
 function openCinemaDetail(sala){
   // navegar de um detalhe de sala para outro substitui a entrada do histórico
@@ -9225,7 +9291,7 @@ function openCinemaDetail(sala){
     '</div>'
     +(specsHtml?'<div class="cinema-detail-meta">'+specsHtml+'</div>':'')
     +(evTags?'<div style="padding:8px 16px;border-top:1px solid var(--border);display:flex;gap:4px;flex-wrap:wrap;">'+evTags+'</div>':'')
-    +(c.endereco?'<div style="padding:6px 24px;font-family:var(--mono);font-size:10px;color:var(--text-muted);border-top:1px solid var(--border);">'+c.endereco+'</div>':'')
+    +(c.endereco?'<div style="padding:6px 24px;font-family:var(--mono);font-size:10px;color:var(--text-muted);border-top:1px solid var(--border);">'+_mapsLink(c.endereco,c.estado)+'</div>':'')
     +(c.telefone?'<div style="padding:5px 24px;font-family:var(--mono);font-size:9px;color:var(--text-muted);"><span style="opacity:0.6">TEL</span> '+_cinPhoneLink(c.telefone)+'</div>':'')
     +(c.email_kdm||c.email_ger?'<div style="padding:5px 24px;font-family:var(--mono);font-size:9px;color:var(--text-muted);display:flex;gap:16px;flex-wrap:wrap;">'+(c.email_kdm?'<span><span style="opacity:0.6">KDM</span> '+_cinEmailLinks(c.email_kdm)+'</span>':'')+(c.email_ger?'<span><span style="opacity:0.6">GER</span> '+_cinEmailLinks(c.email_ger)+'</span>':'')+'</div>':'')
     +(c.obs?'<div class="cinema-detail-obs">'+c.obs+'</div>':'')
@@ -11099,7 +11165,7 @@ function _renderGuestDetail(guestId){
   var gTrans=_recepTransfers.filter(function(t){return t.data.guest_id===guestId;}).sort(function(a,b){return(a.data.datetime||'').localeCompare(b.data.datetime||'');});
   var transRows=gTrans.map(function(t){var td=t.data,tid=_re(t.id);return'<tr>'+
     '<td>'+(td.category==='chegada'?'↓ chegada':td.category==='partida'?'↑ partida':'↔ interno')+'</td>'+
-    '<td>'+_re(td.origin||'')+(td.destination?' → '+_re(td.destination):'')+'</td>'+
+    '<td>'+_re(td.origin||'')+(td.destination?' '+_mapsRouteLink(td.origin,td.destination)+' '+_re(td.destination):'')+'</td>'+
     '<td>'+_re(td.vehicle_type||'—')+'</td>'+
     '<td>'+_re(td.datetime?td.datetime.replace('T',' '):'—')+'</td>'+
     '<td><span class="recep-status recep-status-'+_re((td.status||'pendente').toLowerCase())+'">'+_re(td.status||'pendente')+'</span></td>'+
@@ -11147,7 +11213,7 @@ function _renderHoteis(){
   var rows=sorted.map(function(h){var hd=h.data,hid=_re(h.id);var cnt=_recepBookings.filter(function(b){return b.data.hotel_id===h.id;}).length;return'<tr>'+
     '<td style="color:var(--text);font-weight:600;">'+_re(hd.name||'—')+'</td>'+
     '<td>'+_re(_recepEvLabel(hd.event_id))+'</td>'+
-    '<td>'+_re(hd.address||'—')+'</td>'+
+    '<td>'+(hd.address?_mapsLink(hd.address):'—')+'</td>'+
     '<td>'+_re(hd.contact||'—')+'</td>'+
     '<td>'+cnt+'</td>'+
     '<td>'+(canEdit?'<button class="recep-row-btn" onclick="openHotelModal(\''+hid+'\')">editar</button><button class="recep-row-btn del" onclick="deleteHotel(\''+hid+'\')">excluir</button>':'')+'<button class="recep-row-btn" onclick="dupeHotel(\''+hid+'\')">duplicar</button></td>'+
@@ -11359,7 +11425,7 @@ function _renderTransporte(){
   var rows=sorted.map(function(t){var td=t.data,tid=_re(t.id);var sc='recep-status recep-status-'+(td.status||'pendente').toLowerCase();return'<tr>'+
     '<td style="color:var(--text)">'+_re(guestMap[td.guest_id]||td.guest_id||'—')+'</td>'+
     '<td>'+(td.category==='chegada'?'↓ chegada':td.category==='partida'?'↑ partida':'↔ interno')+'</td>'+
-    '<td>'+_re(td.origin||'')+(td.destination?' → '+_re(td.destination):'')+'</td>'+
+    '<td>'+_re(td.origin||'')+(td.destination?' '+_mapsRouteLink(td.origin,td.destination)+' '+_re(td.destination):'')+'</td>'+
     '<td>'+_re(td.vehicle_type||'—')+'</td>'+
     '<td>'+_re(td.datetime?td.datetime.replace('T',' '):'—')+'</td>'+
     '<td><span class="'+sc+'">'+_re(td.status||'pendente')+'</span></td>'+
@@ -11386,6 +11452,27 @@ function _renderTransporte(){
   ):_recepSelectEventPrompt();
   buildPills(document.getElementById('headerEventFilters'),eventColors,activeEventsReceptivo,function(){_renderTransporte();});
 }
+// Opções de local (cinemas + hotéis, com endereço) para preencher Origem/Destino do transfer
+function _recepLocalOptions(){
+  var html='<option value="">+ inserir cinema/hotel…</option>';
+  var cins=(cinemasArr||[]).filter(function(c){return c.sala;}).slice().sort(function(a,b){
+    return (a.complexo||a.sala).localeCompare(b.complexo||b.sala,'pt-BR')||a.sala.localeCompare(b.sala,'pt-BR');});
+  if(cins.length)html+='<optgroup label="Cinemas">'+cins.map(function(c){
+    var nome=(c.complexo&&c.complexo!==c.sala)?(c.sala+' · '+c.complexo):c.sala;
+    var val=nome+(c.endereco?(' — '+c.endereco):'');
+    return '<option value="'+_re(val)+'">'+_re(nome)+(c.endereco?'':' (sem endereço)')+'</option>';
+  }).join('')+'</optgroup>';
+  var hots=(_recepHotels||[]).slice().sort(function(a,b){return (a.data.name||'').localeCompare(b.data.name||'','pt-BR');});
+  if(hots.length)html+='<optgroup label="Hotéis">'+hots.map(function(h){
+    var nome=h.data.name||h.id;var val=nome+(h.data.address?(' — '+h.data.address):'');
+    return '<option value="'+_re(val)+'">'+_re(nome)+(h.data.address?'':' (sem endereço)')+'</option>';
+  }).join('')+'</optgroup>';
+  // Aeroportos: valor = sigla (a rota/mapa resolve para o nome do aeroporto)
+  html+='<optgroup label="Aeroportos">'+Object.keys(_AIRPORTS).sort().map(function(code){
+    return '<option value="'+code+'">'+code+' · '+_re(_AIRPORTS[code])+'</option>';
+  }).join('')+'</optgroup>';
+  return html;
+}
 function openTransferModal(id,guestId,tmplData){
   _recepEditId=id;var parentGid=guestId||_recepParentId;
   var t=id?_recepTransfers.find(function(x){return x.id===id;}):null;var d=tmplData||(t?t.data:{});
@@ -11404,8 +11491,8 @@ function openTransferModal(id,guestId,tmplData){
         '<div class="recep-field"><label class="recep-label">Veículo</label><input id="tr_veh" class="recep-input" list="tr_veh_list" value="'+_re(d.vehicle_type||'')+'" placeholder="ex: van, uber…"><datalist id="tr_veh_list">'+[...new Set(_recepTransfers.map(function(t){return t.data.vehicle_type;}).filter(Boolean))].sort().map(function(v){return'<option value="'+_re(v)+'"></option>';}).join('')+'</datalist></div>'+
       '</div>'+
       '<div class="recep-2col">'+
-        '<div class="recep-field"><label class="recep-label">Origem</label><input id="tr_orig" class="recep-input" value="'+_re(d.origin||'')+'"></div>'+
-        '<div class="recep-field"><label class="recep-label">Destino</label><input id="tr_dest" class="recep-input" value="'+_re(d.destination||'')+'"></div>'+
+        '<div class="recep-field"><label class="recep-label">Origem</label><input id="tr_orig" class="recep-input" value="'+_re(d.origin||'')+'"><select class="recep-select" style="margin-top:4px;font-size:10px;padding:3px 7px;" onchange="if(this.value){document.getElementById(\'tr_orig\').value=this.value;}this.selectedIndex=0;">'+_recepLocalOptions()+'</select></div>'+
+        '<div class="recep-field"><label class="recep-label">Destino</label><input id="tr_dest" class="recep-input" value="'+_re(d.destination||'')+'"><select class="recep-select" style="margin-top:4px;font-size:10px;padding:3px 7px;" onchange="if(this.value){document.getElementById(\'tr_dest\').value=this.value;}this.selectedIndex=0;">'+_recepLocalOptions()+'</select></div>'+
       '</div>'+
       '<div class="recep-2col">'+
         '<div class="recep-field"><label class="recep-label">Data e hora</label><input id="tr_dt" type="datetime-local" class="recep-input" value="'+_re(d.datetime||'')+'"></div>'+
@@ -17355,7 +17442,7 @@ function renderDash(){
   html+=colBlock('legendagem','Legendagem',legBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 16/06/2026 às 14:42';
+  var sysUpdate='última atualização do sistema · 16/06/2026 às 14:48';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -25417,7 +25504,7 @@ function _sxcPrint(){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 16/06/2026 às 14:42</span></div>
+<div id="page-footer"><span>última atualização · 16/06/2026 às 14:48</span></div>
 
 </div>
 

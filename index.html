@@ -17530,7 +17530,7 @@ function renderDash(){
   html+=colBlock('legendagem','Legendagem',legBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 16/06/2026 às 15:00';
+  var sysUpdate='última atualização do sistema · 16/06/2026 às 15:02';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -19179,8 +19179,11 @@ async function _catCriaSessApplyEvento(){
   var _byName={},_ord=[];
   (cinemasArr||[]).forEach(function(c){if(c.sala&&!_byName[c.sala]){_byName[c.sala]=c;_ord.push(c.sala);}});
   function _salaAssoc(nome){var c=_byName[nome];return c&&(c.evento||'').split(';').map(function(s){return s.trim();}).indexOf(ev)!==-1;}
+  // "Outras salas" limitadas aos estados a que o evento está associado (se houver).
+  var _evData=(_adminEventos||[]).find(function(e){return e.id===ev;});
+  var _evEstados=_evData&&_evData.data&&_evData.data.estados&&_evData.data.estados.length?new Set(_evData.data.estados):null;
   var _assoc=_ord.filter(_salaAssoc).sort(function(a,b){return a.localeCompare(b,'pt-BR',{sensitivity:'base'});});
-  var _outras=_ord.filter(function(n){return !_salaAssoc(n);}).sort(function(a,b){return a.localeCompare(b,'pt-BR',{sensitivity:'base'});});
+  var _outras=_ord.filter(function(n){return !_salaAssoc(n)&&(!_evEstados||_evEstados.has((_byName[n]||{}).estado));}).sort(function(a,b){return a.localeCompare(b,'pt-BR',{sensitivity:'base'});});
   function _opts(list){return list.map(function(n){return'<option value="'+esc(n)+'">'+esc(n)+'</option>';}).join('');}
   var cinemaSel=document.getElementById('catCriaSessaoCinema');
   cinemaSel.innerHTML='<option value="">— selecionar sala —</option>'+
@@ -25655,7 +25658,7 @@ function _sxcPrint(){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 16/06/2026 às 15:00</span></div>
+<div id="page-footer"><span>última atualização · 16/06/2026 às 15:02</span></div>
 
 </div>
 

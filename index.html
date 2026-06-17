@@ -4195,6 +4195,8 @@ html[data-theme="indexof"]:not([data-theme="win98"]) .module-icon{display:flex!i
 
   const app  = initializeApp(firebaseConfig);
   const auth = getAuth(app);
+  // Token de autenticação para chamar as Cloud Functions a partir do escopo não-módulo.
+  window._olgaGetIdToken = function(){ return auth.currentUser ? auth.currentUser.getIdToken() : Promise.reject(new Error('Sessão expirada — entre novamente.')); };
   // Cache persistente (IndexedDB): após a primeira carga, os onSnapshot iniciais
   // são servidos do cache local e o servidor cobra apenas os deltas.
   let db;
@@ -12843,30 +12845,8 @@ function _parsePemToCert(pem){
   return{subject:subject,issuer:issuer,serialHex:serialHex,serialDec:serialDec,thumbprint:thumbprint};
 }
 
-function _normalizeDN(dn){
-  if(!dn)return'';
-  var OID_NAMES={'2.5.4.3':'CN','2.5.4.6':'C','2.5.4.7':'L','2.5.4.8':'ST','2.5.4.10':'O','2.5.4.11':'OU','2.5.4.46':'dnQualifier','0.9.2342.19200300.100.1.25':'DC','1.2.840.113549.1.9.1':'emailAddress'};
-  var s=dn.trim();
-  if(s.charAt(0)==='/')s=s.slice(1).replace(/\//g,',');
-  s=s.replace(/"/g,'').replace(/\\\+/g,'+').replace(/\\(.)/g,'$1').replace(/,\s+/g,',').replace(/\s*=\s*/g,'=');
-  var parts=s.split(',').filter(function(p){return p.indexOf('=')>0;});
-  parts=parts.map(function(p){
-    var idx=p.indexOf('=');
-    var k=p.substring(0,idx).trim();
-    var v=p.substring(idx+1).trim();
-    return (OID_NAMES[k]||k)+'='+v;
-  }).filter(function(p){var idx=p.indexOf('=');return idx>0&&p.substring(0,idx)&&p.substring(idx+1);});
-  return parts.sort().join(',');
-}
-
-function _normalizeSerial(s){
-  if(!s)return'';
-  var t=s.toString().trim();
-  if(/^[0-9a-fA-F]+$/.test(t)&&/[a-fA-F]/.test(t)&&t.length>10){
-    try{return BigInt('0x'+t).toString();}catch(e){}
-  }
-  return t;
-}
+// Normalização de DN/serial e validação de KDM movidas para a Cloud Function
+// `checkKDM` (ver AUTORIA.md).
 
 function _cinemaCertSectionHtml(c){
   var hasCert=!!(c.cert_serial_hex);
@@ -13101,133 +13081,29 @@ function testKDM(sessaoNome){
   input.click();
 }
 
-function _kdmGetTag(xml,tag){
-  var re=new RegExp('<(?:[^:>]+:)?'+tag+'[^>]*>([\\s\\S]*?)</(?:[^:>]+:)?'+tag+'>','i');
-  var m=xml.match(re);return m?m[1].trim():null;
-}
-
+// Validação de KDM movida para a Cloud Function `checkKDM` (ver AUTORIA.md).
+// O cliente reúne os dados de referência (cert da sala, certs de todas as salas,
+// acervo por UUID, sessão e offset) e envia o XML do KDM para o servidor validar.
 function _processKDMTest(sessaoNome,xml){
   var s=sessoesMap[sessaoNome];if(!s)return;
   if(!/DCinemaSecurityMessage/i.test(xml)){alert('Este arquivo não parece ser um KDM.');return;}
-  var isSMPTE=/smpte-ra\.org/.test(xml);
-  var cplUUID=_kdmGetTag(xml,'CompositionPlaylistId');
-  var titleText=_kdmGetTag(xml,'ContentTitleText');
-  var notBefore=_kdmGetTag(xml,'ContentKeysNotValidBefore');
-  var notAfter=_kdmGetTag(xml,'ContentKeysNotValidAfter');
-  var recipM=xml.match(/<Recipient[^>]*>([\s\S]*?)<\/Recipient>/i);
-  var recip=recipM?recipM[1]:'';
-  var kdmIssuer=_kdmGetTag(recip,'X509IssuerName');
-  var kdmSerial=_kdmGetTag(recip,'X509SerialNumber');
-  var kdmSubject=_kdmGetTag(recip,'X509SubjectName');
-  var kdmThumb=_kdmGetTag(recip,'CertificateThumbprint');
+  var all=getAllCinemas();var cinema=all.map[s.cinema]||null;
+  var certKeys=['cert_serial_hex','cert_serial_dec','cert_subject','cert_issuer','cert_thumbprint'];
+  var pickCert=function(c){if(!c)return null;var o={};certKeys.forEach(function(k){o[k]=c[k];});return o;};
+  var salaCert=pickCert(cinema);
+  if(salaCert&&cinema){salaCert.servidor=cinema.servidor||'';salaCert.serial=cinema.serial||'';}
+  var allCerts=all.order.map(function(sala){var ci=all.map[sala];var o=pickCert(ci)||{};o.sala=ci.sala;return o;});
+  var films=[];for(var code in filmesMap){var f=filmesMap[code];if(f.dcp_uuid)films.push({codigo:f.codigo,titulo:f.titulo,dcp_uuid:f.dcp_uuid});}
+  var session=s.date?{y:s.date.getFullYear(),mo:s.date.getMonth(),d:s.date.getDate(),h:s.time?s.time.h:0,mi:s.time?s.time.m:0}:null;
+  var salaOffsetMs=_parseCinemaOffsetMs(cinema||{});
+  _olgaCallFn(_CHECKKDM_FN,{kdmXml:xml,cinemaName:s.cinema,salaCert:salaCert,allCerts:allCerts,films:films,session:session,salaOffsetMs:salaOffsetMs})
+    .then(function(resp){_kdmRenderResult(sessaoNome,resp.status,resp.lines||[]);})
+    .catch(function(e){alert('Erro ao verificar o KDM:\n'+e.message);});
+}
 
-  var all=getAllCinemas();var cinema=all.map[s.cinema];
-  var lines=[],overallOk=true,certOk=true,windowFail=false;
-
-  // 1. Find copia by dcp_uuid
-  var matchCopia=null;
-  if(cplUUID){
-    var normUUID=cplUUID.replace(/^urn:uuid:/i,'').toLowerCase();
-    for(var code in filmesMap){var f=filmesMap[code];if(f.dcp_uuid&&f.dcp_uuid.replace(/^urn:uuid:/i,'').toLowerCase()===normUUID){matchCopia=f;break;}}
-  }
-  if(matchCopia){
-    lines.push({ok:true,warn:false,text:'Cópia encontrada: '+matchCopia.titulo+' ('+matchCopia.codigo+')'});
-    if(titleText)lines.push({ok:true,warn:false,text:'CPL: '+titleText});
-  }else{
-    lines.push({ok:false,warn:false,text:'Cópia não encontrada no acervo (UUID: '+(cplUUID||'ausente')+')'});
-    overallOk=false;
-  }
-
-  // 2. Cert match
-  if(!cinema||!cinema.cert_serial_hex){
-    lines.push({ok:false,warn:false,text:'Certificado da sala "'+s.cinema+'" não cadastrado'});
-    overallOk=false;certOk=false;
-  }else{
-    if(isSMPTE){
-      var serialOk=_normalizeSerial(kdmSerial)===cinema.cert_serial_dec;
-      var issuerOk=_normalizeDN(kdmIssuer)===_normalizeDN(cinema.cert_issuer);
-      lines.push({ok:serialOk,warn:false,text:'Serial: '+(_normalizeSerial(kdmSerial)||'—')+' '+(serialOk?'✓':'≠ cert: '+cinema.cert_serial_dec)});
-      if(issuerOk){
-        lines.push({ok:true,warn:false,text:'Issuer: ✓'});
-      }else{
-        lines.push({ok:false,warn:false,text:'Issuer: divergente'});
-        lines.push({ok:false,warn:false,diag:true,text:'  KDM  raw: '+(kdmIssuer||'(vazio)')});
-        lines.push({ok:false,warn:false,diag:true,text:'  KDM norm: '+_normalizeDN(kdmIssuer)});
-        lines.push({ok:false,warn:false,diag:true,text:'  Cert raw: '+(cinema.cert_issuer||'(vazio)')});
-        lines.push({ok:false,warn:false,diag:true,text:'  Cert norm: '+_normalizeDN(cinema.cert_issuer)});
-      }
-      if(kdmSubject){
-        var subjectOk=_normalizeDN(kdmSubject)===_normalizeDN(cinema.cert_subject);
-        if(subjectOk){
-          lines.push({ok:true,warn:false,text:'Subject: ✓'});
-        }else{
-          lines.push({ok:false,warn:false,text:'Subject: divergente'});
-          lines.push({ok:false,warn:false,diag:true,text:'  KDM  raw: '+(kdmSubject||'(vazio)')});
-          lines.push({ok:false,warn:false,diag:true,text:'  KDM norm: '+_normalizeDN(kdmSubject)});
-          lines.push({ok:false,warn:false,diag:true,text:'  Cert raw: '+(cinema.cert_subject||'(vazio)')});
-          lines.push({ok:false,warn:false,diag:true,text:'  Cert norm: '+_normalizeDN(cinema.cert_subject)});
-        }
-        if(!serialOk||!issuerOk||!subjectOk){overallOk=false;certOk=false;}
-      }else{
-        // SMPTE KDMs usando X509IssuerSerial não incluem SubjectName — OK
-        if(!serialOk||!issuerOk){overallOk=false;certOk=false;}
-      }
-    }else{
-      var thumbOk=!!(kdmThumb&&cinema.cert_thumbprint&&kdmThumb.trim()===cinema.cert_thumbprint.trim());
-      lines.push({ok:thumbOk,warn:false,text:'Thumbprint Interop: '+(thumbOk?'✓':'divergente')});
-      if(!thumbOk){overallOk=false;certOk=false;}
-    }
-    lines.push({ok:true,warn:false,text:'Tipo: '+(isSMPTE?'SMPTE':'Interop')});
-
-    // 2b. Se cert falhou, procura outra sala cujo cert bata com este KDM
-    if(!certOk){
-      var allC=getAllCinemas();
-      var matched=[];
-      allC.order.forEach(function(sala){var ci=allC.map[sala];
-        if(!ci.cert_serial_hex||ci.sala===s.cinema)return;
-        var hit=false;
-        if(isSMPTE){
-          var sOk=_normalizeSerial(kdmSerial)===ci.cert_serial_dec;
-          var iOk=_normalizeDN(kdmIssuer)===_normalizeDN(ci.cert_issuer);
-          if(sOk&&iOk){
-            if(kdmSubject){hit=_normalizeDN(kdmSubject)===_normalizeDN(ci.cert_subject);}
-            else{hit=true;}
-          }
-        }else{
-          hit=!!(kdmThumb&&ci.cert_thumbprint&&kdmThumb.trim()===ci.cert_thumbprint.trim());
-        }
-        if(hit)matched.push(ci.sala);
-      });
-      if(matched.length){
-        lines.push({ok:false,warn:true,text:'\u29d7 KDM pertence a outra sala: '+matched.join(', ')});
-      }else{
-        lines.push({ok:false,warn:true,text:'KDM n\u00e3o corresponde a nenhuma sala cadastrada'});
-      }
-    }
-  }
-
-  // 3. Window validation
-  if(notBefore&&notAfter&&s.date){
-    try{
-      var nbMs=new Date(notBefore).getTime(),naMs=new Date(notAfter).getTime();
-      var _kdmAllC=getAllCinemas();var _kdmCi=_kdmAllC.map[s.cinema]||{};
-      var _kdmOffMs=_parseCinemaOffsetMs(_kdmCi);
-      var sessLocalMs=Date.UTC(s.date.getFullYear(),s.date.getMonth(),s.date.getDate(),s.time?s.time.h:0,s.time?s.time.m:0,0);
-      var sessMs=sessLocalMs-_kdmOffMs;
-      var inWindow=sessMs>=nbMs&&sessMs<=naMs;
-      var fmt=function(iso){try{var d=new Date(iso);return d.toISOString().replace('T',' ').slice(0,16)+' UTC';}catch(e){return iso;}};
-      var _sessUtcD=new Date(sessMs);
-      var _sessUtcLabel=String(_sessUtcD.getUTCHours()).padStart(2,'0')+':'+String(_sessUtcD.getUTCMinutes()).padStart(2,'0')+' UTC';
-      if(inWindow){lines.push({ok:true,warn:false,text:'Janela: dentro ('+fmt(notBefore)+' → '+fmt(notAfter)+') · Sessão: '+_sessUtcLabel});}
-      else{lines.push({ok:false,warn:true,text:'Janela: fora ('+fmt(notBefore)+' → '+fmt(notAfter)+') · Sessão: '+_sessUtcLabel});overallOk=false;windowFail=true;}
-    }catch(e){lines.push({ok:false,warn:true,text:'Janela: não foi possível validar'});}
-  }else{
-    lines.push({ok:false,warn:true,text:'Janela de validade ausente no KDM'});
-  }
-
+function _kdmRenderResult(sessaoNome,status,lines){
   var now=new Date();
   var ts=now.toLocaleDateString('pt-BR')+' '+now.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
-  var status=overallOk?'ok':(windowFail&&certOk?'window':'fail');
   _kdmResults[sessaoNome]={status:status,timestamp:ts,lines:lines,filename:_kdmPendingFilename||''};
   _kdmPendingFilename='';
   try{localStorage.setItem('olga-kdm-results',JSON.stringify(_kdmResults));}catch(e){}
@@ -17541,7 +17417,7 @@ function renderDash(){
   html+=colBlock('legendagem','Legendagem',legBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 16/06/2026 às 15:16';
+  var sysUpdate='última atualização do sistema · 17/06/2026 às 15:20';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -22374,6 +22250,18 @@ async function importFromTMDB(codigo,btn){
 // ── Cinemateca Brasileira ────────────────────────────────────────────────────
 var _CINEMATECA_FN='https://us-central1-olga-suite.cloudfunctions.net/cinemateca';
 
+// ── Cloud Functions com lógica proprietária (ver AUTORIA.md) ─────────────────
+var _PARSECPL_FN='https://us-central1-olga-suite.cloudfunctions.net/parseCPL';
+var _CHECKKDM_FN='https://us-central1-olga-suite.cloudfunctions.net/checkKDM';
+function _readFileText(file){return new Promise(function(res,rej){var r=new FileReader();r.onload=function(e){res(e.target.result);};r.onerror=function(){rej(new Error('Falha ao ler '+(file&&file.name||'arquivo')));};r.readAsText(file);});}
+async function _olgaCallFn(url,body){
+  var token=await window._olgaGetIdToken();
+  var resp=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},body:JSON.stringify(body)});
+  var data=null;try{data=await resp.json();}catch(e){}
+  if(!resp.ok)throw new Error((data&&data.error)||('HTTP '+resp.status));
+  return data;
+}
+
 var _CIN_PAIS={'BR':'Brasil','US':'Estados Unidos','FR':'França','AR':'Argentina','PT':'Portugal','IT':'Itália','ES':'Espanha','DE':'Alemanha','GB':'Reino Unido','MX':'México','CL':'Chile','CO':'Colômbia','UY':'Uruguai','BO':'Bolívia','PE':'Peru','VE':'Venezuela','CU':'Cuba','JP':'Japão','CN':'China','RU':'Rússia'};
 
 function _cinToCatalog(cd){
@@ -22874,91 +22762,8 @@ function _dcpFmt(secs){
   return h+':'+String(m).padStart(2,'0')+':'+String(s).padStart(2,'0');
 }
 
-function _dcpEditRate(txt){
-  if(!txt)return 0;
-  var p=txt.trim().split(/\s+/);
-  return p.length===2?parseFloat(p[0])/parseFloat(p[1]):parseFloat(p[0])||0;
-}
-
-function _dcpResolution(xml){
-  var tags=['FrameWidth','StoredWidth','PictureWidth'];
-  for(var i=0;i<tags.length;i++){
-    var n=xml.querySelector(tags[i])||_xmlFindLocal(xml,tags[i]);
-    if(n&&/^\d+$/.test(n.textContent.trim())){
-      var w=parseInt(n.textContent);
-      return w>=3840?'4K':w>=1920?'2K':'';
-    }
-  }
-  var sar=_xmlFindLocal(xml,'ScreenAspectRatio');
-  if(sar){
-    var parts=sar.textContent.trim().split(/\s+/);
-    if(parts.length===2&&/^\d+$/.test(parts[0])){
-      var w=parseInt(parts[0]);return w>=3840?'4K':w>=1920?'2K':'';
-    }
-  }
-  return '';
-}
-
-function _xmlFindLocal(xml,localName){
-  var all=xml.getElementsByTagName('*');
-  for(var i=0;i<all.length;i++){if(all[i].localName===localName)return all[i];}
-  return null;
-}
-
-function _dcpKDM(xml){
-  return _xmlFindLocal(xml,'KeyId')?'Sim':'Não';
-}
-
-async function _parseCPL(file){
-  return new Promise(function(resolve,reject){
-    var r=new FileReader();
-    r.onload=function(e){
-      try{
-        var parser=new DOMParser();
-        var xml=parser.parseFromString(e.target.result,'text/xml');
-        // CPL UUID
-        var idNode=null;
-        var root=xml.documentElement;
-        // first <Id> child of root
-        for(var c=root.firstElementChild;c;c=c.nextElementSibling){
-          if(c.localName==='Id'){idNode=c;break;}
-        }
-        var uuid=(idNode?idNode.textContent:'').replace(/^urn:uuid:/i,'').trim();
-        var ctt=_xmlFindLocal(xml,'ContentTitleText');
-        var er=_xmlFindLocal(xml,'EditRate');
-        var cr=_xmlFindLocal(xml,'Creator');
-        var editRate=_dcpEditRate(er?er.textContent:'');
-        // duration: sum MainPicture reels
-        var reels=xml.querySelectorAll('Reel');
-        if(!reels.length)reels=xml.getElementsByTagName('Reel');
-        var totalFrames=0;
-        for(var i=0;i<reels.length;i++){
-          var pic=reels[i].querySelector('MainPicture')||reels[i].getElementsByTagName('MainPicture')[0];
-          if(!pic)continue;
-          var dur=pic.querySelector('Duration')||pic.getElementsByTagName('Duration')[0];
-          var ept=pic.querySelector('EntryPoint')||pic.getElementsByTagName('EntryPoint')[0];
-          var d=dur?parseInt(dur.textContent)||0:0;
-          var ep=ept?parseInt(ept.textContent)||0:0;
-          totalFrames+=(d-ep);
-        }
-        var secs=editRate>0?totalFrames/editRate:0;
-        resolve({
-          file: file.name,
-          uuid: uuid,
-          title: ctt?ctt.textContent.trim():'',
-          fps: editRate?String(Math.round(editRate*1000)/1000):'',
-          durSecs: secs,
-          dur: secs>0?_dcpFmt(secs):'',
-          creator: cr?cr.textContent.trim():'',
-          resolution: _dcpResolution(xml),
-          kdm: _dcpKDM(xml)
-        });
-      }catch(err){reject(err);}
-    };
-    r.onerror=reject;
-    r.readAsText(file);
-  });
-}
+// Parsing de CPL movido para a Cloud Function `parseCPL` (ver AUTORIA.md).
+// O cliente apenas lê o texto dos CPLs e envia para o servidor.
 
 async function handleDCPFolderSelect(files){
   var panel=document.getElementById('dcpImportPanel');
@@ -22980,10 +22785,23 @@ async function handleDCPFolderSelect(files){
     return;
   }
 
-  // Parse all CPLs
-  var parsed=[];
+  // Lê o texto dos CPLs no cliente e envia para a Function fazer o parsing.
+  var cplData=[];
   for(var i=0;i<cplFiles.length;i++){
-    try{var r=await _parseCPL(cplFiles[i]);r.totalGB=totalGB;r.totalBytes=totalBytes;parsed.push(r);}catch(e){console.warn('CPL parse error',e);}
+    try{cplData.push({file:cplFiles[i].name,xml:await _readFileText(cplFiles[i])});}catch(e){console.warn('CPL read error',e);}
+  }
+  if(!cplData.length){
+    panel.innerHTML='<div style="font-family:var(--mono);font-size:10px;color:var(--warn);">⚠ Não foi possível ler os CPLs.</div>';
+    return;
+  }
+  panel.innerHTML='<div style="font-family:var(--mono);font-size:10px;color:var(--text-muted);">Analisando CPLs…</div>';
+  var parsed=[];
+  try{
+    var resp=await _olgaCallFn(_PARSECPL_FN,{cpls:cplData});
+    parsed=(resp.cpls||[]).map(function(r){r.totalGB=totalGB;r.totalBytes=totalBytes;return r;});
+  }catch(e){
+    panel.innerHTML='<div style="font-family:var(--mono);font-size:10px;color:var(--warn);">⚠ Erro ao analisar os CPLs: '+_re(e.message)+'</div>';
+    return;
   }
 
   if(!parsed.length){
@@ -25671,7 +25489,7 @@ function _sxcPrint(){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 16/06/2026 às 15:16</span></div>
+<div id="page-footer"><span>última atualização · 17/06/2026 às 15:20</span></div>
 
 </div>
 

@@ -10514,6 +10514,10 @@ function _recepEventBankSelect(){
 }
 window._recepOnEventChange=function(v){
   _recepSelectedEvent=v;
+  // trocar de evento zera filtros/seleções da seção (nada persiste entre eventos)
+  _recepTransVeh='';_recepTransDate='';_recepGuestSearch='';
+  if(_recepRoleFilter&&_recepRoleFilter.clear)_recepRoleFilter.clear();
+  if(_recepGuestSel&&_recepGuestSel.clear)_recepGuestSel.clear();
   var map={convidados:_renderConvidados,hoteis:_renderHoteis,voos:_renderVoos,transporte:_renderTransporte};
   var fn=map[_recepSection];if(fn)fn();
 };
@@ -11472,7 +11476,7 @@ function _renderTransporte(){
     '<span class="recep-bar-title">Transporte</span>'+
     _recepEventBankSelect()+
     '<input type="date" class="recep-input" style="width:130px;font-size:10px;padding:3px 7px;" value="'+_re(_recepTransDate)+'" onchange="_recepTransDate=this.value;_renderTransporte()" title="Filtrar por data">'+
-    (function(){var vs=[...new Set(_recepTransfers.map(function(t){return t.data.vehicle_type;}).filter(Boolean))].sort();return'<select class="recep-select" style="width:100px;font-size:10px;padding:3px 7px;" onchange="_recepTransVeh=this.value;_renderTransporte()"><option value="">Todos veículos</option>'+vs.map(function(v){return'<option value="'+_re(v)+'"'+(_recepTransVeh===v?' selected':'')+'>'+_re(v)+'</option>';}).join('')+'</select>';})()+
+    (function(){var vs=[...new Set(_recepTransfers.filter(function(t){return t.data.event_id===_recepSelectedEvent;}).map(function(t){return t.data.vehicle_type;}).filter(Boolean))].sort();return'<select class="recep-select" style="width:100px;font-size:10px;padding:3px 7px;" onchange="_recepTransVeh=this.value;_renderTransporte()"><option value="">Todos veículos</option>'+vs.map(function(v){return'<option value="'+_re(v)+'"'+(_recepTransVeh===v?' selected':'')+'>'+_re(v)+'</option>';}).join('')+'</select>';})()+
     '<button class="recep-print-btn" onclick="_recepPrint()">imprimir</button>'+
     (canEdit?'<button class="recep-add-btn" onclick="openTransferModal(null,null)">+ Transfer</button>':'');
   document.getElementById('receptivo-container').innerHTML=_recepSelectedEvent?(
@@ -11567,7 +11571,7 @@ function openTransferModal(id,guestId,tmplData){
       '<div class="recep-field"><label class="recep-label">Evento</label><select id="tr_event" class="recep-select" onchange="_recepUpdateLocSelects()"><option value="">—</option>'+_recepEvSelect(d.event_id||_recepSelectedEvent||'')+'</select></div>'+
       '<div class="recep-2col">'+
         '<div class="recep-field"><label class="recep-label">Categoria</label><select id="tr_cat" class="recep-select">'+selOpts(['chegada','partida','interno'],d.category||'chegada')+'</select></div>'+
-        '<div class="recep-field"><label class="recep-label">Veículo</label><input id="tr_veh" class="recep-input" list="tr_veh_list" value="'+_re(d.vehicle_type||'')+'" placeholder="ex: van, uber…"><datalist id="tr_veh_list">'+[...new Set(_recepTransfers.map(function(t){return t.data.vehicle_type;}).filter(Boolean))].sort().map(function(v){return'<option value="'+_re(v)+'"></option>';}).join('')+'</datalist></div>'+
+        '<div class="recep-field"><label class="recep-label">Veículo</label><input id="tr_veh" class="recep-input" list="tr_veh_list" value="'+_re(d.vehicle_type||'')+'" placeholder="ex: van, uber…"><datalist id="tr_veh_list">'+[...new Set(_recepTransfers.filter(function(t){return t.data.event_id===(d.event_id||_recepSelectedEvent);}).map(function(t){return t.data.vehicle_type;}).filter(Boolean))].sort().map(function(v){return'<option value="'+_re(v)+'"></option>';}).join('')+'</datalist></div>'+
       '</div>'+
       '<div class="recep-2col">'+
         '<div class="recep-field"><label class="recep-label">Origem</label><input type="hidden" id="tr_orig_ref" value="'+_re(d.origin_ref||'')+'"><input id="tr_orig" class="recep-input" value="'+_re(_recepResolveLoc(d.origin||'',d.origin_ref||''))+'" oninput="document.getElementById(\'tr_orig_ref\').value=\'\';"><select id="tr_orig_loc" class="recep-select" style="margin-top:4px;font-size:10px;padding:3px 7px;" onchange="_recepPickLoc(\'orig\',this.value);this.selectedIndex=0;">'+_recepLocalOptions(d.event_id||_recepSelectedEvent||'')+'</select></div>'+
@@ -17537,7 +17541,7 @@ function renderDash(){
   html+=colBlock('legendagem','Legendagem',legBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 16/06/2026 às 15:12';
+  var sysUpdate='última atualização do sistema · 16/06/2026 às 15:16';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -25667,7 +25671,7 @@ function _sxcPrint(){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 16/06/2026 às 15:12</span></div>
+<div id="page-footer"><span>última atualização · 16/06/2026 às 15:16</span></div>
 
 </div>
 

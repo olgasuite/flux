@@ -13093,7 +13093,7 @@ function _processKDMTest(sessaoNome,xml){
   var salaCert=pickCert(cinema);
   if(salaCert&&cinema){salaCert.servidor=cinema.servidor||'';salaCert.serial=cinema.serial||'';}
   var allCerts=all.order.map(function(sala){var ci=all.map[sala];var o=pickCert(ci)||{};o.sala=ci.sala;return o;});
-  var films=[];for(var code in filmesMap){var f=filmesMap[code];if(f.dcp_uuid)films.push({codigo:f.codigo,titulo:f.titulo,dcp_uuid:f.dcp_uuid});}
+  var films=[];(s.filmes||[]).forEach(function(code){var f=filmesMap[code];if(f&&f.dcp_uuid)films.push({codigo:f.codigo,titulo:f.titulo,dcp_uuid:f.dcp_uuid});});
   var session=s.date?{y:s.date.getFullYear(),mo:s.date.getMonth(),d:s.date.getDate(),h:s.time?s.time.h:0,mi:s.time?s.time.m:0}:null;
   var salaOffsetMs=_parseCinemaOffsetMs(cinema||{});
   _olgaCallFn(_CHECKKDM_FN,{kdmXml:xml,cinemaName:s.cinema,salaCert:salaCert,allCerts:allCerts,films:films,session:session,salaOffsetMs:salaOffsetMs})
@@ -17417,7 +17417,7 @@ function renderDash(){
   html+=colBlock('legendagem','Legendagem',legBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 17/06/2026 às 15:24';
+  var sysUpdate='última atualização do sistema · 17/06/2026 às 15:26';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -25489,7 +25489,7 @@ function _sxcPrint(){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 17/06/2026 às 15:24</span></div>
+<div id="page-footer"><span>última atualização · 17/06/2026 às 15:26</span></div>
 
 </div>
 

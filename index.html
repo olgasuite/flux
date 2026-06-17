@@ -16087,9 +16087,8 @@ async function _catBatchDelete(){
   var codes=Array.from(_catBatchSel);
   var bk=codes.map(function(c){return{codigo:c,filme:catalogoFilmesMap[c]||null,copia:filmesMap[c]||null};});
   var seenSess={};codes.forEach(function(c){_olgaSessoesComFilme(c).forEach(function(s){if(!seenSess[s.nome]){seenSess[s.nome]=1;bk.push(s);}});});
-  // pré-imagem dos arquivos de legendagem (best-effort) para o backup
-  var legBkp={};
-  if(window._olgaLegFiles){for(var li=0;li<codes.length;li++){try{var ld=await window._olgaLegFiles.get(codes[li]);if(ld){legBkp[codes[li]]=ld;bk.push({tipo:'legfile',id:codes[li],data:ld});}}catch(_){}}}
+  // legendagem no backup só se já carregada em memória (sem leitura extra)
+  if(typeof _legFilesMap!=='undefined'&&_legFilesMap){codes.forEach(function(c){if(_legFilesMap[c])bk.push({tipo:'legfile',id:c,data:_legFilesMap[c]});});}
   _olgaPreBackup('catalogo-batch-delete',bk);
   var errors=[];
   for(var i=0;i<codes.length;i++){
@@ -16098,7 +16097,7 @@ async function _catBatchDelete(){
       await window._olgaCatalogo.remove(codes[i]);
       if(window._olgaCopias){try{await window._olgaCopias.remove(codes[i]);}catch(_){}}
       await _olgaUnlinkFilm(codes[i]);
-      if(window._olgaLegFiles&&legBkp[codes[i]]){try{await window._olgaLegFiles.remove(codes[i]);}catch(_){}}
+      if(window._olgaLegFiles){try{await window._olgaLegFiles.remove(codes[i]);}catch(_){}}
       if(typeof _legFilesMap!=='undefined'&&_legFilesMap)delete _legFilesMap[codes[i]];
       if(catalogoFilmesMap)delete catalogoFilmesMap[codes[i]];
     }catch(e){errors.push(codes[i]+': '+e.message);}
@@ -17538,7 +17537,7 @@ function renderDash(){
   html+=colBlock('legendagem','Legendagem',legBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 16/06/2026 às 15:10';
+  var sysUpdate='última atualização do sistema · 16/06/2026 às 15:12';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -21565,7 +21564,9 @@ async function deleteCatFilm(codigo){
   var aviso=sess.length?('\n\nO filme será removido de '+sess.length+' sessão(ões) vinculada(s).'):'';
   if(!confirm('Excluir o filme "'+codigo+'" do Catálogo e do Acervo Técnico?'+aviso+'\n\nEsta ação não pode ser desfeita.'))return;
   try{
-    var legData=null;if(window._olgaLegFiles){try{legData=await window._olgaLegFiles.get(codigo);}catch(_){}}
+    // legendagem só entra no backup se já estiver carregada em memória (sem leitura extra);
+    // o doc é apagado de qualquer forma (deleteDoc não custa leitura, mesmo se não existir).
+    var legData=(typeof _legFilesMap!=='undefined'&&_legFilesMap)?_legFilesMap[codigo]:null;
     var bk=[{codigo:codigo,filme:catalogoFilmesMap[codigo]||null,copia:filmesMap[codigo]||null}].concat(sess);
     if(legData)bk.push({tipo:'legfile',id:codigo,data:legData});
     _olgaPreBackup('exclusao-filme-'+codigo,bk,'filme, cópia, sessões e legendagem antes da exclusão');
@@ -21574,7 +21575,7 @@ async function deleteCatFilm(codigo){
     window._logFirestoreEdit&&window._logFirestoreEdit('delete',codigo,{},'catalogo','filmes');
     if(window._olgaCopias){try{await window._olgaCopias.remove(codigo);}catch(_){}}
     await _olgaUnlinkFilm(codigo);
-    if(window._olgaLegFiles&&legData){try{await window._olgaLegFiles.remove(codigo);}catch(_){}}
+    if(window._olgaLegFiles){try{await window._olgaLegFiles.remove(codigo);}catch(_){}}
     if(typeof _legFilesMap!=='undefined'&&_legFilesMap)delete _legFilesMap[codigo];
     delete catalogoFilmesMap[codigo];
     _catView='search';_catCode=null;_catEditing=false;
@@ -25666,7 +25667,7 @@ function _sxcPrint(){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 16/06/2026 às 15:10</span></div>
+<div id="page-footer"><span>última atualização · 16/06/2026 às 15:12</span></div>
 
 </div>
 

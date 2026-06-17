@@ -1085,7 +1085,7 @@ select:disabled{opacity:0.35;cursor:not-allowed;}
 .drop-icon{font-size:30px;opacity:0.5;}
 .drop-label{font-family:var(--mono);font-size:11px;font-weight:600;letter-spacing:0.14em;text-transform:uppercase;color:var(--accent);}
 .drop-sub{font-family:var(--mono);font-size:10px;color:var(--text-muted);}
-.landing-modules{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:1px;background:var(--border);width:min(100%,960px);border:1px solid var(--border);}
+.landing-modules{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:1px;background:transparent;width:min(100%,960px);border:none;}
 .module-card{background:var(--surface);padding:18px 16px 16px;display:flex;flex-direction:column;gap:5px;cursor:pointer;transition:background 0.15s;position:relative;min-height:80px;}
 .module-card+.module-card{border-left:none;}
 .module-card:hover:not(.disabled){background:var(--surface2);}
@@ -17530,7 +17530,7 @@ function renderDash(){
   html+=colBlock('legendagem','Legendagem',legBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 16/06/2026 às 15:02';
+  var sysUpdate='última atualização do sistema · 16/06/2026 às 15:04';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -25658,7 +25658,7 @@ function _sxcPrint(){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 16/06/2026 às 15:02</span></div>
+<div id="page-footer"><span>última atualização · 16/06/2026 às 15:04</span></div>
 
 </div>
 

@@ -9043,8 +9043,10 @@ function rebuildCinemasEventoSelect(){
 function rebuildCinemasEstadoSelect(){
   var estados=new Set();
   var all=getAllCinemas();
+  var _evUF=_estadosEventosAtivos();
   all.order.forEach(function(sala){
     var c=all.map[sala];
+    if(_evUF.size&&!(c.estado&&_evUF.has(c.estado)))return;
     if(!_cinemaMatchesEventoFilter(c))return;
     if(c.estado)estados.add(c.estado);
   });
@@ -9077,6 +9079,17 @@ function rebuildCinemasComplexoSelect(){
   else{sel.value='';cinemasComplexoFilter='';}
 }
 
+// UFs dos eventos ativos no header (vazio = sem restrição → mostra todas as salas).
+// As salas continuam existindo em cinemasArr; isto é só filtro visual da lista.
+function _estadosEventosAtivos(){
+  var uf=new Set();
+  (window._adminEventosFullCache||[]).forEach(function(e){
+    var nome=e.data&&(e.data.nome||e.id);
+    if(nome&&activeEventsCinemas.has(nome)&&Array.isArray(e.data.estados))e.data.estados.forEach(function(u){if(u)uf.add(u);});
+  });
+  return uf;
+}
+
 function renderCinemas(){
   currentCinemaDetail=null;
   var ce=document.getElementById('cinemasEmpty');
@@ -9085,11 +9098,13 @@ function renderCinemas(){
   dw.style.display='none';
 
   var all=getAllCinemas();
+  var _evUF=_estadosEventosAtivos();
   // group by complexo
   var byComplexo={},complexoOrder=[];
   all.order.forEach(function(sala){
     var c=all.map[sala];
     var cx=c.complexo||sala;
+    if(_evUF.size&&!(c.estado&&_evUF.has(c.estado)))return; // só salas no estado do(s) evento(s) ativo(s)
     if(cinemasEstadoFilter&&c.estado!==cinemasEstadoFilter)return;
     if(cinemasComplexoFilter&&cx!==cinemasComplexoFilter)return;
     if(!_cinemaMatchesEventoFilter(c))return;
@@ -17334,7 +17349,7 @@ function renderDash(){
   html+=colBlock('legendagem','Legendagem',legBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 17/06/2026 às 15:34';
+  var sysUpdate='última atualização do sistema · 17/06/2026 às 15:38';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -18577,11 +18592,20 @@ function openProgSessaoModal(sessaoNome,programId,subprogramId){
   _progSessaoEvento=ev||'';
   var evData=(_adminEventos||[]).find(function(e){return e.id===ev;});
   var evEstados=evData&&evData.data&&evData.data.estados?new Set(evData.data.estados):null;
-  var cinemasFilt=cinemasArr.filter(function(c){
-    if(evEstados&&evEstados.size)return evEstados.has(c.estado);
-    return true;
-  }).sort(function(a,b){return a.sala.localeCompare(b.sala,'pt-BR',{sensitivity:'base'});});
-  var cinemaOpts=cinemasFilt.map(function(c){return'<option value="'+esc(c.sala)+'"'+(s&&s.cinema===c.sala?' selected':'')+'>'+esc(c.sala)+'</option>';}).join('');
+  // Salas do evento (associadas pelo campo evento) primeiro; depois "Outras salas"
+  // limitadas aos estados do evento (mesma lógica do criador no Catálogo).
+  var _byName={},_ord=[];
+  (cinemasArr||[]).forEach(function(c){if(c.sala&&!_byName[c.sala]){_byName[c.sala]=c;_ord.push(c.sala);}});
+  function _salaAssoc(nome){var c=_byName[nome];return c&&(c.evento||'').split(';').map(function(x){return x.trim();}).indexOf(ev)!==-1;}
+  var _assoc=_ord.filter(_salaAssoc).sort(function(a,b){return a.localeCompare(b,'pt-BR',{sensitivity:'base'});});
+  var _outras=_ord.filter(function(n){return !_salaAssoc(n)&&(!evEstados||!evEstados.size||evEstados.has((_byName[n]||{}).estado));}).sort(function(a,b){return a.localeCompare(b,'pt-BR',{sensitivity:'base'});});
+  // Garante que a sala já gravada na sessão apareça, mesmo fora do estado/associação.
+  var _curSala=s&&s.cinema;
+  if(_curSala&&_assoc.indexOf(_curSala)===-1&&_outras.indexOf(_curSala)===-1)_outras.unshift(_curSala);
+  function _optS(nome){return'<option value="'+esc(nome)+'"'+(s&&s.cinema===nome?' selected':'')+'>'+esc(nome)+'</option>';}
+  var cinemaOpts=
+    (_assoc.length?'<optgroup label="Salas do evento">'+_assoc.map(_optS).join('')+'</optgroup>':'')+
+    (_outras.length?'<optgroup label="Outras salas">'+_outras.map(_optS).join('')+'</optgroup>':'');
   _progSessaoFilmsArr=s?s.filmes.slice():[];
   _progSessaoBumpersArr=s?(s.vinhetas||[]).slice():[];
   _progSessaoTemplateId=(s&&s.template_id)||'';
@@ -25407,7 +25431,7 @@ function _sxcPrint(){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 17/06/2026 às 15:34</span></div>
+<div id="page-footer"><span>última atualização · 17/06/2026 às 15:38</span></div>
 
 </div>
 

@@ -5293,8 +5293,8 @@ html[data-theme="indexof"]:not([data-theme="win98"]) .module-icon{display:flex!i
         var sala = fs(r['venue_name']);
         if (!sala) return;
         var eventoRaw = fs(r['event_name']);
-        var eventosList = eventoRaw ? eventoRaw.split(';').map(function(e){return e.trim();}).filter(Boolean) : [];
-        if (userEventos && eventosList.length && !eventosList.some(function(e){return userEventos.has(e);})) return;
+        // Cinemas "flutuam": não são filtrados por evento no carregamento. A visibilidade
+        // por estado×evento selecionado é aplicada no render (renderCinemas).
         arr.push({
           docId: doc.id,
           complexo: fs(r['complex_name']), sala: sala,
@@ -17334,7 +17334,7 @@ function renderDash(){
   html+=colBlock('legendagem','Legendagem',legBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 17/06/2026 às 15:32';
+  var sysUpdate='última atualização do sistema · 17/06/2026 às 15:34';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -25407,7 +25407,7 @@ function _sxcPrint(){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 17/06/2026 às 15:32</span></div>
+<div id="page-footer"><span>última atualização · 17/06/2026 às 15:34</span></div>
 
 </div>
 

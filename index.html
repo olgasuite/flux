@@ -4392,7 +4392,12 @@ html[data-theme="indexof"]:not([data-theme="win98"]) .module-icon{display:flex!i
     },
     removeSala: async function(docId) {
       await deleteDoc(doc(db, 'cinemas', docId));
-    }
+    },
+    // Arquivo de certificado para envio (zip/pem/xml) — blob em coleção separada (cinema_files),
+    // buscado só sob demanda (download). O nome fica no doc da sala (cert_file_name) para a UI.
+    saveFile: async function(docId, fileDoc) { await setDoc(doc(db, 'cinema_files', docId), fileDoc); },
+    getFile: async function(docId) { var s = await getDoc(doc(db, 'cinema_files', docId)); return s.exists() ? s.data() : null; },
+    removeFile: async function(docId) { await deleteDoc(doc(db, 'cinema_files', docId)); }
   };
 
   // API idiomas padronizados (coleção isdclf_languages) — apenas leitura/cache
@@ -5311,6 +5316,7 @@ html[data-theme="indexof"]:not([data-theme="win98"]) .module-icon{display:flex!i
           cert_serial_hex: fs(r['cert_serial_hex']), cert_serial_dec: fs(r['cert_serial_dec']),
           cert_thumbprint: fs(r['cert_thumbprint']), cert_filename: fs(r['cert_filename']),
           cert_imported_at: r['cert_imported_at']&&r['cert_imported_at'].toDate?r['cert_imported_at'].toDate():null,
+          cert_file_name: fs(r['cert_file_name']),
           utc_offset: fs(r['utc_offset'])
         });
       });
@@ -7221,7 +7227,7 @@ function _restCinemaDoc(c){
     kdm_email:c.email_kdm||'',mgmt_email:c.email_ger||'',screen_height:c.tela_h||'',
     screen_width:c.tela_w||'',cert_subject:c.cert_subject||'',cert_issuer:c.cert_issuer||'',
     cert_serial_hex:c.cert_serial_hex||'',cert_serial_dec:c.cert_serial_dec||'',
-    cert_thumbprint:c.cert_thumbprint||'',cert_filename:c.cert_filename||'',utc_offset:c.utc_offset||''};
+    cert_thumbprint:c.cert_thumbprint||'',cert_filename:c.cert_filename||'',cert_file_name:c.cert_file_name||'',utc_offset:c.utc_offset||''};
 }
 function _olgaRestoreBackupFile(input){
   var file=input.files&&input.files[0];
@@ -9338,6 +9344,7 @@ function openCinemaDetail(sala){
     +(c.email_kdm||c.email_ger?'<div style="padding:5px 24px;font-family:var(--mono);font-size:9px;color:var(--text-muted);display:flex;gap:16px;flex-wrap:wrap;">'+(c.email_kdm?'<span><span style="opacity:0.6">KDM</span> '+_cinEmailLinks(c.email_kdm)+'</span>':'')+(c.email_ger?'<span><span style="opacity:0.6">GER</span> '+_cinEmailLinks(c.email_ger)+'</span>':'')+'</div>':'')
     +(c.obs?'<div class="cinema-detail-obs">'+c.obs+'</div>':'')
     +_cinemaCertSectionHtml(c)
+    +_cinemaCertFileHtml(c)
     +'</div>'
     +'<div class="cinema-detail-sessions">'
     +'<div class="cinema-detail-sessions-header">Próximas sessões</div>'
@@ -12789,11 +12796,30 @@ function _cinemaCertSectionHtml(c){
   if(hasCert){
     var cf=function(lbl,val){if(!val)return'';return'<div class="cinema-cert-field"><div class="cinema-cert-field-label">'+lbl+'</div><div class="cinema-cert-field-val">'+val+'</div></div>';};
     var importedStr=c.cert_imported_at?c.cert_imported_at.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric'}):'';
-    fieldsHtml='<div class="cinema-cert-fields">'+cf('Serial hex',c.cert_serial_hex)+cf('Serial dec',c.cert_serial_dec)+cf('Subject',c.cert_subject)+cf('Issuer',c.cert_issuer)+cf('Thumbprint',c.cert_thumbprint)+(c.cert_filename?cf('Arquivo',c.cert_filename):'')+(importedStr?cf('Importado',importedStr):'')+'</div>';
+    fieldsHtml='<div class="cinema-cert-fields">'+(c.cert_filename?cf('Arquivo',c.cert_filename):'')+(importedStr?cf('Importado',importedStr):'')+'</div>';
   }else if(!canImport){
     fieldsHtml='<div style="padding:8px 16px;font-family:var(--mono);font-size:10px;color:var(--text-muted);">Nenhum certificado cadastrado.</div>';
   }
   return'<div class="cinema-cert-section'+(hasCert?' has-cert':'')+'"><div class="cinema-cert-header">'+label+importBtn+'</div>'+fieldsHtml+'</div>';
+}
+
+// Bloco SEPARADO: arquivo de certificado (zip/pem/xml) para envio à distribuidora ao solicitar KDM.
+// Não é parseado — só guardado e baixável. Editor sobe (substitui o anterior), qualquer um baixa.
+function _cinemaCertFileHtml(c){
+  var safeSala=(c.sala||'').replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+  var canEdit=window._olgaUser&&window._olgaCanEdit&&window._olgaCanEdit('cinemas')&&c.docId;
+  var hasFile=!!c.cert_file_name;
+  if(!hasFile&&!canEdit)return'';
+  var label='<span class="cinema-cert-label'+(hasFile?' has-cert':'')+'">Arquivo p/ solicitar KDM'+(hasFile?' ✓':'')+'</span>';
+  var dl=hasFile?'<button class="cinema-cert-import-btn" onclick="_cinemaDownloadCertFile(\''+safeSala+'\')" title="Baixar arquivo">⤓ '+esc(c.cert_file_name)+'</button>':'';
+  var actions='';
+  if(canEdit){
+    actions=hasFile
+      ?'<button class="cinema-cert-import-btn" onclick="_cinemaUploadCertFile(\''+safeSala+'\')">↺ Substituir</button><button class="cinema-cert-import-btn" onclick="_cinemaRemoveCertFile(\''+safeSala+'\')">✕ Remover</button>'
+      :'<button class="cinema-cert-import-btn" onclick="_cinemaUploadCertFile(\''+safeSala+'\')">+ Anexar arquivo</button>';
+  }
+  var hint=canEdit?'<div style="padding:6px 16px;font-family:var(--mono);font-size:9px;color:var(--text-muted);">Aceita .zip, .pem ou .xml (máx ~700 KB). Para vários arquivos, envie um único .zip. Um novo envio substitui o anterior.</div>':'';
+  return'<div class="cinema-cert-section'+(hasFile?' has-cert':'')+'"><div class="cinema-cert-header">'+label+dl+actions+'</div>'+hint+'</div>';
 }
 
 function importCinemasCert(sala){
@@ -12827,6 +12853,57 @@ function importCinemasCert(sala){
     if(isBinary)reader.readAsArrayBuffer(file);else reader.readAsText(file);
   };
   input.click();
+}
+
+// ── Arquivo de certificado para envio (zip/pem/xml), por sala ──
+function _b64FromBytes(bytes){var bin='',chunk=0x8000;for(var i=0;i<bytes.length;i+=chunk)bin+=String.fromCharCode.apply(null,bytes.subarray(i,i+chunk));return btoa(bin);}
+function _bytesFromB64(b64){var bin=atob(b64),u=new Uint8Array(bin.length);for(var i=0;i<bin.length;i++)u[i]=bin.charCodeAt(i);return u;}
+function _cinemaUploadCertFile(sala){
+  if(!window._olgaCinemas)return alert('Aguardando conexão com Firestore.');
+  var all=getAllCinemas();var c=all.map[sala];
+  if(!c||!c.docId)return alert('Esta sala não possui registro no Firestore.');
+  var input=document.createElement('input');input.type='file';input.accept='.zip,.pem,.xml';
+  input.onchange=function(){
+    var file=input.files[0];if(!file)return;
+    if(file.size>700*1024){alert('Arquivo muito grande ('+Math.round(file.size/1024)+' KB). Limite ~700 KB. Para vários arquivos, envie um .zip compactado.');return;}
+    var reader=new FileReader();
+    reader.onload=async function(e){
+      try{
+        var b64=_b64FromBytes(new Uint8Array(e.target.result));
+        // setDoc sem merge substitui o arquivo anterior (um único por sala).
+        await window._olgaCinemas.saveFile(c.docId,{filename:file.name,mime:file.type||'application/octet-stream',size:file.size,content:b64,uploaded_by:(window._olgaUser&&window._olgaUser.email)||'',uploaded_at:new Date()});
+        await window._olgaCinemas.saveSala(c.docId,{cert_file_name:file.name});
+        c.cert_file_name=file.name;
+        openCinemaDetail(sala);
+      }catch(err){alert('Erro ao enviar o arquivo:\n'+err.message);}
+    };
+    reader.readAsArrayBuffer(file);
+  };
+  input.click();
+}
+async function _cinemaDownloadCertFile(sala){
+  try{
+    var all=getAllCinemas();var c=all.map[sala];
+    if(!c||!c.docId)return;
+    var f=await window._olgaCinemas.getFile(c.docId);
+    if(!f||!f.content)return alert('Arquivo não encontrado.');
+    var blob=new Blob([_bytesFromB64(f.content)],{type:f.mime||'application/octet-stream'});
+    var url=URL.createObjectURL(blob);
+    var a=document.createElement('a');a.href=url;a.download=f.filename||c.cert_file_name||'certificado';
+    document.body.appendChild(a);a.click();document.body.removeChild(a);
+    setTimeout(function(){URL.revokeObjectURL(url);},2000);
+  }catch(err){alert('Erro ao baixar:\n'+err.message);}
+}
+async function _cinemaRemoveCertFile(sala){
+  if(!confirm('Remover o arquivo anexado?'))return;
+  try{
+    var all=getAllCinemas();var c=all.map[sala];
+    if(!c||!c.docId)return;
+    await window._olgaCinemas.removeFile(c.docId);
+    await window._olgaCinemas.saveSala(c.docId,{cert_file_name:''});
+    c.cert_file_name='';
+    openCinemaDetail(sala);
+  }catch(err){alert('Erro ao remover:\n'+err.message);}
 }
 
 function buildKDMFilters(){
@@ -17349,7 +17426,7 @@ function renderDash(){
   html+=colBlock('legendagem','Legendagem',legBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 17/06/2026 às 15:40';
+  var sysUpdate='última atualização do sistema · 17/06/2026 às 15:42';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -25434,7 +25511,7 @@ function _sxcPrint(){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 17/06/2026 às 15:40</span></div>
+<div id="page-footer"><span>última atualização · 17/06/2026 às 15:42</span></div>
 
 </div>
 

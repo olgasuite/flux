@@ -9371,16 +9371,26 @@ function _complexoFields(all, cx, estado, endereco, emailKdm, emailGer, tms, tel
 
 function _salaFields(nomeSala, evento, isNew){
   var sel=(evento||'').split(';').map(function(s){return s.trim();}).filter(Boolean);
-  var allEv=Object.keys(eventColors||{}).sort(function(a,b){return a.localeCompare(b,'pt-BR');});
+  // Só eventos que o usuário tem permissão de ver/ativar (mesma regra de allowedEvento).
+  var _uEv=(window._olgaUser&&window._olgaUser.eventos&&window._olgaUser.eventos.length)?window._olgaUser.eventos:null;
+  var allEv=Object.keys(eventColors||{}).filter(function(e){return !_uEv||_uEv.indexOf(e)!==-1;}).sort(function(a,b){return a.localeCompare(b,'pt-BR');});
+  // Eventos já gravados na sala que o usuário NÃO pode ver: nunca exibir, mas preservar ao salvar.
+  var _hiddenEv=sel.filter(function(e){return allEv.indexOf(e)===-1;});
   var evHtml=allEv.length?allEv.map(function(e){
     var chk=sel.indexOf(e)!==-1?'checked':'';
     return '<label style="display:inline-flex;align-items:center;gap:5px;font-family:var(--mono);font-size:10px;color:var(--text-dim);cursor:pointer;margin:0 12px 5px 0;"><input type="checkbox" class="cemSalaEvento" value="'+_esc(e)+'" '+chk+' style="accent-color:var(--accent);">'+_esc(e)+'</label>';
   }).join(''):'<span style="font-family:var(--mono);font-size:10px;color:var(--text-muted);">Nenhum evento cadastrado.</span>';
   return _cemSection('Sala'+(isNew?' — nova':''))+
     '<div class="cem-field"><label class="cem-label">Nome da sala'+(isNew?' <span style="color:var(--warn)">*</span>':'')+'</label><input class="cem-input" id="cemSalaNome" value="'+_esc(nomeSala)+'" placeholder="Ex: Sala 1"></div>'+
-    '<div class="cem-field"><label class="cem-label">Eventos nesta sala</label><div style="display:flex;flex-wrap:wrap;padding:4px 0;">'+evHtml+'</div></div>';
+    '<div class="cem-field"><label class="cem-label">Eventos nesta sala</label><div style="display:flex;flex-wrap:wrap;padding:4px 0;">'+evHtml+'</div><input type="hidden" id="cemSalaHiddenEventos" value="'+_esc(_hiddenEv.join(';'))+'"></div>';
 }
-function _cemSalaEventos(){var a=[];document.querySelectorAll('.cemSalaEvento:checked').forEach(function(c){a.push(c.value);});return a.join(';');}
+function _cemSalaEventos(){
+  var a=[];document.querySelectorAll('.cemSalaEvento:checked').forEach(function(c){a.push(c.value);});
+  // Reanexa eventos de outros festivais (que o usuário não pode ver) para não apagá-los.
+  var h=document.getElementById('cemSalaHiddenEventos');
+  if(h&&h.value)h.value.split(';').forEach(function(e){e=e.trim();if(e&&a.indexOf(e)===-1)a.push(e);});
+  return a.join(';');
+}
 
 function _telaFields(c){
   c=c||{};
@@ -12748,102 +12758,8 @@ try{
   if(_kdmStored)_kdmResults=JSON.parse(_kdmStored);
 }catch(e){}
 
-function _sha1(bytes){
-  var H=[0x67452301,0xEFCDAB89,0x98BADCFE,0x10325476,0xC3D2E1F0];
-  var ml=bytes.length*8;
-  var padLen=(bytes.length+9+63)&~63;
-  var buf=new Uint8Array(padLen);buf.set(bytes);buf[bytes.length]=0x80;
-  var dv=new DataView(buf.buffer);
-  dv.setUint32(padLen-4,ml>>>0,false);
-  dv.setUint32(padLen-8,Math.floor(ml/0x100000000),false);
-  var rotl=function(n,s){return(n<<s)|(n>>>(32-s));};
-  for(var bi=0;bi<padLen;bi+=64){
-    var W=[];
-    for(var j=0;j<16;j++)W[j]=dv.getInt32(bi+j*4,false);
-    for(var j=16;j<80;j++)W[j]=rotl(W[j-3]^W[j-8]^W[j-14]^W[j-16],1);
-    var a=H[0],b=H[1],c=H[2],d=H[3],e=H[4],t;
-    for(var j=0;j<80;j++){
-      var f,k;
-      if(j<20){f=(b&c)|((~b)&d);k=0x5A827999;}
-      else if(j<40){f=b^c^d;k=0x6ED9EBA1;}
-      else if(j<60){f=(b&c)|(b&d)|(c&d);k=0x8F1BBCDC;}
-      else{f=b^c^d;k=0xCA62C1D6;}
-      t=(rotl(a,5)+f+e+k+W[j])|0;
-      e=d;d=c;c=rotl(b,30);b=a;a=t;
-    }
-    H[0]=(H[0]+a)|0;H[1]=(H[1]+b)|0;H[2]=(H[2]+c)|0;H[3]=(H[3]+d)|0;H[4]=(H[4]+e)|0;
-  }
-  var out=new Uint8Array(20),ov=new DataView(out.buffer);
-  H.forEach(function(h,i){ov.setUint32(i*4,h,false);});
-  return out;
-}
-
-function _parsePemToCert(pem){
-  var b64=pem.replace(/-----[^-]+-----/g,'').replace(/[\r\n\s]/g,'');
-  var raw=atob(b64);
-  var der=new Uint8Array(raw.length);
-  for(var i=0;i<raw.length;i++)der[i]=raw.charCodeAt(i);
-
-  function readLen(pos){
-    var b=der[pos++];
-    if(b<0x80)return{len:b,next:pos};
-    var n=b&0x7f,l=0;
-    for(var i=0;i<n;i++)l=(l<<8)|der[pos++];
-    return{len:l,next:pos};
-  }
-  function readTL(pos){
-    var tag=der[pos++];var r=readLen(pos);
-    return{tag:tag,cs:r.next,ce:r.next+r.len,end:r.next+r.len};
-  }
-  function readOID(s,len){
-    var oid='',val=0,first=der[s];
-    oid=Math.floor(first/40)+'.'+( first%40);
-    for(var i=s+1;i<s+len;i++){val=(val<<7)|(der[i]&0x7f);if(!(der[i]&0x80)){oid+='.'+val;val=0;}}
-    return oid;
-  }
-  function readStr(tag,s,len){
-    if(tag===0x1e){var r='';for(var i=s;i<s+len;i+=2)r+=String.fromCharCode((der[i]<<8)|der[i+1]);return r;}
-    var r='';for(var i=s;i<s+len;i++)r+=String.fromCharCode(der[i]);return r;
-  }
-  var OID_MAP={'2.5.4.3':'CN','2.5.4.6':'C','2.5.4.7':'L','2.5.4.8':'ST','2.5.4.10':'O','2.5.4.11':'OU','2.5.4.46':'dnQualifier','0.9.2342.19200300.100.1.25':'DC','1.2.840.113549.1.9.1':'emailAddress'};
-  function parseDN(s,len){
-    var parts=[],pos=s,end=s+len;
-    while(pos<end){
-      var set=readTL(pos);var seq=readTL(set.cs);
-      var oidT=readTL(seq.cs);var oidStr=readOID(oidT.cs,oidT.end-oidT.cs);
-      var name=OID_MAP[oidStr]||oidStr;
-      var valT=readTL(oidT.end);parts.push(name+'='+readStr(valT.tag,valT.cs,valT.end-valT.cs));
-      pos=set.end;
-    }
-    return parts.join(',');
-  }
-
-  var outer=readTL(0);
-  var tbsTagPos=outer.cs;
-  var tbs=readTL(tbsTagPos);
-  var tbsBytes=der.slice(tbsTagPos,tbs.end);
-
-  var pos=tbs.cs;
-  if(der[pos]===0xa0){var ver=readTL(pos);pos=ver.end;}
-  var serialT=readTL(pos);
-  var sb=serialT.cs;
-  while(sb<serialT.end-1&&der[sb]===0)sb++;
-  var serialHex='';
-  for(var i=sb;i<serialT.end;i++)serialHex+=('0'+der[i].toString(16)).slice(-2).toUpperCase();
-  var serialDec;
-  try{serialDec=BigInt('0x'+serialHex).toString();}catch(e){serialDec=serialHex;}
-  pos=serialT.end;
-
-  var sigAlg=readTL(pos);pos=sigAlg.end;
-  var issuerT=readTL(pos);var issuer=parseDN(issuerT.cs,issuerT.end-issuerT.cs);pos=issuerT.end;
-  var validity=readTL(pos);pos=validity.end;
-  var subjectT=readTL(pos);var subject=parseDN(subjectT.cs,subjectT.end-subjectT.cs);
-
-  var sha1bytes=_sha1(tbsBytes);
-  var thumbprint=btoa(String.fromCharCode.apply(null,sha1bytes));
-
-  return{subject:subject,issuer:issuer,serialHex:serialHex,serialDec:serialDec,thumbprint:thumbprint};
-}
+// Parser DER/X.509 (certificado de servidor) movido para a Cloud Function
+// `parseCert` (ver AUTORIA.md). O cliente só lê o arquivo e envia o PEM.
 
 // Normalização de DN/serial e validação de KDM movidas para a Cloud Function
 // `checkKDM` (ver AUTORIA.md).
@@ -12876,14 +12792,15 @@ function importCinemasCert(sala){
     var reader=new FileReader();
     reader.onload=async function(e){
       try{
-        var certData;
+        var pem;
         if(isBinary){
           var bytes=new Uint8Array(e.target.result);
           var b64=btoa(String.fromCharCode.apply(null,bytes));
-          certData=_parsePemToCert('-----BEGIN CERTIFICATE-----\n'+b64+'\n-----END CERTIFICATE-----');
+          pem='-----BEGIN CERTIFICATE-----\n'+b64+'\n-----END CERTIFICATE-----';
         }else{
-          certData=_parsePemToCert(e.target.result);
+          pem=e.target.result;
         }
+        var certData=await _olgaCallFn(_PARSECERT_FN,{pem:pem});
         var confirmMsg='Confirmar importação?\n\nArquivo: '+file.name+'\nSerial: '+certData.serialHex+'\nSubject: '+certData.subject.substring(0,80)+(certData.subject.length>80?'...':'');
         if(!confirm(confirmMsg))return;
         var fields={cert_subject:certData.subject,cert_issuer:certData.issuer,cert_serial_hex:certData.serialHex,cert_serial_dec:certData.serialDec,cert_thumbprint:certData.thumbprint,cert_filename:file.name,cert_imported_at:new Date()};
@@ -17417,7 +17334,7 @@ function renderDash(){
   html+=colBlock('legendagem','Legendagem',legBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 17/06/2026 às 15:26';
+  var sysUpdate='última atualização do sistema · 17/06/2026 às 15:32';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -22253,6 +22170,7 @@ var _CINEMATECA_FN='https://us-central1-olga-suite.cloudfunctions.net/cinemateca
 // ── Cloud Functions com lógica proprietária (ver AUTORIA.md) ─────────────────
 var _PARSECPL_FN='https://us-central1-olga-suite.cloudfunctions.net/parseCPL';
 var _CHECKKDM_FN='https://us-central1-olga-suite.cloudfunctions.net/checkKDM';
+var _PARSECERT_FN='https://us-central1-olga-suite.cloudfunctions.net/parseCert';
 function _readFileText(file){return new Promise(function(res,rej){var r=new FileReader();r.onload=function(e){res(e.target.result);};r.onerror=function(){rej(new Error('Falha ao ler '+(file&&file.name||'arquivo')));};r.readAsText(file);});}
 async function _olgaCallFn(url,body){
   var token=await window._olgaGetIdToken();
@@ -25489,7 +25407,7 @@ function _sxcPrint(){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 17/06/2026 às 15:26</span></div>
+<div id="page-footer"><span>última atualização · 17/06/2026 às 15:32</span></div>
 
 </div>
 

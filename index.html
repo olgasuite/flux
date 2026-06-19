@@ -17438,7 +17438,7 @@ function renderDash(){
   html+=colBlock('legendagem','Legendagem',legBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 17/06/2026 às 15:46';
+  var sysUpdate='última atualização do sistema · 17/06/2026 às 15:48';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -18273,10 +18273,17 @@ function _progRenderSessao(sessaoNome){
   if(s.name&&s.name!==sessaoNome)html+='<div class="prog-sess-display-name">'+esc(s.name)+'</div>';
   html+=eventoBadge;
   if(ratingBadge)html+=ratingBadge;
-  if(prog&&(prog.data.competitive||prog.data.popular_vote)){
+  // Competitivo/Voto popular: herda da SUBMOSTRA quando a sessão pertence a uma; sem
+  // submostra, usa a MOSTRA. (Uma submostra pode não ser competitiva numa mostra que é.)
+  var _flagComp=prog?prog.data.competitive:false,_flagPop=prog?prog.data.popular_vote:false;
+  if(s.subprogram_id){
+    var _flagSub=(_progData.subprograms||[]).find(function(x){return x.id===s.subprogram_id;});
+    if(_flagSub){_flagComp=_flagSub.data.competitive;_flagPop=_flagSub.data.popular_vote;}
+  }
+  if(_flagComp||_flagPop){
     html+='<div class="prog-card-flags" style="margin-top:4px;">';
-    if(prog.data.competitive)html+='<span class="prog-flag-badge prog-flag-comp">Competitivo</span>';
-    if(prog.data.popular_vote)html+='<span class="prog-flag-badge prog-flag-pop">Voto popular</span>';
+    if(_flagComp)html+='<span class="prog-flag-badge prog-flag-comp">Competitivo</span>';
+    if(_flagPop)html+='<span class="prog-flag-badge prog-flag-pop">Voto popular</span>';
     html+='</div>';
   }
   html+='</div>';
@@ -25523,7 +25530,7 @@ function _sxcPrint(){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 17/06/2026 às 15:46</span></div>
+<div id="page-footer"><span>última atualização · 17/06/2026 às 15:48</span></div>
 
 </div>
 

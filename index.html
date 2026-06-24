@@ -1299,6 +1299,8 @@ td.cpl-cell{background:var(--cpl-bg);border-left:3px solid var(--cpl-border);pad
 .col-header:last-child{border-right:none;}
 .col-cinema-name{font-family:var(--mono);font-size:10px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:var(--text);line-height:1.3;}
 .col-session-count{font-family:var(--mono);font-size:9px;color:var(--text-muted);margin-top:2px;}
+.col-header-paralela{background:rgba(120,140,255,0.07);}
+.col-paralela-tag{font-family:var(--mono);font-size:7px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;color:#7b8cff;border:1px solid rgba(120,140,255,0.35);border-radius:2px;padding:0 3px;vertical-align:middle;}
 .grid-body{display:flex;position:relative;min-width:max-content;}
 .time-gutter{width:var(--time-w);min-width:var(--time-w);flex-shrink:0;border-right:1px solid var(--border);position:relative;}
 .time-label{position:absolute;left:0;right:0;font-family:var(--mono);font-size:9px;color:var(--text-muted);text-align:center;padding-top:2px;border-top:1px solid var(--border);}
@@ -6000,6 +6002,7 @@ window.addEventListener('DOMContentLoaded',function(){
     <select id="gradeCinemaSelect" style="min-width:160px;" onchange="gradeCinemaFilter=this.value;renderGrade();">
       <option value="">Todas as salas</option>
     </select>
+    <button class="print-btn" id="btnGradeParalelas" style="display:none;" onclick="_toggleOcultarParalelas()">ocultar atividades paralelas</button>
     <button class="print-btn" onclick="openGradePrintModal()" style="margin-left:2px;">⎙ Tabela</button>
     <button class="print-btn" id="btnGradeCriaSessao" style="display:none;" onclick="openCriaSessaoGrade()">+ Criar sessão</button>
   </div>
@@ -6017,6 +6020,7 @@ window.addEventListener('DOMContentLoaded',function(){
     <select id="grade2CinemaSelect" style="min-width:160px;" onchange="grade2CinemaFilter=this.value;renderGrade2();">
       <option value="">Todas as salas</option>
     </select>
+    <button class="print-btn" id="btnGrade2Paralelas" style="display:none;" onclick="_toggleOcultarParalelas()">ocultar atividades paralelas</button>
   </div>
 </div>
 <div class="mode-bar hidden" id="barSessoes">
@@ -8118,6 +8122,16 @@ function buildPills(container,evColors,activeSet,onToggle){
 }
 /* helpers: sessões filtradas por evento */
 function sessoesFicha(){return sessoesArr.filter(function(s){return!s.evento||activeEventsFicha.has(s.evento);});}
+// ── Atividades paralelas: helpers compartilhados pelos layouts de exibição ──
+function _sessaoEParalela(s){if(!s||!s.program_id)return false;var p=(_progData&&_progData.programs||[]).find(function(x){return x.id===s.program_id;});return !!(p&&p.data&&p.data.tipo==='paralela');}
+function _sessaoLocal(s){return(s&&(s.cinema||s.local_livre))||'';}
+var _ocultarParalelas=false;
+function _toggleOcultarParalelas(){
+  _ocultarParalelas=!_ocultarParalelas;
+  if(currentMode==='grade')renderGrade();
+  else if(currentMode==='grade2')renderGrade2();
+  else if(currentMode==='revista'&&typeof renderRevista==='function')renderRevista();
+}
 function sessoesGrade(){var as=allowedSalas();return sessoesArr.filter(function(s){if(s.evento&&!activeEventsGrade.has(s.evento))return false;if(as&&s.cinema&&!as.has(s.cinema))return false;return true;});}
 function sessoesIngest(){var as=allowedSalas();return sessoesArr.filter(function(s){if(s.evento&&!activeEventsIngest.has(s.evento))return false;if(as&&s.cinema&&!as.has(s.cinema))return false;return true;});}
 
@@ -8840,21 +8854,25 @@ function renderGrade2(){
   var chr=document.getElementById('grade2ColHeaderRow'),gb2=document.getElementById('grade2GridBody');
   var tip=document.getElementById('tooltip');
   var _as2=allowedSalas();
-  var ds=sessoesArr.filter(function(s){
+  var dsAll=sessoesArr.filter(function(s){
     return s.date&&s.date.toISOString().slice(0,10)===grade2CurrentDay&&
            (!s.evento||activeEventsGrade2.has(s.evento))&&
            (!grade2CinemaFilter||s.cinema===grade2CinemaFilter)&&
            (!grade2CinemaComplexoFilter||_getSalaComplexo(s.cinema)===grade2CinemaComplexoFilter)&&
            (!_as2||!s.cinema||_as2.has(s.cinema));
   });
+  var _temParalela=dsAll.some(_sessaoEParalela);
+  var btnGP=document.getElementById('btnGrade2Paralelas');
+  if(btnGP){btnGP.style.display=_temParalela?'':'none';btnGP.textContent=_ocultarParalelas?'mostrar atividades paralelas':'ocultar atividades paralelas';}
+  var ds=_ocultarParalelas?dsAll.filter(function(s){return !_sessaoEParalela(s);}):dsAll;
   if(!ds.length){gw.style.display='none';ge.style.display='flex';return;}
   ge.style.display='none';gw.style.display='block';
-  var co=[],cs=new Set();ds.forEach(function(s){if(!cs.has(s.cinema)){cs.add(s.cinema);co.push(s.cinema);}});co.sort(function(a,b){return a.localeCompare(b,'pt-BR',{sensitivity:'base'});});
+  var co=[],cs=new Set();ds.forEach(function(s){var loc=_sessaoLocal(s);if(!cs.has(loc)){cs.add(loc);co.push(loc);}});co.sort(function(a,b){return a.localeCompare(b,'pt-BR',{sensitivity:'base'});});
   var minH=24,maxH=0;ds.forEach(function(s){if(!s.time)return;minH=Math.min(minH,s.time.h);var totalM=0;s.filmes.forEach(function(c){var f=filmesMap[c];if(!f)return;var d=f.duracao||'';totalM+=Math.floor(_parseDurSecs(d)/60);});var endH=s.time.h+(s.time.m+(totalM||90))/60;maxH=Math.max(maxH,endH);});
   if(minH===24)minH=9;minH=Math.max(0,minH-1);maxH=Math.min(26,maxH+1);
   var PPM=2.4,gridH=(maxH-minH)*60*PPM;
   chr.innerHTML='';var gh=document.createElement('div');gh.className='time-gutter-header';chr.appendChild(gh);
-  co.forEach(function(cinema){var cnt=ds.filter(function(s){return s.cinema===cinema;}).length;var div=document.createElement('div');div.className='col-header';div.innerHTML='<div class="col-cinema-name">'+cinema+'</div><div class="col-session-count">'+cnt+' '+(cnt===1?'sessão':'sessões')+'</div>';chr.appendChild(div);});
+  co.forEach(function(cinema){var colSess=ds.filter(function(s){return _sessaoLocal(s)===cinema;});var cnt=colSess.length;var _ehPar=colSess.length&&colSess.every(_sessaoEParalela);var div=document.createElement('div');div.className='col-header'+(_ehPar?' col-header-paralela':'');div.innerHTML='<div class="col-cinema-name">'+esc(cinema||'—')+(_ehPar?' <span class="col-paralela-tag">paralela</span>':'')+'</div><div class="col-session-count">'+cnt+' '+(cnt===1?'sessão':'sessões')+'</div>';chr.appendChild(div);});
   gb2.innerHTML='';gb2.style.height=gridH+'px';
   var gut=document.createElement('div');gut.className='time-gutter';gut.style.height=gridH+'px';
   for(var h=minH;h<=maxH;h++){var top=(h-minH)*60*PPM;var lbl=document.createElement('div');lbl.className='time-label';lbl.style.top=top+'px';lbl.textContent=String(h%24).padStart(2,'0')+':00';gut.appendChild(lbl);var half=document.createElement('div');half.className='hour-line half';half.style.top=(top+30*PPM)+'px';gut.appendChild(half);}
@@ -8862,7 +8880,7 @@ function renderGrade2(){
   co.forEach(function(cinema){
     var col=document.createElement('div');col.className='grid-col';col.style.height=gridH+'px';
     for(var h=minH;h<=maxH;h++){var line=document.createElement('div');line.className='hour-line';line.style.top=((h-minH)*60*PPM)+'px';col.appendChild(line);}
-    ds.filter(function(s){return s.cinema===cinema;}).forEach(function(s){
+    ds.filter(function(s){return _sessaoLocal(s)===cinema;}).forEach(function(s){
       if(!s.time)return;
       var totalMinsS=0;
       s.filmes.forEach(function(c){var f=filmesMap[c];if(!f)return;var d=f.duracao||'';totalMinsS+=Math.floor(_parseDurSecs(d)/60);});
@@ -15204,21 +15222,25 @@ function renderGrade(){
   var chr=document.getElementById('colHeaderRow'),gb2=document.getElementById('gridBody');
   var tip=document.getElementById('tooltip');
   var _as=allowedSalas();
-  var ds=sessoesArr.filter(function(s){
+  var dsAll=sessoesArr.filter(function(s){
     return s.date&&s.date.toISOString().slice(0,10)===currentDay&&
            (!s.evento||activeEventsGrade.has(s.evento))&&
            (!gradeCinemaFilter||s.cinema===gradeCinemaFilter)&&
            (!gradeCinemaComplexoFilter||_getSalaComplexo(s.cinema)===gradeCinemaComplexoFilter)&&
            (!_as||!s.cinema||_as.has(s.cinema));
   });
+  var _temParalela=dsAll.some(_sessaoEParalela);
+  var btnGP=document.getElementById('btnGradeParalelas');
+  if(btnGP){btnGP.style.display=_temParalela?'':'none';btnGP.textContent=_ocultarParalelas?'mostrar atividades paralelas':'ocultar atividades paralelas';}
+  var ds=_ocultarParalelas?dsAll.filter(function(s){return !_sessaoEParalela(s);}):dsAll;
   if(!ds.length){gw.style.display='none';ge.style.display='flex';return;}
   ge.style.display='none';gw.style.display='block';
-  var co=[],cs=new Set();ds.forEach(function(s){if(!cs.has(s.cinema)){cs.add(s.cinema);co.push(s.cinema);}});co.sort(function(a,b){return a.localeCompare(b,'pt-BR',{sensitivity:'base'});});
+  var co=[],cs=new Set();ds.forEach(function(s){var loc=_sessaoLocal(s);if(!cs.has(loc)){cs.add(loc);co.push(loc);}});co.sort(function(a,b){return a.localeCompare(b,'pt-BR',{sensitivity:'base'});});
   var minH=24,maxH=0;ds.forEach(function(s){if(!s.time)return;minH=Math.min(minH,s.time.h);var totalM=0;s.filmes.forEach(function(c){var f=filmesMap[c];if(!f)return;var d=f.duracao||'';totalM+=Math.floor(_parseDurSecs(d)/60);});var endH=s.time.h+(s.time.m+(totalM||90))/60;maxH=Math.max(maxH,endH);});
   if(minH===24)minH=9;minH=Math.max(0,minH-1);maxH=Math.min(26,maxH+1);
   var PPM=2.4,gridH=(maxH-minH)*60*PPM;
   chr.innerHTML='';var gh=document.createElement('div');gh.className='time-gutter-header';chr.appendChild(gh);
-  co.forEach(function(cinema){var cnt=ds.filter(function(s){return s.cinema===cinema;}).length;var div=document.createElement('div');div.className='col-header';div.innerHTML='<div class="col-cinema-name">'+cinema+'</div><div class="col-session-count">'+cnt+' '+(cnt===1?'sessão':'sessões')+'</div>';chr.appendChild(div);});
+  co.forEach(function(cinema){var colSess=ds.filter(function(s){return _sessaoLocal(s)===cinema;});var cnt=colSess.length;var _ehPar=colSess.length&&colSess.every(_sessaoEParalela);var div=document.createElement('div');div.className='col-header'+(_ehPar?' col-header-paralela':'');div.innerHTML='<div class="col-cinema-name">'+esc(cinema||'—')+(_ehPar?' <span class="col-paralela-tag">paralela</span>':'')+'</div><div class="col-session-count">'+cnt+' '+(cnt===1?'sessão':'sessões')+'</div>';chr.appendChild(div);});
   gb2.innerHTML='';gb2.style.height=gridH+'px';
   var gut=document.createElement('div');gut.className='time-gutter';gut.style.height=gridH+'px';
   for(var h=minH;h<=maxH;h++){var top=(h-minH)*60*PPM;var lbl=document.createElement('div');lbl.className='time-label';lbl.style.top=top+'px';lbl.textContent=String(h%24).padStart(2,'0')+':00';gut.appendChild(lbl);var half=document.createElement('div');half.className='hour-line half';half.style.top=(top+30*PPM)+'px';gut.appendChild(half);}
@@ -15226,7 +15248,7 @@ function renderGrade(){
   co.forEach(function(cinema){
     var col=document.createElement('div');col.className='grid-col';col.style.height=gridH+'px';
     for(var h=minH;h<=maxH;h++){var line=document.createElement('div');line.className='hour-line';line.style.top=((h-minH)*60*PPM)+'px';col.appendChild(line);}
-    ds.filter(function(s){return s.cinema===cinema;}).forEach(function(s){
+    ds.filter(function(s){return _sessaoLocal(s)===cinema;}).forEach(function(s){
       if(!s.time)return;
       var totalMinsS=0;
       s.filmes.forEach(function(c){var f=filmesMap[c];if(!f)return;var d=f.duracao||'';totalMinsS+=Math.floor(_parseDurSecs(d)/60);});
@@ -15279,7 +15301,7 @@ function showTooltip(ev,s){
   if(legInfo.legSim||legInfo.idiomas.length)extraRows+='<div class="tt-row">'+iconSub+'<span>'+esc(legInfo.idiomas.length?('Leg. eletrônica · '+legInfo.idiomas.join(', ')):'Leg. eletrônica')+'</span></div>';
   if(legInfo.operadores.length)extraRows+='<div class="tt-row">'+iconUsers+'<span>Op. de leg.: '+esc(legInfo.operadores.join(', '))+'</span></div>';
   var _ttHeader=s.name&&s.name!==s.nome?esc(s.name)+' <span style="opacity:0.55;font-weight:400;">'+esc(stripEvPrefix(s.nome,s.evento))+'</span>':esc(stripEvPrefix(s.nome,s.evento));
-  tip.innerHTML='<div class="tt-name">'+_ttHeader+'</div><div class="tt-row">'+iconCal+'<span>'+esc(s.dia)+'</span></div><div class="tt-row">'+iconClock+'<span>'+esc((s.time?s.time.str:'—')+(durStr?' · '+durStr:''))+'</span></div><div class="tt-row">'+iconScreen+'<span>'+esc(s.cinema||'')+'</span></div>'+(s.evento?'<div class="tt-row">'+iconTag+'<span>'+esc(s.evento)+'</span></div>':'')+extraRows+(fl?'<div class="tt-films">'+fl+'</div>':'');
+  tip.innerHTML='<div class="tt-name">'+_ttHeader+'</div><div class="tt-row">'+iconCal+'<span>'+esc(s.dia)+'</span></div><div class="tt-row">'+iconClock+'<span>'+esc((s.time?s.time.str:'—')+(durStr?' · '+durStr:''))+'</span></div><div class="tt-row">'+iconScreen+'<span>'+esc(_sessaoLocal(s)||'')+'</span></div>'+(s.evento?'<div class="tt-row">'+iconTag+'<span>'+esc(s.evento)+'</span></div>':'')+extraRows+(fl?'<div class="tt-films">'+fl+'</div>':'');
   tip.style.display='block';moveTooltip(ev);
 }
 function moveTooltip(ev){
@@ -17572,7 +17594,7 @@ function renderDash(){
   html+=colBlock('legendagem','Legendagem',legBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 24/06/2026 às 14:31';
+  var sysUpdate='última atualização do sistema · 24/06/2026 às 16:27';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -25716,7 +25738,7 @@ function _sxcPrint(){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 24/06/2026 às 14:31</span></div>
+<div id="page-footer"><span>última atualização · 24/06/2026 às 16:27</span></div>
 
 </div>
 

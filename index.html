@@ -376,6 +376,7 @@ select:disabled{opacity:0.3;cursor:not-allowed;}
 .prog-flag-badge{font-family:var(--mono);font-size:8px;font-weight:700;padding:2px 6px;border-radius:var(--r);}
 .prog-flag-comp{background:rgba(255,107,107,0.12);color:#ff6b6b;border:1px solid rgba(255,107,107,0.25);}
 .prog-flag-pop{background:rgba(255,186,32,0.12);color:var(--accent);border:1px solid rgba(255,186,32,0.25);}
+.prog-flag-paralela{background:rgba(120,140,255,0.14);color:#7b8cff;border:1px solid rgba(120,140,255,0.3);}
 .prog-prog-badge{
   font-family:var(--sans);font-size:8px;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;
   padding:2px 7px;background:var(--accent-dim);color:var(--accent);
@@ -1128,6 +1129,7 @@ select:disabled{opacity:0.35;cursor:not-allowed;}
 .prog-flag-badge{font-family:var(--mono);font-size:8px;font-weight:700;padding:2px 6px;border-radius:2px;}
 .prog-flag-comp{background:rgba(255,107,107,0.15);color:#ff6b6b;border:1px solid rgba(255,107,107,0.3);}
 .prog-flag-pop{background:rgba(255,217,61,0.15);color:#e6c200;border:1px solid rgba(255,217,61,0.3);}
+.prog-flag-paralela{background:rgba(120,140,255,0.16);color:#6b7cff;border:1px solid rgba(120,140,255,0.32);}
 [data-theme="light"] .prog-flag-pop,[data-theme="gray"] .prog-flag-pop,[data-theme="win98"] .prog-flag-pop{background:rgba(140,90,0,0.12);color:#7a5000;border:1px solid rgba(140,90,0,0.35);}
 .prog-prog-badge{font-family:var(--mono);font-size:8px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;padding:2px 7px;background:var(--accent-dim);color:var(--accent);border:1px solid var(--accent);border-radius:2px;flex-shrink:0;}
 [data-theme="win98"] .prog-prog-badge{background:rgba(255,255,255,0.2);color:#fff;border-color:rgba(255,255,255,0.5);}
@@ -4350,7 +4352,7 @@ html[data-theme="indexof"]:not([data-theme="win98"]) .module-icon{display:flex!i
         if(Array.isArray(r['bumpers'])&&r['bumpers'].length){r['bumpers'].forEach(function(vc){var vcs=_fs(vc);if(vcs&&vcs!=='-'&&!/^=/.test(vcs))vin2.push(vcs);});}
         else{for(var vi=1;vi<=10;vi++){var vc=_fs(r['bumper_'+vi]);if(vc&&vc!=='-'&&!/^=/.test(vc))vin2.push(vc);}}
         var dv=_fs(r['date']),tv=_fs(r['time']);
-        var s={nome:nome,cinema:_fs(r['venue_name']),dia:_fd(dv),hora:tv?tv.slice(0,5):'—',filmes:codes,date:_pd(dv),time:_pt(tv),evento:evento,vinhetas:vin2,convidados:_fs(r['guests']),apresentacao:_fs(r['has_introduction']),publico:_fs(r['total_audience']),renda:_fs(r['total_revenue']),ingressos:_fs(r['reserved_tickets']),leg_eletronica:_fs(r['has_electronic_subtitles']),acessibilidades:_fs(r['available_accessibility']),col_ag:_fs(r['has_debate']),para_convidados:_fs(r['for_guests']),name:_fs(r['name']),program_id:_fs(r['program_id']),_docId:d.id,subprogram_id:_fs(r['subprogram_id']),session_description:_fs(r['session_description']),notes:_fs(r['notes']),operador:_parseOperadores(r['subtitle_operators']),template_id:_fs(r['template_id'])};
+        var s={nome:nome,cinema:_fs(r['venue_name']),local_livre:_fs(r['venue_custom']),dia:_fd(dv),hora:tv?tv.slice(0,5):'—',filmes:codes,date:_pd(dv),time:_pt(tv),evento:evento,vinhetas:vin2,convidados:_fs(r['guests']),apresentacao:_fs(r['has_introduction']),publico:_fs(r['total_audience']),renda:_fs(r['total_revenue']),ingressos:_fs(r['reserved_tickets']),leg_eletronica:_fs(r['has_electronic_subtitles']),acessibilidades:_fs(r['available_accessibility']),col_ag:_fs(r['has_debate']),para_convidados:_fs(r['for_guests']),name:_fs(r['name']),program_id:_fs(r['program_id']),_docId:d.id,subprogram_id:_fs(r['subprogram_id']),session_description:_fs(r['session_description']),notes:_fs(r['notes']),operador:_parseOperadores(r['subtitle_operators']),template_id:_fs(r['template_id'])};
         a2.push(s);m2[nome]=s;
         codes.forEach(function(c){if(!r2[c])r2[c]=[];r2[c].push(nome);});
         vin2.forEach(function(c){if(!vr2[c])vr2[c]=[];vr2[c].push(nome);});
@@ -5278,7 +5280,7 @@ html[data-theme="indexof"]:not([data-theme="win98"]) .module-icon{display:flex!i
         }
         var dateVal = fs(r['date']), timeVal = fs(r['time']);
         var s = {
-          nome: nome, cinema: fs(r['venue_name']),
+          nome: nome, cinema: fs(r['venue_name']), local_livre: fs(r['venue_custom']),
           dia: _fmtDate(dateVal), hora: timeVal ? timeVal.slice(0,5) : '—',
           filmes: codes, date: _parseDate(dateVal),
           time: _parseTime(timeVal), evento: evento,
@@ -7201,7 +7203,7 @@ function _olgaPreBackup(op,docs,extra){
 // Mapeadores reversos: formato interno do app → campos do documento Firestore.
 function _restSessDoc(s){
   var d={session_id:s.nome,name:s.name||'',event_name:s.evento||'',
-    venue_name:s.cinema||'',program_id:s.program_id||'',subprogram_id:s.subprogram_id||'',
+    venue_name:s.cinema||'',venue_custom:s.local_livre||'',program_id:s.program_id||'',subprogram_id:s.subprogram_id||'',
     session_description:s.session_description||'',template_id:s.template_id||'',
     films:Array.isArray(s.filmes)?s.filmes:[],bumpers:Array.isArray(s.vinhetas)?s.vinhetas:[],
     guests:s.convidados||'',has_introduction:s.apresentacao||'',has_debate:s.col_ag||'',
@@ -17570,7 +17572,7 @@ function renderDash(){
   html+=colBlock('legendagem','Legendagem',legBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 24/06/2026 às 14:05';
+  var sysUpdate='última atualização do sistema · 24/06/2026 às 14:31';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -17800,7 +17802,7 @@ function _progRenderLanding(){
       var sessCount=sessoesArr.filter(function(s){return s.program_id===p.id&&s.evento===ev;}).length;
       var safePid=p.id.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
       html+='<div class="prog-card" onclick="_progGoProgram(\''+safePid+'\')">';
-      if(p.data.competitive||p.data.popular_vote){html+='<div class="prog-card-flags">';if(p.data.competitive)html+='<span class="prog-flag-badge prog-flag-comp">Competitivo</span>';if(p.data.popular_vote)html+='<span class="prog-flag-badge prog-flag-pop">Voto popular</span>';html+='</div>';}
+      if(p.data.tipo==='paralela'||p.data.competitive||p.data.popular_vote){html+='<div class="prog-card-flags">';if(p.data.tipo==='paralela')html+='<span class="prog-flag-badge prog-flag-paralela">Atividade paralela</span>';if(p.data.competitive)html+='<span class="prog-flag-badge prog-flag-comp">Competitivo</span>';if(p.data.popular_vote)html+='<span class="prog-flag-badge prog-flag-pop">Voto popular</span>';html+='</div>';}
       html+='<div class="prog-card-name">'+esc(p.data.name||p.id)+'</div>';
       if(p.data.program_description)html+='<div class="prog-card-desc">'+esc(p.data.program_description.slice(0,100))+(p.data.program_description.length>100?'…':'')+'</div>';
       html+='<div class="prog-card-counts"><span>'+subCount+' '+(subCount===1?'submostra':'submostras')+'</span><span>'+sessCount+' '+(sessCount===1?'sessão':'sessões')+'</span></div>';
@@ -18164,6 +18166,7 @@ function _progRenderProgram(programId){
   var safePid=programId.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
   var bHtml='<button class="prog-back-btn" onclick="_progBack()">← Programação</button>';
   bHtml+='<span class="prog-event-badge" style="background:'+evColor.bg+';color:'+evColor.text+';">'+esc(ev)+'</span>';
+  if(prog.data.tipo==='paralela')bHtml+='<span class="prog-flag-badge prog-flag-paralela">Atividade paralela</span>';
   if(prog.data.competitive)bHtml+='<span class="prog-flag-badge prog-flag-comp">Competitivo</span>';
   if(prog.data.popular_vote)bHtml+='<span class="prog-flag-badge prog-flag-pop">Voto popular</span>';
   if(canEdit&&!vinOnly){bHtml+='<div class="prog-header-actions"><button class="prog-btn-sm prog-btn-ghost" onclick="openProgSubprogramModal(null,\''+safePid+'\')">+ submostra</button><button class="prog-btn-sm prog-btn-ghost" onclick="openProgSessaoModal(null,\''+safePid+'\',\'\')">+ sessão</button><button class="prog-btn-sm prog-btn-ghost" onclick="openProgProgramModal(\''+safePid+'\',\''+esc(ev)+'\')">✎ editar mostra</button><button class="prog-btn-sm '+(_progBatchMode?'':'prog-btn-ghost')+'" onclick="_toggleProgBatchMode()">'+(_progBatchMode?'✕ cancelar':'✎ editar sessões')+'</button></div>';}
@@ -18277,7 +18280,7 @@ function _progSessRowHtml(s,programId,canEdit,vinOnly){
       +'<span class="prog-sess-date">'+s.dia+'</span>'
       +(s.name?'<span class="prog-sess-name">'+esc(s.name)+'</span>':'')
       +'<span class="prog-sess-id" title="'+esc(s.nome)+'">'+esc(stripEvPrefix(s.nome,s.evento))+'</span>'
-      +'<span class="prog-sess-cinema">'+esc(s.cinema||'—')+'</span>'
+      +'<span class="prog-sess-cinema">'+esc(s.cinema||s.local_livre||'—')+'</span>'
       +(filmTitles?'<span class="prog-sess-films">'+esc(filmTitles.length>80?filmTitles.slice(0,80)+'…':filmTitles)+'</span>':'')
       +infoHtml
       +'</div>';
@@ -18287,7 +18290,7 @@ function _progSessRowHtml(s,programId,canEdit,vinOnly){
     +'<span class="prog-sess-date">'+s.dia+'</span>'
     +(s.name?'<span class="prog-sess-name">'+esc(s.name)+'</span>':'')
     +'<span class="prog-sess-id" title="'+esc(s.nome)+'">'+esc(stripEvPrefix(s.nome,s.evento))+'</span>'
-    +'<span class="prog-sess-cinema">'+esc(s.cinema||'—')+'</span>'
+    +'<span class="prog-sess-cinema">'+esc(s.cinema||s.local_livre||'—')+'</span>'
     +(filmTitles?'<span class="prog-sess-films">'+esc(filmTitles.length>80?filmTitles.slice(0,80)+'…':filmTitles)+'</span>':'')
     +infoHtml
     +((canEdit||vinOnly)?'<span class="prog-sess-actions" onclick="event.stopPropagation()">'
@@ -18453,6 +18456,7 @@ function openProgProgramModal(id,eventId){
   document.getElementById('progProgramEventId').value=ev;
   var _ppfx=document.getElementById('progProgramIdPrefix');if(_ppfx)_ppfx.textContent=ev||'';
   document.getElementById('progProgramName').value=d.name||'';
+  document.getElementById('progProgramTipo').value=d.tipo||'';
   document.getElementById('progProgramDesc').value=d.program_description||'';
   document.getElementById('progProgramApoios').value=d.apoios||'';
   document.getElementById('progProgramCompetitive').checked=!!(d.competitive);
@@ -18483,6 +18487,7 @@ async function saveProgProgramModal(){
   var data={
     event_id:document.getElementById('progProgramEventId').value||'',
     name:(document.getElementById('progProgramName').value||'').trim(),
+    tipo:document.getElementById('progProgramTipo').value||'',
     program_description:(document.getElementById('progProgramDesc').value||'').trim(),
     apoios:(document.getElementById('progProgramApoios').value||'').trim(),
     competitive:document.getElementById('progProgramCompetitive').checked,
@@ -18530,7 +18535,7 @@ function _progPromptSuffix(label,base,suggested){
   return base+'.'+suf;
 }
 function _progSessionDocData(s,overrides){
-  var data={session_id:s.nome,name:s.name||s.nome,event_name:s.evento,date:s.date?s.date.toISOString().slice(0,10):'',time:s.time?s.time.str:'',venue_name:s.cinema,program_id:s.program_id||'',subprogram_id:s.subprogram_id||'',session_description:s.session_description||'',films:(s.filmes||[]).slice(),bumpers:(s.vinhetas||[]).slice(),guests:s.convidados||'',has_introduction:s.apresentacao||'Não',has_debate:s.col_ag||'Não',for_guests:s.para_convidados||'Não',has_electronic_subtitles:s.leg_eletronica||'Não',reserved_tickets:s.ingressos||'',available_accessibility:s.acessibilidades||''};
+  var data={session_id:s.nome,name:s.name||s.nome,event_name:s.evento,date:s.date?s.date.toISOString().slice(0,10):'',time:s.time?s.time.str:'',venue_name:s.cinema,venue_custom:s.local_livre||'',program_id:s.program_id||'',subprogram_id:s.subprogram_id||'',session_description:s.session_description||'',films:(s.filmes||[]).slice(),bumpers:(s.vinhetas||[]).slice(),guests:s.convidados||'',has_introduction:s.apresentacao||'Não',has_debate:s.col_ag||'Não',for_guests:s.para_convidados||'Não',has_electronic_subtitles:s.leg_eletronica||'Não',reserved_tickets:s.ingressos||'',available_accessibility:s.acessibilidades||''};
   if(overrides)for(var k in overrides)data[k]=overrides[k];
   return data;
 }
@@ -18863,6 +18868,8 @@ function openProgSessaoModal(sessaoNome,programId,subprogramId){
   document.getElementById('progSessaoDate').value=s&&s.date?s.date.toISOString().slice(0,10):'';
   document.getElementById('progSessaoTime').value=s&&s.time&&s.time.str&&s.time.str!=='?'?s.time.str:'';
   document.getElementById('progSessaoCinemaSelect').innerHTML='<option value="">— selecionar sala —</option>'+cinemaOpts;
+  document.getElementById('progSessaoLocalInput').value=s?(s.local_livre||''):'';
+  _progSessaoAplicarTipo(_progSessaoContextProgramId);
   document.getElementById('progSessaoDesc').value=s&&s.session_description?s.session_description:'';
   _progSessaoConvidadosTags=(s&&s.convidados)?s.convidados.split(',').map(function(n){return n.trim();}).filter(Boolean):[];
   document.getElementById('progSessaoIngressos').value=s?s.ingressos||'':'';
@@ -18953,6 +18960,37 @@ function _progSessaoProgramChanged(){
   var subSel=document.getElementById('progSessaoSubprogramSelect');
   subRow.style.display=subs.length?'':'none';
   subSel.innerHTML=subOpts;
+  _progSessaoAplicarTipo(pid);
+}
+// Atividade paralela: troca o seletor de sala por um campo de local livre (Hall, Foyer…).
+function _progSessaoAplicarTipo(pid){
+  var prog=_progData.programs.find(function(p){return p.id===pid;});
+  var paralela=!!(prog&&prog.data&&prog.data.tipo==='paralela');
+  var cinemaRow=document.getElementById('progSessaoCinemaRow');
+  var localRow=document.getElementById('progSessaoLocalRow');
+  if(cinemaRow)cinemaRow.style.display=paralela?'none':'';
+  if(localRow)localRow.style.display=paralela?'':'none';
+  if(paralela){
+    var dl=document.getElementById('progSessaoLocalDatalist');
+    if(dl)dl.innerHTML=_progLocaisLivres().map(function(n){return'<option value="'+esc(n)+'">';}).join('');
+  }
+}
+// Locais livres distintos já cadastrados (todas as sessões), para sugestão/reuso.
+function _progLocaisLivres(){
+  var seen={},out=[];
+  (sessoesArr||[]).forEach(function(s){
+    var v=(s.local_livre||'').trim();if(!v)return;
+    var k=v.toLowerCase();if(seen[k])return;seen[k]=1;out.push(v);
+  });
+  return out.sort(function(a,b){return a.localeCompare(b,'pt-BR',{sensitivity:'base'});});
+}
+// Reaproveita a grafia de um local já existente que case sem distinção de maiúsc./acentos.
+function _progLocalCanonico(txt){
+  var v=(txt||'').trim();if(!v)return'';
+  var norm=function(x){return x.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'');};
+  var alvo=norm(v);
+  var match=_progLocaisLivres().find(function(n){return norm(n)===alvo;});
+  return match||v;
 }
 function _progRenderFilmsEdit(){
   var c=document.getElementById('progSessaoFilmsList');if(!c)return;
@@ -19050,11 +19088,14 @@ async function saveProgSessaoModal(){
   var ev=prog?prog.data.event_id:(sessoesMap[nome]?sessoesMap[nome].evento:'');
   var _sessaoNomeReal=(!_progSessaoEditNome&&ev)?ev+nome:nome;
   if(!_progSessaoEditNome&&(sessoesMap[_sessaoNomeReal]||(_usedIds.sessoes&&_usedIds.sessoes[_sessaoNomeReal]))){_progSessErr('ID "'+_sessaoNomeReal+'" já utilizado.');return;}
+  var _paralela=!!(prog&&prog.data&&prog.data.tipo==='paralela');
+  var _venueName=_paralela?'':(document.getElementById('progSessaoCinemaSelect').value||'');
+  var _venueCustom=_paralela?_progLocalCanonico(document.getElementById('progSessaoLocalInput').value||''):'';
   var data={
     session_id:_sessaoNomeReal,name:(document.getElementById('progSessaoName').value||'').trim(),
     event_name:ev,date:document.getElementById('progSessaoDate').value,
     time:document.getElementById('progSessaoTime').value,
-    venue_name:document.getElementById('progSessaoCinemaSelect').value||'',
+    venue_name:_venueName,venue_custom:_venueCustom,
     program_id:_progSessaoContextProgramId||'',
     subprogram_id:(document.getElementById('progSessaoSubprogramSelect').value)||_progSessaoContextSubId||'',
     session_description:(document.getElementById('progSessaoDesc').value||'').trim(),
@@ -19081,7 +19122,7 @@ async function saveProgSessaoModal(){
       var _base={session_id:_ex2.nome,name:_ex2.name||'',event_name:_ex2.evento||'',
         date:_ex2.date?_ex2.date.toISOString().slice(0,10):'',
         time:_ex2.time&&_ex2.time.str&&_ex2.time.str!=='?'?_ex2.time.str:'',
-        venue_name:_ex2.cinema||'',program_id:_ex2.program_id||'',subprogram_id:_ex2.subprogram_id||'',
+        venue_name:_ex2.cinema||'',venue_custom:_ex2.local_livre||'',program_id:_ex2.program_id||'',subprogram_id:_ex2.subprogram_id||'',
         session_description:_ex2.session_description||'',films:_ex2.filmes||[],bumpers:_ex2.vinhetas||[],
         template_id:_ex2.template_id||'',guests:_ex2.convidados||'',
         has_introduction:_ex2.apresentacao||'',has_debate:_ex2.col_ag||'',for_guests:_ex2.para_convidados||'',
@@ -25007,6 +25048,14 @@ function _sxcPrint(){
         <input id="progProgramName" type="text" class="prog-modal-input" placeholder="Nome exibido no sistema">
       </div>
       <div class="prog-modal-field">
+        <label class="prog-modal-label">Tipo</label>
+        <select id="progProgramTipo" class="prog-modal-input">
+          <option value="">Mostra</option>
+          <option value="paralela">Atividade paralela</option>
+        </select>
+        <span style="font-family:var(--mono);font-size:9px;color:var(--text-muted);margin-top:3px;">Atividades paralelas (lançamentos, cafés, reuniões) permitem local livre nas sessões.</span>
+      </div>
+      <div class="prog-modal-field">
         <label class="prog-modal-label">Descrição</label>
         <textarea id="progProgramDesc" class="prog-modal-textarea" placeholder="Texto curatorial da mostra (opcional)"></textarea>
       </div>
@@ -25276,9 +25325,15 @@ function _sxcPrint(){
         <label class="prog-modal-label">Submostra</label>
         <select id="progSessaoSubprogramSelect" class="prog-modal-input"></select>
       </div>
-      <div class="prog-modal-field">
+      <div class="prog-modal-field" id="progSessaoCinemaRow">
         <label class="prog-modal-label">Sala</label>
         <select id="progSessaoCinemaSelect" class="prog-modal-input"><option value="">— selecionar sala —</option></select>
+      </div>
+      <div class="prog-modal-field" id="progSessaoLocalRow" style="display:none;">
+        <label class="prog-modal-label">Local</label>
+        <input id="progSessaoLocalInput" type="text" class="prog-modal-input" list="progSessaoLocalDatalist" autocomplete="off" placeholder="Hall, Foyer, livraria… (preenchimento livre)">
+        <datalist id="progSessaoLocalDatalist"></datalist>
+        <span style="font-family:var(--mono);font-size:9px;color:var(--text-muted);margin-top:3px;">Reutilize um local já existente para não duplicar o mesmo espaço com nomes diferentes.</span>
       </div>
       <div class="prog-modal-field">
         <label class="prog-modal-label">Descrição da sessão</label>
@@ -25661,7 +25716,7 @@ function _sxcPrint(){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 24/06/2026 às 14:05</span></div>
+<div id="page-footer"><span>última atualização · 24/06/2026 às 14:31</span></div>
 
 </div>
 

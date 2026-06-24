@@ -3471,6 +3471,7 @@ mark{background:rgba(255,186,32,0.28);color:var(--accent);border-radius:2px;padd
 .recep-role-realizacao{color:#78d08a;border-color:rgba(120,208,138,0.28);background:rgba(120,208,138,0.08);}
 .recep-role-representante-de-filme{color:#c8a0ff;border-color:rgba(200,160,255,0.28);background:rgba(200,160,255,0.08);}
 .recep-role-mesa-de-debate{color:#e8b850;border-color:rgba(232,184,80,0.28);background:rgba(232,184,80,0.08);}
+.recep-role-ministrante{color:#e89860;border-color:rgba(232,152,96,0.28);background:rgba(232,152,96,0.08);}
 .recep-role-participante{color:var(--text-muted);border-color:rgba(160,160,160,0.2);background:rgba(160,160,160,0.06);}
 .recep-role-colaboracao-artistica{color:#e0a0c8;border-color:rgba(224,160,200,0.28);background:rgba(224,160,200,0.08);}
 .recep-role-equipe{color:#80c8c0;border-color:rgba(128,200,192,0.28);background:rgba(128,200,192,0.08);}
@@ -10535,7 +10536,7 @@ function _ensureProgData(){
 }
 
 /* ─── CONVIDADOS ─── */
-var _RECEP_ROLES=['Júri','Realização','Representante de filme','Mesa de debate','Participante','Colaboração artística','Equipe'];
+var _RECEP_ROLES=['Júri','Realização','Representante de filme','Mesa de debate','Ministrante','Participante','Colaboração artística','Equipe'];
 function _recepRoleSlug(r){return(r||'').toString().toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,'');}
 function _recepRoleBadges(roles){
   return (roles||[]).map(function(r){return'<span class="recep-role-badge recep-role-'+_recepRoleSlug(r)+'">'+_re(r)+'</span>';}).join('');
@@ -17676,7 +17677,7 @@ function renderDash(){
   html+=colBlock('legendagem','Legendagem',legBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 24/06/2026 às 17:14';
+  var sysUpdate='última atualização do sistema · 24/06/2026 às 17:29';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -25820,7 +25821,7 @@ function _sxcPrint(){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 24/06/2026 às 17:14</span></div>
+<div id="page-footer"><span>última atualização · 24/06/2026 às 17:29</span></div>
 
 </div>
 

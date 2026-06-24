@@ -7918,7 +7918,7 @@ function openGradePrintModal(){
   var modal=document.getElementById('gradePrintModal');
   // populate sala select — only cinemas with sessions from active events
   var cinemaSet=new Set();
-  sessoesGrade().forEach(function(s){if(s.cinema)cinemaSet.add(s.cinema);});
+  sessoesGrade().forEach(function(s){if(_ocultarParalelas&&_sessaoEParalela(s))return;var loc=_sessaoLocal(s);if(loc)cinemaSet.add(loc);});
   var ss=document.getElementById('gptSalaSelect');
   ss.innerHTML='';
   Array.from(cinemaSet).sort().forEach(function(c){var o=document.createElement('option');o.value=c;o.textContent=c;ss.appendChild(o);});
@@ -7966,7 +7966,7 @@ function buildGradePrintTable(){
     // Horários × Dias — sala fixa
     var cinema=document.getElementById('gptSalaSelect').value;
     if(!cinema){wrap.innerHTML='<p style="font-family:var(--mono);font-size:11px;color:var(--text-muted)">Selecione uma sala.</p>';return;}
-    var sessions=sessoesGrade().filter(function(s){return s.cinema===cinema&&s.date&&s.time;});
+    var sessions=sessoesGrade().filter(function(s){return _sessaoLocal(s)===cinema&&s.date&&s.time&&(!_ocultarParalelas||!_sessaoEParalela(s));});
     if(!sessions.length){wrap.innerHTML='<p style="font-family:var(--mono);font-size:11px;color:var(--text-muted)">Nenhuma sessão para esta sala.</p>';return;}
     // collect unique day keys (sorted)
     var daySet={};sessions.forEach(function(s){var k=s.date.toISOString().slice(0,10);if(!daySet[k])daySet[k]=s.date;});
@@ -7987,12 +7987,12 @@ function buildGradePrintTable(){
     // Horários × Salas — dia fixo
     var dayKey=document.getElementById('gptDiaSelect').value;
     if(!dayKey){wrap.innerHTML='<p style="font-family:var(--mono);font-size:11px;color:var(--text-muted)">Selecione um dia.</p>';return;}
-    var sessions2=sessoesGrade().filter(function(s){return s.date&&s.date.toISOString().slice(0,10)===dayKey&&s.time;});
+    var sessions2=sessoesGrade().filter(function(s){return s.date&&s.date.toISOString().slice(0,10)===dayKey&&s.time&&(!_ocultarParalelas||!_sessaoEParalela(s));});
     if(!sessions2.length){wrap.innerHTML='<p style="font-family:var(--mono);font-size:11px;color:var(--text-muted)">Nenhuma sessão neste dia.</p>';return;}
-    var cinemaSet2=[];var cinemasSeen=new Set();sessions2.forEach(function(s){if(!cinemasSeen.has(s.cinema)){cinemasSeen.add(s.cinema);cinemaSet2.push(s.cinema);}});
+    var cinemaSet2=[];var cinemasSeen=new Set();sessions2.forEach(function(s){var loc=_sessaoLocal(s);if(!cinemasSeen.has(loc)){cinemasSeen.add(loc);cinemaSet2.push(loc);}});
     var slotSet2=new Set();sessions2.forEach(function(s){slotSet2.add(slotKey(s.time.h,s.time.m));});
     var slots2=Array.from(slotSet2).sort(function(a,b){return a-b;});
-    var idx2={};sessions2.forEach(function(s){var sk=slotKey(s.time.h,s.time.m);var key=s.cinema+'|'+sk;if(!idx2[key])idx2[key]=[];idx2[key].push(s);});
+    var idx2={};sessions2.forEach(function(s){var sk=slotKey(s.time.h,s.time.m);var key=_sessaoLocal(s)+'|'+sk;if(!idx2[key])idx2[key]=[];idx2[key].push(s);});
     // find label for selected day
     var dayObj=days.find(function(d){return d.key===dayKey;});
     var dayLbl=dayObj?dayObj.date.toLocaleDateString('pt-BR',{weekday:'long',day:'2-digit',month:'2-digit',year:'numeric'}):'';
@@ -17657,7 +17657,7 @@ function renderDash(){
   html+=colBlock('legendagem','Legendagem',legBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 24/06/2026 às 16:49';
+  var sysUpdate='última atualização do sistema · 24/06/2026 às 17:03';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -25801,7 +25801,7 @@ function _sxcPrint(){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 24/06/2026 às 16:49</span></div>
+<div id="page-footer"><span>última atualização · 24/06/2026 às 17:03</span></div>
 
 </div>
 

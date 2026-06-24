@@ -13433,7 +13433,7 @@ function _revGetSessionGroups(sessoes){
     if(hasFilmes){
       var fsig=validCodes.slice().sort().join('|');
       var sig=sid+'|'+sName+'|'+fsig;
-      var inst={date:s.date,hora:s.hora||'',cinema:s.cinema||''};
+      var inst={date:s.date,hora:s.hora||'',cinema:_sessaoLocal(s)};
       if(sessSigs[sig]){
         sessSigs[sig].instances.push(inst);
         if(!sessSigs[sig].description&&sDesc)sessSigs[sig].description=sDesc;
@@ -13457,7 +13457,7 @@ function _revGetSessionGroups(sessoes){
     } else {
       // Sessão sem filmes: agrega instâncias sob mesmo nome+descrição
       var nsig=sid+'|NAMED|'+sName+'|'+sDesc;
-      var ninst={date:s.date,hora:s.hora||'',cinema:s.cinema||''};
+      var ninst={date:s.date,hora:s.hora||'',cinema:_sessaoLocal(s)};
       if(namedSessions[nsig]){
         namedSessions[nsig].instances.push(ninst);
       } else {
@@ -14504,8 +14504,9 @@ function renderRevista(){
 
     var cinemasVistos={},cinemasLista=[];
     sessoesMostra.forEach(function(s){
-      if(!s.cinema)return;
-      var complexo=salaParaComplexo[s.cinema]||s.cinema;
+      var loc=_sessaoLocal(s);
+      if(!loc)return;
+      var complexo=salaParaComplexo[loc]||loc;
       if(!cinemasVistos[complexo]){cinemasVistos[complexo]=true;cinemasLista.push(complexo);}
     });
     var datas=sessoesMostra.map(function(s){return s.date;}).filter(Boolean).sort(function(a,b){return a-b;});
@@ -14548,7 +14549,7 @@ function renderRevista(){
     editPage.dataset.mostraId=prog.id;
     editPage.innerHTML=
       '<div class="rev-page-header"><div class="rev-evento-pill" style="background:'+evBg+';color:'+evText+'">'+_revEsc(_revEventoLabel(evName))+'</div><div class="rev-page-num">'+pageNum+'</div></div>'+
-      '<div class="rev-mostra-label">mostra</div><hr class="rev-mostra-rule">'+
+      '<div class="rev-mostra-label">'+(prog.data.tipo==='paralela'?'atividade paralela':'mostra')+'</div><hr class="rev-mostra-rule">'+
       '<div class="rev-page-body"><div class="rev-main"><div class="rev-mostra-name">'+_revEsc(mostraName)+'</div>'+textoHtml+'</div>'+sidebarHtml+'</div>';
     msr.appendChild(editPage);
     allPages.push(editPage);
@@ -17657,7 +17658,7 @@ function renderDash(){
   html+=colBlock('legendagem','Legendagem',legBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 24/06/2026 às 17:03';
+  var sysUpdate='última atualização do sistema · 24/06/2026 às 17:10';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -25801,7 +25802,7 @@ function _sxcPrint(){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 24/06/2026 às 17:03</span></div>
+<div id="page-footer"><span>última atualização · 24/06/2026 às 17:10</span></div>
 
 </div>
 

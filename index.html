@@ -3521,6 +3521,16 @@ mark{background:rgba(255,186,32,0.28);color:var(--accent);border-radius:2px;padd
 .recep-th-sort:hover{color:var(--text);}
 .recep-print-btn{font-family:var(--mono);font-size:11px;background:rgba(173,198,255,0.07);border:1px solid rgba(173,198,255,0.35);color:var(--accent);padding:4px 10px;cursor:pointer;transition:all 0.12s;white-space:nowrap;}
 .recep-print-btn:hover{background:rgba(173,198,255,0.15);border-color:var(--accent);}
+/* CREDENCIAMENTO */
+.cred-mark{color:#3dba6a;font-weight:700;}
+.cred-stats{font-family:var(--mono);font-size:10px;color:var(--text-muted);padding:8px 0 6px;}
+.cred-badge{display:inline-block;font-family:var(--mono);font-size:8px;font-weight:700;letter-spacing:0.06em;padding:2px 8px;border-radius:2px;text-transform:uppercase;border:1px solid;}
+.cred-badge-on{color:#3dba6a;border-color:rgba(61,186,110,0.4);background:rgba(61,186,110,0.08);}
+.cred-badge-off{color:var(--text-muted);border-color:var(--border);}
+.cred-when{font-family:var(--mono);font-size:8px;color:var(--text-muted);margin-top:3px;}
+.cred-btn-go{font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;background:#3dba6a;border:1px solid #3dba6a;color:#fff;padding:4px 12px;cursor:pointer;transition:all 0.12s;margin-left:4px;}
+.cred-btn-go:hover{background:#34a85e;}
+.cred-print{margin-left:4px;font-size:9px;padding:3px 8px;}
 /* KDM */
 #kdm-container{padding:0 0 60px;}
 .kdm-day-group{border-bottom:1px solid var(--border);}
@@ -4501,6 +4511,7 @@ html[data-theme="indexof"]:not([data-theme="win98"]) .module-icon{display:flex!i
     };
   }
   window._olgaGuests   = _recepApiOf('guests');
+  window._olgaGuests.setFields = async function(id,fields){await setDoc(doc(db,'guests',id),fields,{merge:true});};
   window._olgaHotels   = _recepApiOf('hotels');
   window._olgaBookings = _recepApiOf('hotel_bookings');
   window._olgaFlights  = _recepApiOf('flights');
@@ -5942,6 +5953,7 @@ window.addEventListener('DOMContentLoaded',function(){
     </div>
     <div class="nav-group-items">
       <button class="nav-sub-tab" id="navSubConvidados" disabled onclick="_navToRecepSection('convidados')">Convidados</button>
+      <button class="nav-sub-tab" id="navSubCredenciamento" disabled onclick="_navToRecepSection('credenciamento')">Credenciamento</button>
       <button class="nav-sub-tab" id="navSubHoteis" disabled onclick="_navToRecepSection('hoteis')">Hotéis</button>
       <button class="nav-sub-tab" id="navSubVoos" disabled onclick="_navToRecepSection('voos')">Voos</button>
       <button class="nav-sub-tab" id="navSubTransporte" disabled onclick="_navToRecepSection('transporte')">Transporte</button>
@@ -6800,7 +6812,7 @@ function applyParsedData(d,filename){
     Array.from(_userEvSel).forEach(function(ev){if(!evSet.has(ev))_userEvSel.delete(ev);});
   }
   dataLoaded=true;
-  ['tabProjecao','tabFicha','tabGrade','tabGrade2','tabSessoes','tabVinhetas','tabIngest','tabCinemas','tabKDM','tabDash','tabReceptivo','tabBilheteria','tabCatalogo','tabTriagem','tabProgramacao','tabRevista','tabLegendagem','navSubFicha','navSubIngest','navSubGrade2','navSubAcervo','navSubConvidados','navSubHoteis','navSubVoos','navSubTransporte'].forEach(function(id){document.getElementById(id).disabled=false;});
+  ['tabProjecao','tabFicha','tabGrade','tabGrade2','tabSessoes','tabVinhetas','tabIngest','tabCinemas','tabKDM','tabDash','tabReceptivo','tabBilheteria','tabCatalogo','tabTriagem','tabProgramacao','tabRevista','tabLegendagem','navSubFicha','navSubIngest','navSubGrade2','navSubAcervo','navSubConvidados','navSubCredenciamento','navSubHoteis','navSubVoos','navSubTransporte'].forEach(function(id){document.getElementById(id).disabled=false;});
   if(window._olgaUser&&window._olgaUser.role==='admin'){document.getElementById('tabEquipe').disabled=false;}
   ['modCardProjecao','modCardGrade','modCardSessoes','modCardVinhetas','modCardCinemas','modCardKDM','modCardDash','modCardReceptivo','modCardBilheteria','modCardCatalogo','modCardTriagem','modCardProgramacao','modCardRevista','modCardLegendagem'].forEach(function(id){document.getElementById(id).classList.remove('disabled');});
   var _canImport=window._olgaUser&&(window._olgaUser.role==='admin'||window._olgaUser.role==='editor');
@@ -10364,6 +10376,7 @@ var _recepSort={sec:'',field:'',dir:1},_recepTransDate='',_recepTransVeh='',_rec
 var _recepGuestSel=new Set();
 var _recepRoleFilter=new Set();
 var _recepGuestSearch='';
+var _credSearch='',_credFilter='';
 
 function _re(s){return(s||'').toString().replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 
@@ -10437,6 +10450,7 @@ function renderReceptivo(){
   var SVG_HOTEL='<svg width="26" height="26" viewBox="0 0 24 24" style="stroke:currentColor;stroke-width:1.5;fill:none;stroke-linecap:round;stroke-linejoin:round;"><path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z"/><path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2"/><path d="M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2"/><path d="M10 6h4"/><path d="M10 10h4"/><path d="M10 14h4"/><path d="M10 18h4"/></svg>';
   var SVG_FLIGHT='<svg width="26" height="26" viewBox="0 0 24 24" style="stroke:currentColor;stroke-width:1.5;fill:none;stroke-linecap:round;stroke-linejoin:round;"><path d="M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.5-.1 1 .3 1.3L9 12l-2 3H4l-1 1 3 2 2 3 1-1v-3l3-2 3.5 5.3c.3.4.8.5 1.3.3l.5-.2c.4-.3.6-.7.5-1.2z"/></svg>';
   var SVG_BUS='<svg width="26" height="26" viewBox="0 0 24 24" style="stroke:currentColor;stroke-width:1.5;fill:none;stroke-linecap:round;stroke-linejoin:round;"><path d="M8 6v6"/><path d="M15 6v6"/><path d="M2 12h19.6"/><path d="M18 18h3s.5-1.7.8-2.8c.1-.4.2-.8.2-1.2 0-.4-.1-.8-.2-1.2l-1.4-5C20.1 6.8 19.1 6 18 6H4a2 2 0 0 0-2 2v10h3"/><circle cx="7" cy="18" r="2"/><path d="M9 18h5"/><circle cx="16" cy="18" r="2"/></svg>';
+  var SVG_BADGE='<svg width="26" height="26" viewBox="0 0 24 24" style="stroke:currentColor;stroke-width:1.5;fill:none;stroke-linecap:round;stroke-linejoin:round;"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="2"/><path d="M7 16a3 3 0 0 1 4 0"/><line x1="14" y1="9" x2="18" y2="9"/><line x1="14" y1="13" x2="18" y2="13"/></svg>';
   function card(sec,icon,name,desc){
     return '<button class="recep-card" onclick="openRecepSection(\''+sec+'\')">'+
       '<div class="recep-card-icon">'+icon+'</div>'+
@@ -10451,6 +10465,7 @@ function renderReceptivo(){
     '<div class="recep-hub-desc">Gestão de convidados, hospedagem, deslocamentos e logística de transporte para os eventos.</div>'+
     '<div class="recep-cards">'+
       card('convidados',SVG_USERS,'Convidados','Cadastro e gestão de convidados, papéis e participações nos eventos')+
+      card('credenciamento',SVG_BADGE,'Credenciamento','Check-in de chegada: credenciar convidados e imprimir etiquetas de crachá')+
       card('hoteis',SVG_HOTEL,'Hotéis','Catálogo de hotéis e controle de reservas de hospedagem')+
       card('voos',SVG_FLIGHT,'Voos','Registro de chegadas e partidas por convidado e evento')+
       card('transporte',SVG_BUS,'Transporte','Roteamento e agendamento de transfers e veículos')+
@@ -10473,6 +10488,7 @@ function openRecepSection(section){
     Promise.all(proms).then(function(r){
       _recepGuests=r[0];
       if(section==='convidados'){_recepHotels=r[1];_recepBookings=r[2];_ensureProgData().then(_renderConvidados);}
+      else if(section==='credenciamento'){_ensureProgData().then(_renderCredenciamento);}
       else if(section==='hoteis'){_recepHotels=r[1];_recepBookings=r[2];_renderHoteis();}
       else if(section==='voos'){_recepFlights=r[1];_renderVoos();}
       else if(section==='transporte'){_recepTransfers=r[1];_renderTransporte();}
@@ -10560,10 +10576,10 @@ function _recepEventBankSelect(){
 window._recepOnEventChange=function(v){
   _recepSelectedEvent=v;
   // trocar de evento zera filtros/seleções da seção (nada persiste entre eventos)
-  _recepTransVeh='';_recepTransDate='';_recepGuestSearch='';
+  _recepTransVeh='';_recepTransDate='';_recepGuestSearch='';_credSearch='';_credFilter='';
   if(_recepRoleFilter&&_recepRoleFilter.clear)_recepRoleFilter.clear();
   if(_recepGuestSel&&_recepGuestSel.clear)_recepGuestSel.clear();
-  var map={convidados:_renderConvidados,hoteis:_renderHoteis,voos:_renderVoos,transporte:_renderTransporte};
+  var map={convidados:_renderConvidados,credenciamento:_renderCredenciamento,hoteis:_renderHoteis,voos:_renderVoos,transporte:_renderTransporte};
   var fn=map[_recepSection];if(fn)fn();
 };
 function _recepSelectEventPrompt(){
@@ -11028,7 +11044,7 @@ function _renderConvidados(){
     return'<tr>'+
       '<td style="width:22px;text-align:center;"><input type="checkbox" class="recep-guest-chk" data-id="'+sid+'" onchange="_recepToggleGuestSel(\''+sid+'\')"'+(_recepGuestSel.has(g.id)?' checked':'')+'></td>'+
       '<td style="width:22px;text-align:center;">'+_guestStatusDot(d)+'</td>'+
-      '<td><button style="background:none;border:none;font-family:var(--mono);font-size:10px;font-weight:600;color:var(--text);cursor:pointer;padding:0;text-align:left;" onclick="openGuestDetail(\''+sid+'\')">'+_re(d.name||'—')+'</button></td>'+
+      '<td><button style="background:none;border:none;font-family:var(--mono);font-size:10px;font-weight:600;color:var(--text);cursor:pointer;padding:0;text-align:left;" onclick="openGuestDetail(\''+sid+'\')">'+_re(d.name||'—')+'</button>'+(d.credenciado?' <span class="cred-mark" title="Credenciado">✓</span>':'')+'</td>'+
       '<td>'+_recepRoleBadges(d.roles)+'</td>'+
       '<td>'+(d.event_id&&_recepEvLabel(d.event_id)?'<span style="display:inline-block;font-family:var(--sans);font-size:9px;font-weight:700;letter-spacing:0.04em;padding:2px 8px;border-radius:var(--r-pill);white-space:nowrap;background:'+(eventColors[d.event_id]?eventColors[d.event_id].bg:'var(--surface2)')+';color:'+(eventColors[d.event_id]?eventColors[d.event_id].text:'var(--text-muted)')+'">'+_re(_recepEvLabel(d.event_id))+'</span>':'—')+'</td>'+
       '<td>'+_re(bookMap[g.id]||'—')+'</td>'+
@@ -11084,6 +11100,115 @@ function _recepOnSearch(inp){
   var el=document.getElementById('recepGuestSearchInput');
   if(el){el.focus();el.setSelectionRange(pos,pos);}
 }
+
+/* ─── CREDENCIAMENTO ─── */
+function _credNow(){var d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')+'T'+String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');}
+function _credFmt(ts){if(!ts)return'';var p=ts.split('T');var dt=(p[0]||'').split('-');var d=dt.length===3?dt[2]+'/'+dt[1]:p[0];return d+(p[1]?' '+p[1]:'');}
+function _renderCredenciamento(){
+  _recepSyncSelectedEvent();
+  var canEdit=window._olgaCanEdit('receptivo');
+  var all=_recepGuests.filter(function(g){return g.data.event_id===_recepSelectedEvent;});
+  var total=all.length,credN=all.filter(function(g){return g.data.credenciado;}).length;
+  var filtered=all.filter(function(g){
+    var d=g.data;
+    if(_credFilter==='sim'&&!d.credenciado)return false;
+    if(_credFilter==='nao'&&d.credenciado)return false;
+    if(_credSearch){
+      var q=_credSearch.toLowerCase();
+      if((d.name||'').toLowerCase().indexOf(q)<0&&!(d.roles||[]).some(function(r){return r.toLowerCase().indexOf(q)>=0;}))return false;
+    }
+    return true;
+  }).sort(function(a,b){return(a.data.name||'').localeCompare(b.data.name||'',undefined,{sensitivity:'base'});});
+  var rows=filtered.map(function(g){
+    var d=g.data,sid=_re(g.id);
+    var statusCell=d.credenciado
+      ?'<span class="cred-badge cred-badge-on">✓ credenciado</span>'+(d.credenciado_em?'<div class="cred-when">'+_re(_credFmt(d.credenciado_em))+'</div>':'')
+      :'<span class="cred-badge cred-badge-off">pendente</span>';
+    var toggleBtn=d.credenciado
+      ?'<button class="recep-row-btn" onclick="_credToggle(\''+sid+'\',false)">descredenciar</button>'
+      :'<button class="cred-btn-go" onclick="_credToggle(\''+sid+'\',true)">credenciar</button>';
+    var actions=(canEdit?toggleBtn:'')+'<button class="recep-print-btn cred-print" onclick="_credPrintEtiqueta(\''+sid+'\')">⎙ etiqueta</button>';
+    return'<tr>'+
+      '<td style="width:130px;">'+statusCell+'</td>'+
+      '<td style="color:var(--text);font-weight:600;">'+_re(d.name||'—')+'</td>'+
+      '<td>'+_recepRoleBadges(d.roles)+'</td>'+
+      '<td style="max-width:260px;">'+_recepGuestPills(d)+'</td>'+
+      '<td style="white-space:nowrap;text-align:right;">'+actions+'</td>'+
+    '</tr>';
+  }).join('');
+  document.getElementById('barReceptivo').innerHTML=
+    '<button class="recep-back-btn" onclick="renderReceptivo()">← Receptivo</button>'+
+    '<span class="recep-bar-title">Credenciamento</span>'+
+    _recepEventBankSelect()+
+    (_recepSelectedEvent?'<button class="recep-print-btn" style="margin-left:auto;" onclick="_credPrintFiltrados()">⎙ etiquetas credenciados</button>':'');
+  document.getElementById('receptivo-container').innerHTML=_recepSelectedEvent?(
+    '<div class="cred-stats">'+credN+' de '+total+' credenciado'+(credN===1?'':'s')+'</div>'+
+    '<div style="display:flex;gap:5px;align-items:center;padding:0 0 10px;">'+
+      '<span style="font-family:var(--mono);font-size:9px;color:var(--text-muted);margin-right:2px;">mostrar:</span>'+
+      [['','todos'],['nao','pendentes'],['sim','credenciados']].map(function(o){
+        var active=_credFilter===o[0];
+        return'<button onclick="_credSetFilter(\''+o[0]+'\')" style="font-family:var(--mono);font-size:9px;padding:2px 9px;border-radius:3px;cursor:pointer;border:1px solid var(--border);background:'+(active?'var(--text)':'var(--surface)')+';color:'+(active?'var(--surface)':'var(--text-muted)')+';">'+o[1]+'</button>';
+      }).join('')+
+    '</div>'+
+    '<div style="padding:0 0 10px;">'+
+      '<input id="credSearchInput" type="text" placeholder="buscar por nome ou papel…" value="'+_re(_credSearch)+'" oninput="_credOnSearch(this)" style="font-family:var(--mono);font-size:10px;padding:4px 8px;border:1px solid var(--border2);background:var(--surface2);color:var(--text);border-radius:3px;width:300px;max-width:100%;outline:none;">'+
+    '</div>'+
+    '<table class="recep-table"><thead><tr>'+
+      '<th style="width:130px;">Status</th><th>Nome</th><th>Papel</th><th>Filmes · Mostras</th><th></th>'+
+    '</tr></thead><tbody>'+(rows||'<tr><td colspan="5" class="recep-empty">Nenhum convidado encontrado.</td></tr>')+'</tbody></table>'
+  ):_recepSelectEventPrompt();
+  buildPills(document.getElementById('headerEventFilters'),eventColors,activeEventsReceptivo,function(){_renderCredenciamento();});
+}
+function _credOnSearch(inp){_credSearch=inp.value;var pos=inp.selectionStart;_renderCredenciamento();var el=document.getElementById('credSearchInput');if(el){el.focus();el.setSelectionRange(pos,pos);}}
+window._credSetFilter=function(v){_credFilter=v;_renderCredenciamento();};
+window._credToggle=async function(id,val){
+  var g=_recepGuests.find(function(x){return x.id===id;});if(!g)return;
+  var fields={credenciado:val,credenciado_em:val?_credNow():'',updated_at:_recepNow()};
+  try{
+    await window._olgaGuests.setFields(id,fields);
+    window._logFirestoreEdit&&window._logFirestoreEdit('individual',id,fields,'receptivo','credenciamento');
+    g.data.credenciado=val;g.data.credenciado_em=fields.credenciado_em;
+    _renderCredenciamento();
+  }catch(e){alert('Erro: '+e.message);}
+};
+function _credEtiquetaData(d){
+  var roles=(d.roles||[]).join(' · ');
+  var ev=_recepEvLabel(d.event_id)||'';
+  var filmes=(d.filmes||[]).map(function(cod){var catF=(window.catalogoFilmesMap&&window.catalogoFilmesMap[cod])||{};var f=(filmesArr||[]).find(function(x){return x.codigo===cod;});return catF.title_pt||(f&&f.titulo)||cod;});
+  var mostras=(d.mostras||[]).map(function(mid){var p=(_progData.programs||[]).find(function(x){return x.id===mid;});return p&&p.data&&p.data.name?p.data.name:mid;});
+  var assoc=filmes.length?filmes:mostras;
+  return{name:d.name||'',roles:roles,ev:ev,assoc:assoc.join(' · ')};
+}
+function _credPrintEtiquetas(arr){
+  var labels=arr.map(function(d){var e=_credEtiquetaData(d);return'<div class="et">'+
+    (e.ev?'<div class="et-ev">'+_re(e.ev)+'</div>':'')+
+    '<div class="et-name">'+_re(e.name)+'</div>'+
+    (e.roles?'<div class="et-role">'+_re(e.roles)+'</div>':'')+
+    (e.assoc?'<div class="et-assoc">'+_re(e.assoc)+'</div>':'')+
+  '</div>';}).join('');
+  var html='<!doctype html><html><head><meta charset="utf-8"><title>Etiqueta</title><style>'+
+    '@page{size:90mm 55mm;margin:0;}'+
+    '*{margin:0;padding:0;box-sizing:border-box;}'+
+    'body{font-family:Arial,Helvetica,sans-serif;}'+
+    '.et{width:90mm;height:55mm;padding:6mm 7mm;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;page-break-after:always;overflow:hidden;}'+
+    '.et:last-child{page-break-after:auto;}'+
+    '.et-ev{font-size:10pt;letter-spacing:0.08em;text-transform:uppercase;color:#444;margin-bottom:3mm;}'+
+    '.et-name{font-size:22pt;font-weight:700;line-height:1.05;color:#000;}'+
+    '.et-role{font-size:11pt;letter-spacing:0.1em;text-transform:uppercase;color:#222;margin-top:3mm;}'+
+    '.et-assoc{font-size:9pt;color:#555;margin-top:3mm;}'+
+    '</style></head><body>'+labels+'</body></html>';
+  var w=window.open('','_blank','width=440,height=320');
+  if(!w){alert('Permita pop-ups para imprimir a etiqueta.');return;}
+  w.document.open();w.document.write(html);w.document.close();
+  w.onload=function(){w.focus();w.print();};
+  setTimeout(function(){try{w.focus();w.print();}catch(e){}},300);
+}
+window._credPrintEtiqueta=function(id){var g=_recepGuests.find(function(x){return x.id===id;});if(g)_credPrintEtiquetas([g.data]);};
+window._credPrintFiltrados=function(){
+  var arr=_recepGuests.filter(function(g){return g.data.event_id===_recepSelectedEvent&&g.data.credenciado;}).map(function(g){return g.data;}).sort(function(a,b){return(a.name||'').localeCompare(b.name||'',undefined,{sensitivity:'base'});});
+  if(!arr.length){alert('Nenhum convidado credenciado para imprimir.');return;}
+  _credPrintEtiquetas(arr);
+};
 
 function openGuestModal(id,tmplData){
   _recepEditId=id;
@@ -11141,7 +11266,8 @@ window.saveGuest=async function(curBookId){
   var _gEv=document.getElementById('g_event').value||'';
   if(!_gEv){var e=document.getElementById('recepMErr');e.textContent='Evento obrigatório.';e.style.display='block';return;}
   var hotelId=document.getElementById('g_hotel').value||'';
-  var data={name:name,event_id:_gEv,roles:Array.from(document.querySelectorAll('input[name="g_role"]:checked')).map(function(x){return x.value;}),contact:{email:(document.getElementById('g_email').value||'').trim(),phone:(document.getElementById('g_phone').value||'').trim()},notes:(document.getElementById('g_notes').value||'').trim(),arrival_date:document.getElementById('g_arrival').value||'',departure_date:document.getElementById('g_departure').value||'',hotel_checkin_date:document.getElementById('g_checkin').value||'',hotel_checkout_date:document.getElementById('g_checkout').value||'',mostras:_gMostrasSel.map(function(m){return m.id;}),submostras:_gSubsSel.map(function(s){return s.name;}),filmes:_gFilmesSel.map(function(f){return f.codigo;}),updated_at:_recepNow()};
+  var _gExisting=_recepEditId?_recepGuests.find(function(x){return x.id===_recepEditId;}):null;
+  var data={name:name,event_id:_gEv,roles:Array.from(document.querySelectorAll('input[name="g_role"]:checked')).map(function(x){return x.value;}),contact:{email:(document.getElementById('g_email').value||'').trim(),phone:(document.getElementById('g_phone').value||'').trim()},notes:(document.getElementById('g_notes').value||'').trim(),arrival_date:document.getElementById('g_arrival').value||'',departure_date:document.getElementById('g_departure').value||'',hotel_checkin_date:document.getElementById('g_checkin').value||'',hotel_checkout_date:document.getElementById('g_checkout').value||'',mostras:_gMostrasSel.map(function(m){return m.id;}),submostras:_gSubsSel.map(function(s){return s.name;}),filmes:_gFilmesSel.map(function(f){return f.codigo;}),credenciado:!!(_gExisting&&_gExisting.data.credenciado),credenciado_em:(_gExisting&&_gExisting.data.credenciado_em)||'',updated_at:_recepNow()};
   try{
     var guestId=await window._olgaGuests.save(_recepEditId,data);
     window._logFirestoreEdit&&window._logFirestoreEdit('individual',_recepEditId||guestId,data,'receptivo','convidados');
@@ -17438,7 +17564,7 @@ function renderDash(){
   html+=colBlock('legendagem','Legendagem',legBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 18/06/2026 às 22:42';
+  var sysUpdate='última atualização do sistema · 24/06/2026 às 13:27';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -23938,8 +24064,9 @@ function _iuRenderStep2(){
   if(!_iuState._loadedPersistedMap){
     var persisted=_iuLoadMappingPersist();
     if(persisted&&typeof persisted==='object'){
-      Object.keys(persisted).forEach(function(c){
-        if(hdrs.indexOf(c)>=0&&!_iuState.map[c])_iuState.map[c]=persisted[c];
+      Object.keys(persisted).forEach(function(fld){
+        var col=persisted[fld];
+        if(hdrs.indexOf(col)>=0&&!_iuState.map[fld])_iuState.map[fld]=col;
       });
     }
     _iuState._loadedPersistedMap=true;
@@ -23948,18 +24075,17 @@ function _iuRenderStep2(){
   // mais provável (por nome ou label). Só sugere se ainda não há mapeamento.
   function _normalize(s){return String(s||'').toLowerCase().replace(/[\s_·\-\/\.]+/g,'').replace(/[áàâã]/g,'a').replace(/[éê]/g,'e').replace(/[íï]/g,'i').replace(/[óôõö]/g,'o').replace(/[úü]/g,'u').replace(/[ç]/g,'c');}
   sch.fields.forEach(function(fd){
-    var alreadyMapped=Object.keys(_iuState.map).some(function(c){return _iuState.map[c]===fd.f;});
-    if(alreadyMapped)return;
+    if(_iuState.map[fd.f])return;
     var nf=_normalize(fd.f),nl=_normalize(fd.l);
     var hit=hdrs.find(function(h){var n=_normalize(h);return n===nf||n===nl;});
-    if(hit)_iuState.map[hit]=fd.f;
+    if(hit)_iuState.map[fd.f]=hit;
   });
   var colOpts='<option value="">— não mapear —</option>'+hdrs.map(function(h){return'<option value="'+esc(h).replace(/"/g,'&quot;')+'">'+esc(h)+'</option>';}).join('');
   // Oculta o campo de evento quando já foi escolhido na Etapa 1 (será preenchido automaticamente)
   var hideEv=sch.needsEv&&_iuState.event;
   var rows=sch.fields.filter(function(fd){return!(hideEv&&(fd.f==='evento'||fd.f==='event_name'||fd.f==='event_id'));}).map(function(fd){
     // coluna atualmente mapeada pra esse campo (se houver)
-    var curCol='';Object.keys(_iuState.map).forEach(function(c){if(_iuState.map[c]===fd.f)curCol=c;});
+    var curCol=_iuState.map[fd.f]||'';
     var sel=curCol?colOpts.replace('value="'+esc(curCol).replace(/"/g,'&quot;')+'"','value="'+esc(curCol).replace(/"/g,'&quot;')+'" selected'):colOpts;
     var sample=(curCol&&_iuState.rows[0])?String(_iuState.rows[0][curCol]||'').slice(0,80):'';
     var typeLbl={s:'texto',a:'lista (;)',n:'número',b:'sim/não',d:'data',t:'hora',e:'enum',dur:'duração (min)',durHMS:'duração (H:MM:SS)'}[fd.t]||fd.t;
@@ -23973,7 +24099,7 @@ function _iuRenderStep2(){
   // Campos required que ainda precisam ser preenchidos via defaults
   var reqMissing=sch.fields.filter(function(fd){
     if(!fd.req)return false;
-    var mapped=Object.values(_iuState.map).indexOf(fd.f)>=0;
+    var mapped=!!_iuState.map[fd.f];
     if(mapped)return false;
     // event_name/evento pode ser suprido pelo evento padrão
     if(sch.needsEv&&(fd.f==='evento'||fd.f==='event_name'||fd.f==='event_id')&&_iuState.event)return false;
@@ -24004,9 +24130,8 @@ function _iuRenderStep2(){
   _iuUpdateReqHint();
 }
 function _iuMapField(fieldName,colName){
-  // libera o campo de qualquer coluna anterior, depois associa à nova (se houver)
-  Object.keys(_iuState.map).forEach(function(c){if(_iuState.map[c]===fieldName)delete _iuState.map[c];});
-  if(colName)_iuState.map[colName]=fieldName;
+  // mapa é campo→coluna; várias entradas podem apontar p/ a mesma coluna
+  if(colName)_iuState.map[fieldName]=colName;else delete _iuState.map[fieldName];
   _iuSaveMappingPersist();
   _iuRenderStep2();
 }
@@ -24023,7 +24148,7 @@ function _iuLoadMappingPersist(){
 function _iuUpdateReqHint(){
   var sch=IU_SCHEMAS[_iuState.module];if(!sch)return;
   var hint=document.getElementById('iuReqHint');if(!hint)return;
-  var mapped=Object.values(_iuState.map).filter(Boolean);
+  var mapped=Object.keys(_iuState.map).filter(function(k){return _iuState.map[k];});
   var missing=sch.fields.filter(function(fd){
     if(!fd.req)return false;
     if(mapped.indexOf(fd.f)>=0)return false;
@@ -24043,15 +24168,15 @@ function _iuUpdateReqHint(){
 function _iuTransform(row){
   var sch=IU_SCHEMAS[_iuState.module];
   var out={};
-  Object.keys(_iuState.map).forEach(function(h){
-    var f=_iuState.map[h];if(!f)return;
+  Object.keys(_iuState.map).forEach(function(f){
+    var h=_iuState.map[f];if(!h)return;
     var fd=sch.fields.find(function(x){return x.f===f;});
     if(!fd)return;
     var raw=row[h];
     out[f]=_iuCoerce(raw,fd.t);
   });
   // defaults pra obrigatórios não mapeados
-  var _idMapped=sch.idField&&Object.values(_iuState.map).indexOf(sch.idField)>=0;
+  var _idMapped=sch.idField&&!!_iuState.map[sch.idField];
   Object.keys(_iuState.defaults).forEach(function(f){
     if(out[f]===undefined||out[f]===''||(Array.isArray(out[f])&&!out[f].length)){
       // se for o ID field e a coluna do ID não foi mapeada, deixa vazio pro
@@ -24075,9 +24200,9 @@ function _iuGroupedRows(){
   // Chave de agrupamento: ID se mapeado; senão groupByFallback (ex: name) se mapeado.
   // IDs sequenciais são atribuídos por GRUPO (não por linha) quando ID veio só do default.
   var sch=IU_SCHEMAS[_iuState.module];
-  var idMapped=sch.idField&&Object.values(_iuState.map).indexOf(sch.idField)>=0;
+  var idMapped=sch.idField&&!!_iuState.map[sch.idField];
   var idDefault=sch.idField?(_iuState.defaults[sch.idField]||''):'';
-  var fbField=sch.groupByFallback&&Object.values(_iuState.map).indexOf(sch.groupByFallback)>=0?sch.groupByFallback:null;
+  var fbField=sch.groupByFallback&&_iuState.map[sch.groupByFallback]?sch.groupByFallback:null;
   var existingMap=sch.coll==='filmes'?catalogoFilmesMap:sch.coll==='copias'?filmesMap:sch.coll==='triagem'?(window.triagemFilmesMap||{}):sch.coll==='sessoes'?sessoesMap:null;
   var raw=_iuState.rows.map(function(row){
     var d=_iuTransform(row);
@@ -24192,7 +24317,7 @@ function _iuRenderStep3(){
   var grouped=_iuGroupedRows();
   var sample=grouped.slice(0,8);
   var mappedFields=sch.fields.filter(function(fd){
-    return Object.values(_iuState.map).indexOf(fd.f)>=0||_iuState.defaults[fd.f]||(sch.needsEv&&(fd.f==='evento'||fd.f==='event_name'||fd.f==='event_id')&&_iuState.event);
+    return !!_iuState.map[fd.f]||_iuState.defaults[fd.f]||(sch.needsEv&&(fd.f==='evento'||fd.f==='event_name'||fd.f==='event_id')&&_iuState.event);
   });
   var existingMap=null;
   if(sch.coll==='filmes')existingMap=catalogoFilmesMap;
@@ -25530,7 +25655,7 @@ function _sxcPrint(){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 18/06/2026 às 22:42</span></div>
+<div id="page-footer"><span>última atualização · 24/06/2026 às 13:27</span></div>
 
 </div>
 

@@ -3467,6 +3467,13 @@ mark{background:rgba(255,186,32,0.28);color:var(--accent);border-radius:2px;padd
 .recep-table tr:hover td{background:var(--surface2);}
 .recep-table td:last-child{white-space:nowrap;}
 .recep-role-badge{display:inline-block;font-family:var(--mono);font-size:8px;font-weight:700;letter-spacing:0.06em;padding:1px 6px;border-radius:var(--r-pill);text-transform:uppercase;border:1px solid;margin-right:3px;}
+.recep-role-juri{color:#a0c8ff;border-color:rgba(160,200,255,0.28);background:rgba(160,200,255,0.08);}
+.recep-role-realizacao{color:#78d08a;border-color:rgba(120,208,138,0.28);background:rgba(120,208,138,0.08);}
+.recep-role-representante-de-filme{color:#c8a0ff;border-color:rgba(200,160,255,0.28);background:rgba(200,160,255,0.08);}
+.recep-role-mesa-de-debate{color:#e8b850;border-color:rgba(232,184,80,0.28);background:rgba(232,184,80,0.08);}
+.recep-role-participante{color:var(--text-muted);border-color:rgba(160,160,160,0.2);background:rgba(160,160,160,0.06);}
+.recep-role-colaboracao-artistica{color:#e0a0c8;border-color:rgba(224,160,200,0.28);background:rgba(224,160,200,0.08);}
+.recep-role-equipe{color:#80c8c0;border-color:rgba(128,200,192,0.28);background:rgba(128,200,192,0.08);}
 .recep-role-jurado{color:#a0c8ff;border-color:rgba(160,200,255,0.28);background:rgba(160,200,255,0.08);}
 .recep-role-diretor{color:#78d08a;border-color:rgba(120,208,138,0.28);background:rgba(120,208,138,0.08);}
 .recep-role-debatedor{color:#e8b850;border-color:rgba(232,184,80,0.28);background:rgba(232,184,80,0.08);}
@@ -10471,6 +10478,7 @@ function renderReceptivo(){
   var SVG_FLIGHT='<svg width="26" height="26" viewBox="0 0 24 24" style="stroke:currentColor;stroke-width:1.5;fill:none;stroke-linecap:round;stroke-linejoin:round;"><path d="M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.5-.1 1 .3 1.3L9 12l-2 3H4l-1 1 3 2 2 3 1-1v-3l3-2 3.5 5.3c.3.4.8.5 1.3.3l.5-.2c.4-.3.6-.7.5-1.2z"/></svg>';
   var SVG_BUS='<svg width="26" height="26" viewBox="0 0 24 24" style="stroke:currentColor;stroke-width:1.5;fill:none;stroke-linecap:round;stroke-linejoin:round;"><path d="M8 6v6"/><path d="M15 6v6"/><path d="M2 12h19.6"/><path d="M18 18h3s.5-1.7.8-2.8c.1-.4.2-.8.2-1.2 0-.4-.1-.8-.2-1.2l-1.4-5C20.1 6.8 19.1 6 18 6H4a2 2 0 0 0-2 2v10h3"/><circle cx="7" cy="18" r="2"/><path d="M9 18h5"/><circle cx="16" cy="18" r="2"/></svg>';
   var SVG_BADGE='<svg width="26" height="26" viewBox="0 0 24 24" style="stroke:currentColor;stroke-width:1.5;fill:none;stroke-linecap:round;stroke-linejoin:round;"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="2"/><path d="M7 16a3 3 0 0 1 4 0"/><line x1="14" y1="9" x2="18" y2="9"/><line x1="14" y1="13" x2="18" y2="13"/></svg>';
+  var SVG_TAG='<svg width="26" height="26" viewBox="0 0 24 24" style="stroke:currentColor;stroke-width:1.5;fill:none;stroke-linecap:round;stroke-linejoin:round;"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>';
   function card(sec,icon,name,desc){
     return '<button class="recep-card" onclick="openRecepSection(\''+sec+'\')">'+
       '<div class="recep-card-icon">'+icon+'</div>'+
@@ -10486,6 +10494,7 @@ function renderReceptivo(){
     '<div class="recep-cards">'+
       card('convidados',SVG_USERS,'Convidados','Cadastro e gestão de convidados, papéis e participações nos eventos')+
       card('credenciamento',SVG_BADGE,'Credenciamento','Check-in de chegada: credenciar convidados e imprimir etiquetas de crachá')+
+      card('etiquetas',SVG_TAG,'Etiquetas','Gerador avulso de etiquetas de crachá para casos especiais (nome, papel e referência livres)')+
       card('hoteis',SVG_HOTEL,'Hotéis','Catálogo de hotéis e controle de reservas de hospedagem')+
       card('voos',SVG_FLIGHT,'Voos','Registro de chegadas e partidas por convidado e evento')+
       card('transporte',SVG_BUS,'Transporte','Roteamento e agendamento de transfers e veículos')+
@@ -10509,6 +10518,7 @@ function openRecepSection(section){
       _recepGuests=r[0];
       if(section==='convidados'){_recepHotels=r[1];_recepBookings=r[2];_ensureProgData().then(_renderConvidados);}
       else if(section==='credenciamento'){_ensureProgData().then(_renderCredenciamento);}
+      else if(section==='etiquetas'){_renderEtiquetas();}
       else if(section==='hoteis'){_recepHotels=r[1];_recepBookings=r[2];_renderHoteis();}
       else if(section==='voos'){_recepFlights=r[1];_renderVoos();}
       else if(section==='transporte'){_recepTransfers=r[1];_renderTransporte();}
@@ -10525,9 +10535,32 @@ function _ensureProgData(){
 }
 
 /* ─── CONVIDADOS ─── */
+var _RECEP_ROLES=['Júri','Realização','Representante de filme','Mesa de debate','Participante','Colaboração artística','Equipe'];
+function _recepRoleSlug(r){return(r||'').toString().toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,'');}
 function _recepRoleBadges(roles){
-  return (roles||[]).map(function(r){return'<span class="recep-role-badge recep-role-'+_re(r)+'">'+_re(r)+'</span>';}).join('');
+  return (roles||[]).map(function(r){return'<span class="recep-role-badge recep-role-'+_recepRoleSlug(r)+'">'+_re(r)+'</span>';}).join('');
 }
+var _RECEP_ROLE_MAP={jurado:'Júri',diretor:'Realização',debatedor:'Mesa de debate',convidado:'Representante de filme'};
+function _recepTemPapelAntigo(){return (_recepGuests||[]).some(function(g){return (g.data.roles||[]).some(function(r){return _RECEP_ROLE_MAP[r];});});}
+window._recepMigrarPapeis=async function(){
+  var alvo=(_recepGuests||[]).filter(function(g){return (g.data.roles||[]).some(function(r){return _RECEP_ROLE_MAP[r];});});
+  if(!alvo.length){alert('Nenhum convidado com papel antigo.');return;}
+  if(!confirm('Migrar papéis antigos de '+alvo.length+' convidado(s) para os novos?\n\njurado→Júri · diretor→Realização · debatedor→Mesa de debate · convidado→Representante de filme\n\nUm backup (.json) será baixado antes.'))return;
+  try{
+    _olgaPreBackup&&_olgaPreBackup('migracao-papeis-convidados',alvo.map(function(g){return{tipo_backup:'guest_roles',_docId:g.id,name:g.data.name||'',roles:(g.data.roles||[]).slice()};}),'papéis de convidados (pré-migração)');
+    for(var i=0;i<alvo.length;i++){
+      var g=alvo[i];
+      var novos=[];
+      (g.data.roles||[]).forEach(function(r){var nv=_RECEP_ROLE_MAP[r]||r;if(novos.indexOf(nv)<0)novos.push(nv);});
+      var fields={roles:novos,updated_at:_recepNow()};
+      await window._olgaGuests.setFields(g.id,fields);
+      window._logFirestoreEdit&&window._logFirestoreEdit('individual',g.id,fields,'receptivo','convidados');
+      g.data.roles=novos;
+    }
+    alert('Migração concluída: '+alvo.length+' convidado(s) atualizados.');
+    openRecepSection('convidados');
+  }catch(e){alert('Erro: '+e.message);}
+};
 function _recepGuestPills(d){
   var html='';
   (d.filmes||[]).forEach(function(cod){
@@ -11080,6 +11113,7 @@ function _renderConvidados(){
     (canEdit?'<button id="recepSyncPessoasBtn" class="recep-print-btn" onclick="window._recepSyncTodasPessoas()" title="Sincroniza diretores, equipe técnica e elenco de todos os filmes do catálogo para o banco de pessoas">sincronizar equipe e elenco</button>':'')+
     (canEdit?'<button class="recep-print-btn" onclick="openImportPessoasModal()">importar pessoa</button>':'')+
     (canEdit?'<button class="recep-print-btn" onclick="openImportSessoesModal()" title="Lista os convidados informados nas sessões dos eventos ativos, sem duplicar quem já está cadastrado">importar das sessões</button>':'')+
+    (canEdit&&_recepTemPapelAntigo()?'<button class="recep-print-btn" onclick="_recepMigrarPapeis()" title="Converte os papéis antigos (jurado, diretor, debatedor, convidado) para os novos">migrar papéis antigos</button>':'')+
     (canEdit?'<button id="recepBulkDelBtn" class="recep-btn-del" style="display:none;" onclick="_recepDeleteSelected()">excluir 0 selecionados</button>':'')+
     (canEdit?'<button class="recep-add-btn" onclick="openGuestModal(null)">+ Convidado</button>':'');
   document.getElementById('receptivo-container').innerHTML=_recepSelectedEvent?(
@@ -11091,7 +11125,7 @@ function _renderConvidados(){
     '</div>'+
     '<div style="display:flex;gap:5px;align-items:center;padding:0 0 10px;">'+
       '<span style="font-family:var(--mono);font-size:9px;color:var(--text-muted);margin-right:2px;">papel:</span>'+
-      ['','jurado','diretor','debatedor','convidado'].map(function(r){
+      [''].concat(_RECEP_ROLES).map(function(r){
         var active=r===''?_recepRoleFilter.size===0:_recepRoleFilter.has(r);
         return'<button onclick="_recepSetRoleFilter(\''+r+'\')" style="font-family:var(--mono);font-size:9px;padding:2px 7px;border-radius:3px;cursor:pointer;border:1px solid var(--border);background:'+(active?'var(--text)':'var(--surface)')+';color:'+(active?'var(--surface)':'var(--text-muted)')+';">'+(r||'todos')+'</button>';
       }).join('')+
@@ -11205,12 +11239,13 @@ function _credEtiquetaData(d){
   }
   return{name:d.name||'',roles:roles,ev:ev,assoc:assoc};
 }
-function _credPrintEtiquetas(arr){
-  var labels=arr.map(function(d){var e=_credEtiquetaData(d);return'<div class="et">'+
+function _credPrintEtiquetas(arr){_credPrintLabels(arr.map(_credEtiquetaData));}
+function _credPrintLabels(items){
+  var labels=items.map(function(e){return'<div class="et">'+
     (e.ev?'<div class="et-ev">'+_re(e.ev)+'</div>':'')+
     '<div class="et-name">'+_re(e.name)+'</div>'+
+    (e.assoc?'<div class="et-ref">'+_re(e.assoc)+'</div>':'')+
     (e.roles?'<div class="et-role">'+_re(e.roles)+'</div>':'')+
-    (e.assoc?'<div class="et-assoc">'+_re(e.assoc)+'</div>':'')+
   '</div>';}).join('');
   var html='<!doctype html><html><head><meta charset="utf-8"><title>Etiqueta</title><style>'+
     '@page{size:90mm 55mm;margin:0;}'+
@@ -11220,8 +11255,8 @@ function _credPrintEtiquetas(arr){
     '.et:last-child{page-break-after:auto;}'+
     '.et-ev{font-size:10pt;letter-spacing:0.08em;text-transform:uppercase;color:#444;margin-bottom:3mm;}'+
     '.et-name{font-size:22pt;font-weight:700;line-height:1.05;color:#000;}'+
-    '.et-role{font-size:11pt;letter-spacing:0.1em;text-transform:uppercase;color:#222;margin-top:3mm;}'+
-    '.et-assoc{font-size:9pt;color:#555;margin-top:3mm;}'+
+    '.et-ref{font-size:13pt;color:#222;margin-top:3mm;font-weight:600;}'+
+    '.et-role{font-size:11pt;letter-spacing:0.1em;text-transform:uppercase;color:#000;margin-top:3mm;font-weight:700;}'+
     '</style></head><body>'+labels+'</body></html>';
   var w=window.open('','_blank','width=440,height=320');
   if(!w){alert('Permita pop-ups para imprimir a etiqueta.');return;}
@@ -11234,6 +11269,34 @@ window._credPrintFiltrados=function(){
   var arr=_recepGuests.filter(function(g){return g.data.event_id===_recepSelectedEvent&&g.data.credenciado;}).map(function(g){return g.data;}).sort(function(a,b){return(a.name||'').localeCompare(b.name||'',undefined,{sensitivity:'base'});});
   if(!arr.length){alert('Nenhum convidado credenciado para imprimir.');return;}
   _credPrintEtiquetas(arr);
+};
+
+/* ─── GERADOR ABERTO DE ETIQUETAS ─── */
+function _renderEtiquetas(){
+  var evOpts=_recepActiveEvKeys().map(function(k){return'<option value="'+_re(_recepEvLabel(k))+'">';}).join('');
+  var roleOpts=_RECEP_ROLES.map(function(r){return'<option value="'+_re(r)+'">';}).join('');
+  document.getElementById('barReceptivo').innerHTML=
+    '<button class="recep-back-btn" onclick="renderReceptivo()">← Receptivo</button>'+
+    '<span class="recep-bar-title">Etiquetas</span>';
+  document.getElementById('receptivo-container').innerHTML=
+    '<div style="max-width:460px;margin:0 auto;padding:8px 0;">'+
+      '<div style="font-family:var(--mono);font-size:11px;color:var(--text-muted);padding:0 0 16px;">Gerador avulso de etiquetas de crachá, independente do cadastro de convidados. Imprime na etiqueta padrão (90×55mm).</div>'+
+      '<div class="recep-field"><label class="recep-label">Evento / cabeçalho (opcional)</label><input id="etOpenEv" class="recep-input" list="etOpenEvList" autocomplete="off" placeholder="Nome do festival…"><datalist id="etOpenEvList">'+evOpts+'</datalist></div>'+
+      '<div class="recep-field" style="margin-top:10px;"><label class="recep-label">Nome da pessoa</label><input id="etOpenName" class="recep-input" placeholder="Nome completo"></div>'+
+      '<div class="recep-field" style="margin-top:10px;"><label class="recep-label">Papel / função</label><input id="etOpenRole" class="recep-input" list="etOpenRoleList" autocomplete="off" placeholder="Ex.: Júri, Dublagem ao vivo, Convidade especial…"><datalist id="etOpenRoleList">'+roleOpts+'</datalist></div>'+
+      '<div class="recep-field" style="margin-top:10px;"><label class="recep-label">Referência (opcional)</label><input id="etOpenRef" class="recep-input" placeholder="Filme, mostra, atividade ou texto livre"></div>'+
+      '<div style="margin-top:18px;"><button class="recep-btn-save" onclick="_credGerarEtiquetaAberta()">⎙ Gerar etiqueta</button></div>'+
+    '</div>';
+}
+window._credGerarEtiquetaAberta=function(){
+  var name=(document.getElementById('etOpenName').value||'').trim();
+  if(!name){alert('Informe o nome da pessoa.');return;}
+  _credPrintLabels([{
+    ev:(document.getElementById('etOpenEv').value||'').trim(),
+    name:name,
+    assoc:(document.getElementById('etOpenRef').value||'').trim(),
+    roles:(document.getElementById('etOpenRole').value||'').trim()
+  }]);
 };
 
 function openGuestModal(id,tmplData){
@@ -11269,7 +11332,7 @@ function openGuestModal(id,tmplData){
         '<div class="recep-field"><label class="recep-label">Check-in hotel</label><input id="g_checkin" type="date" class="recep-input" value="'+_re(d.hotel_checkin_date||'')+'"></div>'+
         '<div class="recep-field"><label class="recep-label">Check-out hotel</label><input id="g_checkout" type="date" class="recep-input" value="'+_re(d.hotel_checkout_date||'')+'"></div>'+
       '</div>'+
-      '<div class="recep-field"><label class="recep-label">Papel</label><div class="recep-roles-row">'+roleCheck('jurado')+roleCheck('diretor')+roleCheck('debatedor')+roleCheck('convidado')+'</div></div>'+
+      '<div class="recep-field"><label class="recep-label">Papel</label><div class="recep-roles-row">'+_RECEP_ROLES.map(roleCheck).join('')+'</div></div>'+
       '<div class="recep-field"><label class="recep-label">Mostra(s)</label><div class="prog-autocomplete-wrap"><div class="convidados-tag-wrap" id="g_mostras_wrap" onclick="var i=document.getElementById(\'g_mostra_inp\');if(i)i.focus()"></div><div id="g_mostra_res" class="prog-autocomplete-results"></div></div></div>'+
       '<div class="recep-field"><label class="recep-label">Sub-mostra(s)</label><div class="prog-autocomplete-wrap"><div class="convidados-tag-wrap" id="g_subs_wrap" onclick="var i=document.getElementById(\'g_sub_inp\');if(i)i.focus()"></div><div id="g_sub_res" class="prog-autocomplete-results"></div></div></div>'+
       '<div class="recep-field"><label class="recep-label">Filme(s)</label><div class="prog-autocomplete-wrap"><div class="convidados-tag-wrap" id="g_filmes_wrap" onclick="var i=document.getElementById(\'g_filme_inp\');if(i)i.focus()"></div><div id="g_filme_res" class="prog-autocomplete-results"></div></div></div>'+
@@ -17594,7 +17657,7 @@ function renderDash(){
   html+=colBlock('legendagem','Legendagem',legBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 24/06/2026 às 16:27';
+  var sysUpdate='última atualização do sistema · 24/06/2026 às 16:49';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -25738,7 +25801,7 @@ function _sxcPrint(){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 24/06/2026 às 16:27</span></div>
+<div id="page-footer"><span>última atualização · 24/06/2026 às 16:49</span></div>
 
 </div>
 

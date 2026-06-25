@@ -11195,7 +11195,8 @@ function _renderCredenciamento(){
     '<button class="recep-back-btn" onclick="renderReceptivo()">← Receptivo</button>'+
     '<span class="recep-bar-title">Credenciamento</span>'+
     _recepEventBankSelect()+
-    (_recepSelectedEvent?'<button class="recep-print-btn" style="margin-left:auto;" onclick="_credPrintFiltrados()">⎙ etiquetas credenciados</button>':'');
+    '<button class="recep-print-btn" style="margin-left:auto;" onclick="_etOpenConfig()" title="Tamanho e rotação da etiqueta">⚙ formato</button>'+
+    (_recepSelectedEvent?'<button class="recep-print-btn" onclick="_credPrintFiltrados()">⎙ etiquetas credenciados</button>':'');
   document.getElementById('receptivo-container').innerHTML=_recepSelectedEvent?(
     '<div class="cred-stats">'+credN+' de '+total+' credenciado'+(credN===1?'':'s')+'</div>'+
     '<div style="display:flex;gap:5px;align-items:center;padding:0 0 10px;">'+
@@ -11258,31 +11259,92 @@ function _credEtiquetaData(d){
   }
   return{name:d.name||'',roles:roles,ev:ev,assoc:assoc};
 }
+/* ─── FORMATO DA ETIQUETA (térmicas) ─── */
+var _ET_PRESETS=[
+  {id:'62x100',label:'62 × 100 mm (Brother DK-11202)',w:62,h:100},
+  {id:'62cont',label:'62 mm contínuo (×150)',w:62,h:150},
+  {id:'54x86',label:'54 × 86 mm (cartão CR80)',w:54,h:86},
+  {id:'54x102',label:'54 × 102 mm',w:54,h:102},
+  {id:'100x150',label:'100 × 150 mm',w:100,h:150},
+  {id:'100x50',label:'100 × 50 mm',w:100,h:50},
+  {id:'90x55',label:'90 × 55 mm',w:90,h:55},
+  {id:'custom',label:'Tamanho livre…',w:0,h:0}
+];
+function _etCfg(){
+  try{var c=JSON.parse(localStorage.getItem('olgaEtiquetaCfg')||'null');if(c&&c.w>0&&c.h>0)return{w:+c.w,h:+c.h,rot:+c.rot||0,preset:c.preset||'custom'};}catch(e){}
+  return{w:62,h:100,rot:0,preset:'62x100'};
+}
+function _etCfgSave(c){try{localStorage.setItem('olgaEtiquetaCfg',JSON.stringify(c));}catch(e){}}
 function _credPrintEtiquetas(arr){_credPrintLabels(arr.map(_credEtiquetaData));}
 function _credPrintLabels(items){
-  var labels=items.map(function(e){return'<div class="et">'+
+  var cfg=_etCfg();
+  var rot=cfg.rot||0,pageW=cfg.w,pageH=cfg.h;
+  var swap=(rot===90||rot===270);
+  var innerW=swap?pageH:pageW,innerH=swap?pageW:pageH;
+  var labels=items.map(function(e){return'<div class="et"><div class="et-inner">'+
     (e.ev?'<div class="et-ev">'+_re(e.ev)+'</div>':'')+
     '<div class="et-name">'+_re(e.name)+'</div>'+
     (e.assoc?'<div class="et-ref">'+_re(e.assoc)+'</div>':'')+
     (e.roles?'<div class="et-role">'+_re(e.roles)+'</div>':'')+
-  '</div>';}).join('');
+  '</div></div>';}).join('');
   var html='<!doctype html><html><head><meta charset="utf-8"><title>Etiqueta</title><style>'+
-    '@page{size:62mm 100mm;margin:0;}'+
+    '@page{size:'+pageW+'mm '+pageH+'mm;margin:0;}'+
     '*{margin:0;padding:0;box-sizing:border-box;}'+
     'body{font-family:Arial,Helvetica,sans-serif;}'+
-    '.et{width:62mm;height:100mm;padding:8mm 6mm;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;page-break-after:always;overflow:hidden;}'+
+    '.et{width:'+pageW+'mm;height:'+pageH+'mm;position:relative;overflow:hidden;page-break-after:always;}'+
     '.et:last-child{page-break-after:auto;}'+
+    '.et-inner{position:absolute;top:50%;left:50%;width:'+innerW+'mm;height:'+innerH+'mm;transform:translate(-50%,-50%) rotate('+rot+'deg);padding:6mm 5mm;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;overflow:hidden;}'+
     '.et-ev{font-size:10pt;letter-spacing:0.08em;text-transform:uppercase;color:#444;margin-bottom:3mm;}'+
     '.et-name{font-size:22pt;font-weight:700;line-height:1.05;color:#000;}'+
     '.et-ref{font-size:13pt;color:#222;margin-top:3mm;font-weight:600;}'+
     '.et-role{font-size:11pt;letter-spacing:0.1em;text-transform:uppercase;color:#000;margin-top:3mm;font-weight:700;}'+
     '</style></head><body>'+labels+'</body></html>';
-  var w=window.open('','_blank','width=320,height=500');
+  var w=window.open('','_blank','width=360,height=560');
   if(!w){alert('Permita pop-ups para imprimir a etiqueta.');return;}
   w.document.open();w.document.write(html);w.document.close();
   w.onload=function(){w.focus();w.print();};
   setTimeout(function(){try{w.focus();w.print();}catch(e){}},300);
 }
+window._etOpenConfig=function(){
+  var c=_etCfg();
+  var presetOpts=_ET_PRESETS.map(function(p){return'<option value="'+p.id+'"'+(p.id===c.preset?' selected':'')+'>'+_re(p.label)+'</option>';}).join('');
+  var rotOpts=[[0,'0° — normal'],[90,'90° — conteúdo de lado'],[180,'180° — invertido'],[270,'270° — de lado (outro sentido)']].map(function(o){return'<option value="'+o[0]+'"'+(o[0]===c.rot?' selected':'')+'>'+o[1]+'</option>';}).join('');
+  _recepShowModal('<div class="recep-modal-box" style="max-width:420px;">'+
+    '<div class="recep-modal-head"><span class="recep-modal-title">Formato da etiqueta</span><button class="recep-modal-close" onclick="_recepCloseModal()">×</button></div>'+
+    '<div class="recep-modal-body">'+
+      '<div class="recep-field"><label class="recep-label">Formato</label><select id="etPreset" class="recep-select" onchange="_etPresetChange()">'+presetOpts+'</select></div>'+
+      '<div class="recep-2col">'+
+        '<div class="recep-field"><label class="recep-label">Largura (mm)</label><input id="etW" type="number" min="10" step="1" class="recep-input" value="'+c.w+'"></div>'+
+        '<div class="recep-field"><label class="recep-label">Altura (mm)</label><input id="etH" type="number" min="10" step="1" class="recep-input" value="'+c.h+'"></div>'+
+      '</div>'+
+      '<div class="recep-field"><label class="recep-label">Rotação do conteúdo</label><select id="etRot" class="recep-select">'+rotOpts+'</select></div>'+
+      '<div style="font-family:var(--mono);font-size:9px;color:var(--text-muted);">Use a rotação quando a impressora puxa o papel de lado e o texto sai na orientação errada.</div>'+
+    '</div>'+
+    '<div class="recep-modal-foot">'+
+      '<button class="recep-btn-cancel" onclick="_etPrintTeste()">imprimir teste</button>'+
+      '<button class="recep-btn-cancel" onclick="_recepCloseModal()">Cancelar</button>'+
+      '<button class="recep-btn-save" onclick="_etSaveConfig()">Salvar</button>'+
+    '</div></div>');
+};
+window._etPresetChange=function(){
+  var id=document.getElementById('etPreset').value;
+  var p=_ET_PRESETS.find(function(x){return x.id===id;});
+  if(p&&p.id!=='custom'){document.getElementById('etW').value=p.w;document.getElementById('etH').value=p.h;}
+};
+function _etReadCfg(){
+  var w=+(document.getElementById('etW').value)||0,h=+(document.getElementById('etH').value)||0;
+  return{w:w,h:h,rot:+(document.getElementById('etRot').value)||0,preset:document.getElementById('etPreset').value||'custom'};
+}
+window._etSaveConfig=function(){
+  var c=_etReadCfg();
+  if(!(c.w>0&&c.h>0)){alert('Informe largura e altura válidas.');return;}
+  _etCfgSave(c);_recepCloseModal();
+};
+window._etPrintTeste=function(){
+  var c=_etReadCfg();if(!(c.w>0&&c.h>0)){alert('Informe largura e altura válidas.');return;}
+  _etCfgSave(c);
+  _credPrintLabels([{ev:'EVENTO',name:'Nome da Pessoa',assoc:'Referência / Atividade',roles:'Papel'}]);
+};
 window._credPrintEtiqueta=function(id){var g=_recepGuests.find(function(x){return x.id===id;});if(g)_credPrintEtiquetas([g.data]);};
 window._credPrintFiltrados=function(){
   var arr=_recepGuests.filter(function(g){return g.data.event_id===_recepSelectedEvent&&g.data.credenciado;}).map(function(g){return g.data;}).sort(function(a,b){return(a.name||'').localeCompare(b.name||'',undefined,{sensitivity:'base'});});
@@ -11296,7 +11358,8 @@ function _renderEtiquetas(){
   var roleOpts=_RECEP_ROLES.map(function(r){return'<option value="'+_re(r)+'">';}).join('');
   document.getElementById('barReceptivo').innerHTML=
     '<button class="recep-back-btn" onclick="renderReceptivo()">← Receptivo</button>'+
-    '<span class="recep-bar-title">Etiquetas</span>';
+    '<span class="recep-bar-title">Etiquetas</span>'+
+    '<button class="recep-print-btn" style="margin-left:auto;" onclick="_etOpenConfig()" title="Tamanho e rotação da etiqueta">⚙ formato</button>';
   document.getElementById('receptivo-container').innerHTML=
     '<div style="max-width:460px;margin:0 auto;padding:8px 0;">'+
       '<div style="font-family:var(--mono);font-size:11px;color:var(--text-muted);padding:0 0 16px;">Gerador avulso de etiquetas de crachá, independente do cadastro de convidados. Imprime na etiqueta padrão (90×55mm).</div>'+
@@ -17677,7 +17740,7 @@ function renderDash(){
   html+=colBlock('legendagem','Legendagem',legBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 24/06/2026 às 22:07';
+  var sysUpdate='última atualização do sistema · 24/06/2026 às 22:18';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -25821,7 +25884,7 @@ function _sxcPrint(){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 24/06/2026 às 22:07</span></div>
+<div id="page-footer"><span>última atualização · 24/06/2026 às 22:18</span></div>
 
 </div>
 

@@ -17763,7 +17763,7 @@ function renderDash(){
   html+=colBlock('legendagem','Legendagem',legBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 25/06/2026 às 16:48';
+  var sysUpdate='última atualização do sistema · 25/06/2026 às 16:56';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -25907,7 +25907,7 @@ function _sxcPrint(){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 25/06/2026 às 16:48</span></div>
+<div id="page-footer"><span>última atualização · 25/06/2026 às 16:56</span></div>
 
 </div>
 
@@ -26009,10 +26009,10 @@ function _sxcPrint(){
 .mob-cred-fbtn{font-family:var(--sans);font-size:11px;font-weight:600;padding:6px 13px;border:1px solid var(--border);border-radius:999px;background:var(--surface);color:var(--text-muted);cursor:pointer;-webkit-tap-highlight-color:transparent;}
 .mob-cred-fbtn.active{background:var(--accent);color:var(--on-accent);border-color:var(--accent);}
 /* alerta */
-.mob-alert{margin:10px 16px 0;background:var(--warn-container);border:1px solid var(--warn);border-radius:14px;overflow:hidden;}
+.mob-alert{margin:10px 16px 0;background:rgba(196,43,43,0.10);border:1px solid rgba(196,43,43,0.35);border-radius:14px;overflow:hidden;}
 .mob-alert-head{display:flex;align-items:center;gap:8px;padding:12px 16px;font-family:var(--sans);font-size:13px;font-weight:600;color:var(--warn);}
 .mob-alert-head svg{width:16px;height:16px;stroke:currentColor;stroke-width:2;fill:none;}
-.mob-alert-item{padding:9px 16px;border-top:1px solid var(--warn);font-family:var(--sans);font-size:13px;color:var(--text);cursor:pointer;display:flex;gap:8px;align-items:baseline;}
+.mob-alert-item{padding:9px 16px;border-top:1px solid rgba(196,43,43,0.22);font-family:var(--sans);font-size:13px;color:var(--text);cursor:pointer;display:flex;gap:8px;align-items:baseline;}
 .mob-alert-item .code{font-size:11px;color:var(--warn);font-weight:600;flex-shrink:0;}
 .mob-alert-item:active{background:rgba(0,0,0,0.04);}
 </style>
@@ -26140,7 +26140,7 @@ function _mobDispatch(frame){
 }
 
 function olgaMobileInit(){
-  // Aplica o tema do app (zen/zen-dark) e o ícone do botão — vale também para o
+  // Aplica o tema do app (claro/escuro do web) e o ícone do botão — vale também para o
   // caminho de ativação automática no login (innerWidth<768), que não passa por _mobIrParaMobile.
   if(window._mobPrevTheme==null)window._mobPrevTheme=document.documentElement.getAttribute('data-theme')||'dark';
   _mobApplyTheme(_mobGetTheme());
@@ -27800,15 +27800,17 @@ function _mobEsc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt
 
 window._mobPrevTheme=null;
 function _mobGetTheme(){
-  try{var t=localStorage.getItem('olgaMobTheme');if(t==='zen'||t==='zen-dark')return t;}catch(e){}
-  return(window.matchMedia&&window.matchMedia('(prefers-color-scheme: light)').matches)?'zen':'zen-dark';
+  // App usa o claro/escuro do web (mesmo conjunto da página de login).
+  try{var t=localStorage.getItem('olgaMobTheme');if(t==='light'||t==='dark')return t;}catch(e){}
+  try{var w=localStorage.getItem('olga-theme');if(w==='light')return'light';}catch(e){}
+  return'dark';
 }
 function _mobApplyTheme(t){
   if(typeof applyTheme==='function')applyTheme(t);
   else document.documentElement.setAttribute('data-theme',t);
   try{localStorage.setItem('olgaMobTheme',t);}catch(e){}
   var btn=document.getElementById('mobThemeBtn');
-  if(btn)btn.innerHTML=t==='zen-dark'?_mobThemeIcon('sun'):_mobThemeIcon('moon');
+  if(btn)btn.innerHTML=t==='dark'?_mobThemeIcon('sun'):_mobThemeIcon('moon');
 }
 function _mobThemeIcon(n){
   if(n==='sun')return'<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>';
@@ -27816,7 +27818,7 @@ function _mobThemeIcon(n){
 }
 window._mobToggleTheme=function(){
   var cur=document.documentElement.getAttribute('data-theme');
-  _mobApplyTheme(cur==='zen-dark'?'zen':'zen-dark');
+  _mobApplyTheme(cur==='dark'?'light':'dark');
 };
 window._mobIrParaMobile=function(){
   window._mobPrevTheme=document.documentElement.getAttribute('data-theme')||'dark';

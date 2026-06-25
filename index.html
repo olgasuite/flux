@@ -17763,7 +17763,7 @@ function renderDash(){
   html+=colBlock('legendagem','Legendagem',legBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 24/06/2026 às 22:29';
+  var sysUpdate='última atualização do sistema · 25/06/2026 às 12:20';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -25907,7 +25907,7 @@ function _sxcPrint(){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 24/06/2026 às 22:29</span></div>
+<div id="page-footer"><span>última atualização · 25/06/2026 às 12:20</span></div>
 
 </div>
 
@@ -25926,11 +25926,12 @@ function _sxcPrint(){
 .mob-content{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;}
 .mob-section-title{font-family:var(--mono);font-size:9px;font-weight:600;letter-spacing:0.2em;text-transform:uppercase;color:var(--accent);padding:16px 16px 8px;border-bottom:1px solid var(--border);}
 .mob-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:16px;}
-.mob-card{background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:20px 14px;display:flex;flex-direction:column;align-items:flex-start;gap:8px;cursor:pointer;-webkit-tap-highlight-color:transparent;}
+.mob-card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:18px 16px;display:flex;flex-direction:column;align-items:flex-start;gap:9px;cursor:pointer;-webkit-tap-highlight-color:transparent;box-shadow:0 1px 2px rgba(0,0,0,0.04);}
 .mob-card:active{border-color:var(--accent);background:var(--surface2);}
-.mob-card-icon{width:26px;height:26px;stroke:var(--accent);stroke-width:1.5;fill:none;}
-.mob-card-label{font-family:var(--mono);font-size:10px;font-weight:600;letter-spacing:0.12em;text-transform:uppercase;color:var(--text-dim);}
-.mob-card-sub{font-family:var(--mono);font-size:9px;color:var(--text-muted);line-height:1.4;}
+.mob-card-iconwrap{display:inline-flex;align-items:center;justify-content:center;width:42px;height:42px;border-radius:12px;background:var(--accent-dim);}
+.mob-card-icon{width:22px;height:22px;stroke:var(--accent);stroke-width:1.8;fill:none;}
+.mob-card-label{font-family:var(--sans);font-size:14px;font-weight:600;letter-spacing:0;text-transform:none;color:var(--text);}
+.mob-card-sub{font-family:var(--sans);font-size:11px;color:var(--text-muted);line-height:1.35;}
 .mob-sessao-card{margin:0 12px 10px;background:var(--surface);border:1px solid var(--border);border-radius:4px;overflow:hidden;}
 .mob-sessao-header{display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid var(--border);}
 .mob-sessao-hora{font-family:var(--mono);font-size:18px;font-weight:700;color:var(--accent);min-width:48px;}
@@ -25967,6 +25968,46 @@ function _sxcPrint(){
 #mob-revista-vscroll{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;padding:12px 0 24px;}
 .rev-vwrap{margin:0 auto 10px;position:relative;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,0.5);}
 .rev-vwrap:last-child{margin-bottom:0;}
+
+/* ── APP MOBILE (tema Zen) ─────────────────────────────────────── */
+#olga-mobile #mob-footer{display:none;}
+.mob-header-actions{display:flex;align-items:center;gap:4px;}
+.mob-iconbtn{display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:10px;border:none;background:transparent;color:var(--text-dim);cursor:pointer;-webkit-tap-highlight-color:transparent;}
+.mob-iconbtn:active{background:var(--surface2);}
+.mob-iconbtn svg{width:18px;height:18px;stroke:currentColor;stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round;}
+.mob-tabbar{display:flex;align-items:stretch;height:60px;background:var(--surface);border-top:1px solid var(--border);flex-shrink:0;padding-bottom:env(safe-area-inset-bottom);}
+.mob-tab{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;border:none;background:transparent;color:var(--text-muted);font-family:var(--sans);font-size:10px;font-weight:600;cursor:pointer;-webkit-tap-highlight-color:transparent;}
+.mob-tab svg{width:22px;height:22px;stroke:currentColor;stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round;}
+.mob-tab.active{color:var(--accent);}
+.mob-tab:active{background:var(--surface2);}
+/* saudação */
+.mob-greet{padding:26px 20px 6px;}
+.mob-greet-hi{font-family:var(--sans);font-size:25px;font-weight:600;color:var(--text);line-height:1.15;letter-spacing:-0.01em;}
+.mob-greet-hi b{color:var(--accent);font-weight:700;}
+.mob-greet-date{font-family:var(--sans);font-size:13px;color:var(--text-muted);margin-top:6px;text-transform:capitalize;}
+.mob-greet-welcome{font-family:var(--sans);font-size:14px;color:var(--text-dim);margin-top:10px;line-height:1.45;}
+/* section header (suave) */
+.mob-h{font-family:var(--sans);font-size:12px;font-weight:600;letter-spacing:0.01em;color:var(--text-dim);padding:18px 20px 10px;}
+/* hero "hoje" */
+.mob-hero{margin:6px 16px 4px;background:var(--surface);border:1px solid var(--border);border-radius:18px;padding:18px 20px;box-shadow:0 1px 2px rgba(0,0,0,0.04);}
+.mob-hero-lbl{font-family:var(--sans);font-size:12px;font-weight:600;color:var(--text-muted);}
+.mob-hero-big{font-family:var(--sans);font-size:34px;font-weight:700;color:var(--accent);line-height:1.05;margin-top:6px;}
+.mob-hero-big small{font-size:15px;font-weight:600;color:var(--text-dim);margin-left:6px;}
+.mob-hero-sub{font-family:var(--sans);font-size:13px;color:var(--text-dim);margin-top:8px;}
+.mob-hero-sub b{color:var(--text);font-weight:600;}
+/* stat tiles */
+.mob-stats{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;padding:10px 16px 4px;}
+.mob-stat{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:14px 10px;text-align:center;}
+.mob-stat-num{font-family:var(--sans);font-size:22px;font-weight:700;color:var(--text);line-height:1;}
+.mob-stat-num.warn{color:var(--warn);}
+.mob-stat-lbl{font-family:var(--sans);font-size:11px;color:var(--text-muted);margin-top:5px;}
+/* alerta */
+.mob-alert{margin:10px 16px 0;background:var(--warn-container);border:1px solid var(--warn);border-radius:14px;overflow:hidden;}
+.mob-alert-head{display:flex;align-items:center;gap:8px;padding:12px 16px;font-family:var(--sans);font-size:13px;font-weight:600;color:var(--warn);}
+.mob-alert-head svg{width:16px;height:16px;stroke:currentColor;stroke-width:2;fill:none;}
+.mob-alert-item{padding:9px 16px;border-top:1px solid var(--warn);font-family:var(--sans);font-size:13px;color:var(--text);cursor:pointer;display:flex;gap:8px;align-items:baseline;}
+.mob-alert-item .code{font-size:11px;color:var(--warn);font-weight:600;flex-shrink:0;}
+.mob-alert-item:active{background:rgba(0,0,0,0.04);}
 </style>
 
 <div id="olga-mobile">
@@ -25979,11 +26020,17 @@ function _sxcPrint(){
       <span class="mob-header-logo" id="mobLogo">OLGA <span class="mob-logo-flux">Flux</span></span>
     </div>
     <span class="mob-header-user" id="mobUserName"></span>
-    <button class="mob-btn" onclick="toggleTheme()">TEMA</button>
-    <button class="mob-btn" onclick="_mobIrParaWeb()">MODO WEB</button>
-    <button class="mob-btn" onclick="_olgaSignOut()">sair</button>
+    <div class="mob-header-actions">
+      <button class="mob-iconbtn" id="mobThemeBtn" onclick="_mobToggleTheme()" title="Tema"></button>
+      <button class="mob-iconbtn" onclick="_olgaSignOut()" title="Sair"><svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg></button>
+    </div>
   </div>
   <div class="mob-content" id="mobContent"></div>
+  <nav class="mob-tabbar" id="mobTabbar">
+    <button class="mob-tab" id="mobTabHome" onclick="olgaMobileHome()"><svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg><span>Início</span></button>
+    <button class="mob-tab" id="mobTabMods" onclick="olgaMobileModulos()"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/></svg><span>Módulos</span></button>
+    <button class="mob-tab" id="mobTabWeb" onclick="_mobIrParaWeb()"><svg viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg><span>Web</span></button>
+  </nav>
   <div id="mob-footer"><span id="mobFooterText"></span></div>
   <div id="mob-revista-viewer">
     <div id="mob-revista-vhead">
@@ -26044,6 +26091,7 @@ function _mobPush(frame){
   var logo=document.getElementById('mobLogo');
   if(backBtn)backBtn.style.display=_mobStack.length>1?'':'none';
   if(logo)logo.style.display=_mobStack.length>1?'none':'';
+  _mobUpdateTabbar();
 }
 
 function olgaMobileBack(){
@@ -26055,11 +26103,13 @@ function olgaMobileBack(){
   if(backBtn)backBtn.style.display=_mobStack.length>1?'':'none';
   if(logo)logo.style.display=_mobStack.length>1?'none':'';
   _mobDispatch(prev);
+  _mobUpdateTabbar();
 }
 
 function _mobDispatch(frame){
   var v=frame.view,p=frame.params||{};
   if(v==='home')olgaMobileHome(true);
+  else if(v==='modulos')olgaMobileModulos(true);
   else if(v==='projecao')_mobRenderProjecao(p,true);
   else if(v==='sessao-ficha')_mobRenderSessaoFicha(p,true);
   else if(v==='acervo')_mobRenderAcervo(p,true);
@@ -26083,9 +26133,8 @@ function _mobDispatch(frame){
 }
 
 function olgaMobileInit(){
-  var u=window._olgaUser;
   var nameEl=document.getElementById('mobUserName');
-  if(nameEl)nameEl.textContent=u?u.name||u.email:'';
+  if(nameEl)nameEl.textContent='';
   var footerEl=document.getElementById('mobFooterText');
   if(footerEl){var _wf=document.querySelector('#page-footer span');footerEl.textContent=_wf?_wf.textContent:'';}
   // inicializa eventos ativos — usa currentEventsFromDates se disponível, senão todos
@@ -26236,6 +26285,32 @@ function _mobGetDias(filtroEvs,filtroSala){
 }
 
 /* ── HOME ─────────────────────────────────────────────────────── */
+function _mobUpdateTabbar(){
+  var root=(_mobStack[0]&&_mobStack[0].view)||'home';
+  var active=root==='modulos'?'mobTabMods':'mobTabHome';
+  ['mobTabHome','mobTabMods','mobTabWeb'].forEach(function(id){
+    var el=document.getElementById(id);if(el)el.classList.toggle('active',id===active);
+  });
+}
+function _mobFirstName(){
+  var u=window._olgaUser;var n=(u&&(u.name||u.email)||'').trim();
+  if(!n)return'';
+  if(n.indexOf('@')!==-1)n=n.split('@')[0];
+  return n.split(/\s+/)[0];
+}
+function _mobDateStr(){
+  var d=new Date();
+  var wd=['domingo','segunda','terça','quarta','quinta','sexta','sábado'][d.getDay()];
+  var mo=['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'][d.getMonth()];
+  return wd+', '+d.getDate()+' '+mo;
+}
+function _mobGreetHtml(){
+  var nm=_mobFirstName();
+  return'<div class="mob-greet"><div class="mob-greet-hi">Olá'+(nm?', <b>'+_mobEsc(nm)+'</b>':'')+'</div>'+
+    '<div class="mob-greet-date">'+_mobEsc(_mobDateStr())+'</div></div>';
+}
+
+/* ── HOME = DASHBOARD pessoal ────────────────────────────────────── */
 function olgaMobileHome(noStack){
   if(!noStack){
     _mobStack=[{view:'home'}];
@@ -26244,6 +26319,101 @@ function olgaMobileHome(noStack){
     if(backBtn)backBtn.style.display='none';
     if(logo)logo.style.display='';
   }
+  _mobUpdateTabbar();
+
+  var html=_mobGreetHtml();
+
+  if(!_mobHasModule('dash')){
+    html+='<div class="mob-greet"><div class="mob-greet-welcome">Bem-vindo ao OLGA Flux. Toque em <b>Módulos</b>, abaixo, para acessar suas ferramentas.</div></div>';
+    _mobSetContent(html);
+    return;
+  }
+
+  if(!dataLoaded){
+    _mobSetContent(html+'<div class="mob-empty">Carregando seus dados…</div>');
+    return;
+  }
+
+  var filtroEvs=_mobActiveEvs;
+  var u=window._olgaUser;
+  var userEvs=u&&u.eventos&&u.eventos.length?new Set(u.eventos):null;
+  var sessoesFilt=sessoesArr.filter(function(s){
+    if(userEvs&&!userEvs.has(s.evento))return false;
+    if(filtroEvs&&!filtroEvs.has(s.evento))return false;
+    return true;
+  });
+  var hoje=new Date();hoje.setHours(0,0,0,0);
+  var sessoesHoje=sessoesFilt.filter(function(s){return s.date&&s.date.getTime()===hoje.getTime();});
+  var filmesSet=new Set();sessoesFilt.forEach(function(s){s.filmes.forEach(function(c){filmesSet.add(c);});});
+  var filmesComErro=Array.from(filmesSet).filter(function(c){var f=filmesMap[c];return f&&_mobStatusIsErro(f.status||'');});
+  var diasSet=new Set();sessoesFilt.forEach(function(s){if(s.date)diasSet.add(s.date.getTime());});
+
+  // próxima sessão (a partir de agora)
+  var now=new Date();
+  var futuras=sessoesFilt.filter(function(s){
+    if(!s.date)return false;
+    var dt=new Date(s.date.getTime());
+    if(s.time)dt.setHours(s.time.h,s.time.m,0,0);else dt.setHours(23,59,0,0);
+    return dt.getTime()>=now.getTime();
+  }).sort(function(a,b){
+    var da=a.date.getTime()+(a.time?(a.time.h*60+a.time.m):0)*60000;
+    var db=b.date.getTime()+(b.time?(b.time.h*60+b.time.m):0)*60000;
+    return da-db;
+  });
+  var prox=futuras[0];
+
+  // hero "hoje"
+  var nH=sessoesHoje.length;
+  html+='<div class="mob-h">Hoje</div>';
+  html+='<div class="mob-hero">';
+  html+='<div class="mob-hero-lbl">Sessões de hoje</div>';
+  html+='<div class="mob-hero-big">'+nH+'<small>'+(nH===1?'sessão':'sessões')+'</small></div>';
+  if(prox){
+    var proxHoje=prox.date&&prox.date.getTime()===hoje.getTime();
+    var diaTxt=proxHoje?'':(function(){var d=prox.date;return['dom','seg','ter','qua','qui','sex','sáb'][d.getDay()]+' '+d.getDate()+' · ';}());
+    html+='<div class="mob-hero-sub">Próxima · <b>'+_mobEsc(diaTxt+(prox.hora||'?'))+'</b> · '+_mobEsc(prox.cinema||'')+'</div>';
+  }else{
+    html+='<div class="mob-hero-sub">Sem sessões futuras.</div>';
+  }
+  html+='</div>';
+
+  // tiles
+  var tile=function(num,lbl,warn){
+    return'<div class="mob-stat"><div class="mob-stat-num'+(warn?' warn':'')+'">'+num+'</div><div class="mob-stat-lbl">'+lbl+'</div></div>';
+  };
+  html+='<div class="mob-stats">'+
+    tile(sessoesFilt.length,'sessões')+
+    tile(filmesSet.size,'filmes')+
+    tile(diasSet.size,'dias')+
+  '</div>';
+
+  // alerta de erros
+  if(filmesComErro.length){
+    html+='<div class="mob-alert">';
+    html+='<div class="mob-alert-head"><svg viewBox="0 0 24 24"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>'+filmesComErro.length+' '+(filmesComErro.length===1?'filme com erro':'filmes com erro')+'</div>';
+    html+=filmesComErro.map(function(c){var f=filmesMap[c];return'<div class="mob-alert-item" onclick="_mobAbrirAcervoDetail(\''+_mobEsc(c)+'\')"><span class="code">'+_mobEsc(c)+'</span>'+_mobEsc(f&&f.titulo||c)+'</div>';}).join('');
+    html+='</div>';
+  }
+
+  // eventos ativos
+  if(eventColors&&Object.keys(eventColors).length){
+    html+='<div class="mob-h">Eventos ativos</div>'+_mobEventFilterHtml(_mobActiveEvs);
+    html+='<div style="height:16px;"></div>';
+  }
+
+  _mobSetContent(html);
+}
+
+/* ── MÓDULOS (grade) ─────────────────────────────────────────────── */
+function olgaMobileModulos(noStack){
+  if(!noStack){
+    _mobStack=[{view:'modulos'}];
+    var backBtn=document.getElementById('mobBackBtn');
+    var logo=document.getElementById('mobLogo');
+    if(backBtn)backBtn.style.display='none';
+    if(logo)logo.style.display='';
+  }
+  _mobUpdateTabbar();
 
   var CARDS=[
     {mod:'projecao', icon:'projector',        label:'Projeção',    sub:'Sessões e fichas',    fn:'olgaMobileProjecao()'},
@@ -26270,15 +26440,12 @@ function olgaMobileHome(noStack){
     return true;
   });
 
-  var html='<div class="mob-section-title">módulos</div><div class="mob-grid">';
+  var html='<div class="mob-h">Módulos</div><div class="mob-grid">';
   html+=cards.map(function(c){
-    return'<div class="mob-card" onclick="'+c.fn+'">'+_mobIcon(c.icon)+'<span class="mob-card-label">'+c.label+'</span><span class="mob-card-sub">'+c.sub+'</span></div>';
+    return'<div class="mob-card" onclick="'+c.fn+'"><span class="mob-card-iconwrap">'+_mobIcon(c.icon)+'</span><span class="mob-card-label">'+_mobEsc(c.label)+'</span><span class="mob-card-sub">'+_mobEsc(c.sub)+'</span></div>';
   }).join('');
-  html+='</div>';
-  // filtro de eventos visível já na home
-  if(dataLoaded&&eventColors&&Object.keys(eventColors).length)
-    html+='<div class="mob-section-title" style="margin-top:8px;">eventos ativos</div>'+_mobEventFilterHtml(_mobActiveEvs);
-  if(!dataLoaded)html+='<div class="mob-empty">Aguardando dados…</div>';
+  html+='</div><div style="height:16px;"></div>';
+  if(!cards.length)html+='<div class="mob-empty">Nenhum módulo disponível para o seu perfil.</div>';
   _mobSetContent(html);
 }
 
@@ -27532,13 +27699,36 @@ function _mobRenderProgSessao(params,noScroll){
 
 function _mobEsc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
 
+window._mobPrevTheme=null;
+function _mobGetTheme(){
+  try{var t=localStorage.getItem('olgaMobTheme');if(t==='zen'||t==='zen-dark')return t;}catch(e){}
+  return(window.matchMedia&&window.matchMedia('(prefers-color-scheme: light)').matches)?'zen':'zen-dark';
+}
+function _mobApplyTheme(t){
+  if(typeof applyTheme==='function')applyTheme(t);
+  else document.documentElement.setAttribute('data-theme',t);
+  try{localStorage.setItem('olgaMobTheme',t);}catch(e){}
+  var btn=document.getElementById('mobThemeBtn');
+  if(btn)btn.innerHTML=t==='zen-dark'?_mobThemeIcon('sun'):_mobThemeIcon('moon');
+}
+function _mobThemeIcon(n){
+  if(n==='sun')return'<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>';
+  return'<svg viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>';
+}
+window._mobToggleTheme=function(){
+  var cur=document.documentElement.getAttribute('data-theme');
+  _mobApplyTheme(cur==='zen-dark'?'zen':'zen-dark');
+};
 window._mobIrParaMobile=function(){
+  window._mobPrevTheme=document.documentElement.getAttribute('data-theme')||'dark';
+  _mobApplyTheme(_mobGetTheme());
   document.getElementById('olga-mobile').style.display='flex';
   document.getElementById('olga-app').style.display='none';
   window._mobileActive=true;
   olgaMobileInit();
 };
 window._mobIrParaWeb=function(){
+  if(window._mobPrevTheme&&typeof applyTheme==='function')applyTheme(window._mobPrevTheme);
   document.getElementById('olga-mobile').style.display='none';
   document.getElementById('olga-app').style.display='';
   window._mobileActive=false;

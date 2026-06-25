@@ -17763,7 +17763,7 @@ function renderDash(){
   html+=colBlock('legendagem','Legendagem',legBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 25/06/2026 às 14:35';
+  var sysUpdate='última atualização do sistema · 25/06/2026 às 16:48';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -25907,7 +25907,7 @@ function _sxcPrint(){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 25/06/2026 às 14:35</span></div>
+<div id="page-footer"><span>última atualização · 25/06/2026 às 16:48</span></div>
 
 </div>
 
@@ -25989,6 +25989,9 @@ function _sxcPrint(){
 .mob-greet-welcome{font-family:var(--sans);font-size:14px;color:var(--text-dim);margin-top:10px;line-height:1.45;}
 /* section header (suave) */
 .mob-h{font-family:var(--sans);font-size:12px;font-weight:600;letter-spacing:0.01em;color:var(--text-dim);padding:18px 20px 10px;}
+.mob-h-row{display:flex;align-items:center;justify-content:space-between;gap:10px;}
+.mob-h-link{font-family:var(--sans);font-size:12px;font-weight:600;color:var(--accent);background:none;border:none;cursor:pointer;padding:0;-webkit-tap-highlight-color:transparent;}
+.mob-h-link:active{opacity:0.6;}
 /* hero "hoje" */
 .mob-hero{margin:6px 16px 4px;background:var(--surface);border:1px solid var(--border);border-radius:18px;padding:18px 20px;box-shadow:0 1px 2px rgba(0,0,0,0.04);}
 .mob-hero-lbl{font-family:var(--sans);font-size:12px;font-weight:600;color:var(--text-muted);}
@@ -26314,6 +26317,11 @@ function _mobGreetHtml(){
     '<div class="mob-greet-date">'+_mobEsc(_mobDateStr())+'</div></div>';
 }
 
+function _mobEvOk(ev){return!ev||_userEvSel.has(ev);}
+function _mobHHead(title,modKey,fn,label){
+  var link=(modKey&&_mobHasModule(modKey))?'<button class="mob-h-link" onclick="'+fn+'">'+(label||'abrir')+' ›</button>':'';
+  return link?'<div class="mob-h mob-h-row"><span>'+title+'</span>'+link+'</div>':'<div class="mob-h">'+title+'</div>';
+}
 function _mobParsePub(v){var n=parseInt((v||'').toString().replace(/\D/g,''));return isNaN(n)?0:n;}
 function _mobCalcBilh(sessoes){
   var allC2=getAllCinemas();
@@ -26387,8 +26395,9 @@ function olgaMobileHome(noStack){
 
   // hero "hoje"
   var nH=sessoesHoje.length;
-  html+='<div class="mob-h">Hoje</div>';
-  html+='<div class="mob-hero">';
+  var heroClick=_mobHasModule('projecao')?' onclick="olgaMobileProjecao()" style="cursor:pointer;"':'';
+  html+=_mobHHead('Hoje','projecao','olgaMobileProjecao()','ver sessões');
+  html+='<div class="mob-hero"'+heroClick+'>';
   html+='<div class="mob-hero-lbl">Sessões de hoje</div>';
   html+='<div class="mob-hero-big">'+nH+'<small>'+(nH===1?'sessão':'sessões')+'</small></div>';
   if(prox){
@@ -26418,7 +26427,7 @@ function olgaMobileHome(noStack){
     var bTile=function(val,lbl,sub){
       return'<div class="mob-stat"><div class="mob-stat-num" style="font-size:18px;">'+val+'</div><div class="mob-stat-lbl">'+lbl+'</div>'+(sub?'<div class="mob-stat-sub2">'+sub+'</div>':'')+'</div>';
     };
-    html+='<div class="mob-h">Bilheteria</div>';
+    html+=_mobHHead('Bilheteria','bilheteria','olgaMobileBilheteria()','abrir módulo');
     html+='<div class="mob-stats" style="grid-template-columns:1fr 1fr;">'+
       bTile(b.hasPub?b.tPub.toLocaleString('pt-BR'):'—','público total',b.hasPub&&b.tBloq>0?b.tBloq.toLocaleString('pt-BR')+' não pagantes':'')+
       bTile(b.hasRenda?_bilhFmtRenda(b.tRenda):'—','receita líquida','')+
@@ -26791,7 +26800,7 @@ window._mobReceptivoSection=function(sec,noPush){
         var hMap={};hs.forEach(function(h){hMap[h.id]=h.data.name||h.id;});
         var bMap={};bs.forEach(function(b){if(b.data.guest_id)bMap[b.data.guest_id]=hMap[b.data.hotel_id]||'';});
         var evColors=eventColors||{};
-        var gs2=gs.filter(function(g){return!g.data.event_id||evColors[g.data.event_id];}).sort(function(a,b){return(a.data.name||'').localeCompare(b.data.name||'','pt-BR');});
+        var gs2=gs.filter(function(g){return _mobEvOk(g.data.event_id);}).sort(function(a,b){return(a.data.name||'').localeCompare(b.data.name||'','pt-BR');});
         window._mobConvCards=gs2.map(function(g){
           var d=g.data;var ev=d.event_id||'';var hotel=bMap[g.id]||'';
           var evCol=evColors[ev];
@@ -26815,7 +26824,7 @@ window._mobReceptivoSection=function(sec,noPush){
     credenciamento:function(){
       window._olgaGuests.list().then(function(gs){
         var evColors=eventColors||{};
-        var gs2=gs.filter(function(g){return!g.data.event_id||evColors[g.data.event_id];}).sort(function(a,b){return(a.data.name||'').localeCompare(b.data.name||'','pt-BR');});
+        var gs2=gs.filter(function(g){return _mobEvOk(g.data.event_id);}).sort(function(a,b){return(a.data.name||'').localeCompare(b.data.name||'','pt-BR');});
         var total=gs2.length,credN=gs2.filter(function(g){return g.data.credenciado;}).length;
         window._mobCredCards=gs2.map(function(g){
           var d=g.data;var ev=d.event_id||'';var evCol=evColors[ev];
@@ -26844,7 +26853,7 @@ window._mobReceptivoSection=function(sec,noPush){
       Promise.all([window._olgaHotels.list(),window._olgaBookings.list()]).then(function(r){
         var hs=r[0],bs=r[1];
         var evColors=eventColors||{};
-        var hs2=hs.filter(function(h){return!h.data.event_id||evColors[h.data.event_id];}).sort(function(a,b){return(a.data.name||'').localeCompare(b.data.name||'','pt-BR');});
+        var hs2=hs.filter(function(h){return _mobEvOk(h.data.event_id);}).sort(function(a,b){return(a.data.name||'').localeCompare(b.data.name||'','pt-BR');});
         var html='<div class="mob-section-title">Hotéis · '+hs2.length+'</div>';
         if(!hs2.length){html+='<div class="mob-empty">Nenhum hotel encontrado.</div>';}
         else{html+=hs2.map(function(h){
@@ -26863,7 +26872,7 @@ window._mobReceptivoSection=function(sec,noPush){
         var fs=r[0],gs=r[1];
         var gMap={};gs.forEach(function(g){gMap[g.id]=g.data.name||g.id;});
         var evColors=eventColors||{};
-        var fs2=fs.filter(function(f){return!f.data.event_id||evColors[f.data.event_id];}).sort(function(a,b){return(a.data.datetime||'').localeCompare(b.data.datetime||'');});
+        var fs2=fs.filter(function(f){return _mobEvOk(f.data.event_id);}).sort(function(a,b){return(a.data.datetime||'').localeCompare(b.data.datetime||'');});
         var html='<div class="mob-section-title">Voos · '+fs2.length+'</div>';
         if(!fs2.length){html+='<div class="mob-empty">Nenhum voo encontrado.</div>';}
         else{html+=fs2.map(function(f){
@@ -26883,7 +26892,7 @@ window._mobReceptivoSection=function(sec,noPush){
         var ts=r[0],gs=r[1];
         var gMap={};gs.forEach(function(g){gMap[g.id]=g.data.name||g.id;});
         var evColors=eventColors||{};
-        var ts2=ts.filter(function(t){return!t.data.event_id||evColors[t.data.event_id];}).sort(function(a,b){return(a.data.datetime||'').localeCompare(b.data.datetime||'');});
+        var ts2=ts.filter(function(t){return _mobEvOk(t.data.event_id);}).sort(function(a,b){return(a.data.datetime||'').localeCompare(b.data.datetime||'');});
         var html='<div class="mob-section-title">Transporte · '+ts2.length+'</div>';
         if(!ts2.length){html+='<div class="mob-empty">Nenhum transfer encontrado.</div>';}
         else{html+=ts2.map(function(t){

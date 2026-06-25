@@ -10405,6 +10405,7 @@ var _recepGuestSel=new Set();
 var _recepRoleFilter=new Set();
 var _recepGuestSearch='';
 var _credSearch='',_credFilter='';
+var _credSel=new Set();
 
 function _re(s){return(s||'').toString().replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 
@@ -10630,7 +10631,7 @@ function _recepEventBankSelect(){
 window._recepOnEventChange=function(v){
   _recepSelectedEvent=v;
   // trocar de evento zera filtros/seleções da seção (nada persiste entre eventos)
-  _recepTransVeh='';_recepTransDate='';_recepGuestSearch='';_credSearch='';_credFilter='';
+  _recepTransVeh='';_recepTransDate='';_recepGuestSearch='';_credSearch='';_credFilter='';_credSel.clear();
   if(_recepRoleFilter&&_recepRoleFilter.clear)_recepRoleFilter.clear();
   if(_recepGuestSel&&_recepGuestSel.clear)_recepGuestSel.clear();
   var map={convidados:_renderConvidados,credenciamento:_renderCredenciamento,hoteis:_renderHoteis,voos:_renderVoos,transporte:_renderTransporte};
@@ -11184,6 +11185,7 @@ function _renderCredenciamento(){
       :'<button class="cred-btn-go" onclick="_credToggle(\''+sid+'\',true)">credenciar</button>';
     var actions=(canEdit?toggleBtn:'')+'<button class="recep-print-btn cred-print" onclick="_credPrintEtiqueta(\''+sid+'\')">⎙ etiqueta</button>';
     return'<tr>'+
+      '<td style="width:22px;text-align:center;"><input type="checkbox" class="cred-chk" data-id="'+sid+'" onchange="_credToggleSel(\''+sid+'\')"'+(_credSel.has(g.id)?' checked':'')+'></td>'+
       '<td style="width:130px;">'+statusCell+'</td>'+
       '<td style="color:var(--text);font-weight:600;">'+_re(d.name||'—')+'</td>'+
       '<td>'+_recepRoleBadges(d.roles)+'</td>'+
@@ -11191,12 +11193,13 @@ function _renderCredenciamento(){
       '<td style="white-space:nowrap;text-align:right;">'+actions+'</td>'+
     '</tr>';
   }).join('');
+  var _selN=_credSel.size;
   document.getElementById('barReceptivo').innerHTML=
     '<button class="recep-back-btn" onclick="renderReceptivo()">← Receptivo</button>'+
     '<span class="recep-bar-title">Credenciamento</span>'+
     _recepEventBankSelect()+
     '<button class="recep-print-btn" style="margin-left:auto;" onclick="_etOpenConfig()" title="Tamanho e rotação da etiqueta">⚙ formato</button>'+
-    (_recepSelectedEvent?'<button class="recep-print-btn" onclick="_credPrintFiltrados()">⎙ etiquetas credenciados</button>':'');
+    (_recepSelectedEvent?'<button id="credPrintSelBtn" class="recep-print-btn" onclick="_credPrintSelecionadas()"'+(_selN?'':' disabled')+'>⎙ imprimir selecionadas'+(_selN?' ('+_selN+')':'')+'</button>':'');
   document.getElementById('receptivo-container').innerHTML=_recepSelectedEvent?(
     '<div class="cred-stats">'+credN+' de '+total+' credenciado'+(credN===1?'':'s')+'</div>'+
     '<div style="display:flex;gap:5px;align-items:center;padding:0 0 10px;">'+
@@ -11210,13 +11213,33 @@ function _renderCredenciamento(){
       '<input id="credSearchInput" type="text" placeholder="buscar por nome ou papel…" value="'+_re(_credSearch)+'" oninput="_credOnSearch(this)" style="font-family:var(--mono);font-size:10px;padding:4px 8px;border:1px solid var(--border2);background:var(--surface2);color:var(--text);border-radius:3px;width:300px;max-width:100%;outline:none;">'+
     '</div>'+
     '<table class="recep-table"><thead><tr>'+
+      '<th style="width:22px;text-align:center;"><input type="checkbox" id="credSelAll" onclick="_credToggleAll()" title="Selecionar todos"></th>'+
       '<th style="width:130px;">Status</th><th>Nome</th><th>Papel</th><th>Filmes · Mostras</th><th></th>'+
-    '</tr></thead><tbody>'+(rows||'<tr><td colspan="5" class="recep-empty">Nenhum convidado encontrado.</td></tr>')+'</tbody></table>'
+    '</tr></thead><tbody>'+(rows||'<tr><td colspan="6" class="recep-empty">Nenhum convidado encontrado.</td></tr>')+'</tbody></table>'
   ):_recepSelectEventPrompt();
   buildPills(document.getElementById('headerEventFilters'),eventColors,activeEventsReceptivo,function(){_renderCredenciamento();});
+  _credUpdSelUI();
 }
 function _credOnSearch(inp){_credSearch=inp.value;var pos=inp.selectionStart;_renderCredenciamento();var el=document.getElementById('credSearchInput');if(el){el.focus();el.setSelectionRange(pos,pos);}}
 window._credSetFilter=function(v){_credFilter=v;_renderCredenciamento();};
+window._credToggleSel=function(id){if(_credSel.has(id))_credSel.delete(id);else _credSel.add(id);_credUpdSelUI();};
+window._credToggleAll=function(){
+  var chkAll=document.getElementById('credSelAll');
+  document.querySelectorAll('.cred-chk').forEach(function(c){var id=c.getAttribute('data-id');if(chkAll&&chkAll.checked){_credSel.add(id);c.checked=true;}else{_credSel.delete(id);c.checked=false;}});
+  _credUpdSelUI();
+};
+function _credUpdSelUI(){
+  var n=_credSel.size;
+  var btn=document.getElementById('credPrintSelBtn');
+  if(btn){btn.disabled=!n;btn.textContent='⎙ imprimir selecionadas'+(n?' ('+n+')':'');}
+  var chkAll=document.getElementById('credSelAll');
+  if(chkAll){var total=document.querySelectorAll('.cred-chk').length;var sel=document.querySelectorAll('.cred-chk:checked').length;chkAll.checked=total>0&&sel>=total;chkAll.indeterminate=sel>0&&sel<total;}
+}
+window._credPrintSelecionadas=function(){
+  var arr=_recepGuests.filter(function(g){return _credSel.has(g.id);}).map(function(g){return g.data;}).sort(function(a,b){return(a.name||'').localeCompare(b.name||'',undefined,{sensitivity:'base'});});
+  if(!arr.length){alert('Selecione ao menos um convidado.');return;}
+  _credPrintEtiquetas(arr);
+};
 window._credToggle=async function(id,val){
   var g=_recepGuests.find(function(x){return x.id===id;});if(!g)return;
   var fields={credenciado:val,credenciado_em:val?_credNow():'',updated_at:_recepNow()};
@@ -17740,7 +17763,7 @@ function renderDash(){
   html+=colBlock('legendagem','Legendagem',legBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 24/06/2026 às 22:18';
+  var sysUpdate='última atualização do sistema · 24/06/2026 às 22:29';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -25884,7 +25907,7 @@ function _sxcPrint(){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 24/06/2026 às 22:18</span></div>
+<div id="page-footer"><span>última atualização · 24/06/2026 às 22:29</span></div>
 
 </div>
 

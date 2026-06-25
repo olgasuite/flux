@@ -25972,8 +25972,9 @@ function _sxcPrint(){
 /* ── APP MOBILE (tema Zen) ─────────────────────────────────────── */
 #olga-mobile #mob-footer{display:none;}
 .mob-header-actions{display:flex;align-items:center;gap:4px;}
-.mob-iconbtn{display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:10px;border:none;background:transparent;color:var(--text-dim);cursor:pointer;-webkit-tap-highlight-color:transparent;}
-.mob-iconbtn:active{background:var(--surface2);}
+.mob-iconbtn{display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:10px;border:1px solid var(--border);background:var(--surface2);color:var(--text-dim);cursor:pointer;-webkit-tap-highlight-color:transparent;}
+.mob-iconbtn:active{background:var(--surface3);color:var(--accent);}
+#mobThemeBtn{color:var(--accent);}
 .mob-iconbtn svg{width:18px;height:18px;stroke:currentColor;stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round;}
 .mob-tabbar{display:flex;align-items:stretch;height:60px;background:var(--surface);border-top:1px solid var(--border);flex-shrink:0;padding-bottom:env(safe-area-inset-bottom);}
 .mob-tab{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;border:none;background:transparent;color:var(--text-muted);font-family:var(--sans);font-size:10px;font-weight:600;cursor:pointer;-webkit-tap-highlight-color:transparent;}
@@ -26001,6 +26002,9 @@ function _sxcPrint(){
 .mob-stat-num{font-family:var(--sans);font-size:22px;font-weight:700;color:var(--text);line-height:1;}
 .mob-stat-num.warn{color:var(--warn);}
 .mob-stat-lbl{font-family:var(--sans);font-size:11px;color:var(--text-muted);margin-top:5px;}
+.mob-stat-sub2{font-family:var(--sans);font-size:10px;color:var(--text-muted);margin-top:3px;line-height:1.3;}
+.mob-cred-fbtn{font-family:var(--sans);font-size:11px;font-weight:600;padding:6px 13px;border:1px solid var(--border);border-radius:999px;background:var(--surface);color:var(--text-muted);cursor:pointer;-webkit-tap-highlight-color:transparent;}
+.mob-cred-fbtn.active{background:var(--accent);color:var(--on-accent);border-color:var(--accent);}
 /* alerta */
 .mob-alert{margin:10px 16px 0;background:var(--warn-container);border:1px solid var(--warn);border-radius:14px;overflow:hidden;}
 .mob-alert-head{display:flex;align-items:center;gap:8px;padding:12px 16px;font-family:var(--sans);font-size:13px;font-weight:600;color:var(--warn);}
@@ -26310,6 +26314,25 @@ function _mobGreetHtml(){
     '<div class="mob-greet-date">'+_mobEsc(_mobDateStr())+'</div></div>';
 }
 
+function _mobParsePub(v){var n=parseInt((v||'').toString().replace(/\D/g,''));return isNaN(n)?0:n;}
+function _mobCalcBilh(sessoes){
+  var allC2=getAllCinemas();
+  var tPub=0,tBloq=0,tRenda=0,tAssentos=0,hasPub=false,hasRenda=false;
+  sessoes.forEach(function(s){
+    var p=_mobParsePub(s.publico);
+    var b=parseInt((s.ingressos||'').toString().replace(/\D/g,''))||0;
+    var r=_bilhParseRenda(s.renda);
+    if(s.publico!==undefined&&s.publico!==null&&s.publico!==''){hasPub=true;tPub+=p;
+      var cin=allC2.map[s.cinema]||{};var ass=parseInt(cin.assentos)||0;if(ass>0)tAssentos+=ass;}
+    tBloq+=b;
+    if(r!==null){hasRenda=true;tRenda+=r;}
+  });
+  var tPagante=Math.max(0,tPub-tBloq);
+  var pmi=(tPagante&&hasRenda)?tRenda/tPagante:null;
+  var ocup=(tAssentos>0&&hasPub)?Math.round(tPub/tAssentos*100):null;
+  return{tPub:tPub,tBloq:tBloq,tRenda:tRenda,pmi:pmi,ocup:ocup,hasPub:hasPub,hasRenda:hasRenda};
+}
+
 /* ── HOME = DASHBOARD pessoal ────────────────────────────────────── */
 function olgaMobileHome(noStack){
   if(!noStack){
@@ -26377,15 +26400,32 @@ function olgaMobileHome(noStack){
   }
   html+='</div>';
 
-  // tiles
+  // tiles (público total gated por dashboard.publico_total)
   var tile=function(num,lbl,warn){
     return'<div class="mob-stat"><div class="mob-stat-num'+(warn?' warn':'')+'">'+num+'</div><div class="mob-stat-lbl">'+lbl+'</div></div>';
   };
-  html+='<div class="mob-stats">'+
-    tile(sessoesFilt.length,'sessões')+
-    tile(filmesSet.size,'filmes')+
-    tile(diasSet.size,'dias')+
-  '</div>';
+  var _hasR=window._olgaHasRestricao||function(){return false;};
+  var hasPub=sessoesFilt.some(function(s){return s.publico&&s.publico.toString().trim()!=='';});
+  var pubTotal=sessoesFilt.reduce(function(a,s){return a+_mobParsePub(s.publico);},0);
+  var tiles=[tile(sessoesFilt.length,'sessões'),tile(filmesSet.size,'filmes'),tile(diasSet.size,'dias')];
+  if(!_hasR('dashboard.publico_total')&&hasPub)tiles.push(tile(pubTotal.toLocaleString('pt-BR'),'público'));
+  var cols=tiles.length===4?2:3;
+  html+='<div class="mob-stats" style="grid-template-columns:repeat('+cols+',1fr);">'+tiles.join('')+'</div>';
+
+  // painel Bilheteria (gated por dashboard.bilheteria)
+  if(!_hasR('dashboard.bilheteria')){
+    var b=_mobCalcBilh(sessoesFilt);
+    var bTile=function(val,lbl,sub){
+      return'<div class="mob-stat"><div class="mob-stat-num" style="font-size:18px;">'+val+'</div><div class="mob-stat-lbl">'+lbl+'</div>'+(sub?'<div class="mob-stat-sub2">'+sub+'</div>':'')+'</div>';
+    };
+    html+='<div class="mob-h">Bilheteria</div>';
+    html+='<div class="mob-stats" style="grid-template-columns:1fr 1fr;">'+
+      bTile(b.hasPub?b.tPub.toLocaleString('pt-BR'):'—','público total',b.hasPub&&b.tBloq>0?b.tBloq.toLocaleString('pt-BR')+' não pagantes':'')+
+      bTile(b.hasRenda?_bilhFmtRenda(b.tRenda):'—','receita líquida','')+
+      bTile(b.pmi!==null?_bilhFmtPMI(b.pmi):'—','PMI geral','por pagante')+
+      bTile(b.ocup!==null?b.ocup+'%':'—','ocupação média','')+
+    '</div>';
+  }
 
   // alerta de erros
   if(filmesComErro.length){
@@ -26709,6 +26749,8 @@ function _mobRenderReceptivo(params){
   var AREAS=[
     {nome:'Convidados',sec:'convidados',desc:'Cadastro e gestão de convidados, acreditações e participações nos eventos',
      icon:'<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><polyline points="16 11 18 13 22 9"/>'},
+    {nome:'Credenciamento',sec:'credenciamento',desc:'Check-in de chegada — convidados credenciados e pendentes (somente leitura)',
+     icon:'<path d="M12 2 4 5v6c0 5 3.4 7.8 8 9 4.6-1.2 8-4 8-9V5z"/><path d="m9 12 2 2 4-4"/>'},
     {nome:'Hotéis',sec:'hoteis',desc:'Controle de hospedagem, quartos e estadias por convidado e período',
      icon:'<path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z"/><path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2"/><path d="M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2"/><path d="M10 6h4"/><path d="M10 10h4"/><path d="M10 14h4"/><path d="M10 18h4"/>'},
     {nome:'Voos',sec:'voos',desc:'Registro de chegadas e partidas, companhias e horários de voo',
@@ -26770,6 +26812,34 @@ window._mobReceptivoSection=function(sec,noPush){
         );
       }).catch(function(e){_mobSetContent('<div class="mob-empty">Erro: '+_re2(e.message)+'</div>');});
     },
+    credenciamento:function(){
+      window._olgaGuests.list().then(function(gs){
+        var evColors=eventColors||{};
+        var gs2=gs.filter(function(g){return!g.data.event_id||evColors[g.data.event_id];}).sort(function(a,b){return(a.data.name||'').localeCompare(b.data.name||'','pt-BR');});
+        var total=gs2.length,credN=gs2.filter(function(g){return g.data.credenciado;}).length;
+        window._mobCredCards=gs2.map(function(g){
+          var d=g.data;var ev=d.event_id||'';var evCol=evColors[ev];
+          var evPill=ev?pill(_re2(ev),evCol?evCol.bg:'var(--surface3)',evCol?evCol.text:'var(--text-dim)'):'';
+          var statusPill=d.credenciado?pill('✓ credenciado','rgba(61,186,110,0.15)','var(--ok)'):pill('pendente','var(--surface3)','var(--text-muted)');
+          var badge='<span style="display:flex;gap:4px;flex-shrink:0;align-items:center;">'+evPill+statusPill+'</span>';
+          var roles=(d.roles&&d.roles.length)?d.roles.map(_re2).join(' · '):null;
+          var when=d.credenciado&&d.credenciado_em?'Credenciado em '+_re2(_credFmt(d.credenciado_em)):null;
+          return{name:(d.name||'').toLowerCase(),cred:!!d.credenciado,html:card(_re2(d.name||'—'),badge,[roles,when])};
+        });
+        window._mobCredFilter='';window._mobCredSearchVal='';
+        _mobSetContent(
+          '<div class="mob-section-title" id="mobCredCount">Credenciamento · '+credN+' de '+total+' credenciado'+(credN===1?'':'s')+'</div>'+
+          '<div style="padding:10px 14px;display:flex;flex-direction:column;gap:8px;">'+
+            '<input id="mobCredSearch" type="text" placeholder="Buscar por nome..." oninput="_mobCredApply(this.value)" style="font-family:var(--sans);font-size:13px;padding:9px 12px;background:var(--surface);color:var(--text);border:1px solid var(--border2);border-radius:10px;outline:none;">'+
+            '<div style="display:flex;gap:6px;" id="mobCredFilters">'+
+              ['','nao','sim'].map(function(f){var lbl=f===''?'todos':f==='nao'?'pendentes':'credenciados';return'<button onclick="_mobCredSetFilter(\''+f+'\')" data-f="'+f+'" class="mob-cred-fbtn'+(f===''?' active':'')+'">'+lbl+'</button>';}).join('')+
+            '</div>'+
+          '</div>'+
+          '<div id="mob-cred-list"></div>'
+        );
+        _mobCredRenderList();
+      }).catch(function(e){_mobSetContent('<div class="mob-empty">Erro: '+_re2(e.message)+'</div>');});
+    },
     hoteis:function(){
       Promise.all([window._olgaHotels.list(),window._olgaBookings.list()]).then(function(r){
         var hs=r[0],bs=r[1];
@@ -26829,6 +26899,26 @@ window._mobReceptivoSection=function(sec,noPush){
     }
   };
   if(loadFns[sec])loadFns[sec]();else _mobSetContent('<div class="mob-empty">Seção desconhecida.</div>');
+};
+
+function _mobCredRenderList(){
+  var cards=window._mobCredCards||[];
+  var f=window._mobCredFilter||'';var q=(window._mobCredSearchVal||'').toLowerCase();
+  var filtered=cards.filter(function(c){
+    if(f==='sim'&&!c.cred)return false;
+    if(f==='nao'&&c.cred)return false;
+    if(q&&c.name.indexOf(q)<0)return false;
+    return true;
+  });
+  var el=document.getElementById('mob-cred-list');if(!el)return;
+  el.innerHTML=filtered.length?filtered.map(function(c){return c.html;}).join(''):'<div class="mob-empty">Nenhum convidado.</div>';
+}
+window._mobCredApply=function(v){window._mobCredSearchVal=v;_mobCredRenderList();};
+window._mobCredSetFilter=function(f){
+  window._mobCredFilter=f;
+  var btns=document.querySelectorAll('#mobCredFilters .mob-cred-fbtn');
+  Array.prototype.forEach.call(btns,function(b){b.classList.toggle('active',b.getAttribute('data-f')===f);});
+  _mobCredRenderList();
 };
 
 /* ── convidado detalhe ──────────────────────────────────────────── */

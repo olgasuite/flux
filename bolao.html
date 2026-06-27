@@ -432,8 +432,9 @@ function renderGrupos() {
       const chk = st===true?'checked':'';
       const opacity = st===false ? 'opacity:0.35;' : '';
       const cursor = IS_ADMIN ? 'pointer' : 'default';
-      const click = IS_ADMIN ? `onclick="cycleClass('${letra}','${s}')"` : '';
-      html += `<div class="sel-label ${cls}" style="cursor:${cursor}" ${click}>
+      const sel = IS_ADMIN ? 'user-select:none;' : '';
+      const click = IS_ADMIN ? `onclick="onTeamClick('${letra}','${s}')" ondblclick="onTeamDblClick('${letra}','${s}')"` : '';
+      html += `<div class="sel-label ${cls}" style="cursor:${cursor};${sel}" ${click}>
         <input type="checkbox" class="sel-check" ${chk} disabled style="cursor:${cursor};opacity:0.7">
         <span class="sel-nome-block" style="${nomeStyle(s)};${opacity}">${s.toUpperCase()}</span>
       </div>`;
@@ -442,7 +443,7 @@ function renderGrupos() {
   }
 
   html += '</div>';
-  if (IS_ADMIN) html = '<div style="padding:6px 8px;font-size:9px;letter-spacing:1px;color:#d4b84a;background:#0a3d0a;border-bottom:1px solid #2a6e2a">MODO ADMIN · toque num time: classificado → eliminado → pendente</div>' + html;
+  if (IS_ADMIN) html = '<div style="padding:6px 8px;font-size:9px;letter-spacing:1px;color:#d4b84a;background:#0a3d0a;border-bottom:1px solid #2a6e2a">MODO ADMIN · 1 clique = classificado · 2 cliques = eliminado · repetir = pendente</div>' + html;
   document.getElementById('panel-grupos').innerHTML = html;
 }
 
@@ -555,12 +556,23 @@ function renderCurrentPanel() {
 // ════════════════════════════════════════════
 // FIRESTORE + ADMIN
 // ════════════════════════════════════════════
-function cycleClass(g, s) {
+let clickTimer = null;
+function setClass(g, s, v) {
   if (!IS_ADMIN) return;
-  const cur = CL[g][s];
-  CL[g][s] = (cur === true) ? false : (cur === false) ? null : true;
+  CL[g][s] = v;
   renderGrupos();
   window._saveCL(CL).catch(e => alert('Erro ao salvar: ' + e.message));
+}
+function onTeamClick(g, s) {
+  if (clickTimer) return;
+  clickTimer = setTimeout(() => {
+    clickTimer = null;
+    setClass(g, s, CL[g][s] === true ? null : true);
+  }, 220);
+}
+function onTeamDblClick(g, s) {
+  clearTimeout(clickTimer); clickTimer = null;
+  setClass(g, s, CL[g][s] === false ? null : false);
 }
 
 function applyRemoteCL(data) {
@@ -597,7 +609,8 @@ function onAuthBtn() {
 
 window.applyRemoteCL = applyRemoteCL;
 window.handleAuth = handleAuth;
-window.cycleClass = cycleClass;
+window.onTeamClick = onTeamClick;
+window.onTeamDblClick = onTeamDblClick;
 window.onAuthBtn = onAuthBtn;
 
 renderRanking();

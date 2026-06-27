@@ -22,7 +22,16 @@
     border-bottom: 3px solid #d4b84a;
     padding: 8px 10px;
     text-align: center;
+    position: relative;
   }
+  .auth-btn {
+    position: absolute; top: 6px; right: 8px;
+    background: none; border: 1px solid #2a6e2a; color: #5a9e5a;
+    font-family: 'Share Tech Mono', monospace; font-size: 9px;
+    letter-spacing: 1px; padding: 3px 7px; border-radius: 2px; cursor: pointer;
+  }
+  .auth-btn.admin { color: #d4b84a; border-color: #d4b84a; }
+  .auth-btn:hover { filter: brightness(1.3); }
   .header h1 {
     font-size: 18px;
     color: #d4b84a;
@@ -176,10 +185,43 @@
 
   /* ── CORES DOS PAÍSES ────────────────── */
 </style>
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+  import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+  import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyDIBhcsqlK3QebTmbWMNqsN_rPPybREj64",
+    authDomain: "olga-suite.firebaseapp.com",
+    projectId: "olga-suite",
+    storageBucket: "olga-suite.firebasestorage.app",
+    messagingSenderId: "311816862566",
+    appId: "1:311816862566:web:1cc16ba1312f4437d7a6a7"
+  };
+
+  const app  = initializeApp(firebaseConfig);
+  const db   = getFirestore(app);
+  const auth = getAuth(app);
+  const ref  = doc(db, 'bolao', 'copa2026');
+
+  window._login   = () => signInWithPopup(auth, new GoogleAuthProvider()).catch(e => alert('Erro ao entrar: ' + e.message));
+  window._logout  = () => signOut(auth);
+  window._saveCL  = (CL) => setDoc(ref, { CL, updated: Date.now() }, { merge: true });
+
+  let firstSnap = true;
+  onSnapshot(ref, snap => {
+    window._docExists = snap.exists();
+    window.applyRemoteCL(snap.exists() ? snap.data() : null);
+    firstSnap = false;
+  }, err => console.warn('snapshot bolao:', err.message));
+
+  onAuthStateChanged(auth, user => window.handleAuth(user));
+</script>
 </head>
 <body>
 
 <div class="header">
+  <button id="auth-btn" class="auth-btn" onclick="onAuthBtn()">entrar</button>
   <h1>⚽ BOLÃO COPA 2026</h1>
   <p>FASE DE GRUPOS</p>
 </div>
@@ -201,6 +243,11 @@
 </div>
 
 <script>
+const OWNER = 'lg.rchrd@gmail.com';
+let IS_ADMIN = false;
+let currentPanel = 'ranking';
+let seeded = false;
+
 // ════════════════════════════════════════════
 // CORES — fundo + texto, estilo camisas
 // ════════════════════════════════════════════
@@ -384,8 +431,10 @@ function renderGrupos() {
       const cls = st===true?'ok':st===false?'out':'';
       const chk = st===true?'checked':'';
       const opacity = st===false ? 'opacity:0.35;' : '';
-      html += `<div class="sel-label ${cls}" style="cursor:default">
-        <input type="checkbox" class="sel-check" ${chk} disabled style="cursor:default;opacity:0.7">
+      const cursor = IS_ADMIN ? 'pointer' : 'default';
+      const click = IS_ADMIN ? `onclick="cycleClass('${letra}','${s}')"` : '';
+      html += `<div class="sel-label ${cls}" style="cursor:${cursor}" ${click}>
+        <input type="checkbox" class="sel-check" ${chk} disabled style="cursor:${cursor};opacity:0.7">
         <span class="sel-nome-block" style="${nomeStyle(s)};${opacity}">${s.toUpperCase()}</span>
       </div>`;
     }
@@ -393,6 +442,7 @@ function renderGrupos() {
   }
 
   html += '</div>';
+  if (IS_ADMIN) html = '<div style="padding:6px 8px;font-size:9px;letter-spacing:1px;color:#d4b84a;background:#0a3d0a;border-bottom:1px solid #2a6e2a">MODO ADMIN · toque num time: classificado → eliminado → pendente</div>' + html;
   document.getElementById('panel-grupos').innerHTML = html;
 }
 
@@ -488,14 +538,67 @@ function irPalpites(nome) {
 // NAVEGAÇÃO
 // ════════════════════════════════════════════
 function showPanel(id) {
+  currentPanel = id;
   document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
   document.getElementById('panel-'+id).classList.add('active');
   document.querySelector(`.tab[onclick="showPanel('${id}')"]`).classList.add('active');
-  if (id==='ranking')  renderRanking();
-  if (id==='grupos')   renderGrupos();
-  if (id==='palpites') initPalpitesPanel();
+  renderCurrentPanel();
 }
+
+function renderCurrentPanel() {
+  if (currentPanel==='ranking')  renderRanking();
+  if (currentPanel==='grupos')   renderGrupos();
+  if (currentPanel==='palpites') initPalpitesPanel();
+}
+
+// ════════════════════════════════════════════
+// FIRESTORE + ADMIN
+// ════════════════════════════════════════════
+function cycleClass(g, s) {
+  if (!IS_ADMIN) return;
+  const cur = CL[g][s];
+  CL[g][s] = (cur === true) ? false : (cur === false) ? null : true;
+  renderGrupos();
+  window._saveCL(CL).catch(e => alert('Erro ao salvar: ' + e.message));
+}
+
+function applyRemoteCL(data) {
+  if (data && data.CL) {
+    for (const g of Object.keys(data.CL)) {
+      if (CL[g]) for (const s of Object.keys(data.CL[g])) CL[g][s] = data.CL[g][s];
+    }
+  }
+  renderCurrentPanel();
+  maybeSeed();
+}
+
+function maybeSeed() {
+  if (IS_ADMIN && window._docExists === false && !seeded) {
+    seeded = true;
+    window._saveCL(CL).catch(() => { seeded = false; });
+  }
+}
+
+function handleAuth(user) {
+  IS_ADMIN = !!user && (user.email || '').toLowerCase() === OWNER;
+  const btn = document.getElementById('auth-btn');
+  if (user && !IS_ADMIN) { btn.textContent = 'sem permissão'; btn.classList.remove('admin'); }
+  else if (IS_ADMIN)     { btn.textContent = 'admin · sair'; btn.classList.add('admin'); }
+  else                   { btn.textContent = 'entrar'; btn.classList.remove('admin'); }
+  renderCurrentPanel();
+  maybeSeed();
+}
+
+function onAuthBtn() {
+  if (IS_ADMIN || document.getElementById('auth-btn').textContent === 'sem permissão') window._logout();
+  else window._login();
+}
+
+window.applyRemoteCL = applyRemoteCL;
+window.handleAuth = handleAuth;
+window.cycleClass = cycleClass;
+window.onAuthBtn = onAuthBtn;
 
 renderRanking();
 </script>

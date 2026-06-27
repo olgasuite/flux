@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BOLÃO COPA 2026</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap');
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: #1a6e1a;
+    font-family: 'Share Tech Mono', 'Courier New', monospace;
+    font-size: 13px;
+    min-height: 100vh;
+  }
+
+  /* ── HEADER ──────────────────────────── */
+  .header {
+    background: #0a3d0a;
+    border-bottom: 3px solid #d4b84a;
+    padding: 8px 10px;
+    text-align: center;
+  }
+  .header h1 {
+    font-size: 18px;
+    color: #d4b84a;
+    letter-spacing: 4px;
+    font-weight: bold;
+  }
+  .header p { color: #5a9e5a; font-size: 10px; letter-spacing: 2px; margin-top: 2px; }
+
+  /* ── TABS ────────────────────────────── */
+  .tabs {
+    display: flex;
+    background: #0a3d0a;
+    border-bottom: 2px solid #2a6e2a;
+  }
+  .tab {
+    flex: 1; padding: 7px 4px; text-align: center;
+    font-family: 'Share Tech Mono', monospace; font-size: 11px;
+    letter-spacing: 1px; color: #3a7e3a; cursor: pointer;
+    border: none; border-bottom: 2px solid transparent;
+    background: none; font-weight: bold;
+  }
+  .tab.active { color: #d4b84a; border-bottom-color: #d4b84a; }
+  .tab:hover { color: #aaa; }
+
+  .panel { display: none; }
+  .panel.active { display: block; }
+
+  /* ── TABELA ELIFOOT ──────────────────── */
+  .eli-table { width: 100%; border-collapse: collapse; }
+
+  .eli-section-hdr td {
+    background: #0a3d0a;
+    color: #d4b84a;
+    font-size: 11px;
+    letter-spacing: 2px;
+    padding: 4px 8px;
+    font-weight: bold;
+    border-top: 2px solid #d4b84a;
+    border-bottom: 1px solid #2a6e2a;
+  }
+
+  .eli-row td {
+    padding: 0;
+    border-bottom: 1px solid #0d500d;
+    height: 22px;
+  }
+
+  /* célula do nome do time/participante */
+  .cel-nome {
+    display: block;
+    padding: 3px 6px;
+    font-size: 12px;
+    font-weight: bold;
+    letter-spacing: 0.5px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    height: 22px;
+    line-height: 16px;
+  }
+
+  .cel-num {
+    color: #c8e6c8;
+    font-size: 11px;
+    padding: 3px 5px;
+    text-align: right;
+    white-space: nowrap;
+    width: 36px;
+  }
+  .cel-pts {
+    color: #d4b84a;
+    font-size: 13px;
+    font-weight: bold;
+    padding: 3px 6px;
+    text-align: right;
+    white-space: nowrap;
+    width: 40px;
+  }
+  .cel-status {
+    font-size: 14px;
+    padding: 2px 5px;
+    text-align: center;
+    width: 20px;
+  }
+
+  /* ── GRUPOS ──────────────────────────── */
+  .grupo-wrap { padding: 0; }
+  .grupos-2col { display: grid; grid-template-columns: 1fr 1fr; }
+  @media(max-width:480px){ .grupos-2col { grid-template-columns: 1fr; } }
+
+  .grupo-bloco { border-right: 1px solid #0d500d; }
+  .grupo-bloco:nth-child(even) { border-right: none; }
+
+  .grupo-hdr {
+    background: #0a3d0a;
+    color: #d4b84a;
+    font-size: 11px;
+    letter-spacing: 2px;
+    padding: 4px 8px;
+    font-weight: bold;
+    border-top: 2px solid #d4b84a;
+    border-bottom: 1px solid #2a6e2a;
+    display: flex; justify-content: space-between;
+  }
+  .grupo-regra { color: #3a7e3a; font-size: 9px; }
+
+  .sel-label {
+    display: flex; align-items: center; gap: 0;
+    border-bottom: 1px solid #0d500d;
+    cursor: pointer; height: 22px;
+  }
+  .sel-label:hover { filter: brightness(1.2); }
+
+  .sel-check {
+    appearance: none; width: 18px; height: 22px;
+    background: #0a3d0a; border: none; border-right: 1px solid #0d500d;
+    cursor: pointer; flex-shrink: 0; position: relative;
+  }
+  .sel-check:checked { background: #005000; }
+  .sel-check:checked::after {
+    content: '✓'; position: absolute; top: 2px; left: 3px;
+    font-size: 12px; color: #00ff41;
+  }
+
+  .sel-nome-block {
+    flex: 1; display: block;
+    padding: 3px 6px; font-size: 11px; font-weight: bold;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    height: 22px; line-height: 16px;
+  }
+  .sel-label.ok .sel-nome-block { opacity: 1; }
+  .sel-label.out .sel-nome-block { opacity: 0.35; text-decoration: line-through; }
+
+  /* ── PALPITES ────────────────────────── */
+  .p-top { padding: 8px; background: #0a3d0a; border-bottom: 1px solid #2a6e2a; }
+  .p-top label { display: block; font-size: 9px; letter-spacing: 2px; color: #3a7e3a; margin-bottom: 4px; }
+  select {
+    width: 100%; background: #0d500d; border: 1px solid #2a6e2a;
+    color: #d4b84a; font-family: 'Share Tech Mono', monospace;
+    font-size: 12px; padding: 5px 8px; border-radius: 2px; appearance: none;
+  }
+
+  .total-row {
+    background: #0a3d0a;
+    border-top: 2px solid #d4b84a;
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 8px 10px;
+  }
+  .total-lbl { font-size: 10px; letter-spacing: 2px; color: #3a7e3a; }
+  .total-val { font-size: 22px; font-weight: bold; color: #d4b84a; }
+
+  /* ── CORES DOS PAÍSES ────────────────── */
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>⚽ BOLÃO COPA 2026</h1>
+  <p>FASE DE GRUPOS</p>
+</div>
+
+<div class="tabs">
+  <button class="tab active" onclick="showPanel('ranking')">RANKING</button>
+  <button class="tab" onclick="showPanel('grupos')">GRUPOS</button>
+  <button class="tab" onclick="showPanel('palpites')">PALPITES</button>
+</div>
+
+<div id="panel-ranking" class="panel active"></div>
+<div id="panel-grupos" class="panel"></div>
+<div id="panel-palpites" class="panel">
+  <div class="p-top">
+    <label>PARTICIPANTE</label>
+    <select id="psel" onchange="renderDetalhe(this.value)"></select>
+  </div>
+  <div id="pdet"></div>
+</div>
+
+<script>
+// ════════════════════════════════════════════
+// CORES — fundo + texto, estilo camisas
+// ════════════════════════════════════════════
+const C = {
+  'México':           ['#006847','#ffffff'],
+  'África do Sul':    ['#007A4D','#FFB612'],
+  'Coreia do Sul':    ['#C60C30','#ffffff'],
+  'República Tcheca': ['#D7141A','#ffffff'],
+  'Suíça':            ['#FF0000','#ffffff'],
+  'Canadá':           ['#FF0000','#ffffff'],
+  'Bósnia':           ['#002395','#FFCD00'],
+  'Catar':            ['#8D153A','#ffffff'],
+  'Brasil':           ['#009C3B','#FFDF00'],
+  'Marrocos':         ['#C1272D','#ffffff'],
+  'Escócia':          ['#003DA5','#ffffff'],
+  'Haiti':            ['#00209F','#D21034'],
+  'EUA':              ['#3C3B6E','#ffffff'],
+  'Austrália':        ['#00008B','#FFCC00'],
+  'Paraguai':         ['#D52B1E','#ffffff'],
+  'Turquia':          ['#E30A17','#ffffff'],
+  'Alemanha':         ['#1a1a1a','#FFCE00'],
+  'Costa do Marfim':  ['#F77F00','#ffffff'],
+  'Equador':          ['#FFD100','#003087'],
+  'Curaçau':          ['#003DA5','#F9CF00'],
+  'Holanda':          ['#FF6600','#ffffff'],
+  'Japão':            ['#BC002D','#ffffff'],
+  'Suécia':           ['#006AA7','#FECC02'],
+  'Tunísia':          ['#E70013','#ffffff'],
+  'Egito':            ['#CE1126','#ffffff'],
+  'Irã':              ['#239F40','#ffffff'],
+  'Bélgica':          ['#1a1a1a','#EF3340'],
+  'Nova Zelândia':    ['#00247D','#CC142B'],
+  'Espanha':          ['#AA151B','#F1BF00'],
+  'Cabo Verde':       ['#003893','#F7D116'],
+  'Uruguai':          ['#5AAAFA','#ffffff'],
+  'Arábia Saudita':   ['#006C35','#ffffff'],
+  'França':           ['#002395','#ffffff'],
+  'Noruega':          ['#EF2B2D','#002868'],
+  'Senegal':          ['#00853F','#FDEF42'],
+  'Iraque':           ['#CE1126','#007A3D'],
+  'Argentina':        ['#74ACDF','#ffffff'],
+  'Áustria':          ['#ED2939','#ffffff'],
+  'Argélia':          ['#006233','#ffffff'],
+  'Jordânia':         ['#007A3D','#ffffff'],
+  'Colômbia':         ['#FCD116','#003087'],
+  'Portugal':         ['#006600','#FF0000'],
+  'Congo DR':         ['#007FFF','#CE1126'],
+  'Uzbequistão':      ['#1EB53A','#ffffff'],
+  'Inglaterra':       ['#CF142B','#ffffff'],
+  'Gana':             ['#006B3F','#FCD116'],
+  'Croácia':          ['#FF0000','#ffffff'],
+  'Panamá':           ['#DA121A','#0033A0'],
+};
+
+function bg(s)  { return (C[s]||['#1a5e1a','#ffffff'])[0]; }
+function fg(s)  { return (C[s]||['#1a5e1a','#ffffff'])[1]; }
+function nomeStyle(s) { return `background:${bg(s)};color:${fg(s)}`; }
+
+// ════════════════════════════════════════════
+// DADOS
+// ════════════════════════════════════════════
+const GRUPOS = {
+  A:{ regra:'+1/sem pen', pa:1, pp:0, sels:['México','África do Sul','Coreia do Sul','República Tcheca'] },
+  B:{ regra:'+2/-1',      pa:2, pp:-1,sels:['Suíça','Canadá','Bósnia','Catar'] },
+  C:{ regra:'+2/-1',      pa:2, pp:-1,sels:['Brasil','Marrocos','Escócia','Haiti'] },
+  D:{ regra:'+2/-1',      pa:2, pp:-1,sels:['EUA','Austrália','Paraguai','Turquia'] },
+  E:{ regra:'+2/-1',      pa:2, pp:-1,sels:['Alemanha','Costa do Marfim','Equador','Curaçau'] },
+  F:{ regra:'+2/-1',      pa:2, pp:-1,sels:['Holanda','Japão','Suécia','Tunísia'] },
+  G:{ regra:'+2/-1',      pa:2, pp:-1,sels:['Egito','Irã','Bélgica','Nova Zelândia'] },
+  H:{ regra:'+2/-1',      pa:2, pp:-1,sels:['Espanha','Cabo Verde','Uruguai','Arábia Saudita'] },
+  I:{ regra:'+2/-1',      pa:2, pp:-1,sels:['França','Noruega','Senegal','Iraque'] },
+  J:{ regra:'+2/-1',      pa:2, pp:-1,sels:['Argentina','Áustria','Argélia','Jordânia'] },
+  K:{ regra:'+2/-1',      pa:2, pp:-1,sels:['Colômbia','Portugal','Congo DR','Uzbequistão'] },
+  L:{ regra:'+2/-1',      pa:2, pp:-1,sels:['Inglaterra','Gana','Croácia','Panamá'] },
+};
+
+const CL = {
+  A:{'México':true,'África do Sul':true,'Coreia do Sul':false,'República Tcheca':false},
+  B:{'Suíça':true,'Canadá':true,'Bósnia':true,'Catar':false},
+  C:{'Brasil':true,'Marrocos':true,'Escócia':false,'Haiti':false},
+  D:{'EUA':true,'Austrália':true,'Paraguai':true,'Turquia':false},
+  E:{'Alemanha':true,'Costa do Marfim':false,'Equador':true,'Curaçau':false},
+  F:{'Holanda':true,'Japão':false,'Suécia':true,'Tunísia':false},
+  G:{'Egito':null,'Irã':null,'Bélgica':null,'Nova Zelândia':null},
+  H:{'Espanha':true,'Cabo Verde':true,'Uruguai':false,'Arábia Saudita':false},
+  I:{'França':true,'Noruega':true,'Senegal':false,'Iraque':false},
+  J:{'Argentina':null,'Áustria':null,'Argélia':null,'Jordânia':null},
+  K:{'Colômbia':null,'Portugal':null,'Congo DR':null,'Uzbequistão':null},
+  L:{'Inglaterra':null,'Gana':null,'Croácia':null,'Panamá':null},
+};
+
+const PART = [
+  {nome:'Bubble',       p:{A:['México','Coreia do Sul'],B:['Bósnia','Suíça'],C:['Brasil','Marrocos'],D:['Turquia','EUA'],E:['Alemanha','Costa do Marfim'],F:['Holanda','Japão'],H:['Espanha','Uruguai'],I:['França','Senegal']}},
+  {nome:'Camila',       p:{B:['Bósnia','Suíça'],C:['Brasil','Marrocos'],D:['Paraguai','Turquia'],E:['Alemanha','Costa do Marfim'],F:['Holanda','Japão'],H:['Espanha','Uruguai'],I:['França','Senegal']}},
+  {nome:'Carlos P',     p:{A:['México','República Tcheca'],B:['Canadá','Suíça'],C:['Brasil','Marrocos'],D:['Turquia','EUA'],E:['Alemanha','Costa do Marfim'],F:['Holanda','Suécia'],H:['Espanha','Uruguai'],I:['França','Senegal']}},
+  {nome:'Cris Ferreira',p:{A:['México','Coreia do Sul'],B:['Canadá','Suíça'],C:['Brasil','Marrocos'],D:['Turquia','EUA'],E:['Alemanha','Equador'],F:['Holanda','Japão'],H:['Espanha','Uruguai'],I:['França','Senegal']}},
+  {nome:'Daniel Gilly', p:{A:['Coreia do Sul','República Tcheca'],B:['Bósnia','Suíça'],C:['Brasil','Marrocos'],D:['Turquia','EUA'],E:['Alemanha','Equador'],F:['Holanda','Japão'],H:['Espanha','Uruguai'],I:['França','Noruega']}},
+  {nome:'Daniel Rangel',p:{A:['México','África do Sul']}},
+  {nome:'Eduardo Richard',p:{A:['México','Coreia do Sul'],B:['Canadá','Suíça'],C:['Brasil','Marrocos'],D:['Paraguai','EUA'],E:['Alemanha','Equador'],F:['Holanda','Japão'],H:['Espanha','Uruguai'],I:['França','Senegal']}},
+  {nome:'Felipe Lopes', p:{A:['México','África do Sul'],B:['Canadá','Suíça'],C:['Brasil','Escócia'],D:['Paraguai','Turquia'],E:['Alemanha','Costa do Marfim'],F:['Holanda','Suécia'],H:['Espanha','Uruguai'],I:['França','Senegal']}},
+  {nome:'Fernanda Quinteiros',p:{A:['México'],C:['Brasil','Marrocos'],D:['Turquia','EUA'],E:['Alemanha','Costa do Marfim'],F:['Holanda','Japão'],H:['Espanha','Cabo Verde'],I:['França','Noruega']}},
+  {nome:'Forain',       p:{A:['México','República Tcheca'],B:['Bósnia','Suíça'],C:['Brasil','Marrocos'],D:['Turquia','EUA'],E:['Alemanha','Equador'],F:['Holanda','Suécia'],H:['Espanha','Uruguai'],I:['França','Noruega']}},
+  {nome:'Hamille',      p:{B:['Canadá','Suíça'],C:['Brasil','Marrocos'],D:['Paraguai','Turquia'],E:['Alemanha','Costa do Marfim'],F:['Holanda','Japão'],H:['Espanha','Uruguai'],I:['França','Senegal']}},
+  {nome:'Ju Esk',       p:{A:['México','Coreia do Sul'],B:['Canadá','Suíça'],C:['Brasil','Marrocos'],D:['Paraguai','EUA'],E:['Alemanha','Equador'],F:['Holanda','Japão'],H:['Espanha','Uruguai'],I:['França','Senegal']}},
+  {nome:'Ju Pant',      p:{A:['México','República Tcheca'],B:['Bósnia','Suíça'],C:['Brasil','Marrocos'],D:['Paraguai','EUA'],E:['Alemanha','Costa do Marfim'],F:['Holanda','Japão'],H:['Espanha','Uruguai'],I:['França','Noruega']}},
+  {nome:'Leila',        p:{A:['México','Coreia do Sul'],B:['Canadá','Suíça'],C:['Brasil','Marrocos'],D:['Paraguai','EUA'],E:['Alemanha','Equador'],F:['Holanda','Japão'],H:['Espanha','Uruguai'],I:['França','Senegal']}},
+  {nome:'Léo Bastos',   p:{B:['Catar','Canadá'],C:['Brasil','Haiti'],D:['Paraguai','Turquia'],E:['Costa do Marfim','Curaçau'],F:['Holanda','Suécia'],H:['Espanha','Uruguai'],I:['França','Senegal']}},
+  {nome:'Lu Drable',    p:{B:['Canadá','Suíça'],C:['Brasil','Marrocos'],D:['Paraguai','Turquia'],E:['Equador','Costa do Marfim'],F:['Holanda','Japão'],H:['Uruguai','Cabo Verde'],I:['Senegal','Noruega']}},
+  {nome:'Mari',         p:{B:['Canadá','Suíça'],C:['Brasil','Marrocos'],D:['Turquia','EUA'],E:['Alemanha','Costa do Marfim'],F:['Holanda','Japão'],H:['Espanha','Uruguai'],I:['França','Senegal']}},
+  {nome:'Patrick',      p:{A:['México','Coreia do Sul'],B:['Canadá','Suíça'],C:['Brasil','Marrocos'],D:['Paraguai','EUA'],E:['Alemanha','Equador'],F:['Holanda','Japão'],H:['Espanha','Uruguai'],I:['França','Noruega']}},
+  {nome:'Rê Cath',      p:{A:['México','Coreia do Sul'],B:['Canadá','Suíça'],C:['Brasil','Marrocos'],D:['Paraguai','Turquia'],E:['Alemanha','Equador'],F:['Holanda','Japão'],H:['Espanha','Uruguai'],I:['França','Senegal']}},
+  {nome:'Suzi SP',      p:{A:['México','Coreia do Sul'],B:['Canadá','Suíça'],C:['Brasil','Marrocos'],D:['Paraguai','EUA'],E:['Alemanha','Equador'],F:['Holanda','Japão'],H:['Espanha','Uruguai'],I:['França','Noruega']}},
+];
+
+// ════════════════════════════════════════════
+// PONTUAÇÃO
+// ════════════════════════════════════════════
+function calcPts(part) {
+  let total = 0, det = {};
+  for (const [g, sels] of Object.entries(part.p)) {
+    const gd = GRUPOS[g]; let gpts = 0, items = [];
+    for (const s of sels) {
+      const st = CL[g][s];
+      let pts = 0, estado = 'pendente';
+      if (st === true)  { pts = gd.pa;  estado = 'acerto'; }
+      else if (st === false) { pts = gd.pp; estado = 'erro'; }
+      gpts += pts; items.push({s, pts, estado});
+    }
+    total += gpts; det[g] = {gpts, items};
+  }
+  return {total, det};
+}
+
+function ranking() {
+  return PART.map(p => ({...p, ...calcPts(p)})).sort((a,b) => b.total - a.total);
+}
+
+// ════════════════════════════════════════════
+// RENDER RANKING
+// ════════════════════════════════════════════
+function renderRanking() {
+  const r = ranking();
+  const max = r[0]?.total || 1;
+  // Agrupar por pontos para mostrar seções
+  let html = '<table class="eli-table">';
+  html += `<tr class="eli-section-hdr"><td colspan="3">CLASSIFICAÇÃO PARCIAL · GRUPOS A-L</td></tr>`;
+
+  let posAtual = 1;
+  r.forEach((p, i) => {
+    if (i > 0 && r[i-1].total !== p.total) posAtual = i + 1;
+    html += `<tr class="eli-row" onclick="irPalpites('${p.nome}')" style="cursor:pointer">
+      <td class="cel-num">${posAtual}</td>
+      <td style="padding:0;width:100%">
+        <span class="cel-nome" style="background:#1a4e1a;color:#e0e0e0;width:100%;display:block">${p.nome}</span>
+      </td>
+      <td class="cel-pts">${p.total}</td>
+    </tr>`;
+  });
+
+  html += '</table>';
+  document.getElementById('panel-ranking').innerHTML = html;
+}
+
+// ════════════════════════════════════════════
+// RENDER GRUPOS
+// ════════════════════════════════════════════
+function renderGrupos() {
+  const letras = Object.keys(GRUPOS);
+  let html = '<div class="grupos-2col">';
+
+  for (const letra of letras) {
+    const g = GRUPOS[letra];
+    html += `<div class="grupo-bloco">
+      <div class="grupo-hdr">
+        <span>GRP ${letra}</span>
+        <span class="grupo-regra">${g.regra}</span>
+      </div>`;
+
+    for (const s of g.sels) {
+      const st = CL[letra][s];
+      const cls = st===true?'ok':st===false?'out':'';
+      const chk = st===true?'checked':'';
+      const opacity = st===false ? 'opacity:0.35;' : '';
+      html += `<div class="sel-label ${cls}" style="cursor:default">
+        <input type="checkbox" class="sel-check" ${chk} disabled style="cursor:default;opacity:0.7">
+        <span class="sel-nome-block" style="${nomeStyle(s)};${opacity}">${s.toUpperCase()}</span>
+      </div>`;
+    }
+    html += `</div>`;
+  }
+
+  html += '</div>';
+  document.getElementById('panel-grupos').innerHTML = html;
+}
+
+function toggle(g, s, v) {
+  CL[g][s] = v ? true : false;
+  renderRanking();
+  const sel = document.getElementById('psel');
+  if (sel && sel.value) renderDetalhe(sel.value);
+  atualizaSelectPts();
+}
+
+// ════════════════════════════════════════════
+// RENDER PALPITES
+// ════════════════════════════════════════════
+function initPalpitesPanel() {
+  const r = ranking();
+  const sel = document.getElementById('psel');
+  const cur = sel ? sel.value : '';
+  atualizaSelectPts();
+  const nome = (cur && PART.find(x => x.nome === cur)) ? cur : r[0].nome;
+  document.getElementById('psel').value = nome;
+  renderDetalhe(nome);
+}
+
+function atualizaSelectPts() {
+  const r = ranking();
+  const sel = document.getElementById('psel');
+  if (!sel) return;
+  const cur = sel.value;
+  sel.innerHTML = r.map(p => `<option value="${p.nome}">${p.nome} · ${p.total}pts</option>`).join('');
+  if (cur) sel.value = cur;
+}
+
+function renderDetalhe(nome) {
+  const p = PART.find(x => x.nome === nome);
+  if (!p) return;
+  const {total, det} = calcPts(p);
+
+  let html = '<table class="eli-table">';
+
+  for (const [g, info] of Object.entries(det)) {
+    const pending = info.items.every(i => i.estado==='pendente');
+    const ptsStr = pending ? '?' : (info.gpts >= 0 ? '+'+info.gpts : ''+info.gpts);
+    const ptsColor = pending ? '#3a7e3a' : info.gpts > 0 ? '#00ff41' : info.gpts < 0 ? '#ff4444' : '#888';
+
+    html += `<tr class="eli-section-hdr"><td colspan="3">GRUPO ${g} <span style="float:right;color:${ptsColor}">${ptsStr} pts</span></td></tr>`;
+
+    for (const item of info.items) {
+      const icon  = item.estado==='acerto'?'✓':item.estado==='erro'?'✗':'·';
+      const icolor= item.estado==='acerto'?'#00ff41':item.estado==='erro'?'#ff4444':'#555';
+      const pStr  = item.estado==='pendente'?'?':(item.pts>=0?'+'+item.pts:''+item.pts);
+      const pcolor= item.estado==='acerto'?'#00ff41':item.estado==='erro'?'#ff4444':'#555';
+
+      // Cor do país: plena se acerto, escurecida se erro, cinza se pendente
+      let bg2 = bg(item.s), fg2 = fg(item.s);
+      if (item.estado === 'erro') { bg2 = '#2a0a0a'; fg2 = '#552222'; }
+      if (item.estado === 'pendente') { bg2 = '#1a2e1a'; fg2 = '#3a5e3a'; }
+
+      html += `<tr class="eli-row">
+        <td style="padding:0;width:100%" colspan="1">
+          <span class="cel-nome" style="background:${bg2};color:${fg2};width:100%">${item.s.toUpperCase()}</span>
+        </td>
+        <td class="cel-status" style="color:${icolor};background:#0a1a0a">${icon}</td>
+        <td class="cel-pts" style="color:${pcolor};background:#0a1a0a">${pStr}</td>
+      </tr>`;
+    }
+  }
+
+  // grupos sem palpite
+  for (const letra of Object.keys(GRUPOS)) {
+    if (!p.p[letra]) {
+      html += `<tr class="eli-section-hdr"><td colspan="3">GRUPO ${letra} <span style="float:right;color:#2a5e2a">SEM PALPITE</span></td></tr>`;
+    }
+  }
+
+  html += '</table>';
+  html += `<div class="total-row"><span class="total-lbl">TOTAL PARCIAL</span><span class="total-val">${total} pts</span></div>`;
+
+  document.getElementById('pdet').innerHTML = html;
+  atualizaSelectPts();
+  document.getElementById('psel').value = nome;
+}
+
+function irPalpites(nome) {
+  showPanel('palpites');
+  setTimeout(() => {
+    document.getElementById('psel').value = nome;
+    renderDetalhe(nome);
+  }, 30);
+}
+
+// ════════════════════════════════════════════
+// NAVEGAÇÃO
+// ════════════════════════════════════════════
+function showPanel(id) {
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('panel-'+id).classList.add('active');
+  document.querySelector(`.tab[onclick="showPanel('${id}')"]`).classList.add('active');
+  if (id==='ranking')  renderRanking();
+  if (id==='grupos')   renderGrupos();
+  if (id==='palpites') initPalpitesPanel();
+}
+
+renderRanking();
+</script>
+</body>
+</html>

@@ -11200,6 +11200,7 @@ function _renderCredenciamento(){
     '<span class="recep-bar-title">Credenciamento</span>'+
     _recepEventBankSelect()+
     '<button class="recep-print-btn" style="margin-left:auto;" onclick="_etOpenConfig()" title="Tamanho e rotação da etiqueta">⚙ formato</button>'+
+    (_recepSelectedEvent?'<button class="recep-print-btn" onclick="_credExportCSV()" title="Exportar lista em CSV para mala direta (ex.: software Pimaco para folhas A4)">⬇ exportar CSV</button>':'')+
     (_recepSelectedEvent?'<button id="credPrintSelBtn" class="recep-print-btn" onclick="_credPrintSelecionadas()"'+(_selN?'':' disabled')+'>⎙ imprimir selecionadas'+(_selN?' ('+_selN+')':'')+'</button>':'');
   document.getElementById('receptivo-container').innerHTML=_recepSelectedEvent?(
     '<div class="cred-stats">'+credN+' de '+total+' credenciado'+(credN===1?'':'s')+'</div>'+
@@ -11376,6 +11377,29 @@ window._credPrintFiltrados=function(){
   var arr=_recepGuests.filter(function(g){return g.data.event_id===_recepSelectedEvent&&g.data.credenciado;}).map(function(g){return g.data;}).sort(function(a,b){return(a.name||'').localeCompare(b.name||'',undefined,{sensitivity:'base'});});
   if(!arr.length){alert('Nenhum convidado credenciado para imprimir.');return;}
   _credPrintEtiquetas(arr);
+};
+function _credCsvField(v){v=(v==null?'':String(v));return/[";\n\r]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v;}
+window._credExportCSV=function(){
+  var base=_recepGuests.filter(function(g){return g.data.event_id===_recepSelectedEvent;});
+  var arr;
+  if(_credSel.size){arr=base.filter(function(g){return _credSel.has(g.id);});}
+  else{arr=base.filter(function(g){
+    var d=g.data;
+    if(_credFilter==='sim'&&!d.credenciado)return false;
+    if(_credFilter==='nao'&&d.credenciado)return false;
+    if(_credSearch){var q=_credSearch.toLowerCase();if((d.name||'').toLowerCase().indexOf(q)<0&&!(d.roles||[]).some(function(r){return r.toLowerCase().indexOf(q)>=0;}))return false;}
+    return true;
+  });}
+  if(!arr.length){alert('Nenhum convidado para exportar.');return;}
+  arr=arr.map(function(g){return g.data;}).sort(function(a,b){return(a.name||'').localeCompare(b.name||'',undefined,{sensitivity:'base'});});
+  var rows=arr.map(function(d){var e=_credEtiquetaData(d);return[e.name,e.roles,e.ev,e.assoc].map(_credCsvField).join(';');});
+  var csv='﻿'+['Nome;Papel;Evento;Referência'].concat(rows).join('\r\n');
+  var blob=new Blob([csv],{type:'text/csv;charset=utf-8;'});
+  var url=URL.createObjectURL(blob);
+  var ev=(_recepEvLabel(_recepSelectedEvent)||'evento').replace(/[^\w\-]+/g,'_');
+  var a=document.createElement('a');a.href=url;a.download='credenciados-'+ev+'-'+_credNow().replace(/[:T]/g,'-')+'.csv';
+  document.body.appendChild(a);a.click();document.body.removeChild(a);
+  setTimeout(function(){URL.revokeObjectURL(url);},1000);
 };
 
 /* ─── GERADOR ABERTO DE ETIQUETAS ─── */
@@ -17766,7 +17790,7 @@ function renderDash(){
   html+=colBlock('legendagem','Legendagem',legBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 28/06/2026 às 20:15';
+  var sysUpdate='última atualização do sistema · 28/06/2026 às 20:46';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -25910,7 +25934,7 @@ function _sxcPrint(){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 28/06/2026 às 20:15</span></div>
+<div id="page-footer"><span>última atualização · 28/06/2026 às 20:46</span></div>
 
 </div>
 

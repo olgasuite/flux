@@ -4609,6 +4609,7 @@ html[data-theme="indexof"]:not([data-theme="win98"]) .module-icon{display:flex!i
             crew:r.crew?{
               cinematography:fsa(r.crew.cinematography), screenplay:fsa(r.crew.screenplay),
               editing:fsa(r.crew.editing), sound:fsa(r.crew.sound),
+              direct_sound:fsa(r.crew.direct_sound), sound_editing:fsa(r.crew.sound_editing), soundtrack:fsa(r.crew.soundtrack),
               art_direction:fsa(r.crew.art_direction), costume_design:fsa(r.crew.costume_design),
               cast:fsa(r.crew.cast)
             }:{},
@@ -4637,7 +4638,7 @@ html[data-theme="indexof"]:not([data-theme="win98"]) .module-icon{display:flex!i
       function fsArr(a){var arr=Array.isArray(a)?a:(a&&typeof a==='string'?a.split(',').map(function(s){return s.trim();}).filter(Boolean):[]);return{arrayValue:{values:arr.map(function(x){return fsStr(String(x));})}};}
       var crewF={};
       if(data.crew){
-        ['cinematography','screenplay','editing','sound','art_direction','costume_design'].forEach(function(k){if(data.crew[k]!==undefined)crewF[k]=fsArr(data.crew[k]||[]);});
+        ['cinematography','screenplay','editing','sound','direct_sound','sound_editing','soundtrack','art_direction','costume_design'].forEach(function(k){if(data.crew[k]!==undefined)crewF[k]=fsArr(data.crew[k]||[]);});
         crewF.cast=fsArr(data.crew.cast||[]);
       }
       var fields={
@@ -4744,6 +4745,7 @@ html[data-theme="indexof"]:not([data-theme="win98"]) .module-icon{display:flex!i
             crew:r.crew?{
               cinematography:fsa(r.crew.cinematography), screenplay:fsa(r.crew.screenplay),
               editing:fsa(r.crew.editing), sound:fsa(r.crew.sound),
+              direct_sound:fsa(r.crew.direct_sound), sound_editing:fsa(r.crew.sound_editing), soundtrack:fsa(r.crew.soundtrack),
               art_direction:fsa(r.crew.art_direction), costume_design:fsa(r.crew.costume_design),
               cast:fsa(r.crew.cast)
             }:{},
@@ -4784,7 +4786,7 @@ html[data-theme="indexof"]:not([data-theme="win98"]) .module-icon{display:flex!i
       function fsBool(v){return{booleanValue:!!v};}
       function fsArr(a){var arr=Array.isArray(a)?a:(a&&typeof a==='string'?a.split(',').map(function(s){return s.trim();}).filter(Boolean):[]);return{arrayValue:{values:arr.map(function(x){return{stringValue:String(x)};})}};}
       var crewF={};
-      if(data.crew){['cinematography','screenplay','editing','sound','art_direction','costume_design','cast'].forEach(function(k){if(data.crew[k]!==undefined)crewF[k]=fsArr(data.crew[k]||[]);});}
+      if(data.crew){['cinematography','screenplay','editing','sound','direct_sound','sound_editing','soundtrack','art_direction','costume_design','cast'].forEach(function(k){if(data.crew[k]!==undefined)crewF[k]=fsArr(data.crew[k]||[]);});}
       var fields={
         festival_code:fsStr(codigo), system_name:fsStr(data.system_name||''),
         title_pt:fsStr(data.title_pt||''), title:fsStr(data.title||''),
@@ -5413,6 +5415,7 @@ html[data-theme="indexof"]:not([data-theme="win98"]) .module-icon{display:flex!i
           crew:r.crew?{
             cinematography:fsa(r.crew.cinematography), screenplay:fsa(r.crew.screenplay),
             editing:fsa(r.crew.editing), sound:fsa(r.crew.sound),
+            direct_sound:fsa(r.crew.direct_sound), sound_editing:fsa(r.crew.sound_editing), soundtrack:fsa(r.crew.soundtrack),
             art_direction:fsa(r.crew.art_direction), costume_design:fsa(r.crew.costume_design),
             cast:fsa(r.crew.cast)
           }:{},
@@ -5458,6 +5461,7 @@ html[data-theme="indexof"]:not([data-theme="win98"]) .module-icon{display:flex!i
           crew:r.crew?{
             cinematography:fsa(r.crew.cinematography), screenplay:fsa(r.crew.screenplay),
             editing:fsa(r.crew.editing), sound:fsa(r.crew.sound),
+            direct_sound:fsa(r.crew.direct_sound), sound_editing:fsa(r.crew.sound_editing), soundtrack:fsa(r.crew.soundtrack),
             art_direction:fsa(r.crew.art_direction), costume_design:fsa(r.crew.costume_design),
             cast:fsa(r.crew.cast)
           }:{},
@@ -10663,7 +10667,7 @@ function _recepSelectEventPrompt(){
 
 /* ─── BANCO DE PESSOAS (equipe de filmes) ─── */
 var _recepPessoas=[];
-var _pessoaCrewMap={director:'diretor',cinematography:'fotografia',screenplay:'roteiro',editing:'montagem',sound:'som',art_direction:'direção de arte',costume_design:'figurino',cast:'elenco'};
+var _pessoaCrewMap={director:'diretor',cinematography:'fotografia',screenplay:'roteiro',editing:'montagem',sound:'som',direct_sound:'som direto',sound_editing:'edição de som',soundtrack:'trilha sonora',art_direction:'direção de arte',costume_design:'figurino',cast:'elenco'};
 function _pessoaDocId(eventId,name){
   var raw=(eventId||'')+'__'+(name||'').toLowerCase().trim();
   return raw.replace(/[^a-zA-Z0-9_\-\.]/g,function(c){return'_'+c.charCodeAt(0).toString(16).padStart(2,'0');}).slice(0,490);
@@ -10686,7 +10690,7 @@ function _buildPessoaMapFromCat(catMap){
       if(map[key].filmes.indexOf(codigo)<0)map[key].filmes.push(codigo);
     }
     (filmData.director||[]).forEach(function(n){add(n,'diretor');});
-    ['cinematography','screenplay','editing','sound','art_direction','costume_design','cast'].forEach(function(k){
+    ['cinematography','screenplay','editing','sound','direct_sound','sound_editing','soundtrack','art_direction','costume_design','cast'].forEach(function(k){
       ((filmData.crew&&filmData.crew[k])||[]).forEach(function(n){add(n,_pessoaCrewMap[k]);});
     });
   });
@@ -10704,7 +10708,7 @@ async function _syncPessoasDeFilme(codigo,filmData,eventoId){
     if(names[k].filmes.indexOf(codigo)<0)names[k].filmes.push(codigo);
   }
   (filmData.director||[]).forEach(function(n){add(n,'diretor');});
-  ['cinematography','screenplay','editing','sound','art_direction','costume_design','cast'].forEach(function(k){
+  ['cinematography','screenplay','editing','sound','direct_sound','sound_editing','soundtrack','art_direction','costume_design','cast'].forEach(function(k){
     ((filmData.crew&&filmData.crew[k])||[]).forEach(function(n){add(n,_pessoaCrewMap[k]);});
   });
   var now=_pessoaNow();
@@ -10761,7 +10765,7 @@ window.openImportPessoasModal=async function(){
 };
 function _renderImportPessoas(filterFunc){
   var body=document.getElementById('importPessoasBody');if(!body)return;
-  var funcoes=['','diretor','fotografia','roteiro','montagem','som','direção de arte','figurino','elenco'];
+  var funcoes=['','diretor','fotografia','roteiro','montagem','som direto','edição de som','trilha sonora','som','direção de arte','figurino','elenco'];
   var guestNames=new Set(_recepGuests.map(function(g){return(g.data.name||'').toLowerCase().trim();}));
   var filtered=_recepPessoas.filter(function(p){
     if(p.data.event_id!==_recepSelectedEvent)return false;
@@ -17837,7 +17841,7 @@ function renderDash(){
   html+=colBlock('legendagem','Legendagem',legBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 30/06/2026 às 23:26';
+  var sysUpdate='última atualização do sistema · 01/07/2026 às 15:41';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -19791,8 +19795,9 @@ var _EQUIPE_RESTRICOES=[
   {k:'acervo.sem_catalogo',label:'Acervo Técnico · Ocultar botão "Ver no Catálogo"'},
   {k:'catalogo.tmdb',label:'Catálogo · Ocultar importação do TMDB'},
   {k:'catalogo.batch_delete',label:'Catálogo · Ocultar botão "Excluir selecionados"'},
-  {k:'catalogo.filmfreeway',label:'Catálogo · Ocultar botão e bloco FilmFreeway'},
-  {k:'catalogo.sfd',label:'Catálogo · Ocultar botão Short Film Depot'},
+  {k:'catalogo.filmfreeway',label:'Catálogo · Ocultar botão e bloco Curta Cinema'},
+  {k:'catalogo.sfd',label:'Catálogo · Ocultar botão Kinoforum 1 (Short Film Depot)'},
+  {k:'catalogo.kino2',label:'Catálogo · Ocultar botão Kinoforum 2 (export do festival)'},
   {k:'catalogo.cinemateca',label:'Catálogo · Ocultar botão "Filmografia Brasileira"'},
   {k:'catalogo.triagem',label:'Catálogo · Ocultar botão "Importar da Curadoria/Seleção"'},
   {k:'catalogo.cadastro_lote',label:'Catálogo · Ocultar botão "+ Múltiplos filmes"'},
@@ -19800,8 +19805,9 @@ var _EQUIPE_RESTRICOES=[
   {k:'catalogo.editar_legendas',label:'Catálogo · PERMITIR editar LEGENDAS e LEGENDA DE EXIBIÇÃO (cópia) no catálogo'},
   {k:'busca.exportar_especial',label:'Acervo Técnico · Ocultar botão "Exportar especial"'},
   {k:'sessoes.exportar_cinemas',label:'Sessões · Ocultar botão "Exportar para cinemas"'},
-  {k:'triagem.filmfreeway',label:'Curadoria/Seleção · Ocultar botão FilmFreeway'},
-  {k:'triagem.sfd',label:'Curadoria/Seleção · Ocultar botão Short Film Depot'},
+  {k:'triagem.filmfreeway',label:'Curadoria/Seleção · Ocultar botão Curta Cinema'},
+  {k:'triagem.sfd',label:'Curadoria/Seleção · Ocultar botão Kinoforum 1 (Short Film Depot)'},
+  {k:'triagem.kino2',label:'Curadoria/Seleção · Ocultar botão Kinoforum 2 (export do festival)'},
   {k:'triagem.ocultar_avaliacoes_outros',label:'Curadoria/Seleção · Ocultar média e avaliações dos outros (vê só a própria)'},
   {k:'triagem.somente_avaliar',label:'Curadoria/Seleção · Edição restrita à avaliação (não edita ficha do filme)'},
   {k:'sessoes.btn_projecao',label:'Sessões · Ocultar botão "Ficha de Projeção"'},
@@ -20985,6 +20991,9 @@ function _catMatch(f,s){
       Array.isArray(crew.screenplay)?crew.screenplay:(crew.screenplay?[crew.screenplay]:[]),
       Array.isArray(crew.editing)?crew.editing:(crew.editing?[crew.editing]:[]),
       Array.isArray(crew.sound)?crew.sound:(crew.sound?[crew.sound]:[]),
+      Array.isArray(crew.direct_sound)?crew.direct_sound:(crew.direct_sound?[crew.direct_sound]:[]),
+      Array.isArray(crew.sound_editing)?crew.sound_editing:(crew.sound_editing?[crew.sound_editing]:[]),
+      Array.isArray(crew.soundtrack)?crew.soundtrack:(crew.soundtrack?[crew.soundtrack]:[]),
       Array.isArray(crew.art_direction)?crew.art_direction:(crew.art_direction?[crew.art_direction]:[]),
       Array.isArray(crew.costume_design)?crew.costume_design:(crew.costume_design?[crew.costume_design]:[]),
       Array.isArray(crew.cast)?crew.cast:(crew.cast?[crew.cast]:[])
@@ -21376,11 +21385,12 @@ function renderCatalogo(){
   var _catActions2='';
   if(_catCanEdit)_catActions2+='<button class="cat-edit-btn" onclick="openCatCreate()">+ Novo filme</button>';
   if(_catCanEdit&&!window._olgaHasRestricao('catalogo.cadastro_lote'))_catActions2+='<button class="cat-edit-btn" onclick="openCatCreateBulk()">+ Múltiplos filmes</button>';
-  if(_catCanEdit&&!window._olgaHasRestricao('catalogo.filmfreeway'))_catActions2+='<button class="cat-edit-btn" onclick="openFFImport()">↓ FilmFreeway</button>';
-  if(_catCanEdit&&!window._olgaHasRestricao('catalogo.sfd'))_catActions2+='<button class="cat-edit-btn" onclick="openSFDImport()">↓ Short Film Depot</button>';
+  if(_catCanEdit&&!window._olgaHasRestricao('catalogo.filmfreeway'))_catActions2+='<button class="cat-edit-btn" onclick="openFFImport()">↓ Curta Cinema</button>';
+  if(_catCanEdit&&!window._olgaHasRestricao('catalogo.sfd'))_catActions2+='<button class="cat-edit-btn" title="Short Film Depot (formato antigo, colunas em inglês)" onclick="openSFDImport(\'sfd\')">↓ Kinoforum 1</button>';
+  if(_catCanEdit&&!window._olgaHasRestricao('catalogo.kino2'))_catActions2+='<button class="cat-edit-btn" title="Export do festival (formato novo, colunas em português)" onclick="openSFDImport(\'kino\')">↓ Kinoforum 2</button>';
   if(_catCanEdit&&!window._olgaHasRestricao('catalogo.triagem'))_catActions2+='<button class="cat-edit-btn" style="background:rgba(80,200,120,0.12);border-color:rgba(80,200,120,0.55);color:var(--ok);" onclick="importarDaTriagem()">↓ Importar da Curadoria/Seleção</button>';
   if(_isAdmin)_catActions2+='<button class="cat-edit-btn" onclick="importCopiasToCatalog()">↓ Importar do Acervo</button>';
-  if(_isAdmin)_catActions2+='<button class="cat-edit-btn" title="Copia campos FilmFreeway/Short Film Depot de filmes da Curadoria/Seleção para o Catálogo (útil para filmes importados antes da última atualização)" onclick="ressincronizarPlataformasDaTriagem()">↻ Sincronizar plataformas</button>';
+  if(_isAdmin)_catActions2+='<button class="cat-edit-btn" title="Copia campos Curta Cinema/Kinoforum de filmes da Curadoria/Seleção para o Catálogo (útil para filmes importados antes da última atualização)" onclick="ressincronizarPlataformasDaTriagem()">↻ Sincronizar plataformas</button>';
   if(_isAdmin)_catActions2+='<button class="cat-edit-btn" title="Preenche o campo de duração vazio (runtime ↔ dcp_duration) usando o valor do outro campo. Conflitos são listados sem alteração." onclick="ressincronizarDuracoes()">↻ Sincronizar durações</button>';
   if(_catActions2)html+='<div class="cat-sf-actions" style="border-top:none;padding-top:0;">'+_catActions2+'</div>';
   // dashboard — filtrado pelos eventos ativos
@@ -21529,14 +21539,17 @@ function renderCatDetail(){
     }())
   );
   if(_catEditing||catHasCrew(crew)||dirArr.length||(meta.producers&&meta.producers.length)){
+    var _sdArr=crewArr(crew.direct_sound),_seArr=crewArr(crew.sound_editing),_stArr=crewArr(crew.soundtrack);
+    var _somLegado=(!_sdArr.length&&!_seArr.length&&!_stArr.length)?crewArr(crew.sound):[];
     var crewViewPairs=[
       ['F',crewArr(crew.cinematography)],['R',crewArr(crew.screenplay)],
-      ['M',crewArr(crew.editing)],['S',crewArr(crew.sound)],
+      ['M',crewArr(crew.editing)],['SD',_sdArr],['ES',_seArr],['T',_stArr],['Som (legado)',_somLegado],
       ['A',crewArr(crew.art_direction)],['Fg',crewArr(crew.costume_design)]
     ];
     html+=catBlock('Equipe',_catEditing
       ?'<div class="cat-grid">'+catFld('F · Fotografia',catTagInp('crew_cinematography',crewArr(crew.cinematography)))+catFld('R · Roteiro',catTagInp('crew_screenplay',crewArr(crew.screenplay)))+'</div>'
-       +'<div class="cat-grid">'+catFld('M · Montagem',catTagInp('crew_editing',crewArr(crew.editing)))+catFld('S · Som',catTagInp('crew_sound',crewArr(crew.sound)))+'</div>'
+       +'<div class="cat-grid">'+catFld('M · Montagem',catTagInp('crew_editing',crewArr(crew.editing)))+catFld('SD · Som direto',catTagInp('crew_direct_sound',_sdArr))+'</div>'
+       +'<div class="cat-grid">'+catFld('ES · Edição de som',catTagInp('crew_sound_editing',_seArr))+catFld('T · Trilha sonora',catTagInp('crew_soundtrack',_stArr))+'</div>'
        +'<div class="cat-grid">'+catFld('A · Arte',catTagInp('crew_art_direction',crewArr(crew.art_direction)))+catFld('Fg · Figurino',catTagInp('crew_costume_design',crewArr(crew.costume_design)))+'</div>'
        +catFld('E · Elenco',catTagInp('crew_cast',crewArr(crew.cast)))
       :'<div class="cat-crew">'
@@ -21577,8 +21590,8 @@ function renderCatDetail(){
       +catFld('Projeto estudantil','<label style="display:flex;align-items:center;gap:8px;cursor:pointer;"><input type="checkbox" id="catf_ff_student" '+(meta.ff_student==='Yes'||meta.ff_student==='Sim'?'checked':'')+' style="accent-color:var(--accent);width:15px;height:15px;"><span style="font-family:var(--sans);font-size:12px;color:var(--text-dim);">Sim</span></label>')
       +catFld('Primeiro longa/curta','<label style="display:flex;align-items:center;gap:8px;cursor:pointer;"><input type="checkbox" id="catf_ff_first_time" '+(meta.ff_first_time==='Yes'||meta.ff_first_time==='Sim'?'checked':'')+' style="accent-color:var(--accent);width:15px;height:15px;"><span style="font-family:var(--sans);font-size:12px;color:var(--text-dim);">Sim</span></label>')
       +'</div>'
-      +catFld('Escola/instituição (FF)',catInp('ff_school',meta.ff_school||''))
-      +catFld('Escola/instituição (SFD)',catInp('sfd_school',meta.sfd_school||''))
+      +catFld('Escola/instituição (Curta Cinema)',catInp('ff_school',meta.ff_school||''))
+      +catFld('Escola/instituição (Kinoforum)',catInp('sfd_school',meta.sfd_school||''))
       +catFld('Outros créditos','<textarea class="cat-textarea" id="catf_ff_other_credits" rows="3" placeholder="ex: Dir. de Fotografia: Nome">'+((meta.ff_other_credits||'').replace(/</g,'&lt;'))+'</textarea>')
     :'')
     +(function(){
@@ -21605,7 +21618,7 @@ function renderCatDetail(){
     ffHtml+='</div>';
     if(meta.ff_other_credits)ffHtml+=catFld('Outros créditos','<span style="font-family:var(--mono);font-size:11px;color:var(--text-dim);white-space:pre-wrap;">'+meta.ff_other_credits.replace(/</g,'&lt;')+'</span>');
     if(meta.ff_submission_id)ffHtml+=catFld('ID da submissão','<span style="font-family:var(--mono);font-size:11px;color:var(--text-dim);">'+meta.ff_submission_id+'</span>'+(meta.ff_link?'  <a href="'+meta.ff_link.replace(/"/g,'&quot;')+'" target="_blank" style="font-family:var(--mono);font-size:10px;color:var(--accent);margin-left:8px;">↗ filmfreeway.com</a>':''));
-    html+=catBlock('FilmFreeway',ffHtml);
+    html+=catBlock('Curta Cinema',ffHtml);
   }
   if(!_catEditing&&(meta.sfd_section||meta.sfd_category||meta.sfd_screening_format||meta.sfd_film_id||meta.sfd_id||meta.sfd_ref)){
     var sfdHtml='<div class="cat-grid">';
@@ -21621,11 +21634,11 @@ function renderCatDetail(){
     if(meta.sfd_film_id||meta.sfd_id){
       sfdHtml+='<div class="cat-grid">';
       if(meta.sfd_film_id)sfdHtml+=catFld('FILM ID','<span style="font-family:var(--mono);font-size:11px;color:var(--text-dim);">'+esc(meta.sfd_film_id)+'</span>');
-      if(meta.sfd_id)sfdHtml+=catFld('SFD ID','<span style="font-family:var(--mono);font-size:11px;color:var(--text-dim);">'+esc(meta.sfd_id)+'</span>');
+      if(meta.sfd_id)sfdHtml+=catFld('Kinoforum ID','<span style="font-family:var(--mono);font-size:11px;color:var(--text-dim);">'+esc(meta.sfd_id)+'</span>');
       sfdHtml+='</div>';
     }
     if(meta.sfd_ref)sfdHtml+=catFld('REF. da inscrição','<span style="font-family:var(--mono);font-size:11px;color:var(--text-dim);">'+esc(meta.sfd_ref)+'</span>');
-    html+=catBlock('Short Film Depot',sfdHtml);
+    html+=catBlock('Kinoforum',sfdHtml);
   }
   var sessoes=sessoesArr.filter(function(s){return s.filmes&&s.filmes.indexOf(_catCode)!==-1;})
     .sort(function(a,b){return(a.date&&b.date?a.date-b.date:0)||(a.time&&b.time?(a.time.h*60+a.time.m)-(b.time.h*60+b.time.m):0);});
@@ -21761,7 +21774,7 @@ function _renderCinBlock(raw){
   html+='</div></details>';
   return html;
 }
-function catHasCrew(c){function _h(v){return Array.isArray(v)?v.length>0:!!v;}return!!(c&&(_h(c.cinematography)||_h(c.screenplay)||_h(c.editing)||_h(c.sound)||_h(c.art_direction)||_h(c.costume_design)||_h(c.cast)));}
+function catHasCrew(c){function _h(v){return Array.isArray(v)?v.length>0:!!v;}return!!(c&&(_h(c.cinematography)||_h(c.screenplay)||_h(c.editing)||_h(c.sound)||_h(c.direct_sound)||_h(c.sound_editing)||_h(c.soundtrack)||_h(c.art_direction)||_h(c.costume_design)||_h(c.cast)));}
 function catGetTags(id){var el=document.getElementById('catf_'+id);if(!el)return[];try{return JSON.parse(el.getAttribute('data-tags')||'[]');}catch(e){return[];}}
 function catSetTags(id,tags){
   var el=document.getElementById('catf_'+id);if(!el)return;
@@ -21828,10 +21841,10 @@ async function doSaveCat(){
       awards:catGetTags('awards'),director_filmography:catGetTags('director_filmography'),
       keywords:catGetTags('keywords'),
       responsaveis:catGetTags('responsaveis'),
-      crew:{cinematography:catGetTags('crew_cinematography'),screenplay:catGetTags('crew_screenplay'),
-            editing:catGetTags('crew_editing'),sound:catGetTags('crew_sound'),
+      crew:Object.assign({},(catalogoFilmesMap[_catCode]&&catalogoFilmesMap[_catCode].crew)||{},{cinematography:catGetTags('crew_cinematography'),screenplay:catGetTags('crew_screenplay'),
+            editing:catGetTags('crew_editing'),direct_sound:catGetTags('crew_direct_sound'),sound_editing:catGetTags('crew_sound_editing'),soundtrack:catGetTags('crew_soundtrack'),
             art_direction:catGetTags('crew_art_direction'),costume_design:catGetTags('crew_costume_design'),
-            cast:catGetTags('crew_cast')}
+            cast:catGetTags('crew_cast')})
     };
     if(catalogoFilmesMap[_catCode]&&catalogoFilmesMap[_catCode].cinemateca_raw)data.cinemateca_raw=catalogoFilmesMap[_catCode].cinemateca_raw;
     // Duração: lê do novo input catf_runtime; cai para o valor anterior se vazio.
@@ -22036,7 +22049,8 @@ function renderCatCreate(){
   );
   html+=catBlock('Equipe',
     '<div class="cat-grid">'+catFld('F · Fotografia',catTagInp('crew_cinematography',[]))+catFld('R · Roteiro',catTagInp('crew_screenplay',[]))+'</div>'
-    +'<div class="cat-grid">'+catFld('M · Montagem',catTagInp('crew_editing',[]))+catFld('S · Som',catTagInp('crew_sound',[]))+'</div>'
+    +'<div class="cat-grid">'+catFld('M · Montagem',catTagInp('crew_editing',[]))+catFld('SD · Som direto',catTagInp('crew_direct_sound',[]))+'</div>'
+    +'<div class="cat-grid">'+catFld('ES · Edição de som',catTagInp('crew_sound_editing',[]))+catFld('T · Trilha sonora',catTagInp('crew_soundtrack',[]))+'</div>'
     +'<div class="cat-grid">'+catFld('A · Arte',catTagInp('crew_art_direction',[]))+catFld('Fg · Figurino',catTagInp('crew_costume_design',[]))+'</div>'
     +catFld('E · Elenco',catTagInp('crew_cast',[]))
   );
@@ -22149,7 +22163,7 @@ async function doCreateFilm(){
     keywords:catGetTags('keywords'),
     crew:{
       cinematography:catGetTags('crew_cinematography'),screenplay:catGetTags('crew_screenplay'),
-      editing:catGetTags('crew_editing'),sound:catGetTags('crew_sound'),
+      editing:catGetTags('crew_editing'),direct_sound:catGetTags('crew_direct_sound'),sound_editing:catGetTags('crew_sound_editing'),soundtrack:catGetTags('crew_soundtrack'),
       art_direction:catGetTags('crew_art_direction'),costume_design:catGetTags('crew_costume_design'),
       cast:catGetTags('crew_cast')
     }
@@ -22173,8 +22187,8 @@ async function doCreateFilm(){
       if(td.original_language&&!catalogData.original_language)catalogData.original_language=td.original_language;
       if(td.production_company&&td.production_company.length&&!catalogData.production_company.length)catalogData.production_company=td.production_company;
       if(td.crew){
-        var cc=catalogData.crew||{cinematography:[],screenplay:[],editing:[],sound:[],art_direction:[],costume_design:[],cast:[]};
-        ['cinematography','screenplay','editing','sound','art_direction','costume_design','cast'].forEach(function(k){if(td.crew[k]&&td.crew[k].length&&!(cc[k]&&cc[k].length))cc[k]=td.crew[k];});
+        var cc=catalogData.crew||{cinematography:[],screenplay:[],editing:[],sound:[],direct_sound:[],sound_editing:[],soundtrack:[],art_direction:[],costume_design:[],cast:[]};
+        ['cinematography','screenplay','editing','sound','direct_sound','sound_editing','soundtrack','art_direction','costume_design','cast'].forEach(function(k){if(td.crew[k]&&td.crew[k].length&&!(cc[k]&&cc[k].length))cc[k]=td.crew[k];});
         catalogData.crew=cc;
       }
       if(td.runtime&&!durHMMSS){durHMMSS=_catMinToHMMSS(td.runtime);var _durInp=document.getElementById('catf_dcp_duration_min');if(_durInp)_durInp.value=td.runtime;}
@@ -22209,8 +22223,8 @@ async function doCreateFilm(){
         if(cinMapped.awards&&cinMapped.awards.length&&!catalogData.awards.length)catalogData.awards=cinMapped.awards;
         if(cinMapped.keywords&&cinMapped.keywords.length&&!catalogData.keywords.length)catalogData.keywords=cinMapped.keywords;
         if(cinMapped.crew){
-          var cc2=catalogData.crew||{cinematography:[],screenplay:[],editing:[],sound:[],art_direction:[],costume_design:[],cast:[]};
-          ['cinematography','screenplay','editing','sound','art_direction','costume_design'].forEach(function(k){if(cinMapped.crew[k]&&cinMapped.crew[k].length&&!(cc2[k]&&cc2[k].length))cc2[k]=cinMapped.crew[k];});
+          var cc2=catalogData.crew||{cinematography:[],screenplay:[],editing:[],sound:[],direct_sound:[],sound_editing:[],soundtrack:[],art_direction:[],costume_design:[],cast:[]};
+          ['cinematography','screenplay','editing','sound','direct_sound','sound_editing','soundtrack','art_direction','costume_design'].forEach(function(k){if(cinMapped.crew[k]&&cinMapped.crew[k].length&&!(cc2[k]&&cc2[k].length))cc2[k]=cinMapped.crew[k];});
           if(cinMapped.crew.cast&&cinMapped.crew.cast.length&&!(cc2.cast&&cc2.cast.length))cc2.cast=cinMapped.crew.cast.slice(0,5);
           catalogData.crew=cc2;
         }
@@ -22491,7 +22505,7 @@ async function _catBulkSaveAll(){
         countries:_toArr(r.data.countries),
         genre:[],production_company:[],distribution_company:[],
         awards:[],director_filmography:[],keywords:[],producers:[],
-        crew:{cinematography:[],screenplay:[],editing:[],sound:[],art_direction:[],costume_design:[],cast:[]},
+        crew:{cinematography:[],screenplay:[],editing:[],sound:[],direct_sound:[],sound_editing:[],soundtrack:[],art_direction:[],costume_design:[],cast:[]},
         runtime:parseInt(r.data.duracao)||null
       };
       // TMDB
@@ -22513,7 +22527,7 @@ async function _catBulkSaveAll(){
           if(td.runtime&&!catData.runtime)catData.runtime=td.runtime;
           if(td.trailer&&!catData.trailer)catData.trailer=td.trailer;
           if(td.crew){
-            ['cinematography','screenplay','editing','sound','art_direction','costume_design','cast'].forEach(function(k){if(td.crew[k]&&td.crew[k].length&&!(catData.crew[k]&&catData.crew[k].length))catData.crew[k]=td.crew[k];});
+            ['cinematography','screenplay','editing','sound','direct_sound','sound_editing','soundtrack','art_direction','costume_design','cast'].forEach(function(k){if(td.crew[k]&&td.crew[k].length&&!(catData.crew[k]&&catData.crew[k].length))catData.crew[k]=td.crew[k];});
           }
         }catch(eT){console.warn('TMDB '+r.full+':',eT);}
       }
@@ -22541,7 +22555,7 @@ async function _catBulkSaveAll(){
             if(cinMapped.runtime&&!catData.runtime)catData.runtime=cinMapped.runtime;
             if(cinMapped.cpb&&!catData.cpb)catData.cpb=cinMapped.cpb;
             if(cinMapped.crew){
-              ['cinematography','screenplay','editing','sound','art_direction','costume_design'].forEach(function(k){if(cinMapped.crew[k]&&cinMapped.crew[k].length&&!(catData.crew[k]&&catData.crew[k].length))catData.crew[k]=cinMapped.crew[k];});
+              ['cinematography','screenplay','editing','sound','direct_sound','sound_editing','soundtrack','art_direction','costume_design'].forEach(function(k){if(cinMapped.crew[k]&&cinMapped.crew[k].length&&!(catData.crew[k]&&catData.crew[k].length))catData.crew[k]=cinMapped.crew[k];});
               if(cinMapped.crew.cast&&cinMapped.crew.cast.length&&!(catData.crew.cast&&catData.crew.cast.length))catData.crew.cast=cinMapped.crew.cast.slice(0,5);
             }
           }
@@ -22705,7 +22719,9 @@ async function fetchTMDBMovie(tmdbId){
       cinematography:crewByJobs(['Director of Photography','Cinematography']),
       screenplay:crewByJobs(['Writer','Screenplay','Screenwriter']),
       editing:crewByJobs(['Editor']),
-      sound:crewByJobs(['Sound Designer','Sound Design','Sound Editor','Sound']),
+      direct_sound:crewByJobs(['Production Sound Mixer','Sound Mixer','Sound Recordist','Boom Operator']),
+      sound_editing:crewByJobs(['Sound Designer','Sound Design','Sound Editor','Supervising Sound Editor','Sound Re-Recording Mixer','Sound','Dialogue Editor','Foley Artist']),
+      soundtrack:crewByJobs(['Original Music Composer','Music','Composer','Songs']),
       art_direction:crewByJobs(['Production Design','Art Direction']),
       costume_design:crewByJobs(['Costume Design','Costume Designer']),
       cast:(d.credits&&d.credits.cast?d.credits.cast.slice(0,5):[]).map(function(p){return p.name;})
@@ -22818,8 +22834,14 @@ function _cinToCatalog(cd){
   var montObj=cd['Montagem'];
   if(montObj&&montObj['Montagem'])crew.editing=uniq(toArr(montObj['Montagem']));
   var musicObj=cd['Música'];
-  if(musicObj&&musicObj['Música'])crew.sound=uniq(toArr(musicObj['Música']));
-  else{var musAdd=cd['Dados adicionais de música'];if(musAdd&&musAdd['Música de'])crew.sound=uniq(toArr(musAdd['Música de']));}
+  if(musicObj&&musicObj['Música'])crew.soundtrack=uniq(toArr(musicObj['Música']));
+  else{var musAdd=cd['Dados adicionais de música'];if(musAdd&&musAdd['Música de'])crew.soundtrack=uniq(toArr(musAdd['Música de']));}
+  var somObj=cd['Som'];
+  if(somObj&&typeof somObj==='object'&&!Array.isArray(somObj)){
+    if(somObj['Som direto'])crew.direct_sound=uniq(toArr(somObj['Som direto']));
+    var _seArr=[];['Direção de som','Mixagem','Som adicional','Sonografia'].forEach(function(k){if(somObj[k])_seArr=_seArr.concat(toArr(somObj[k]));});
+    if(_seArr.length)crew.sound_editing=uniq(_seArr);
+  }
   var arteObj=cd['Direção de arte'];
   if(arteObj){
     if(arteObj['Direção de arte'])crew.art_direction=uniq(toArr(arteObj['Direção de arte']));
@@ -22850,7 +22872,7 @@ var _CIN_LABELS={
   distribution_company:'Distribuidora',producers:'Produtores',
   keywords:'Palavras-chave',awards:'Prêmios',
   'crew.screenplay':'Roteiro','crew.cinematography':'Fotografia',
-  'crew.editing':'Montagem','crew.sound':'Música','crew.art_direction':'Direção de arte',
+  'crew.editing':'Montagem','crew.direct_sound':'Som direto','crew.sound_editing':'Edição de som','crew.soundtrack':'Música','crew.art_direction':'Direção de arte',
   'crew.costume_design':'Figurinos','crew.cast':'Elenco'
 };
 
@@ -23016,7 +23038,7 @@ async function importCopiasToCatalog(){
         contact_email:'',copy_arrival_forecast:'',copy_notes:'',
         year:null,director:[],countries:[],genre:[],
         production_company:[],distribution_company:[],awards:[],director_filmography:[],
-        crew:{cinematography:[],screenplay:[],editing:[],sound:[],art_direction:[],costume_design:[],cast:[]}
+        crew:{cinematography:[],screenplay:[],editing:[],sound:[],direct_sound:[],sound_editing:[],soundtrack:[],art_direction:[],costume_design:[],cast:[]}
       });
       ok++;
     }catch(e){erros.push(f.codigo+': '+e.message);}
@@ -23975,10 +23997,10 @@ var IU_SCHEMAS={
       {f:'keywords',l:'Palavras-chave',t:'a'},
       {f:'responsaveis',l:'Responsáveis',t:'a'},
       {f:'avaliadores',l:'Avaliadores (emails)',t:'a'},
-      {f:'ff_school',l:'Escola (FF)',t:'s'},
-      {f:'sfd_school',l:'Escola (SFD)',t:'s'},
-      {f:'ff_student',l:'Estudantil (FF)',t:'s'},
-      {f:'student_project',l:'Estudantil (SFD)',t:'s'},
+      {f:'ff_school',l:'Escola (Curta Cinema)',t:'s'},
+      {f:'sfd_school',l:'Escola (Kinoforum)',t:'s'},
+      {f:'ff_student',l:'Estudantil (Curta Cinema)',t:'s'},
+      {f:'student_project',l:'Estudantil (Kinoforum)',t:'s'},
       {f:'ff_first_time',l:'Primeiro filme',t:'s'}
     ]
   },
@@ -24254,7 +24276,7 @@ var IU_SCHEMAS={
 var _iuState={module:'',event:'',rows:[],headers:[],map:{},defaults:{}};
 
 function openImportadorUniversal(){
-  _iuState={module:'',event:'',rows:[],headers:[],map:{},defaults:{},_loadedPersistedMap:false,selectedSheets:null,sheetInfo:null,workbook:null};
+  _iuState={module:'',event:'',rows:[],headers:[],map:{},defaults:{},_loadedPersistedMap:false,selectedSheets:null,sheetInfo:null,workbook:null,conflictChoices:{}};
   document.getElementById('iuModal').style.display='flex';
   _iuRenderStep1();
 }
@@ -24529,6 +24551,11 @@ function _iuGroupedRows(){
     return d;
   });
   if(!sch.idField)return raw;
+  // Opcional: prefixar o ID mapeado com o evento (UPPERALNUM), pra casar com códigos já gravados (ex.: Kinoforum)
+  var _pfx=(_iuState.prefixId&&sch.needsEv&&_iuState.event)?_iuState.event.toUpperCase().replace(/[^A-Z0-9]/g,''):'';
+  if(_pfx&&idMapped){
+    raw.forEach(function(d){var idv=d[sch.idField];if(idv!=null&&idv!==''){idv=String(idv);if(idv.indexOf(_pfx)!==0)d[sch.idField]=_pfx+idv;}});
+  }
   var seq=0;
   var evPrefix=sch.needsEv?(_iuState.event||''):'';
   // Pode gerar sequencial se houver pelo menos um "prefixo" (default OU evento)
@@ -24629,6 +24656,70 @@ function _iuFindMissingFilms(grouped){
   });
   return Object.keys(miss);
 }
+function _iuExistingMap(sch){
+  if(sch.coll==='filmes')return catalogoFilmesMap;
+  if(sch.coll==='copias')return filmesMap;
+  if(sch.coll==='triagem')return window.triagemFilmesMap||{};
+  if(sch.coll==='sessoes')return sessoesMap;
+  return null;
+}
+function _iuIsEmpty(v){return v===''||v==null||(Array.isArray(v)&&!v.length);}
+function _iuSameVal(a,b){return(Array.isArray(a)||Array.isArray(b))?JSON.stringify(a)===JSON.stringify(b):String(a==null?'':a)===String(b==null?'':b);}
+function _iuComputeConflicts(grouped){
+  var sch=IU_SCHEMAS[_iuState.module];
+  var existingMap=_iuExistingMap(sch);
+  var out=[];
+  if(!existingMap||!sch.idField)return out;
+  var mapKeys=Object.keys(_iuState.map).filter(function(f){return _iuState.map[f]&&f!==sch.idField;});
+  grouped.forEach(function(d){
+    var id=sch.idField==='__docid__'?d['__docid__']:d[sch.idField];
+    if(!id)return;
+    var ex=existingMap[id];if(!ex)return;
+    mapKeys.forEach(function(f){
+      var v=d[f];if(_iuIsEmpty(v))return;
+      var ev=ex[f];if(_iuIsEmpty(ev))return;
+      if(_iuSameVal(v,ev))return;
+      var fd=sch.fields.find(function(x){return x.f===f;});
+      out.push({id:id,field:f,label:fd?fd.l:f,atual:ev,novo:v});
+    });
+  });
+  return out;
+}
+function _iuConflictDisp(v){if(v==null)return'—';if(Array.isArray(v))return v.join(', ')||'—';return String(v)||'—';}
+function _iuSetAllConflicts(val){
+  (_iuState._conflicts||[]).forEach(function(c){_iuState.conflictChoices[c.id+'||'+c.field]=val;});
+  _iuRenderStep3();
+}
+function _iuRenderConflictsHtml(conflicts){
+  if(!conflicts.length)return'';
+  conflicts.forEach(function(c){var k=c.id+'||'+c.field;if(!(k in _iuState.conflictChoices))_iuState.conflictChoices[k]='novo';});
+  var byId={},order=[];
+  conflicts.forEach(function(c){if(!byId[c.id]){byId[c.id]=[];order.push(c.id);}byId[c.id].push(c);});
+  function esq(s){return String(s).replace(/\\/g,'\\\\').replace(/'/g,"\\'");}
+  var html='<div style="margin-top:12px;padding:10px;background:rgba(220,180,80,0.10);border:1px solid var(--warn);font-family:var(--mono);font-size:11px;">'
+    +'<div style="color:var(--warn);font-weight:600;margin-bottom:6px;">⚠ '+conflicts.length+' conflito(s) em '+order.length+' registro(s) — escolha o que aplicar (campos vazios são preenchidos automaticamente)</div>'
+    +'<div style="display:flex;gap:8px;margin-bottom:10px;">'
+      +'<button class="cxp-btn" style="padding:3px 10px;" onclick="_iuSetAllConflicts(\'novo\')">Usar planilha em todos</button>'
+      +'<button class="cxp-btn" style="padding:3px 10px;" onclick="_iuSetAllConflicts(\'atual\')">Manter atual em todos</button>'
+    +'</div>'
+    +'<div style="max-height:280px;overflow:auto;display:flex;flex-direction:column;gap:8px;">';
+  order.forEach(function(id){
+    html+='<div style="border:1px solid var(--border);border-radius:3px;padding:8px 10px;background:var(--surface);">'
+      +'<div style="font-weight:700;color:var(--text);margin-bottom:6px;">'+esc(id)+'</div>';
+    byId[id].forEach(function(c){
+      var key=c.id+'||'+c.field;var ch=_iuState.conflictChoices[key]||'novo';
+      var nm='iuc_'+key.replace(/[^a-zA-Z0-9]/g,'_');var kq=esq(key);
+      html+='<div style="margin-bottom:6px;">'
+        +'<div style="font-size:9px;color:var(--accent);text-transform:uppercase;margin-bottom:2px;">'+esc(c.label)+'</div>'
+        +'<label style="display:block;cursor:pointer;margin-bottom:2px;"><input type="radio" name="'+nm+'" value="atual"'+(ch==='atual'?' checked':'')+' onchange="_iuState.conflictChoices[\''+kq+'\']=\'atual\'"> <span style="color:var(--text-muted);">manter:</span> '+esc(_iuConflictDisp(c.atual))+'</label>'
+        +'<label style="display:block;cursor:pointer;"><input type="radio" name="'+nm+'" value="novo"'+(ch==='novo'?' checked':'')+' onchange="_iuState.conflictChoices[\''+kq+'\']=\'novo\'"> <span style="color:var(--ok);">planilha:</span> '+esc(_iuConflictDisp(c.novo))+'</label>'
+        +'</div>';
+    });
+    html+='</div>';
+  });
+  html+='</div></div>';
+  return html;
+}
 function _iuRenderStep3(){
   document.getElementById('iuStepLabel').textContent='3 · Pré-visualização';
   var sch=IU_SCHEMAS[_iuState.module];
@@ -24672,9 +24763,16 @@ function _iuRenderStep3(){
       +'<label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:10px;color:var(--text);"><input type="checkbox" id="iuCreateMissing"'+(_iuState.createMissing?' checked':'')+' onchange="_iuState.createMissing=this.checked"> Criar automaticamente no catálogo (com nome + código sequencial, evento <strong>'+esc(_iuState.event||'—')+'</strong>)</label>'
     +'</div>';
   }
+  var _idMappedNow=sch.idField&&!!_iuState.map[sch.idField];
+  var _pfxLabel=(_iuState.event||'').toUpperCase().replace(/[^A-Z0-9]/g,'');
+  var prefixHtml=(sch.needsEv&&_iuState.event&&_idMappedNow)?
+    '<label style="display:flex;align-items:center;gap:6px;margin-top:8px;font-family:var(--mono);font-size:10px;color:var(--text);cursor:pointer;"><input type="checkbox" id="iuPrefixId"'+(_iuState.prefixId?' checked':'')+' onchange="_iuState.prefixId=this.checked;_iuRenderStep3();"> Prefixar código com o evento ('+esc(_pfxLabel)+' + ID) — para casar com filmes já importados do Kinoforum</label>':'';
+  var _iuConflicts=_iuComputeConflicts(grouped);
+  _iuState._conflicts=_iuConflicts;
+  var conflictsHtml=_iuRenderConflictsHtml(_iuConflicts);
   document.getElementById('iuBody').innerHTML=
     '<div style="font-family:var(--mono);font-size:10px;color:var(--text-muted);margin-bottom:8px;">Mostrando '+Math.min(8,grouped.length)+' de '+grouped.length+' registro(s) processado(s)</div>'
-    +tableHtml+msg+missingHtml;
+    +tableHtml+msg+prefixHtml+missingHtml+conflictsHtml;
   document.getElementById('iuFoot').innerHTML='<button class="cxp-btn" onclick="_iuRenderStep2()">← Mapeamento</button><button class="cxp-btn primary" onclick="_iuExecute()">Importar '+grouped.length+' registro(s)</button>';
 }
 
@@ -24736,10 +24834,15 @@ async function _iuExecute(){
       var finalData=data;
       if(existing){
         finalData={};Object.keys(existing).forEach(function(k){finalData[k]=existing[k];});
+        var _mapKeys=Object.keys(_iuState.map);
         Object.keys(data).forEach(function(k){
           var v=data[k];
           if(v===''||v==null)return;
           if(Array.isArray(v)&&!v.length)return;
+          var ev=existing[k];
+          if(!_iuIsEmpty(ev)&&_mapKeys.indexOf(k)>=0&&!_iuSameVal(v,ev)){
+            if((_iuState.conflictChoices[id+'||'+k]||'novo')==='atual')return;
+          }
           finalData[k]=v;
         });
       }
@@ -24819,7 +24922,7 @@ var _CAT_EXP_FIELDS={
     {f:'copy_arrival_forecast',l:'Previsão chegada'},{f:'copy_notes',l:'Obs cópia (catálogo)'},
     {f:'keywords',l:'Palavras-chave'},{f:'forma_selecao',l:'Forma seleção'},
     {f:'crew.cinematography',l:'Fotografia'},{f:'crew.screenplay',l:'Roteiro'},
-    {f:'crew.editing',l:'Montagem'},{f:'crew.sound',l:'Som (filme)'},
+    {f:'crew.editing',l:'Montagem'},{f:'crew.direct_sound',l:'Som direto'},{f:'crew.sound_editing',l:'Edição de som'},{f:'crew.soundtrack',l:'Trilha sonora'},{f:'crew.sound',l:'Som (legado)'},
     {f:'crew.art_direction',l:'Direção de arte'},{f:'crew.costume_design',l:'Figurino'},
     {f:'crew.cast',l:'Elenco'}
   ],
@@ -25988,7 +26091,7 @@ function _sxcPrint(){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 30/06/2026 às 23:26</span></div>
+<div id="page-footer"><span>última atualização · 01/07/2026 às 15:41</span></div>
 
 </div>
 
@@ -27972,7 +28075,7 @@ window._mobIrParaWeb=function(){
 <div id="ffImportModal">
   <div class="ffim-box">
     <div class="ffim-head">
-      <span class="ffim-title">↓ Importar do FilmFreeway</span>
+      <span class="ffim-title">↓ Importar do Curta Cinema</span>
       <button class="ffim-close" onclick="closeFFImport()">×</button>
     </div>
     <div class="ffim-body" id="ffImportBody">
@@ -28048,7 +28151,7 @@ function _ffRenderStep1(){
     '<div class="ffim-drop" id="ffDropZone" onclick="document.getElementById(\'ffFileInput\').click()" ondragover="event.preventDefault();this.classList.add(\'drag-over\')" ondragleave="this.classList.remove(\'drag-over\')" ondrop="event.preventDefault();this.classList.remove(\'drag-over\');ffHandleFile(event.dataTransfer.files[0])">'
     +'<div class="ffim-drop-icon">⬇</div>'
     +'<div class="ffim-drop-label">Arraste um arquivo ou <strong>clique para selecionar</strong></div>'
-    +'<div class="ffim-drop-label" style="margin-top:4px;">CSV ou XLSX exportado do FilmFreeway</div>'
+    +'<div class="ffim-drop-label" style="margin-top:4px;">CSV ou XLSX de inscrições do Curta Cinema (exportado do FilmFreeway)</div>'
     +'</div>'
     +'<div style="font-family:var(--sans);font-size:12px;color:var(--text-muted);margin-top:12px;">O sistema re-encoda CSVs automaticamente para UTF-8 com BOM antes de processar.</div>';
   _ffSetFooter('step1');
@@ -28171,6 +28274,33 @@ function _ffClean(v){
 function _ffSplitComma(v){
   var s=_ffClean(v);if(!s)return[];
   return s.split(/,\s*/).map(function(x){return x.trim();}).filter(Boolean);
+}
+function _ffMergeArr(a,b){var out=(a||[]).slice();(b||[]).forEach(function(x){if(x&&out.indexOf(x)<0)out.push(x);});return out;}
+// Classifica um papel do campo livre "Other Credits" do FilmFreeway numa chave de crew.
+// Ordem importa: papéis de som específicos antes do "sound"/"som" cru; "sound editor" antes de "editor".
+function _ffCrewRole(roleRaw){
+  var r=(roleRaw||'').toLowerCase().replace(/\s+/g,' ').trim();
+  if(!r)return null;
+  if(/production sound|location sound|direct sound|som direto|sound recordist|sound record|\bboom\b|captaç|sound capture|sound tech|sound assistant/.test(r))return'direct_sound';
+  if(/sound\s*design|sound\s*edit|sound\s*mix|sound\s*direct(?:or|ion)|director of sound|dire[cç][aã]o de som|diretor de som|re-?recording|foley|dialog|desenho de som|edi\w* de som|montagem de som|\bmix(?:ing|agem)?\b|sonoriza/.test(r))return'sound_editing';
+  if(/sound\s*track|soundtrack|\bscore\b|original music|\bmusic\b|\bcomposer\b|trilha|m[uú]sica|canç/.test(r))return'soundtrack';
+  if(/\bsound\b|\bsom\b/.test(r))return'direct_sound';
+  if(/photograph|cinematograph|\bdop\b|\bdp\b|fotografia/.test(r))return'cinematography';
+  if(/editor|editing|edition|montagem|montador|edi[cç][aã]o/.test(r))return'editing';
+  if(/production design|art director|art direction|set design|dire[cç][aã]o de arte|cenografia|scenograph/.test(r))return'art_direction';
+  if(/costume|figurino|wardrobe/.test(r))return'costume_design';
+  if(/screenplay|screenwriter|\bwriter\b|roteir|argumento/.test(r))return'screenplay';
+  return null;
+}
+function _ffParseOtherCredits(txt){
+  var out={cinematography:[],editing:[],direct_sound:[],sound_editing:[],soundtrack:[],art_direction:[],costume_design:[],screenplay:[]};
+  var s=_ffClean(txt);if(!s)return out;
+  s.split(/[;\n]+/).forEach(function(part){
+    var i=part.indexOf(':');if(i<0)return;
+    var key=_ffCrewRole(part.slice(0,i));if(!key||!out[key])return;
+    part.slice(i+1).split(/\s*,\s*/).forEach(function(nm){nm=_ffClean(nm);if(nm&&out[key].indexOf(nm)<0)out[key].push(nm);});
+  });
+  return out;
 }
 function _ffSplitCountries(v){
   // Trata casos como "Iran, Islamic Republic of" que têm vírgulas internas
@@ -28480,11 +28610,16 @@ function _ffNormalizeRow(row){
     production_company:[],distribution_company:[],
     director_filmography:[],subtitles:[],
     content_rating:'',copy_arrival_forecast:'',copy_notes:'',
-    crew:{
-      screenplay:_ffSplitComma(row['Writers']),
-      cast:_ffSplitComma(row['Key Cast']),
-      cinematography:[],editing:[],sound:[],art_direction:[],costume_design:[]
-    }
+    crew:(function(){
+      var oc=_ffParseOtherCredits(row['Other Credits']);
+      return{
+        screenplay:_ffMergeArr(_ffSplitComma(row['Writers']),oc.screenplay),
+        cast:_ffSplitComma(row['Key Cast']),
+        cinematography:oc.cinematography,editing:oc.editing,
+        direct_sound:oc.direct_sound,sound_editing:oc.sound_editing,soundtrack:oc.soundtrack,
+        art_direction:oc.art_direction,costume_design:oc.costume_design,sound:[]
+      };
+    })()
   };
 }
 
@@ -28542,7 +28677,7 @@ function _ffUpdateImportBtn(){
   btn.title=ok?'':'Selecione um evento antes de importar';
   var prefix=evEl&&evEl.value.trim()?evEl.value.trim().toUpperCase().replace(/[^A-Z0-9]/g,''):'';
   var info=document.getElementById('ffIdInfo');
-  if(info)info.textContent=prefix?'O ID de cada filme no sistema será: '+prefix+'+ Tracking Number (FilmFreeway)':'';
+  if(info)info.textContent=prefix?'O ID de cada filme no sistema será: '+prefix+'+ Tracking Number (Curta Cinema)':'';
   // Recomputa duplicatas com o prefixo correto, contra o map do destino
   if(prefix&&_ffNormalized.length){
     var _ffTgtMap=_ffImportTarget==='triagem'?triagemFilmesMap:catalogoFilmesMap;
@@ -28793,7 +28928,7 @@ async function ffStartImport(){
     updateProg(si,'Importando '+code+'…');
     try{
       if(_ffImportTarget==='triagem'){
-        data.import_raw=row;data.import_source='FilmFreeway';data.selecao='';data.importado_catalogo=false;data.evento=selectedEvent;
+        data.import_raw=row;data.import_source='Curta Cinema';data.selecao='';data.importado_catalogo=false;data.evento=selectedEvent;
         if(_respArr.length)data.responsaveis=_respArr.slice();
         await window._olgaTriagem.save(code,data);
         triagemFilmesMap[code]=data;
@@ -28839,7 +28974,7 @@ async function ffStartImport(){
 <div id="sfdImportModal">
   <div class="ffim-box">
     <div class="ffim-head">
-      <span class="ffim-title">↓ Importar do Short Film Depot</span>
+      <span class="ffim-title">↓ Importar do Kinoforum</span>
       <button class="ffim-close" onclick="closeSFDImport()">×</button>
     </div>
     <div class="ffim-body" id="sfdImportBody"></div>
@@ -28864,20 +28999,22 @@ async function ffStartImport(){
    PORTUGUESE SUMMARY(AH) synopsis · SCRIPTWRITER(AO) crew.screenplay[] · FIRST MOVIE(AP) sfd_first_time
    Production State/UF (Panorama Brasileiro) uf[]
 */
-var _sfdRows=[],_sfdImporting=false,_sfdSheetName='',_sfdSheets={},_sfdEvtCode='';
+var _sfdRows=[],_sfdImporting=false,_sfdSheetName='',_sfdSheets={},_sfdEvtCode='',_sfdSheetSchema={},_sfdSchema='sfd',_sfdForceSchema='';
 var _sfdNormalized=[],_sfdDupCatalog=new Set(),_sfdDupMap={},_sfdDisplayOrder=[];
 var _sfdSortCol=null,_sfdSortAsc=true;
 var _sfdImportTarget='catalogo';
 
-function openSFDImport(){
+function openSFDImport(schema){
   _sfdImportTarget='catalogo';
   _sfdResetState();
+  _sfdForceSchema=(schema==='kino'||schema==='sfd')?schema:'';
   document.getElementById('sfdImportModal').classList.add('open');
   _sfdRenderStep1();
 }
-function openSFDImportTriagem(){
+function openSFDImportTriagem(schema){
   _sfdImportTarget='triagem';
   _sfdResetState();
+  _sfdForceSchema=(schema==='kino'||schema==='sfd')?schema:'';
   document.getElementById('sfdImportModal').classList.add('open');
   _sfdRenderStep1();
 }
@@ -28925,14 +29062,14 @@ function _sfdRenderStep1(){
     '<div class="ffim-drop" id="sfdDropZone" onclick="document.getElementById(\'sfdFileInput\').click()" ondragover="event.preventDefault();this.classList.add(\'drag-over\')" ondragleave="this.classList.remove(\'drag-over\')" ondrop="event.preventDefault();this.classList.remove(\'drag-over\');sfdHandleFile(event.dataTransfer.files[0])">'
     +'<div class="ffim-drop-icon">⬇</div>'
     +'<div class="ffim-drop-label">Arraste um arquivo ou <strong>clique para selecionar</strong></div>'
-    +'<div class="ffim-drop-label" style="margin-top:4px;">XLSX exportado do Short Film Depot</div>'
+    +'<div class="ffim-drop-label" style="margin-top:4px;">'+(_sfdForceSchema==='sfd'?'Kinoforum 1 · XLSX do Short Film Depot (formato antigo, colunas em inglês)':_sfdForceSchema==='kino'?'Kinoforum 2 · XLSX do export do festival (formato novo, colunas em português)':'XLSX de inscrições do Kinoforum (Short Film Depot ou export do festival)')+'</div>'
     +'</div>';
   _sfdSetFooter('step1');
 }
 function sfdHandleFile(file){
   if(!file)return;
   var ext=file.name.split('.').pop().toLowerCase();
-  if(ext!=='xlsx'&&ext!=='xls'){alert('Use um arquivo XLSX exportado do Short Film Depot.');return;}
+  if(ext!=='xlsx'&&ext!=='xls'){alert('Use um arquivo XLSX de inscrições do Kinoforum (export do festival ou do Short Film Depot).');return;}
   var reader=new FileReader();
   reader.onload=function(e){_sfdParseBuffer(e.target.result);};
   reader.readAsArrayBuffer(file);
@@ -28940,15 +29077,24 @@ function sfdHandleFile(file){
 function _sfdParseBuffer(buf){
   try{
     var wb=XLSX.read(new Uint8Array(buf),{type:'array',cellDates:true});
-    _sfdSheets={};
+    _sfdSheets={};_sfdSheetSchema={};
     wb.SheetNames.forEach(function(name){
       var ws=wb.Sheets[name];
       var rows=XLSX.utils.sheet_to_json(ws,{defval:''});
-      rows=rows.filter(function(r){return _sfdClean(r['REF.']);});
-      if(rows.length)_sfdSheets[name]=rows;
+      var h=rows.length?rows[0]:{};
+      var hasSfd=('REF.' in h);
+      var hasKino=!hasSfd&&('ID' in h)&&(('Titulo' in h)||('Credito Diretor' in h));
+      var schema=null;
+      if(_sfdForceSchema==='kino'&&hasKino)schema='kino';
+      else if(_sfdForceSchema==='sfd'&&hasSfd)schema='sfd';
+      else if(hasKino)schema='kino';
+      else if(hasSfd)schema='sfd';
+      if(!schema)return;
+      rows=rows.filter(function(r){return schema==='kino'?(_sfdClean(r['ID'])||_sfdClean(r['Titulo'])):_sfdClean(r['REF.']);});
+      if(rows.length){_sfdSheets[name]=rows;_sfdSheetSchema[name]=schema;}
     });
     var valid=Object.keys(_sfdSheets);
-    if(!valid.length){alert('Nenhuma aba com dados válidos (sem coluna REF.).');return;}
+    if(!valid.length){alert('Nenhuma aba com dados válidos (esperado coluna REF. do Short Film Depot, ou ID/Título do Kinoforum).');return;}
     if(valid.length===1){
       _sfdSheetName=valid[0];_sfdRows=_sfdSheets[_sfdSheetName];_sfdRenderPreview(_sfdRows);
     }else{_sfdRenderTabSelector();_sfdSetFooter('tabs');}
@@ -29039,6 +29185,7 @@ function _sfdGenres(categoriesStr,genresStr){
   return out;
 }
 function _sfdNormalizeRow(row){
+  if(_sfdSchema==='kino')return _sfdNormalizeRowKino(row);
   var ref=_sfdClean(row['REF.']);
   var origTitle=_sfdClean(row['ORIGINAL TITLE']);
   var intlTitle=_sfdClean(row['INTERNATIONAL TITLE']);
@@ -29096,16 +29243,82 @@ function _sfdNormalizeRow(row){
     screener:'',trailer:'',website:'',awards:[],
     crew:{
       screenplay:_sfdSplitNames(row['SCRIPTWRITER']),
-      cast:[],cinematography:[],editing:[],sound:[],art_direction:[],costume_design:[]
+      cast:[],cinematography:[],editing:[],sound:[],direct_sound:[],sound_editing:[],soundtrack:[],art_direction:[],costume_design:[]
+    }
+  };
+}
+function _sfdNormalizeRowKino(row){
+  function c(n){return _sfdClean(row[n]);}
+  function cx(rx){for(var k in row){if(rx.test(k))return _sfdClean(row[k]);}return'';}
+  function numStr(v){return String(v||'').replace(/\.0+$/,'').trim();}
+  function names(v){var s=_sfdClean(v);if(!s)return[];return s.split(/[;\n]+/).map(function(x){return x.trim();}).filter(Boolean);}
+  function commaArr(v){var s=_sfdClean(v);if(!s)return[];return s.split(/,\s*/).map(function(x){return x.trim();}).filter(Boolean);}
+  var id=numStr(c('ID'));
+  var titulo=c('Titulo'),tituloPt=c('Titulo pt'),tituloEn=c('Titulo en');
+  var synPt=c('Sinopse Longa pt')||c('Sinopse Longa')||c('Sinopse Curta pt')||c('Sinopse Curta');
+  var synEn=c('Sinopse Longa en')||c('Sinopse Curta en');
+  var countries=[];
+  if(c('Pais de Producao'))countries.push(_sfdTranslateCountry(c('Pais de Producao')));
+  commaArr(c('Paises de Producao - Secundarios')).forEach(function(x){var t=_sfdTranslateCountry(x);if(t&&countries.indexOf(t)<0)countries.push(t);});
+  var ufArr=commaArr(cx(/^estados de produ/i)).map(function(u){return _ffTranslateUf(u)||u;}).filter(Boolean);
+  var inst=cx(/^nome da institui/i);
+  var durMin=numStr(c('Duracao'));
+  var yearRaw=numStr(c('Ano_producao'));
+  return{
+    festival_code:id,
+    system_name:titulo||tituloEn,
+    title:titulo||tituloEn,
+    title_pt:tituloPt||titulo,
+    original_title:titulo,
+    english_title:tituloEn,
+    synopsis:synPt,
+    synopsis_en:synEn,
+    director:names(c('Credito Diretor')),
+    producers:names(c('Credito Producao')),
+    countries:countries,
+    uf:ufArr,
+    original_language:_sfdTranslateLang(c('Idiomas')),
+    year:yearRaw?parseInt(yearRaw):null,
+    film_type:'curta',
+    genre:commaArr(c('Genero')),
+    contact_email:c('Diretor Email'),
+    film_color:c('Color'),
+    student_project:'',
+    sfd_school:inst,
+    production_company:c('Credito Cia Produtora')?[c('Credito Cia Produtora')]:[],
+    distribution_company:[],
+    shooting_format:c('Formato'),
+    selecao:'FEST',
+    sfd_section:c('SubMostra')||c('Mostra'),
+    sfd_ref:id,
+    sfd_first_time:c('Primeiro_Filme'),
+    ff_first_time:c('Primeiro_Filme'),
+    cpb:c('CPB'),
+    keywords:commaArr(c('Temas')),
+    director_filmography:names(c('Diretor Filmografia')),
+    subtitles:[],
+    content_rating:'',copy_arrival_forecast:'',copy_notes:'',
+    screener:'',trailer:'',website:'',awards:[],
+    ff_duration:durMin,
+    runtime:durMin?parseInt(durMin):null,
+    crew:{
+      screenplay:names(c('Credito Roteiro')),
+      cast:names(c('Credito Elenco')),
+      cinematography:names(c('Credito Fotografo')),
+      editing:names(c('Credito Motagem')),
+      art_direction:names(c('Credito Direcao de Arte')),
+      costume_design:[],
+      direct_sound:names(c('Credito Som Direto')),
+      sound_editing:[],soundtrack:[],sound:[]
     }
   };
 }
 function _sfdBuildTitleDupMap(rows){
   var titleMap={};
   rows.forEach(function(r){
-    var code=_sfdClean(r['REF.']);
-    var en=_sfdClean(r['INTERNATIONAL TITLE']).toLowerCase().trim();
-    var pt=_sfdClean(r['ORIGINAL TITLE']).toLowerCase().trim();
+    var code,en,pt;
+    if(_sfdSchema==='kino'){code=_sfdClean(r['ID']).replace(/\.0+$/,'');en=_sfdClean(r['Titulo en']).toLowerCase().trim();pt=_sfdClean(r['Titulo']).toLowerCase().trim();}
+    else{code=_sfdClean(r['REF.']);en=_sfdClean(r['INTERNATIONAL TITLE']).toLowerCase().trim();pt=_sfdClean(r['ORIGINAL TITLE']).toLowerCase().trim();}
     [en,pt].forEach(function(t){if(!t)return;if(!titleMap[t])titleMap[t]=[];titleMap[t].push(code);});
   });
   var dupMap={};
@@ -29174,6 +29387,7 @@ function _sfdRenderTbody(savedSel){
   sfdUpdateSelCount();
 }
 function _sfdRenderPreview(rows){
+  _sfdSchema=_sfdSheetSchema[_sfdSheetName]||'sfd';
   _sfdNormalized=rows.map(function(r){var d=_sfdNormalizeRow(r);d._raw=r;return d;});
   _sfdDupCatalog=new Set();
   _sfdDupMap=_sfdBuildTitleDupMap(rows);
@@ -29244,7 +29458,8 @@ function _sfdUpdateImportBtn(){
   btn.title=ok?'':'Selecione um evento antes de importar';
   var prefix=evEl&&evEl.value.trim()?evEl.value.trim().toUpperCase().replace(/[^A-Z0-9]/g,''):'';
   var info=document.getElementById('sfdIdInfo');
-  if(info)info.textContent=prefix?'O ID de cada filme no sistema será: '+prefix+'+ REF. (Short Film Depot)':'';
+  var _sfdExt=_sfdSchema==='kino'?'ID':'REF.';
+  if(info)info.textContent=prefix?'O ID de cada filme no sistema será: '+prefix+'+ '+_sfdExt+' (Kinoforum)':'';
   // Recomputa duplicatas com o prefixo correto, contra o map do destino
   if(prefix&&_sfdNormalized.length){
     var _sfdTgtMap=_sfdImportTarget==='triagem'?triagemFilmesMap:catalogoFilmesMap;
@@ -29305,12 +29520,12 @@ async function sfdStartImport(){
     var externalId=data.festival_code;
     var code=_sfdPrefix+externalId;
     data.festival_code=code;
-    if(!externalId){errors.push('Linha sem REF.');updateProg(si+1);continue;}
+    if(!externalId){errors.push('Linha sem código');updateProg(si+1);continue;}
     if(!overwrite&&_sfdTgtMap&&_sfdTgtMap[code]){skipped++;updateProg(si+1,'Pulando: '+code);continue;}
     updateProg(si,'Importando '+code+'…');
     try{
       if(_sfdImportTarget==='triagem'){
-        data.import_raw=row;data.import_source='ShortFilmDepot';data.selecao='';data.importado_catalogo=false;data.evento=selectedEvent;
+        data.import_raw=row;data.import_source='Kinoforum';data.selecao='';data.importado_catalogo=false;data.evento=selectedEvent;
         if(_sfdRespArr.length)data.responsaveis=_sfdRespArr.slice();
         await window._olgaTriagem.save(code,data);
         triagemFilmesMap[code]=data;
@@ -29650,7 +29865,7 @@ function renderTriagem(){
   html+='<div class="cat-sf-cell narrow"><div class="cat-sf-lbl">Seleção</div><div class="cat-sf-wrap">'+_trSel('selecao',_TRIAGEM_SELECAO_OPTS,s.selecao)+_trNeg('selecao')+'</div></div>';
   html+='<div class="cat-sf-cell narrow"><div class="cat-sf-lbl">Metragem</div><div class="cat-sf-wrap">'+_trSel('ftype',['curta','média','longa'],s.ftype)+_trNeg('ftype')+'</div></div>';
   html+='<div class="cat-sf-cell"><div class="cat-sf-lbl">Idioma</div><div class="cat-sf-wrap"><input class="cat-sf-inp" id="trsf_idioma" type="text" list="trdl_idioma" placeholder="selecione ou digite" value="'+(s.idioma||'')+'" onkeydown="if(event.key===\'Enter\')runTriagemSearch()"><datalist id="trdl_idioma">'+idiomaVals.map(function(o){return'<option value="'+esc(o)+'"></option>';}).join('')+'</datalist>'+_trNeg('idioma')+'</div></div>';
-  html+='<div class="cat-sf-cell narrow"><div class="cat-sf-lbl">Origem</div><div class="cat-sf-wrap">'+_trSel('source',['FilmFreeway','ShortFilmDepot','manual'],s.source)+_trNeg('source')+'</div></div>';
+  html+='<div class="cat-sf-cell narrow"><div class="cat-sf-lbl">Origem</div><div class="cat-sf-wrap">'+_trSel('source',['Curta Cinema','Kinoforum','manual'],s.source)+_trNeg('source')+'</div></div>';
   html+='<div class="cat-sf-cell narrow"><div class="cat-sf-lbl">No Catálogo</div><div class="cat-sf-wrap">'+_trSel('importado',['sim','nao'],s.importado)+_trNeg('importado')+'</div></div>';
   html+='</div>';
   html+='<div class="cat-sf-row">';
@@ -29700,8 +29915,9 @@ function renderTriagem(){
   if(_hasTrActions){
     html+='<div class="cat-sf-actions" style="border-top:none;padding-top:0;">';
     html+='<button class="cat-edit-btn" onclick="openTriagemCreate()">+ Novo filme</button>';
-    if(!window._olgaHasRestricao('triagem.filmfreeway'))html+='<button class="cat-edit-btn" onclick="openFFImportTriagem()">↓ FilmFreeway</button>';
-    if(!window._olgaHasRestricao('triagem.sfd'))html+='<button class="cat-edit-btn" onclick="openSFDImportTriagem()">↓ Short Film Depot</button>';
+    if(!window._olgaHasRestricao('triagem.filmfreeway'))html+='<button class="cat-edit-btn" onclick="openFFImportTriagem()">↓ Curta Cinema</button>';
+    if(!window._olgaHasRestricao('triagem.sfd'))html+='<button class="cat-edit-btn" title="Short Film Depot (formato antigo, colunas em inglês)" onclick="openSFDImportTriagem(\'sfd\')">↓ Kinoforum 1</button>';
+    if(!window._olgaHasRestricao('triagem.kino2'))html+='<button class="cat-edit-btn" title="Export do festival (formato novo, colunas em português)" onclick="openSFDImportTriagem(\'kino\')">↓ Kinoforum 2</button>';
     html+='</div>';
   }
   html+='<div class="cat-slots-bar" id="tr-slots-bar" style="display:'+(_triagemSlots.length?'flex':'none')+';">';
@@ -29927,15 +30143,17 @@ function renderTriagemDetail(){
       ?'<textarea class="cat-textarea" id="catf_synopsis_en" rows="5" placeholder="English synopsis…">'+esc(meta.synopsis_en||'')+'</textarea>'
       :'<div class="cat-value synopsis">'+esc(meta.synopsis_en||'—')+'</div>');
   // ── EQUIPE ─────────────────────────────────────
-  var hasCrewData=dirArr.length||(meta.producers&&meta.producers.length)||['cinematography','screenplay','editing','sound','art_direction','costume_design','cast'].some(function(k){return crewArr(crew[k]).length;});
+  var hasCrewData=dirArr.length||(meta.producers&&meta.producers.length)||['cinematography','screenplay','editing','sound','direct_sound','sound_editing','soundtrack','art_direction','costume_design','cast'].some(function(k){return crewArr(crew[k]).length;});
   if(_triagemEditing||hasCrewData){
+    var _sdArr=crewArr(crew.direct_sound),_seArr=crewArr(crew.sound_editing),_stArr=crewArr(crew.soundtrack);
+    var _somLegado=(!_sdArr.length&&!_seArr.length&&!_stArr.length)?crewArr(crew.sound):[];
     var crewViewPairs=[
       ['D',dirArr],
       ['P',toArr(meta.producers)],
       ['R',crewArr(crew.screenplay)],
       ['F',crewArr(crew.cinematography)],
       ['M',crewArr(crew.editing)],
-      ['S',crewArr(crew.sound)],
+      ['SD',_sdArr],['ES',_seArr],['T',_stArr],['Som (legado)',_somLegado],
       ['A',crewArr(crew.art_direction)],
       ['Fg',crewArr(crew.costume_design)]
     ];
@@ -29943,7 +30161,8 @@ function renderTriagemDetail(){
       ?catFld('D · Direção',catTagInp('director',dirArr))
        +catFld('P · Produção',catTagInp('producers',toArr(meta.producers)))
        +'<div class="cat-grid">'+catFld('R · Roteiro',catTagInp('crew_screenplay',crewArr(crew.screenplay)))+catFld('F · Fotografia',catTagInp('crew_cinematography',crewArr(crew.cinematography)))+'</div>'
-       +'<div class="cat-grid">'+catFld('M · Montagem',catTagInp('crew_editing',crewArr(crew.editing)))+catFld('S · Som',catTagInp('crew_sound',crewArr(crew.sound)))+'</div>'
+       +'<div class="cat-grid">'+catFld('M · Montagem',catTagInp('crew_editing',crewArr(crew.editing)))+catFld('SD · Som direto',catTagInp('crew_direct_sound',_sdArr))+'</div>'
+       +'<div class="cat-grid">'+catFld('ES · Edição de som',catTagInp('crew_sound_editing',_seArr))+catFld('T · Trilha sonora',catTagInp('crew_soundtrack',_stArr))+'</div>'
        +'<div class="cat-grid">'+catFld('A · Arte',catTagInp('crew_art_direction',crewArr(crew.art_direction)))+catFld('Fg · Figurino',catTagInp('crew_costume_design',crewArr(crew.costume_design)))+'</div>'
        +catFld('E · Elenco',catTagInp('crew_cast',crewArr(crew.cast)))
       :'<div class="cat-crew">'
@@ -30004,9 +30223,9 @@ function renderTriagemDetail(){
   if(!_triagemEditing&&(meta.ff_submission_id||meta.ff_rating||meta.ff_category||meta.ff_link||meta.sfd_section||meta.sfd_category||meta.sfd_screening_format)){
     var pHtml='<div class="cat-grid">';
     if(meta.ff_rating)pHtml+=catFld('Nota média dos jurados','<span style="font-family:var(--mono);font-size:22px;font-weight:700;color:var(--accent);">'+esc(meta.ff_rating)+'</span><span style="font-family:var(--mono);font-size:10px;color:var(--text-muted);margin-left:4px;">/10</span>');
-    if(meta.ff_category)pHtml+=catFld('Categoria FF',esc(meta.ff_category));
-    if(meta.sfd_section)pHtml+=catFld('Seção SFD',esc(meta.sfd_section));
-    if(meta.sfd_category)pHtml+=catFld('Categoria SFD',esc(meta.sfd_category));
+    if(meta.ff_category)pHtml+=catFld('Categoria Curta Cinema',esc(meta.ff_category));
+    if(meta.sfd_section)pHtml+=catFld('Seção Kinoforum',esc(meta.sfd_section));
+    if(meta.sfd_category)pHtml+=catFld('Categoria Kinoforum',esc(meta.sfd_category));
     if(meta.sfd_screening_format)pHtml+=catFld('Formato de exibição',esc(meta.sfd_screening_format));
     pHtml+='</div>';
     if(meta.ff_other_credits)pHtml+=catFld('Outros créditos','<span style="font-family:var(--mono);font-size:11px;color:var(--text-dim);white-space:pre-wrap;">'+esc(meta.ff_other_credits)+'</span>');
@@ -30203,7 +30422,9 @@ async function doSaveTriagemFilm(){
         screenplay:catGetTags('crew_screenplay'),
         cinematography:catGetTags('crew_cinematography'),
         editing:catGetTags('crew_editing'),
-        sound:catGetTags('crew_sound'),
+        direct_sound:catGetTags('crew_direct_sound'),
+        sound_editing:catGetTags('crew_sound_editing'),
+        soundtrack:catGetTags('crew_soundtrack'),
         art_direction:catGetTags('crew_art_direction'),
         costume_design:catGetTags('crew_costume_design'),
         cast:catGetTags('crew_cast')
@@ -30381,7 +30602,7 @@ async function ressincronizarPlataformasDaTriagem(){
     if(precisa)candidatos.push(cod);
   });
   if(!candidatos.length){alert('Nenhum filme precisa de ressincronização.\n\nTodos os filmes do Catálogo que vieram da Curadoria/Seleção já têm os dados de plataforma atualizados.');return;}
-  if(!confirm('Ressincronizar '+candidatos.length+' filme'+(candidatos.length!==1?'s':'')+' do Catálogo com os dados de plataforma da Curadoria/Seleção?\n\nIsso só atualiza os campos do painel FilmFreeway/Short Film Depot; demais campos permanecem como estão.'))return;
+  if(!confirm('Ressincronizar '+candidatos.length+' filme'+(candidatos.length!==1?'s':'')+' do Catálogo com os dados de plataforma da Curadoria/Seleção?\n\nIsso só atualiza os campos do painel Curta Cinema/Kinoforum; demais campos permanecem como estão.'))return;
   var ok=0,erros=[];
   for(var i=0;i<candidatos.length;i++){
     var cod=candidatos[i];

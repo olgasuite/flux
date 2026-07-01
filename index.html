@@ -11295,9 +11295,10 @@ var _ET_PRESETS=[
   {id:'90x55',label:'90 × 55 mm',w:90,h:55},
   {id:'custom',label:'Tamanho livre…',w:0,h:0}
 ];
+function _etNormFields(f){f=f||{};return{ev:f.ev!==false,assoc:f.assoc!==false,roles:f.roles!==false};}
 function _etCfg(){
-  try{var c=JSON.parse(localStorage.getItem('olgaEtiquetaCfg')||'null');if(c&&c.w>0&&c.h>0)return{w:+c.w,h:+c.h,rot:+c.rot||0,preset:c.preset||'custom'};}catch(e){}
-  return{w:62,h:100,rot:0,preset:'62x100'};
+  try{var c=JSON.parse(localStorage.getItem('olgaEtiquetaCfg')||'null');if(c&&c.w>0&&c.h>0)return{w:+c.w,h:+c.h,rot:+c.rot||0,preset:c.preset||'custom',fields:_etNormFields(c.fields)};}catch(e){}
+  return{w:62,h:100,rot:0,preset:'62x100',fields:_etNormFields(null)};
 }
 function _etCfgSave(c){try{localStorage.setItem('olgaEtiquetaCfg',JSON.stringify(c));}catch(e){}}
 function _credPrintEtiquetas(arr){_credPrintLabels(arr.map(_credEtiquetaData));}
@@ -11306,13 +11307,16 @@ function _credPrintLabels(items){
   var rot=cfg.rot||0,pageW=cfg.w,pageH=cfg.h;
   var swap=(rot===90||rot===270);
   var innerW=swap?pageH:pageW,innerH=swap?pageW:pageH;
+  var fl=cfg.fields||{ev:true,assoc:true,roles:true};
   var seq=items.length>1; // lote: tira contínua, sem quebra de página entre etiquetas
   var sheetH=seq?pageH*items.length:pageH;
-  var labels=items.map(function(e){return'<div class="et"><div class="et-inner">'+
-    (e.ev?'<div class="et-ev">'+_re(e.ev)+'</div>':'')+
+  var labels=items.map(function(e){
+    var ref=e.assoc||'';if(ref.length>40)ref=ref.slice(0,40)+'…';
+    return'<div class="et"><div class="et-inner">'+
+    ((fl.ev!==false&&e.ev)?'<div class="et-ev">'+_re(e.ev)+'</div>':'')+
     '<div class="et-name">'+_re(e.name)+'</div>'+
-    (e.assoc?'<div class="et-ref">'+_re(e.assoc)+'</div>':'')+
-    (e.roles?'<div class="et-role">'+_re(e.roles)+'</div>':'')+
+    ((fl.assoc!==false&&ref)?'<div class="et-ref">'+_re(ref)+'</div>':'')+
+    ((fl.roles!==false&&e.roles)?'<div class="et-role">'+_re(e.roles)+'</div>':'')+
   '</div></div>';}).join('');
   var html='<!doctype html><html><head><meta charset="utf-8"><title>Etiqueta</title><style>'+
     '@page{size:'+pageW+'mm '+sheetH+'mm;margin:0;}'+
@@ -11336,6 +11340,8 @@ window._etOpenConfig=function(){
   var c=_etCfg();
   var presetOpts=_ET_PRESETS.map(function(p){return'<option value="'+p.id+'"'+(p.id===c.preset?' selected':'')+'>'+_re(p.label)+'</option>';}).join('');
   var rotOpts=[[0,'0° — normal'],[90,'90° — conteúdo de lado'],[180,'180° — invertido'],[270,'270° — de lado (outro sentido)']].map(function(o){return'<option value="'+o[0]+'"'+(o[0]===c.rot?' selected':'')+'>'+o[1]+'</option>';}).join('');
+  var f=c.fields||{ev:true,assoc:true,roles:true};
+  function chk(id,on,txt){return'<label style="display:flex;align-items:center;gap:6px;font-family:var(--mono);font-size:11px;color:var(--text);cursor:pointer;padding:2px 0;"><input type="checkbox" id="'+id+'"'+(on?' checked':'')+(id==='etFName'?' disabled':'')+'> '+txt+'</label>';}
   _recepShowModal('<div class="recep-modal-box" style="max-width:420px;">'+
     '<div class="recep-modal-head"><span class="recep-modal-title">Formato da etiqueta</span><button class="recep-modal-close" onclick="_recepCloseModal()">×</button></div>'+
     '<div class="recep-modal-body">'+
@@ -11346,6 +11352,12 @@ window._etOpenConfig=function(){
       '</div>'+
       '<div class="recep-field"><label class="recep-label">Rotação do conteúdo</label><select id="etRot" class="recep-select">'+rotOpts+'</select></div>'+
       '<div style="font-family:var(--mono);font-size:9px;color:var(--text-muted);">Use a rotação quando a impressora puxa o papel de lado e o texto sai na orientação errada.</div>'+
+      '<div class="recep-field" style="margin-top:12px;"><label class="recep-label">Dados na etiqueta</label>'+
+        chk('etFName',true,'Nome (sempre)')+
+        chk('etFEv',f.ev!==false,'Evento / cabeçalho')+
+        chk('etFRef',f.assoc!==false,'Referência (filme / mostra / atividade)')+
+        chk('etFRole',f.roles!==false,'Papel / função')+
+      '</div>'+
     '</div>'+
     '<div class="recep-modal-foot">'+
       '<button class="recep-btn-cancel" onclick="_etPrintTeste()">imprimir teste</button>'+
@@ -11360,7 +11372,8 @@ window._etPresetChange=function(){
 };
 function _etReadCfg(){
   var w=+(document.getElementById('etW').value)||0,h=+(document.getElementById('etH').value)||0;
-  return{w:w,h:h,rot:+(document.getElementById('etRot').value)||0,preset:document.getElementById('etPreset').value||'custom'};
+  return{w:w,h:h,rot:+(document.getElementById('etRot').value)||0,preset:document.getElementById('etPreset').value||'custom',
+    fields:{ev:document.getElementById('etFEv').checked,assoc:document.getElementById('etFRef').checked,roles:document.getElementById('etFRole').checked}};
 }
 window._etSaveConfig=function(){
   var c=_etReadCfg();
@@ -17790,7 +17803,7 @@ function renderDash(){
   html+=colBlock('legendagem','Legendagem',legBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 28/06/2026 às 20:46';
+  var sysUpdate='última atualização do sistema · 30/06/2026 às 22:51';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -25934,7 +25947,7 @@ function _sxcPrint(){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 28/06/2026 às 20:46</span></div>
+<div id="page-footer"><span>última atualização · 30/06/2026 às 22:51</span></div>
 
 </div>
 

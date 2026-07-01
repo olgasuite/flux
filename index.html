@@ -4984,6 +4984,15 @@ html[data-theme="indexof"]:not([data-theme="win98"]) .module-icon{display:flex!i
     // aba Equipe: só para admin, independente de modulos
     var tabEquipe = document.getElementById('tabEquipe');
     if (tabEquipe) tabEquipe.style.display = (window._olgaUser && window._olgaUser.role === 'admin') ? '' : 'none';
+    // Receptivo: sub-áreas restringíveis individualmente (editor e viewer)
+    var recepSubMap = {
+      convidados:'navSubConvidados', credenciamento:'navSubCredenciamento',
+      hoteis:'navSubHoteis', voos:'navSubVoos', transporte:'navSubTransporte'
+    };
+    Object.keys(recepSubMap).forEach(function(sec){
+      var el = document.getElementById(recepSubMap[sec]);
+      if (el) el.style.display = (window._olgaHasRestricao && window._olgaHasRestricao('receptivo.'+sec)) ? 'none' : '';
+    });
   }
 
   // ── Restrições granulares ───────────────────────────────────────
@@ -10472,6 +10481,13 @@ function _recepAllowedEvs(){
   return _recepEvList.filter(function(e){return !!(eventColors&&eventColors[e.id]);});
 }
 
+// Edição por área do Receptivo. 'somente_credenciamento' trava tudo menos Credenciamento
+// (Etiquetas não grava nada, então segue livre). Vale para editor e viewer.
+function _recepCanEditArea(area){
+  if(!(window._olgaCanEdit&&window._olgaCanEdit('receptivo')))return false;
+  if(window._olgaHasRestricao&&window._olgaHasRestricao('receptivo.somente_credenciamento'))return area==='credenciamento';
+  return true;
+}
 function renderReceptivo(){
   _recepSection='';_recepEvFilter='';
   var _br=document.getElementById('barReceptivo');if(_br)_br.innerHTML='';
@@ -10482,6 +10498,7 @@ function renderReceptivo(){
   var SVG_BADGE='<svg width="26" height="26" viewBox="0 0 24 24" style="stroke:currentColor;stroke-width:1.5;fill:none;stroke-linecap:round;stroke-linejoin:round;"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="2"/><path d="M7 16a3 3 0 0 1 4 0"/><line x1="14" y1="9" x2="18" y2="9"/><line x1="14" y1="13" x2="18" y2="13"/></svg>';
   var SVG_TAG='<svg width="26" height="26" viewBox="0 0 24 24" style="stroke:currentColor;stroke-width:1.5;fill:none;stroke-linecap:round;stroke-linejoin:round;"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>';
   function card(sec,icon,name,desc){
+    if(window._olgaHasRestricao&&window._olgaHasRestricao('receptivo.'+sec))return '';
     return '<button class="recep-card" onclick="openRecepSection(\''+sec+'\')">'+
       '<div class="recep-card-icon">'+icon+'</div>'+
       '<div class="recep-card-name">'+name+'</div>'+
@@ -10505,6 +10522,7 @@ function renderReceptivo(){
 }
 
 function openRecepSection(section){
+  if(window._olgaHasRestricao&&window._olgaHasRestricao('receptivo.'+section)){renderReceptivo();return;}
   _recepSection=section;_recepEvFilter='';_recepParentId=null;_recepGuestSearch='';
   if(section!==_recepSort.sec)_recepSort={sec:'',field:'',dir:1};
   if(section==='transporte'){_recepTransDate='';_recepTransVeh='';}
@@ -10545,6 +10563,7 @@ function _recepRoleBadges(roles){
 var _RECEP_ROLE_MAP={jurado:'Júri',diretor:'Realização',debatedor:'Mesa de debate',convidado:'Representante de filme'};
 function _recepTemPapelAntigo(){return (_recepGuests||[]).some(function(g){return (g.data.roles||[]).some(function(r){return _RECEP_ROLE_MAP[r];});});}
 window._recepMigrarPapeis=async function(){
+  if(!_recepCanEditArea('convidados'))return;
   var alvo=(_recepGuests||[]).filter(function(g){return (g.data.roles||[]).some(function(r){return _RECEP_ROLE_MAP[r];});});
   if(!alvo.length){alert('Nenhum convidado com papel antigo.');return;}
   if(!confirm('Migrar papéis antigos de '+alvo.length+' convidado(s) para os novos?\n\njurado→Júri · diretor→Realização · debatedor→Mesa de debate · convidado→Representante de filme\n\nUm backup (.json) será baixado antes.'))return;
@@ -11075,7 +11094,7 @@ window._gRemoveSub=function(i){_gSubsSel.splice(i,1);_gRenderSubChips();};
 
 function _renderConvidados(){
   _recepSyncSelectedEvent();
-  var canEdit=window._olgaCanEdit('receptivo');
+  var canEdit=_recepCanEditArea('convidados');
   var hotelMap={};_recepHotels.forEach(function(h){hotelMap[h.id]=h.data.name||h.id;});
   var bookMap={};_recepBookings.forEach(function(b){if(b.data.guest_id)bookMap[b.data.guest_id]=hotelMap[b.data.hotel_id]||'—';});
   var filtered=_recepGuests.filter(function(g){
@@ -11163,7 +11182,7 @@ function _credNow(){var d=new Date();return d.getFullYear()+'-'+String(d.getMont
 function _credFmt(ts){if(!ts)return'';var p=ts.split('T');var dt=(p[0]||'').split('-');var d=dt.length===3?dt[2]+'/'+dt[1]:p[0];return d+(p[1]?' '+p[1]:'');}
 function _renderCredenciamento(){
   _recepSyncSelectedEvent();
-  var canEdit=window._olgaCanEdit('receptivo');
+  var canEdit=_recepCanEditArea('credenciamento');
   var all=_recepGuests.filter(function(g){return g.data.event_id===_recepSelectedEvent;});
   var total=all.length,credN=all.filter(function(g){return g.data.credenciado;}).length;
   var filtered=all.filter(function(g){
@@ -11445,6 +11464,7 @@ window._credGerarEtiquetaAberta=function(){
 };
 
 function openGuestModal(id,tmplData){
+  if(!_recepCanEditArea('convidados')){alert('Edição de convidados bloqueada para o seu perfil.');return;}
   _recepEditId=id;
   var g=id?_recepGuests.find(function(x){return x.id===id;}):null;
   var d=tmplData||(g?g.data:{});
@@ -11495,6 +11515,7 @@ function openGuestModal(id,tmplData){
 }
 window.dupeGuest=function(id){var g=_recepGuests.find(function(x){return x.id===id;});if(g)openGuestModal(null,g.data);};
 window.saveGuest=async function(curBookId){
+  if(!_recepCanEditArea('convidados'))return;
   var name=(document.getElementById('g_name').value||'').trim();
   if(!name){var e=document.getElementById('recepMErr');e.textContent='Nome obrigatório.';e.style.display='block';return;}
   var _gEv=document.getElementById('g_event').value||'';
@@ -11516,6 +11537,7 @@ window.saveGuest=async function(curBookId){
   catch(err){var e=document.getElementById('recepMErr');e.textContent='Erro: '+err.message;e.style.display='block';}
 };
 window.deleteGuest=async function(id){
+  if(!_recepCanEditArea('convidados'))return;
   if(!confirm('Excluir este convidado e todos os seus registros de voos, hospedagem e transfers?'))return;
   try{await window._olgaGuests.remove(id);window._logFirestoreEdit&&window._logFirestoreEdit('delete',id,{},'receptivo','convidados');_recepCloseModal();openRecepSection('convidados');}
   catch(e){alert('Erro: '+e.message);}
@@ -11573,7 +11595,7 @@ function openGuestDetail(guestId){
 function _renderGuestDetail(guestId){
   var g=_recepGuests.find(function(x){return x.id===guestId;});
   if(!g){document.getElementById('receptivo-container').innerHTML='<div class="recep-empty">Convidado não encontrado.</div>';return;}
-  var d=g.data,sid=_re(guestId),canEdit=window._olgaCanEdit('receptivo');
+  var d=g.data,sid=_re(guestId),canEdit=_recepCanEditArea('convidados');
   var _dMostras=d.mostras||(d.mostra_id?[d.mostra_id]:[]);
   var _dSubs=d.submostras||(d.submostra_id?[d.submostra_id]:[]);
   var _dFilmes=d.filmes||(d.filme_id?[d.filme_id]:[]);
@@ -11651,7 +11673,7 @@ function _renderGuestDetail(guestId){
 /* ─── HOTÉIS ─── */
 function _renderHoteis(){
   _recepSyncSelectedEvent();
-  var canEdit=window._olgaCanEdit('receptivo');
+  var canEdit=_recepCanEditArea('hoteis');
   var filtered=_recepHotels.filter(function(h){var ev=h.data.event_id;return!!ev&&ev===_recepSelectedEvent;});
   var keyFns={nome:function(h){return h.data.name||'';},evento:function(h){return _recepEvLabel(h.data.event_id)||'';},endereco:function(h){return h.data.address||'';},contato:function(h){return h.data.contact||'';}};
   var sorted=(_recepSort.sec==='hoteis'&&keyFns[_recepSort.field])?_recepApplySort(filtered,keyFns[_recepSort.field]):filtered.slice().sort(function(a,b){return(a.data.name||'').localeCompare(b.data.name||'',undefined,{sensitivity:'base'});});
@@ -11681,6 +11703,7 @@ function _renderHoteis(){
   buildPills(document.getElementById('headerEventFilters'),eventColors,activeEventsReceptivo,function(){_renderHoteis();});
 }
 function openHotelModal(id,tmplData){
+  if(!_recepCanEditArea('hoteis')){alert('Edição de hotéis bloqueada para o seu perfil.');return;}
   _recepEditId=id;
   var h=id?_recepHotels.find(function(x){return x.id===id;}):null;var d=tmplData||(h?h.data:{});
   var title=id?'Editar Hotel':tmplData?'Duplicar Hotel':'Novo Hotel';
@@ -11703,6 +11726,7 @@ function openHotelModal(id,tmplData){
   );
 }
 window.saveHotel=async function(){
+  if(!_recepCanEditArea('hoteis'))return;
   var name=(document.getElementById('h_name').value||'').trim();
   if(!name){var e=document.getElementById('recepMErr');e.textContent='Nome obrigatório.';e.style.display='block';return;}
   var _hEv=document.getElementById('h_event').value||'';
@@ -11712,6 +11736,7 @@ window.saveHotel=async function(){
   catch(err){var e=document.getElementById('recepMErr');e.textContent='Erro: '+err.message;e.style.display='block';}
 };
 window.deleteHotel=async function(id){
+  if(!_recepCanEditArea('hoteis'))return;
   if(!confirm('Excluir este hotel?'))return;
   try{await window._olgaHotels.remove(id);window._logFirestoreEdit&&window._logFirestoreEdit('delete',id,{},'receptivo','hoteis');_recepCloseModal();openRecepSection('hoteis');}
   catch(e){alert('Erro: '+e.message);}
@@ -11720,6 +11745,7 @@ window.dupeHotel=function(id){var h=_recepHotels.find(function(x){return x.id===
 
 /* ─── HOSPEDAGEM (Reservas) ─── */
 function openBookingModal(id,guestId,tmplData){
+  if(!_recepCanEditArea('hoteis')){alert('Edição de hospedagem bloqueada para o seu perfil.');return;}
   _recepEditId=id;_recepParentId=guestId||_recepParentId;
   var b=id?_recepBookings.find(function(x){return x.id===id;}):null;var d=tmplData||(b?b.data:{});
   var gid=guestId||d.guest_id||'';
@@ -11764,11 +11790,13 @@ function openBookingModal(id,guestId,tmplData){
   );
 }
 window.saveBooking=async function(){
+  if(!_recepCanEditArea('hoteis'))return;
   var data={guest_id:_recepParentId||'',hotel_id:document.getElementById('b_hotel').value||'',check_in_date:document.getElementById('b_ci_d').value||'',check_in_time:document.getElementById('b_ci_t').value||'',check_out_date:document.getElementById('b_co_d').value||'',check_out_time:document.getElementById('b_co_t').value||'',room_type:(document.getElementById('b_rtype').value||'').trim(),room_number:(document.getElementById('b_rnum').value||'').trim(),status:document.getElementById('b_status').value,payment_type:document.getElementById('b_pay').value,confirmation_code:(document.getElementById('b_code').value||'').trim(),notes:(document.getElementById('b_notes').value||'').trim(),updated_at:_recepNow()};
   try{await window._olgaBookings.save(_recepEditId,data);window._logFirestoreEdit&&window._logFirestoreEdit('individual',_recepEditId,data,'receptivo','reservas');_recepCloseModal();openGuestDetail(_recepParentId);}
   catch(err){var e=document.getElementById('recepMErr');e.textContent='Erro: '+err.message;e.style.display='block';}
 };
 window.deleteBooking=async function(id,guestId){
+  if(!_recepCanEditArea('hoteis'))return;
   if(!confirm('Excluir esta reserva?'))return;
   try{await window._olgaBookings.remove(id);window._logFirestoreEdit&&window._logFirestoreEdit('delete',id,{},'receptivo','reservas');_recepCloseModal();openGuestDetail(guestId||_recepParentId);}
   catch(e){alert('Erro: '+e.message);}
@@ -11778,7 +11806,7 @@ window.dupeBooking=function(id,guestId){var b=_recepBookings.find(function(x){re
 /* ─── VOOS ─── */
 function _renderVoos(){
   _recepSyncSelectedEvent();
-  var canEdit=window._olgaCanEdit('receptivo');
+  var canEdit=_recepCanEditArea('voos');
   var guestMap={};_recepGuests.forEach(function(g){guestMap[g.id]=g.data.name||g.id;});
   var base=_recepFlights.filter(function(f){var ev=f.data.event_id;return!!ev&&ev===_recepSelectedEvent;});
   var keyFns={convidado:function(f){return guestMap[f.data.guest_id]||'';},tipo:function(f){return f.data.type||'';},voo:function(f){return f.data.flight_number||'';},rota:function(f){return(f.data.origin||'')+(f.data.destination?'→'+f.data.destination:'');},data:function(f){return f.data.datetime||'';}};
@@ -11810,6 +11838,7 @@ function _renderVoos(){
   buildPills(document.getElementById('headerEventFilters'),eventColors,activeEventsReceptivo,function(){_renderVoos();});
 }
 function openVooModal(id,guestId,tmplData){
+  if(!_recepCanEditArea('voos')){alert('Edição de voos bloqueada para o seu perfil.');return;}
   _recepEditId=id;var parentGid=guestId||_recepParentId;
   var f=id?_recepFlights.find(function(x){return x.id===id;}):null;var d=tmplData||(f?f.data:{});
   var gid=guestId||(d.guest_id||'');
@@ -11841,6 +11870,7 @@ function openVooModal(id,guestId,tmplData){
   );
 }
 window.saveVoo=async function(parentGid){
+  if(!_recepCanEditArea('voos'))return;
   var _vEv=document.getElementById('v_event').value||'';
   if(!_vEv){var e=document.getElementById('recepMErr');e.textContent='Evento obrigatório.';e.style.display='block';return;}
   var data={guest_id:document.getElementById('v_guest').value||parentGid||'',event_id:_vEv,type:document.getElementById('v_type').value,flight_number:(document.getElementById('v_num').value||'').trim(),origin:(document.getElementById('v_orig').value||'').trim(),destination:(document.getElementById('v_dest').value||'').trim(),datetime:document.getElementById('v_dt').value,notes:(document.getElementById('v_notes').value||'').trim(),updated_at:_recepNow()};
@@ -11848,6 +11878,7 @@ window.saveVoo=async function(parentGid){
   catch(err){var e=document.getElementById('recepMErr');e.textContent='Erro: '+err.message;e.style.display='block';}
 };
 window.deleteVoo=async function(id,parentGid){
+  if(!_recepCanEditArea('voos'))return;
   if(!confirm('Excluir este voo?'))return;
   try{await window._olgaFlights.remove(id);window._logFirestoreEdit&&window._logFirestoreEdit('delete',id,{},'receptivo','voos');_recepCloseModal();if(parentGid)openGuestDetail(parentGid);else openRecepSection('voos');}
   catch(e){alert('Erro: '+e.message);}
@@ -11857,7 +11888,7 @@ window.dupeVoo=function(id,guestId){var f=_recepFlights.find(function(x){return 
 /* ─── TRANSPORTE ─── */
 function _renderTransporte(){
   _recepSyncSelectedEvent();
-  var canEdit=window._olgaCanEdit('receptivo');
+  var canEdit=_recepCanEditArea('transporte');
   var guestMap={};_recepGuests.forEach(function(g){guestMap[g.id]=g.data.name||g.id;});
   var base=_recepTransfers.filter(function(t){
     var ev=t.data.event_id;if(!ev||ev!==_recepSelectedEvent)return false;
@@ -11962,6 +11993,7 @@ function _recepPickLoc(which,value){
   }
 }
 function openTransferModal(id,guestId,tmplData){
+  if(!_recepCanEditArea('transporte')){alert('Edição de transporte bloqueada para o seu perfil.');return;}
   _recepEditId=id;var parentGid=guestId||_recepParentId;
   var t=id?_recepTransfers.find(function(x){return x.id===id;}):null;var d=tmplData||(t?t.data:{});
   var gid=guestId||(d.guest_id||'');
@@ -11996,6 +12028,7 @@ function openTransferModal(id,guestId,tmplData){
   );
 }
 window.saveTransfer=async function(parentGid){
+  if(!_recepCanEditArea('transporte'))return;
   var _tEv=document.getElementById('tr_event').value||'';
   if(!_tEv){var e=document.getElementById('recepMErr');e.textContent='Evento obrigatório.';e.style.display='block';return;}
   var data={guest_id:document.getElementById('tr_guest').value||parentGid||'',event_id:_tEv,category:document.getElementById('tr_cat').value,vehicle_type:document.getElementById('tr_veh').value,origin:(document.getElementById('tr_orig').value||'').trim(),destination:(document.getElementById('tr_dest').value||'').trim(),origin_ref:(document.getElementById('tr_orig_ref').value||''),destination_ref:(document.getElementById('tr_dest_ref').value||''),datetime:document.getElementById('tr_dt').value,status:document.getElementById('tr_status').value,notes:(document.getElementById('tr_notes').value||'').trim(),updated_at:_recepNow()};
@@ -12003,6 +12036,7 @@ window.saveTransfer=async function(parentGid){
   catch(err){var e=document.getElementById('recepMErr');e.textContent='Erro: '+err.message;e.style.display='block';}
 };
 window.deleteTransfer=async function(id,parentGid){
+  if(!_recepCanEditArea('transporte'))return;
   if(!confirm('Excluir este transfer?'))return;
   try{await window._olgaTransfers.remove(id);window._logFirestoreEdit&&window._logFirestoreEdit('delete',id,{},'receptivo','transfers');_recepCloseModal();if(parentGid)openGuestDetail(parentGid);else openRecepSection('transporte');}
   catch(e){alert('Erro: '+e.message);}
@@ -17803,7 +17837,7 @@ function renderDash(){
   html+=colBlock('legendagem','Legendagem',legBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 30/06/2026 às 22:51';
+  var sysUpdate='última atualização do sistema · 30/06/2026 às 23:26';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -19771,7 +19805,14 @@ var _EQUIPE_RESTRICOES=[
   {k:'triagem.ocultar_avaliacoes_outros',label:'Curadoria/Seleção · Ocultar média e avaliações dos outros (vê só a própria)'},
   {k:'triagem.somente_avaliar',label:'Curadoria/Seleção · Edição restrita à avaliação (não edita ficha do filme)'},
   {k:'sessoes.btn_projecao',label:'Sessões · Ocultar botão "Ficha de Projeção"'},
-  {k:'projecao.btn_programacao',label:'Projeção · Ocultar botão "Ficha de Programação"'}
+  {k:'projecao.btn_programacao',label:'Projeção · Ocultar botão "Ficha de Programação"'},
+  {k:'receptivo.convidados',label:'Receptivo · Ocultar área Convidados'},
+  {k:'receptivo.credenciamento',label:'Receptivo · Ocultar área Credenciamento'},
+  {k:'receptivo.etiquetas',label:'Receptivo · Ocultar área Etiquetas'},
+  {k:'receptivo.hoteis',label:'Receptivo · Ocultar área Hotéis'},
+  {k:'receptivo.voos',label:'Receptivo · Ocultar área Voos'},
+  {k:'receptivo.transporte',label:'Receptivo · Ocultar área Transporte'},
+  {k:'receptivo.somente_credenciamento',label:'Receptivo · Edição restrita a Credenciamento (não edita convidados, hotéis, voos nem transporte; etiquetas continuam liberadas)'}
 ];
 
 function renderEquipe(){
@@ -25947,7 +25988,7 @@ function _sxcPrint(){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 30/06/2026 às 22:51</span></div>
+<div id="page-footer"><span>última atualização · 30/06/2026 às 23:26</span></div>
 
 </div>
 
@@ -26810,7 +26851,7 @@ function _mobRenderReceptivo(params){
   var html=_mobEventFilterHtml(_filtroEvs);
   html+='<div style="padding:16px;">';
   html+='<div style="font-family:var(--mono);font-size:10px;color:var(--text-muted);margin-bottom:16px;">Gestão de convidados, hospedagem, deslocamentos e logística de transporte.</div>';
-  html+=AREAS.map(function(a){
+  html+=AREAS.filter(function(a){return!(window._olgaHasRestricao&&window._olgaHasRestricao('receptivo.'+a.sec));}).map(function(a){
     return'<div onclick="_mobReceptivoSection(\''+_mobEsc(a.sec)+'\')" style="display:flex;align-items:center;gap:14px;background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:16px;margin-bottom:10px;cursor:pointer;">'+
       '<svg style="width:26px;height:26px;stroke:var(--accent);stroke-width:1.5;fill:none;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0;" viewBox="0 0 24 24">'+a.icon+'</svg>'+
       '<div style="flex:1;min-width:0;">'+
@@ -26825,6 +26866,7 @@ function _mobRenderReceptivo(params){
 }
 
 window._mobReceptivoSection=function(sec,noPush){
+  if(window._olgaHasRestricao&&window._olgaHasRestricao('receptivo.'+sec)){_mobRenderReceptivo({});return;}
   if(!noPush)_mobPush({view:'receptivo-'+sec,params:{sec:sec}});
   _mobSetContent('<div class="mob-empty">Carregando…</div>');
   function _re2(s){return(s||'').toString().replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}

@@ -15717,7 +15717,7 @@ function filmMatchesSnapshot(f,snap){
   if(snap.duracao_min!==null||snap.duracao_max!==null){var dm=parseDurMinutes(f.duracao);if(dm===null)return false;if(snap.duracao_min!==null&&dm<snap.duracao_min)return false;if(snap.duracao_max!==null&&dm>snap.duracao_max)return false;}
   if(snap.gb_min!==null||snap.gb_max!==null){var gv=parseGB(f.gb);if(gv===null)return false;if(snap.gb_min!==null&&gv<snap.gb_min)return false;if(snap.gb_max!==null&&gv>snap.gb_max)return false;}
   if(snap.sessao.size>0){var fs=buscaReverseSessoes[f.codigo]||[];if(!fs.some(function(s){return snap.sessao.has(s);}))return false;}
-  if(snap.query){var q2=snap.query.toLowerCase();var _t=function(v){return String(v||'').toLowerCase();};var _cm2=catalogoFilmesMap&&catalogoFilmesMap[f.codigo]||{};var _sn=_cm2.system_name||'';var _tp=_cm2.title_pt||'';var _to=_cm2.original_title||'';var _te=_cm2.english_title||'';if(!_t(f.titulo).includes(q2)&&!_t(f.codigo).includes(q2)&&!_t(f.cpl).includes(q2)&&!_t(f.idioma).includes(q2)&&!_t(f.obs).includes(q2)&&!_t(f.status).includes(q2)&&!_t(f.cplOV).includes(q2)&&!_t(_sn).includes(q2)&&!_t(_tp).includes(q2)&&!_t(_to).includes(q2)&&!_t(_te).includes(q2))return false;}
+  if(snap.query){var q2=snap.query.toLowerCase();var _t=function(v){return String(v||'').toLowerCase();};var _cm2=catalogoFilmesMap&&catalogoFilmesMap[f.codigo]||{};var _sn=_cm2.system_name||'';var _tp=_cm2.title_pt||'';var _to=_cm2.original_title||'';var _te=_cm2.english_title||'';if(!_t(f.titulo).includes(q2)&&!_t(f.codigo).includes(q2)&&!_t(f.cpl).includes(q2)&&!_t(f.idioma).includes(q2)&&!_t(f.obs).includes(q2)&&!_t(f.status).includes(q2)&&!_t(f.cplOV).includes(q2)&&!_t(f.hd).includes(q2)&&!_t(_sn).includes(q2)&&!_t(_tp).includes(q2)&&!_t(_to).includes(q2)&&!_t(_te).includes(q2))return false;}
   return true;
 }
 function addBuscaSlot(){
@@ -15975,7 +15975,7 @@ function buildBuscaFilterPanel(){
 
   var fieldMap=[
     {key:'evento',label:'Evento',field:'evento'},
-    {key:'hd',label:'HD',field:'hd'},
+    {key:'hd',label:'Storage / HD',field:'hd'},
     {key:'idioma',label:'Idioma',field:'idioma'},
     {key:'legenda',label:'Leg DCP',field:'legenda'},
     {key:'vf',label:'VF',field:'vf'},
@@ -16733,7 +16733,7 @@ function renderBuscaResults(){
       if(!applyBuscaFilters(f))return false;
       if(!q)return true;
       var _s=function(v){return String(v||'').toLowerCase();};
-      var _cm3=catalogoFilmesMap&&catalogoFilmesMap[f.codigo]||{};var _sn2=_cm3.system_name||'';var _tp2=_cm3.title_pt||'';var _to2=_cm3.original_title||'';var _te2=_cm3.english_title||'';var _rsp=(Array.isArray(_cm3.responsaveis)?_cm3.responsaveis.join(' '):'');return _s(f.titulo).includes(q)||_s(f.codigo).includes(q)||_s(f.cpl).includes(q)||_s(f.idioma).includes(q)||_s(f.obs).includes(q)||_s(f.status).includes(q)||_s(f.cplOV).includes(q)||_s(_sn2).includes(q)||_s(_tp2).includes(q)||_s(_to2).includes(q)||_s(_te2).includes(q)||_s(_rsp).includes(q);
+      var _cm3=catalogoFilmesMap&&catalogoFilmesMap[f.codigo]||{};var _sn2=_cm3.system_name||'';var _tp2=_cm3.title_pt||'';var _to2=_cm3.original_title||'';var _te2=_cm3.english_title||'';var _rsp=(Array.isArray(_cm3.responsaveis)?_cm3.responsaveis.join(' '):'');return _s(f.titulo).includes(q)||_s(f.codigo).includes(q)||_s(f.cpl).includes(q)||_s(f.idioma).includes(q)||_s(f.obs).includes(q)||_s(f.status).includes(q)||_s(f.cplOV).includes(q)||_s(f.hd).includes(q)||_s(_sn2).includes(q)||_s(_tp2).includes(q)||_s(_to2).includes(q)||_s(_te2).includes(q)||_s(_rsp).includes(q);
     });
   }else{
     filtered=[];
@@ -17859,7 +17859,7 @@ function renderDash(){
   html+=colBlock('legendagem','Legendagem',legBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 07/07/2026 às 11:27';
+  var sysUpdate='última atualização do sistema · 07/07/2026 às 19:45';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -26109,7 +26109,7 @@ function _sxcPrint(){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 07/07/2026 às 11:27</span></div>
+<div id="page-footer"><span>última atualização · 07/07/2026 às 19:45</span></div>
 
 </div>
 

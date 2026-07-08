@@ -17725,6 +17725,7 @@ function renderDash(){
       '<span class="dash-detail-count">'+detItems.length+' filme'+(detItems.length!==1?'s':'')+'</span>'+
       '<button class="dash-detail-close" onclick="selectDashStatus(null)">✕ Fechar</button>'+
     '</div>';
+    var stColor=stCls==='st-ok'?'var(--ok)':(stCls==='st-cancel'||stCls==='st-error')?'var(--warn)':'var(--accent)';
     ctrlBody+='<div class="dash-film-list">';
     detItems.forEach(function(item){
       var f=item.f;
@@ -17741,7 +17742,7 @@ function renderDash(){
       }).join('');
       var safeCodDash=String(f.codigo).replace(/\\/g,'\\\\').replace(/'/g,"\\'");
       var obsDash=clean(f.obs);
-      ctrlBody+='<div class="dash-film-card dash-film-link" style="border-left-color:'+(col?col.bg:'var(--border2)')+'" title="Ver no Acervo Técnico" onclick="goToBuscaCod(\''+safeCodDash+'\')">'+
+      ctrlBody+='<div class="dash-film-card dash-film-link" style="border-left-color:'+stColor+'" title="Ver no Acervo Técnico" onclick="goToBuscaCod(\''+safeCodDash+'\')">'+
         '<div class="dash-film-top">'+
           '<span class="dash-film-title">'+titulo+'</span>'+
           '<span class="dash-film-code" title="'+esc(f.codigo)+'">'+esc(stripEvPrefix(f.codigo,f.evento))+'</span>'+
@@ -17864,7 +17865,7 @@ function renderDash(){
   html+=colBlock('legendagem','Legendagem',legBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 07/07/2026 às 22:59';
+  var sysUpdate='última atualização do sistema · 08/07/2026 às 10:37';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -26114,7 +26115,7 @@ function _sxcPrint(){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 07/07/2026 às 22:59</span></div>
+<div id="page-footer"><span>última atualização · 08/07/2026 às 10:37</span></div>
 
 </div>
 

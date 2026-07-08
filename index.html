@@ -1564,6 +1564,8 @@ mark{background:rgba(255,186,32,0.28);color:var(--accent);border-radius:2px;padd
 .dash-detail-close:hover{color:var(--text);border-color:var(--text-dim);}
 .dash-film-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:8px;}
 .dash-film-card{background:var(--surface);border:1px solid var(--border);border-left:3px solid var(--border2);padding:12px 14px;display:flex;flex-direction:column;gap:7px;}
+.dash-film-link{cursor:pointer;transition:background 0.12s;}
+.dash-film-link:hover{background:var(--surface2);}
 .dash-film-top{display:flex;align-items:baseline;gap:9px;flex-wrap:wrap;}
 .dash-film-title{font-family:var(--sans);font-size:13px;font-weight:600;color:var(--text);}
 .dash-film-code{font-family:var(--mono);font-size:10px;color:var(--text-muted);}
@@ -17732,17 +17734,20 @@ function renderDash(){
       var sessLinks=item.sessions.map(function(s){
         var safe=s.nome.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
         var dt=[s.dia,s.hora].filter(Boolean).join(' ');
-        return'<button class="dash-sess-link" onclick="goToFicha(\''+safe+'\')">'+
+        return'<button class="dash-sess-link" onclick="event.stopPropagation();goToFicha(\''+safe+'\')">'+
           '<span class="dash-sess-cinema">'+esc(s.cinema)+'</span>'+
           (dt?'<span class="dash-sess-cinema">'+esc(dt)+'</span>':'')+
           '</button>';
       }).join('');
-      ctrlBody+='<div class="dash-film-card" style="border-left-color:'+(col?col.bg:'var(--border2)')+'">'+
+      var safeCodDash=String(f.codigo).replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+      var obsDash=clean(f.obs);
+      ctrlBody+='<div class="dash-film-card dash-film-link" style="border-left-color:'+(col?col.bg:'var(--border2)')+'" title="Ver no Acervo Técnico" onclick="goToBuscaCod(\''+safeCodDash+'\')">'+
         '<div class="dash-film-top">'+
           '<span class="dash-film-title">'+titulo+'</span>'+
           '<span class="dash-film-code" title="'+esc(f.codigo)+'">'+esc(stripEvPrefix(f.codigo,f.evento))+'</span>'+
           evBadge+
         '</div>'+
+        (obsDash?'<div class="card-obs" style="margin-top:0;">'+esc(obsDash)+'</div>':'')+
         (sessLinks?'<div class="dash-sess-list"><span class="dash-sess-label">Sessões</span>'+sessLinks+'</div>':'')+
       '</div>';
     });
@@ -17859,7 +17864,7 @@ function renderDash(){
   html+=colBlock('legendagem','Legendagem',legBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 07/07/2026 às 19:45';
+  var sysUpdate='última atualização do sistema · 07/07/2026 às 22:59';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -26109,7 +26114,7 @@ function _sxcPrint(){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 07/07/2026 às 19:45</span></div>
+<div id="page-footer"><span>última atualização · 07/07/2026 às 22:59</span></div>
 
 </div>
 

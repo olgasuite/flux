@@ -17870,7 +17870,7 @@ function renderDash(){
   html+=colBlock('legendagem','Legendagem',legBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 09/07/2026 às 00:02';
+  var sysUpdate='última atualização do sistema · 09/07/2026 às 09:39';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -23412,6 +23412,7 @@ function _dcpApply(cpl,totalGB,tipo){
   incoming.ae_fps      =cpl.fps;
   incoming.ae_uuid     =cpl.uuid;
   incoming.ae_kdm      =cpl.kdm; // "Sim" or "Não"
+  incoming.ae_exhibition_format='DCP';
   if(tipo==='OV'){
     incoming.ae_gb=String(totalGB);
     var _ds=cpl.durSecs||0;
@@ -23456,7 +23457,7 @@ function _dcpApply(cpl,totalGB,tipo){
 }
 
 function _dcpFieldLabel(id){
-  var map={ae_creator:'DCP Creator',ae_cpl:'CPL (ContentTitle)',ae_resolucao:'Resolução',ae_duracao:'Duração',ae_fps:'FPS',ae_uuid:'DCP UUID',ae_kdm:'KDM',ae_gb:'GB',ae_bitrate:'Bitrate (Mbps)'};
+  var map={ae_creator:'DCP Creator',ae_cpl:'CPL (ContentTitle)',ae_resolucao:'Resolução',ae_duracao:'Duração',ae_fps:'FPS',ae_uuid:'DCP UUID',ae_kdm:'KDM',ae_gb:'GB',ae_bitrate:'Bitrate (Mbps)',ae_exhibition_format:'Formato de exibição'};
   return map[id]||id;
 }
 
@@ -23614,7 +23615,7 @@ async function handleVideoFileSelect(input){
       return;
     }
   }
-  _videoFileApply({ae_cpl:file.name,ae_resolucao:meta.resolution,ae_duracao:meta.duracao,ae_fps:meta.fps,ae_gb:meta.gb,ae_bitrate:meta.bitrate});
+  _videoFileApply({ae_cpl:file.name,ae_resolucao:meta.resolution,ae_duracao:meta.duracao,ae_fps:meta.fps,ae_gb:meta.gb,ae_bitrate:meta.bitrate,ae_exhibition_format:'arquivo'});
 }
 function _videoFileApply(incoming){
   var panel=document.getElementById('dcpImportPanel');
@@ -26120,7 +26121,7 @@ function _sxcPrint(){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 09/07/2026 às 00:02</span></div>
+<div id="page-footer"><span>última atualização · 09/07/2026 às 09:39</span></div>
 
 </div>
 

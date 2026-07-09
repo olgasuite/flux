@@ -5773,11 +5773,14 @@ html[data-theme="indexof"]:not([data-theme="win98"]) .module-icon{display:flex!i
 </script>
 <style>
 /* ── NAV SIDEBAR ── */
-.nav-sidebar-toggle{display:inline-flex;align-items:center;padding:0 14px;font-family:var(--mono);font-size:16px;line-height:1;color:var(--text-dim);background:none;border:none;border-left:1px solid var(--border);cursor:pointer;height:100%;flex-shrink:0;transition:color 0.1s;}
-.nav-sidebar-toggle:hover{color:var(--text);}
+.nav-collapse-bar{position:fixed;left:0;bottom:20px;width:var(--nav-sidebar-w);height:40px;z-index:151;display:flex;align-items:center;justify-content:flex-end;box-sizing:border-box;background:var(--surface);border-top:1px solid var(--border);border-right:1px solid var(--border);transition:width 0.2s ease;}
+html.nav-collapsed .nav-collapse-bar{width:var(--nav-sidebar-w-col);justify-content:center;}
+.nav-collapse-btn{display:inline-flex;align-items:center;justify-content:center;height:100%;padding:0 14px;font-family:var(--mono);font-size:18px;line-height:1;color:var(--text-dim);background:none;border:none;cursor:pointer;transition:color 0.1s;}
+html.nav-collapsed .nav-collapse-btn{padding:0;width:100%;}
+.nav-collapse-btn:hover{color:var(--text);}
 .nav-header-spacer{flex:1;}
 :root{--nav-sidebar-w:184px;--nav-sidebar-w-col:44px;}
-.nav-tabs{position:fixed;left:0;top:52px;bottom:20px;width:var(--nav-sidebar-w);z-index:150;flex-direction:column;align-items:stretch;flex:none;background:var(--surface);border-right:1px solid var(--border);overflow-y:auto;overflow-x:hidden;transition:width 0.2s ease;}
+.nav-tabs{position:fixed;left:0;top:52px;bottom:20px;width:var(--nav-sidebar-w);z-index:150;flex-direction:column;align-items:stretch;flex:none;background:var(--surface);border-right:1px solid var(--border);overflow-y:auto;overflow-x:hidden;transition:width 0.2s ease;padding-bottom:40px;}
 html.nav-collapsed .nav-tabs{width:var(--nav-sidebar-w-col);}
 .nav-tab{height:40px;width:100%;flex-shrink:0;border-right:none;border-bottom:1px solid var(--border);border-top:none;justify-content:flex-start;}
 .nav-tab.active{border-bottom-color:var(--border);}
@@ -5791,6 +5794,7 @@ html.nav-collapsed .nav-tabs .nav-group-items{display:none!important;}
 [data-theme="win98"] .nav-tabs .tab-icon{display:inline-flex;}
 html[data-theme]:not([data-theme="win98"]) .nav-tabs .tab-icon{display:inline-flex!important;}
 [data-theme="win98"] .nav-tabs,[data-theme="doremi"] .nav-tabs{border-right-width:2px;}
+[data-theme="win98"] .nav-collapse-bar,[data-theme="doremi"] .nav-collapse-bar{border-right-width:2px;}
 [data-theme="win98"] .nav-tabs .nav-tab,[data-theme="doremi"] .nav-tabs .nav-tab{border-right:none;}
 [data-theme="win98"] .nav-group-head,[data-theme="win98"] .nav-sub-tab,[data-theme="doremi"] .nav-group-head,[data-theme="doremi"] .nav-sub-tab{border-bottom-color:transparent;}
 #headerEventFilters{flex:1;display:flex;align-items:center;gap:5px;overflow-x:auto;padding:0 8px;flex-wrap:nowrap;}
@@ -5818,7 +5822,6 @@ header::after{content:'';position:absolute;top:0;left:100%;width:calc(100vw - 10
 header .btn-sair{border-right:1px solid var(--border);justify-content:center;min-width:70px;}
 .userbar-reload{position:absolute;right:0;top:0;height:100%;width:calc(100vw - 100%);min-width:28px;display:inline-flex;align-items:center;justify-content:center;font-size:13px;color:var(--text-muted);background:inherit;border:none;cursor:pointer;z-index:2;transition:color 0.15s,background 0.15s;}
 .userbar-reload:hover{color:var(--text);filter:brightness(1.15);}
-header .nav-sidebar-toggle{font-size:21px;}
 header .theme-toggle{font-size:13px!important;}
 header .userbar-name,header .userbar-btn{font-size:13px;}
 #navSidebar .nav-tab{font-size:13px;}
@@ -5831,7 +5834,7 @@ header .zoom-level{font-size:13px;}
 ::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px;}
 ::-webkit-scrollbar-thumb:hover{background:var(--text-muted);}
 ::-webkit-scrollbar-corner{background:var(--surface);}
-@media print{.nav-tabs{display:none!important;}#main-content{margin-left:0!important;}}
+@media print{.nav-tabs,.nav-collapse-bar{display:none!important;}#main-content{margin-left:0!important;}}
 </style>
 <script>
 (function(){
@@ -5935,7 +5938,6 @@ window.addEventListener('DOMContentLoaded',function(){
 <header>
   <button class="logo" onclick="goHome()" title="Página inicial">OLGA · Flux</button>
   <input type="file" id="fileInput" accept=".xlsx,.xls" style="display:none">
-  <button class="nav-sidebar-toggle" id="navToggleBtn" onclick="_toggleNav()" title="Recolher módulos">&#171;</button>
   <div id="headerEventFilters"></div>
   <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" title="Alternar esquema de cores">Tema</button>
   <div class="zoom-controls">
@@ -5992,6 +5994,9 @@ window.addEventListener('DOMContentLoaded',function(){
   <button class="nav-tab" id="tabImportador" onclick="openImportadorUniversal()" style="display:none" title="Importador universal"><span class="tab-icon"><i data-lucide="upload"></i></span><span class="nav-label"> Importador</span></button>
   <button class="nav-tab" id="tabEquipe" disabled onclick="switchMode('equipe')" style="display:none" title="Administração"><span class="tab-icon"><i data-lucide="shield"></i></span><span class="nav-label"> Administração</span></button>
 </nav>
+<div class="nav-collapse-bar">
+  <button class="nav-collapse-btn" id="navToggleBtn" onclick="_toggleNav()" title="Recolher módulos">&#171;</button>
+</div>
 
 <div id="main-content">
 
@@ -17865,7 +17870,7 @@ function renderDash(){
   html+=colBlock('legendagem','Legendagem',legBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 08/07/2026 às 10:37';
+  var sysUpdate='última atualização do sistema · 09/07/2026 às 00:02';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -26115,7 +26120,7 @@ function _sxcPrint(){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 08/07/2026 às 10:37</span></div>
+<div id="page-footer"><span>última atualização · 09/07/2026 às 00:02</span></div>
 
 </div>
 

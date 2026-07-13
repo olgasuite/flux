@@ -654,6 +654,7 @@ td.cpl-cell{background:var(--cpl-bg);border-left:2px solid var(--cpl-border);pad
 /* Status badges — pill only, per DESIGN.md */
 .status-ok{background:rgba(61,186,110,0.12);color:var(--ok);border:1px solid rgba(61,186,110,0.25);}
 .status-cancel{background:rgba(255,180,171,0.1);color:var(--warn);border:1px solid rgba(255,180,171,0.25);}
+.status-err{background:rgba(255,59,48,0.16);color:#ff453a;border:1px solid rgba(255,59,48,0.5);}
 .status-other{background:rgba(150,150,150,0.08);color:var(--text-muted);border:1px solid rgba(150,150,150,0.18);}
 .card-cpl{padding:10px 12px;background:var(--cpl-bg);border-left:2px solid var(--cpl-border);min-width:180px;max-width:260px;display:flex;flex-direction:column;justify-content:center;gap:3px;}
 .cpl-label{font-family:var(--sans);font-size:7px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:rgba(93,220,138,0.45);margin-bottom:1px;}
@@ -1405,6 +1406,7 @@ mark{background:rgba(255,186,32,0.28);color:var(--accent);border-radius:2px;padd
 .card-status{font-family:var(--mono);font-size:9px;font-weight:600;letter-spacing:0.08em;padding:2px 8px;border-radius:2px;}
 .status-ok{background:rgba(61,186,110,0.14);color:#3dba6e;border:1px solid rgba(61,186,110,0.3);}
 .status-cancel{background:rgba(232,80,32,0.14);color:#ff6055;border:1px solid rgba(232,80,32,0.3);}
+.status-err{background:rgba(255,59,48,0.18);color:#ff453a;border:1px solid rgba(255,59,48,0.55);}
 .status-other{background:rgba(150,150,150,0.1);color:#888;border:1px solid rgba(150,150,150,0.2);}
 .card-cpl{padding:13px 15px;background:var(--cpl-bg);border-left:2px solid var(--cpl-border);min-width:190px;max-width:270px;display:flex;flex-direction:column;justify-content:center;gap:4px;}
 .cpl-label{font-family:var(--mono);font-size:8px;font-weight:600;letter-spacing:0.15em;text-transform:uppercase;color:rgba(93,220,138,0.5);margin-bottom:2px;}
@@ -2223,6 +2225,7 @@ mark{background:rgba(255,186,32,0.28);color:var(--accent);border-radius:2px;padd
 [data-theme="light"] .vinheta-card-cpl{color:#111!important;}
 [data-theme="light"] .status-ok{background:rgba(31,138,66,0.10);color:#1f8a42;border-color:rgba(31,138,66,0.28);}
 [data-theme="light"] .status-cancel{background:rgba(160,30,20,0.10);color:#c42b2b;border-color:rgba(160,30,20,0.28);}
+[data-theme="light"] .status-err{background:rgba(200,20,10,0.12);color:#c81414;border-color:rgba(200,20,10,0.45);}
 [data-theme="light"] .status-other{background:rgba(120,120,120,0.08);color:#666;border-color:rgba(120,120,120,0.2);}
 [data-theme="light"] .expand-value.warn{color:#b52020;}
 [data-theme="light"] .expand-sep{border-top-color:var(--border);}
@@ -2310,6 +2313,7 @@ mark{background:rgba(255,186,32,0.28);color:var(--accent);border-radius:2px;padd
 [data-theme="gray"] .expand-value.warn{color:#777!important;}
 [data-theme="gray"] .status-ok{background:rgba(0,0,0,0.06);color:#444;border-color:#bbb;}
 [data-theme="gray"] .status-cancel{background:rgba(0,0,0,0.06);color:#666;border-color:#bbb;}
+[data-theme="gray"] .status-err{background:rgba(0,0,0,0.12);color:#111;border-color:#888;}
 [data-theme="gray"] .status-other{background:rgba(0,0,0,0.04);color:#888;border-color:#ccc;}
 [data-theme="gray"] .bordero-btn{color:#555;border-color:#bbb;}
 [data-theme="gray"] .bordero-ev-pill{filter:grayscale(1);}
@@ -2373,6 +2377,7 @@ mark{background:rgba(255,186,32,0.28);color:var(--accent);border-radius:2px;padd
 [data-theme="terminal"] .card-obs{color:rgba(0,229,51,0.8)!important;border-left-color:rgba(0,229,51,0.3)!important;}
 [data-theme="terminal"] .status-ok{background:rgba(0,229,51,0.10);color:var(--ok);border-color:rgba(0,229,51,0.3);}
 [data-theme="terminal"] .status-cancel{background:rgba(255,51,51,0.10);color:var(--warn);border-color:rgba(255,51,51,0.3);}
+[data-theme="terminal"] .status-err{background:rgba(255,51,51,0.16);color:var(--warn);border-color:var(--warn);}
 [data-theme="terminal"] .expand-value.accent{color:var(--accent)!important;}
 [data-theme="terminal"] .cinema-sess-alert{background:rgba(255,51,51,0.08)!important;border-left-color:var(--warn);}
 [data-theme="terminal"] .cinema-sess-alert .cinema-sess-name{color:var(--warn)!important;}
@@ -2739,6 +2744,7 @@ mark{background:rgba(255,186,32,0.28);color:var(--accent);border-radius:2px;padd
 [data-theme="win98"] .badge-kdm-nao{background:#e8e4dc;color:#555;border:1px solid #808080;}
 [data-theme="win98"] .status-ok{background:#d8f0d8;color:#005500;border:1px solid #808080;border-radius:0;}
 [data-theme="win98"] .status-cancel{background:#f0d8d8;color:#aa0000;border:1px solid #808080;border-radius:0;}
+[data-theme="win98"] .status-err{background:#f0c0c0;color:#cc0000;border:1px solid #808080;border-radius:0;}
 [data-theme="win98"] .status-other{background:#e8e4dc;color:#444;border:1px solid #808080;border-radius:0;}
 
 /* SCROLLBARS */
@@ -3109,6 +3115,7 @@ mark{background:rgba(255,186,32,0.28);color:var(--accent);border-radius:2px;padd
 [data-theme="doremi"] .badge-kdm-nao{color:var(--text-muted);border-color:#3a4652;background:transparent;}
 [data-theme="doremi"] .status-ok{background:rgba(110,203,99,0.12);color:var(--ok);border:1px solid rgba(110,203,99,0.35);border-radius:0;}
 [data-theme="doremi"] .status-cancel{background:rgba(227,107,93,0.12);color:var(--warn);border:1px solid rgba(227,107,93,0.35);border-radius:0;}
+[data-theme="doremi"] .status-err{background:rgba(227,107,93,0.18);color:var(--warn);border:1px solid var(--warn);border-radius:0;}
 [data-theme="doremi"] .status-other{background:rgba(74,88,102,0.20);color:var(--text-dim);border:1px solid #3a4652;border-radius:0;}
 
 /* MARK */
@@ -3963,6 +3970,7 @@ html[data-theme]:not([data-theme="win98"]){--mono:var(--sans);}
 [data-theme="win98"] .badge,
 [data-theme="win98"] .status-ok,
 [data-theme="win98"] .status-cancel,
+[data-theme="win98"] .status-err,
 [data-theme="win98"] .status-other{
   color:#000!important;
   border-color:#808080!important;
@@ -6629,7 +6637,7 @@ var grade2Days=[],grade2CurrentDay=null,grade2CinemaFilter='',grade2CinemaComple
 var sessoesCinemaFilter='',_sessoesHidePast=true,_sessoesComplexo='',_sessoesFiltroTitulo='',_sessoesFiltroData='';
 var fichaCinemaFilter='',_fichaComplexo='',_fichaFiltroData='';
 var vinhetasCinemaFilter='',vinhetasDayFilter='';
-var dashCinemaFilter='__todos__',dashDayFilter=new Set(),dashStatusSelected=null,dashStatSelected=null;
+var dashCinemaFilter='__todos__',dashRespFilter='',dashDayFilter=new Set(),dashStatusSelected=null,dashStatSelected=null;
 var dashKdmCinemaFilter='',dashKdmStatusSelected=null;
 var dashLegStatusSelected=null;
 var _dashBlocksOpen={global:false,bilheteria:false,days:false,selecao:false,programacao:false,controle:false,kdm:false,legendagem:false};
@@ -15577,7 +15585,7 @@ document.getElementById('searchInput').addEventListener('input',function(){busca
 document.getElementById('searchClear').addEventListener('click',function(){document.getElementById('searchInput').value='';buscaQuery='';this.style.display='none';renderBuscaResults();});
 
 function hl(str,q){if(!q||!str)return str||'';var re=new RegExp('('+q.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+')','gi');return str.replace(re,'<mark>$1</mark>');}
-function statusBadge(v){if(!v||v==='-')return'';var u=v.toUpperCase();if(u.includes('OK'))return'<span class="card-status status-ok">'+v+'</span>';if(u.includes('CANCEL'))return'<span class="card-status status-cancel">'+v+'</span>';return'<span class="card-status status-other">'+v+'</span>';}
+function statusBadge(v){if(!v||v==='-')return'';var u=v.toUpperCase();if(u.includes('OK'))return'<span class="card-status status-ok">'+v+'</span>';if(u.includes('ERRO'))return'<span class="card-status status-err">'+v+'</span>';if(u.includes('CANCEL'))return'<span class="card-status status-cancel">'+v+'</span>';return'<span class="card-status status-other">'+v+'</span>';}
 
 function toggleExpand(idx){
   var card=document.getElementById('bcard-'+idx);
@@ -16964,6 +16972,22 @@ function rebuildDashCinemaSelect(){
   else{sel.value='';dashCinemaFilter='';}
 }
 
+function rebuildDashRespSelect(){
+  var sel=document.getElementById('dashRespSelect');
+  if(!sel)return;
+  var rs=new Set();
+  filmesArr.forEach(function(f){
+    if(f.evento&&!activeEventsDash.has(f.evento))return;
+    var m=catalogoFilmesMap&&catalogoFilmesMap[f.codigo];
+    ((m&&Array.isArray(m.responsaveis))?m.responsaveis:[]).forEach(function(r){if(r)rs.add(r);});
+  });
+  var prev=dashRespFilter;
+  sel.innerHTML='<option value="">Todos os responsáveis</option>';
+  Array.from(rs).sort(function(a,b){return a.localeCompare(b,'pt-BR');}).forEach(function(r){var o=document.createElement('option');o.value=r;o.textContent=r;sel.appendChild(o);});
+  if(!prev||rs.has(prev))sel.value=prev;
+  else{sel.value='';dashRespFilter='';}
+}
+
 function renderDashDayTabs(){
   var container=document.getElementById('dashDayTabs');container.innerHTML='';
   var activeDays=days.filter(function(d){
@@ -17039,6 +17063,7 @@ function renderDash(){
   rebuildDashCinemaSelect();
   var de=document.getElementById('dashEmpty'),dc=document.getElementById('dash-container');
   var items=dashGetFilmes();
+  if(dashRespFilter){items=items.filter(function(it){var m=catalogoFilmesMap&&catalogoFilmesMap[it.f.codigo];var r=(m&&Array.isArray(m.responsaveis))?m.responsaveis:[];return r.indexOf(dashRespFilter)>=0;});}
   de.style.display='none';dc.style.display='block';
 
   // group by status
@@ -17676,9 +17701,13 @@ function renderDash(){
     +'<select id="dashCinemaSelect" onchange="dashCinemaFilter=this.value;renderDash();">'
     +'<option value="">Todos os cinemas</option>'
     +'</select>'
+    +'<span class="dash-ctrl-filter-label" style="margin-left:12px;">Responsável</span>'
+    +'<select id="dashRespSelect" onchange="dashRespFilter=this.value;renderDash();">'
+    +'<option value="">Todos os responsáveis</option>'
+    +'</select>'
     +'</div>';
   if(!items.length){
-    ctrlBody+='<div style="padding:24px 0;text-align:center;color:var(--text-muted);font-family:var(--mono);font-size:11px;">Nenhum filme para o cinema selecionado.</div>';
+    ctrlBody+='<div style="padding:24px 0;text-align:center;color:var(--text-muted);font-family:var(--mono);font-size:11px;">Nenhum filme para o filtro selecionado.</div>';
     html+=colBlock('controle','Controle de cópias',ctrlBody);
   }else{
   // total bar
@@ -17736,6 +17765,7 @@ function renderDash(){
       var f=item.f;
       var col=f.evento&&eventColors[f.evento]?eventColors[f.evento]:null;
       var evBadge=f.evento&&col?'<span class="card-evento" style="background:'+col.bg+';color:'+col.text+'">'+esc(f.evento)+'</span>':'';
+      var respBadge=(function(){var _r=(catalogoFilmesMap&&catalogoFilmesMap[f.codigo]&&catalogoFilmesMap[f.codigo].responsaveis)||[];return _r.length?'<span class="card-resp" title="Responsáveis" style="font-family:var(--mono);font-size:9px;color:var(--accent);background:var(--accent-dim);border:1px solid var(--accent);border-radius:8px;padding:1px 8px;">'+_r.map(esc).join(' · ')+'</span>':'';})();
       var titulo=esc(clean(f.titulo)||f.codigo);
       var sessLinks=item.sessions.map(function(s){
         var safe=s.nome.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
@@ -17752,6 +17782,7 @@ function renderDash(){
           '<span class="dash-film-title">'+titulo+'</span>'+
           '<span class="dash-film-code" title="'+esc(f.codigo)+'">'+esc(stripEvPrefix(f.codigo,f.evento))+'</span>'+
           evBadge+
+          respBadge+
         '</div>'+
         (obsDash?'<div class="card-obs" style="margin-top:0;">'+esc(obsDash)+'</div>':'')+
         (sessLinks?'<div class="dash-sess-list"><span class="dash-sess-label">Sessões</span>'+sessLinks+'</div>':'')+
@@ -17870,7 +17901,7 @@ function renderDash(){
   html+=colBlock('legendagem','Legendagem',legBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 12/07/2026 às 22:39';
+  var sysUpdate='última atualização do sistema · 13/07/2026 às 10:58';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -17884,6 +17915,7 @@ function renderDash(){
 
   dc.innerHTML=html;
   rebuildDashCinemaSelect();
+  rebuildDashRespSelect();
   rebuildDashKdmCinemaSelect();
 }
 
@@ -26126,7 +26158,7 @@ function _sxcPrint(){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 12/07/2026 às 22:39</span></div>
+<div id="page-footer"><span>última atualização · 13/07/2026 às 10:58</span></div>
 
 </div>
 

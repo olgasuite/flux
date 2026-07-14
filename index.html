@@ -17918,7 +17918,7 @@ function renderDash(){
   html+=colBlock('legendagem','Legendagem',legBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 14/07/2026 às 02:19';
+  var sysUpdate='última atualização do sistema · 14/07/2026 às 09:33';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -18084,6 +18084,25 @@ function _progSessaoShowChanged(id){
   }
   _progSessaoShowHintUpd();
 }
+// Sessões do evento com exatamente o mesmo conjunto de filmes e ainda sem programa
+function _showFindMatchingSessions(films,ev,evNome,excludeNome){
+  var key=JSON.stringify(films||[]);
+  return(sessoesArr||[]).filter(function(s){
+    if(s.show_id)return false;
+    if(excludeNome&&s.nome===excludeNome)return false;
+    if(s.evento!==ev&&(!evNome||s.evento!==evNome))return false;
+    return JSON.stringify(s.filmes||[])===key;
+  });
+}
+async function _showLinkSessions(id,sessoes){
+  for(var i=0;i<sessoes.length;i++){
+    var s=sessoes[i];
+    await window._olgaSessoes.saveField(s._docId||s.nome,{show_id:id});
+    s.show_id=id;
+    window._logFirestoreEdit&&window._logFirestoreEdit('batch',s.nome,{show_id:id},'programacao','sessoes');
+  }
+  if(sessoes.length)await window._olgaSessoes.reload();
+}
 async function _progSessaoMakeShow(){
   if(!(window._olgaCanEdit&&window._olgaCanEdit('programacao'))){alert('Sem permissão para criar programas.');return;}
   if(!_progSessaoFilmsArr.length){alert('Adicione filmes antes de salvar como programa.');return;}
@@ -18098,6 +18117,11 @@ async function _progSessaoMakeShow(){
     _progSessaoShowId=id;
     _progSessaoRenderShowSelect();
     _progRenderFilmsEdit();
+    // Outras sessões duplicadas (mesmo conjunto de filmes) podem ser vinculadas de uma vez
+    var iguais=_showFindMatchingSessions(dataShow.films,_progSessaoEvento,_progSessaoEvNome,_progSessaoEditNome);
+    if(iguais.length&&confirm('Encontrada(s) '+iguais.length+' outra(s) sessão(ões) deste evento com exatamente o mesmo conjunto de filmes:\n'+iguais.map(function(s){return s.nome;}).slice(0,10).join('\n')+(iguais.length>10?'\n…':'')+'\n\nVincular todas ao programa "'+dataShow.name+'"?')){
+      await _showLinkSessions(id,iguais);
+    }
   }catch(e){alert('Erro ao criar programa: '+e.message);}
 }
 
@@ -18280,6 +18304,13 @@ async function _showsPanelSave(){
     _showsCache=_showsCache||[];
     var idx=_showsCache.findIndex(function(x){return x.id===id;});
     if(idx>=0)_showsCache[idx]={id:id,data:dataShow};else _showsCache.push({id:id,data:dataShow});
+    // Programa novo: oferecer vínculo de sessões existentes com o mesmo conjunto de filmes
+    if(!st.editId){
+      var iguais=_showFindMatchingSessions(dataShow.films,st.ev,st.ev,null);
+      if(iguais.length&&confirm('Encontrada(s) '+iguais.length+' sessão(ões) deste evento com exatamente o mesmo conjunto de filmes:\n'+iguais.map(function(s){return s.nome;}).slice(0,10).join('\n')+(iguais.length>10?'\n…':'')+'\n\nVincular todas ao programa "'+dataShow.name+'"?')){
+        await _showLinkSessions(id,iguais);
+      }
+    }
     st.editId=null;st.creating=false;
     _showsPanelRender();
     if(typeof renderSessoes==='function'&&currentMode==='sessoes')renderSessoes();
@@ -18444,7 +18475,7 @@ function _progRenderLanding(){
     bHtml+='</select><select id="progBarMostraSel" onchange="_progBarMostraChange()" style="min-width:180px;height:28px;padding:0 8px;border:1px solid var(--border);background:var(--surface);color:var(--text);font-family:var(--mono);font-size:10px;"><option value="">— selecionar mostra —</option>';
     _progData.programs.filter(function(p){return!p.data.auto&&activeEventsProgramacao.has(p.data.event_id);}).forEach(function(p){bHtml+='<option value="'+esc(p.id)+'">'+esc(p.data.name||p.id)+'</option>';});
     bHtml+='</select>';
-    document.getElementById('progBarDynamic').innerHTML=bHtml;
+    document.getElementById('progBarDynamic').innerHTML=bHtml+'<button class="print-btn" style="margin-left:auto;" onclick="openShowsPanel()">⧉ Programas</button>';
   })();
 }
 
@@ -18843,7 +18874,7 @@ function _progRenderProgram(programId){
       +'</div>';
   }
   c.innerHTML=html+'</div>';
-  document.getElementById('progBarDynamic').innerHTML=bHtml;
+  document.getElementById('progBarDynamic').innerHTML=bHtml+'<button class="print-btn" style="margin-left:auto;" onclick="openShowsPanel()">⧉ Programas</button>';
 }
 
 function _progSessSummary(s){
@@ -19050,7 +19081,7 @@ function _progRenderSessao(sessaoNome){
   if(_legStar)html+='<div class="ficha-leg-note">*não existe um operador de legendagem eletrônica associado a esta sessão, consulte a equipe de programação para confirmar se esta sessão contará com este recurso</div>';
   html+='<div class="ficha-footer"><div class="footer-total">Duração total dos filmes: <strong>'+totalDur+'</strong>'+(totalVinSecs>0?' &nbsp;·&nbsp; Vinhetas: <strong>'+Math.floor(totalVinSecs/3600)+'h'+String(Math.floor((totalVinSecs%3600)/60)).padStart(2,'0')+'</strong>':'')+'</div><div class="footer-stamp">OLGA · '+new Date().toLocaleString('pt-BR')+'</div></div></div>';
   c.innerHTML=html+'</div>';
-  document.getElementById('progBarDynamic').innerHTML=bHtml;
+  document.getElementById('progBarDynamic').innerHTML=bHtml+'<button class="print-btn" style="margin-left:auto;" onclick="openShowsPanel()">⧉ Programas</button>';
 }
 
 function printProgFicha(){
@@ -26474,7 +26505,7 @@ function _sxcPrint(){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 14/07/2026 às 02:19</span></div>
+<div id="page-footer"><span>última atualização · 14/07/2026 às 09:33</span></div>
 
 </div>
 

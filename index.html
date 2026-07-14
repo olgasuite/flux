@@ -17920,7 +17920,7 @@ function renderDash(){
   html+=colBlock('legendagem','Legendagem',legBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 14/07/2026 às 10:18';
+  var sysUpdate='última atualização do sistema · 14/07/2026 às 10:43';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -18099,6 +18099,21 @@ function _progSessaoShowChanged(id){
   if(id){
     var sh=_showById(id);
     if(sh&&sh.data&&Array.isArray(sh.data.films)){_progSessaoFilmsArr=sh.data.films.slice();_progRenderFilmsEdit();}
+    // Auto-preencher mostra/submostra definidas no programa
+    if(sh&&sh.data&&sh.data.program_id){
+      _progSessaoContextProgramId=sh.data.program_id;
+      var pSel=document.getElementById('progSessaoProgramSelect');
+      if(pSel){
+        if(![].some.call(pSel.options,function(o){return o.value===sh.data.program_id;})){
+          var _pm=(_progData&&_progData.programs||[]).find(function(x){return x.id===sh.data.program_id;});
+          var _o=document.createElement('option');_o.value=sh.data.program_id;_o.textContent=(_pm&&_pm.data&&_pm.data.name)||sh.data.program_id;pSel.appendChild(_o);
+        }
+        pSel.value=sh.data.program_id;
+      }
+      if(typeof _progSessaoProgramChanged==='function')_progSessaoProgramChanged();
+      var sSel=document.getElementById('progSessaoSubprogramSelect');
+      if(sSel)sSel.value=sh.data.subprogram_id||'';
+    }
   }
   _progSessaoShowHintUpd();
 }
@@ -18152,6 +18167,10 @@ async function openShowsPanel(){
   modal.style.display='flex';
   modal.innerHTML='<div style="background:var(--surface);border:1px solid var(--border);width:100%;max-width:720px;max-height:90vh;display:flex;flex-direction:column;color:var(--text);padding:30px;font-family:var(--mono);font-size:11px;">Carregando programas…</div>';
   try{await _ensureShowsLoaded(true);}catch(e){}
+  try{
+    if(!(_progData.programs||[]).length&&window._olgaPrograms)_progData.programs=await window._olgaPrograms.list();
+    if(!(_progData.subprograms||[]).length&&window._olgaSubprograms)_progData.subprograms=await window._olgaSubprograms.list();
+  }catch(e){}
   if(!_showsPanelState.ev){
     var evs=_showsPanelEventos();
     var withShows=evs.find(function(ev){return _showsOfEvent(ev,ev).length;});
@@ -18208,10 +18227,22 @@ function _showsPanelRender(){
   if(st.editId||st.creating){
     var sh=st.editId?_showById(st.editId):null;
     var nomeCur=sh&&sh.data?(sh.data.name||''):'';
+    var curPid=sh&&sh.data?(sh.data.program_id||''):'';
+    var curSid=sh&&sh.data?(sh.data.subprogram_id||''):'';
     var linked=st.editId?_showSessions(st.editId):[];
+    var progsEv=(_progData&&_progData.programs||[]).filter(function(p){return p.data&&!p.data.auto&&p.data.event_id===st.ev;});
+    var progOpts='<option value="">— sem mostra —</option>'+progsEv.map(function(p){return'<option value="'+esc(p.id)+'"'+(p.id===curPid?' selected':'')+'>'+esc(p.data.name||p.id)+'</option>';}).join('');
+    var subsCur=(_progData&&_progData.subprograms||[]).filter(function(s){return s.data&&s.data.program_id===curPid;});
+    var subOpts='<option value="">— sem submostra —</option>'+subsCur.map(function(s){return'<option value="'+esc(s.id)+'"'+(s.id===curSid?' selected':'')+'>'+esc(s.data.name||s.id)+'</option>';}).join('');
     body='<div style="padding:18px 20px;display:flex;flex-direction:column;gap:12px;overflow-y:auto;">'
       +'<div style="display:flex;flex-direction:column;gap:4px;"><label style="font-family:var(--mono);font-size:9px;color:var(--text-muted);letter-spacing:0.08em;text-transform:uppercase;">Nome do programa · evento '+esc(st.ev)+'</label>'
       +'<input id="showEdName" class="cat-input" value="'+esc(nomeCur)+'" placeholder="ex: Programa Infantil 1"></div>'
+      +'<div style="display:flex;gap:10px;">'
+        +'<div style="flex:1;display:flex;flex-direction:column;gap:4px;"><label style="font-family:var(--mono);font-size:9px;color:var(--text-muted);letter-spacing:0.08em;text-transform:uppercase;">Mostra</label>'
+        +'<select id="showEdProgram" class="cat-input" onchange="_showEdProgramChanged()">'+progOpts+'</select></div>'
+        +'<div style="flex:1;flex-direction:column;gap:4px;display:'+(subsCur.length?'flex':'none')+';" id="showEdSubRow"><label style="font-family:var(--mono);font-size:9px;color:var(--text-muted);letter-spacing:0.08em;text-transform:uppercase;">Submostra</label>'
+        +'<select id="showEdSubprogram" class="cat-input">'+subOpts+'</select></div>'
+      +'</div>'
       +'<div style="display:flex;flex-direction:column;gap:4px;"><label style="font-family:var(--mono);font-size:9px;color:var(--text-muted);letter-spacing:0.08em;text-transform:uppercase;">Filmes (em ordem de exibição)</label>'
       +'<div class="prog-films-list" id="showEdFilmsList"></div>'
       +'<div class="prog-autocomplete-wrap" style="margin-top:6px;">'
@@ -18229,7 +18260,7 @@ function _showsPanelRender(){
     var evs=_showsPanelEventos();
     var evOpts=evs.map(function(ev){return'<option value="'+esc(ev)+'"'+(ev===st.ev?' selected':'')+'>'+esc(ev)+'</option>';}).join('');
     var shows=_showsOfEvent(st.ev,st.ev);
-    var rows=shows.map(function(sh){
+    function _shRowHtml(sh){
       var nf=(sh.data&&Array.isArray(sh.data.films))?sh.data.films.length:0;
       var ns=_showSessions(sh.id).length;
       var durMin=_showFilmsDurMin(sh.data&&sh.data.films);
@@ -18238,7 +18269,28 @@ function _showsPanelRender(){
         +'<div style="font-family:var(--mono);font-size:9px;color:var(--text-muted);margin-top:2px;">'+nf+' filme'+(nf!==1?'s':'')+(durMin?' · <span style="color:var(--accent);">'+_showDurLabel(durMin)+'</span>':'')+' · '+ns+' sessão(ões) vinculada(s)</div></div>'
         +(canEdit?'<button class="print-btn" onclick="_showsPanelNewSession(\''+sh.id+'\')">+ sessão</button><button class="print-btn" onclick="_showsPanelEdit(\''+sh.id+'\')">editar</button><button class="print-btn" style="color:var(--warn);border-color:var(--warn);" onclick="_showsPanelDelete(\''+sh.id+'\')">excluir</button>':'')
         +'</div>';
-    }).join('');
+    }
+    // Agrupar por mostra → submostra (sem mostra por último)
+    function _mNamePanel(pid){var p=(_progData&&_progData.programs||[]).find(function(x){return x.id===pid;});return(p&&p.data&&p.data.name)||pid;}
+    function _sNamePanel(sid){var s=(_progData&&_progData.subprograms||[]).find(function(x){return x.id===sid;});return(s&&s.data&&s.data.name)||sid;}
+    var byM={},orderM=[];
+    shows.forEach(function(sh){
+      var pid=(sh.data&&sh.data.program_id)||'';
+      if(!byM[pid]){byM[pid]={};orderM.push(pid);}
+      var sid=(sh.data&&sh.data.subprogram_id)||'';
+      (byM[pid][sid]=byM[pid][sid]||[]).push(sh);
+    });
+    orderM.sort(function(a,b){if(!a)return 1;if(!b)return -1;return _mNamePanel(a).localeCompare(_mNamePanel(b),'pt-BR');});
+    var multiGrupos=orderM.length>1||(orderM.length===1&&orderM[0]!=='');
+    var rows='';
+    orderM.forEach(function(pid){
+      if(multiGrupos)rows+='<div style="font-family:var(--mono);font-size:9px;font-weight:600;letter-spacing:0.14em;text-transform:uppercase;color:var(--accent);border-bottom:1px solid var(--border);padding:8px 0 4px;">'+(pid?esc(_mNamePanel(pid)):'sem mostra')+'</div>';
+      var subKeys=Object.keys(byM[pid]).sort(function(a,b){if(!a)return -1;if(!b)return 1;return _sNamePanel(a).localeCompare(_sNamePanel(b),'pt-BR');});
+      subKeys.forEach(function(sid){
+        if(sid)rows+='<div style="font-family:var(--mono);font-size:8px;letter-spacing:0.12em;text-transform:uppercase;color:var(--text-muted);padding:4px 0 2px;">'+esc(_sNamePanel(sid))+'</div>';
+        byM[pid][sid].forEach(function(sh){rows+=_shRowHtml(sh);});
+      });
+    });
     body='<div style="padding:18px 20px;display:flex;flex-direction:column;gap:12px;overflow-y:auto;">'
       +'<div style="display:flex;align-items:center;gap:10px;">'
         +'<label style="font-family:var(--mono);font-size:9px;color:var(--text-muted);letter-spacing:0.08em;text-transform:uppercase;">Evento</label>'
@@ -18280,6 +18332,13 @@ function _showEdRenderFilms(){
   }).join('');
 }
 function _showEdFilmsMv(i,d){var a=_showEdFilms,j=i+d;if(j<0||j>=a.length)return;var t=a[i];a[i]=a[j];a[j]=t;_showEdRenderFilms();}
+function _showEdProgramChanged(){
+  var pid=(document.getElementById('showEdProgram')||{}).value||'';
+  var subs=(_progData&&_progData.subprograms||[]).filter(function(s){return s.data&&s.data.program_id===pid;});
+  var row=document.getElementById('showEdSubRow'),sel=document.getElementById('showEdSubprogram');
+  if(row)row.style.display=subs.length?'flex':'none';
+  if(sel)sel.innerHTML='<option value="">— sem submostra —</option>'+subs.map(function(s){return'<option value="'+esc(s.id)+'">'+esc(s.data.name||s.id)+'</option>';}).join('');
+}
 function _showEdFilmAutocomplete(){
   var inp=document.getElementById('showEdFilmSearch'),res=document.getElementById('showEdFilmResults');
   if(!inp||!res)return;
@@ -18316,25 +18375,34 @@ async function _showsPanelSave(){
   try{
     var id=st.editId||('show_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,7));
     var old=st.editId?_showById(st.editId):null;
+    var pid=(document.getElementById('showEdProgram')||{}).value||'';
+    var sid=(document.getElementById('showEdSubprogram')||{}).value||'';
     var filmsChanged=!old||JSON.stringify((old.data&&old.data.films)||[])!==JSON.stringify(_showEdFilms);
-    var dataShow={event_name:st.ev||'',name:nome,films:_showEdFilms.slice()};
-    // Propagação: sessões vinculadas recebem o novo conjunto de filmes
+    var mostraChanged=!!old&&(((old.data&&old.data.program_id)||'')!==pid||((old.data&&old.data.subprogram_id)||'')!==sid);
+    var dataShow={event_name:st.ev||'',name:nome,films:_showEdFilms.slice(),program_id:pid,subprogram_id:sid};
+    // Propagação: sessões vinculadas recebem filmes e/ou mostra/submostra atualizados
     var linked=st.editId?_showSessions(st.editId):[];
-    if(st.editId&&filmsChanged&&linked.length){
-      if(!confirm('O conjunto de filmes deste programa mudou.\n\n'+linked.length+' sessão(ões) vinculada(s) terão os filmes atualizados:\n'+linked.map(function(s){return s.nome;}).slice(0,10).join('\n')+(linked.length>10?'\n…':'')+'\n\nContinuar?')){
+    var propaga=st.editId&&(filmsChanged||mostraChanged);
+    if(propaga&&linked.length){
+      var oQue=[];if(filmsChanged)oQue.push('os filmes');if(mostraChanged)oQue.push('a mostra/submostra');
+      if(!confirm('Este programa mudou ('+oQue.join(' e ')+').\n\n'+linked.length+' sessão(ões) vinculada(s) serão atualizadas:\n'+linked.map(function(s){return s.nome;}).slice(0,10).join('\n')+(linked.length>10?'\n…':'')+'\n\nContinuar?')){
         if(btn){btn.disabled=false;btn.textContent='Salvar programa';}
         return;
       }
-      _olgaPreBackup('programa-editar-filmes',[{tipo:'show',doc:{id:id,data:(old&&old.data)||{}}}].concat(linked),'programa '+nome);
+      _olgaPreBackup('programa-editar',[{tipo:'show',doc:{id:id,data:(old&&old.data)||{}}}].concat(linked),'programa '+nome);
     }
     await window._olgaShows.save(id,dataShow);
     window._logFirestoreEdit&&window._logFirestoreEdit('individual',id,dataShow,'programacao','shows');
-    if(st.editId&&filmsChanged){
+    if(propaga&&linked.length){
+      var patch={};
+      if(filmsChanged)patch.films=_showEdFilms.slice();
+      if(mostraChanged){patch.program_id=pid;patch.subprogram_id=sid;}
       for(var i=0;i<linked.length;i++){
         var s=linked[i];
-        await window._olgaSessoes.saveField(s._docId||s.nome,{films:_showEdFilms.slice()});
-        s.filmes=_showEdFilms.slice();
-        window._logFirestoreEdit&&window._logFirestoreEdit('batch',s.nome,{films:_showEdFilms},'programacao','sessoes');
+        await window._olgaSessoes.saveField(s._docId||s.nome,patch);
+        if(filmsChanged)s.filmes=_showEdFilms.slice();
+        if(mostraChanged){s.program_id=pid;s.subprogram_id=sid;}
+        window._logFirestoreEdit&&window._logFirestoreEdit('batch',s.nome,patch,'programacao','sessoes');
       }
       await window._olgaSessoes.reload();
     }
@@ -18405,6 +18473,11 @@ function renderProgramacao(){
 }
 
 function _progRender(){
+  // Cache de programas (shows) para as contagens dos cards — carrega em background na primeira vez
+  if(_showsCache===null&&window._olgaShows&&!window._showsBgLoading){
+    window._showsBgLoading=true;
+    _ensureShowsLoaded().then(function(){window._showsBgLoading=false;if(currentMode==='programacao')_progRender();}).catch(function(){window._showsBgLoading=false;});
+  }
   if(_progView.level==='landing')_progRenderLanding();
   else if(_progView.level==='program')_progRenderProgram(_progView.programId);
   else if(_progView.level==='sessao')_progRenderSessao(_progView.sessaoNome);
@@ -18492,7 +18565,8 @@ function _progRenderLanding(){
       if(p.data.tipo==='paralela'||p.data.competitive||p.data.popular_vote){html+='<div class="prog-card-flags">';if(p.data.tipo==='paralela')html+='<span class="prog-flag-badge prog-flag-paralela">Atividade paralela</span>';if(p.data.competitive)html+='<span class="prog-flag-badge prog-flag-comp">Competitivo</span>';if(p.data.popular_vote)html+='<span class="prog-flag-badge prog-flag-pop">Voto popular</span>';html+='</div>';}
       html+='<div class="prog-card-name">'+esc(p.data.name||p.id)+'</div>';
       if(p.data.program_description)html+='<div class="prog-card-desc">'+esc(p.data.program_description.slice(0,100))+(p.data.program_description.length>100?'…':'')+'</div>';
-      html+='<div class="prog-card-counts"><span>'+subCount+' '+(subCount===1?'submostra':'submostras')+'</span><span>'+sessCount+' '+(sessCount===1?'sessão':'sessões')+'</span></div>';
+      var showCountM=(_showsCache||[]).filter(function(x){return x.data&&x.data.program_id===p.id;}).length;
+      html+='<div class="prog-card-counts"><span>'+subCount+' '+(subCount===1?'submostra':'submostras')+'</span>'+(showCountM?'<span>'+showCountM+' programa'+(showCountM!==1?'s':'')+'</span>':'')+'<span>'+sessCount+' '+(sessCount===1?'sessão':'sessões')+'</span></div>';
       if(canEdit){html+='<div class="prog-card-actions" onclick="event.stopPropagation()"><button class="prog-btn-icon" title="Editar" onclick="openProgProgramModal(\''+safePid+'\',\''+esc(ev)+'\')">✎</button><button class="prog-btn-icon" title="Duplicar" onclick="duplicateProgram(\''+safePid+'\')">⧉</button><button class="prog-btn-icon prog-btn-del" title="Excluir" onclick="deleteProgram(\''+safePid+'\',\''+esc(p.data.name||p.id)+'\')">×</button></div>';}
       html+='</div>';
     });
@@ -19805,16 +19879,22 @@ async function saveProgSessaoModal(){
     total_revenue:(sessoesMap[nome]&&sessoesMap[nome].renda)||'',
     notes:(sessoesMap[nome]&&sessoesMap[nome].notes)||''
   };
-  // Sessão vinculada a programa: alterar os filmes manualmente desvincula — sempre com aviso.
+  // Sessão vinculada a programa: alterar filmes ou mostra/submostra manualmente desvincula — sempre com aviso.
   if(_progSessaoShowId){
     var _shChk=_showById(_progSessaoShowId);
-    var _shFilms=(_shChk&&_shChk.data&&Array.isArray(_shChk.data.films))?_shChk.data.films:null;
-    if(_shFilms&&JSON.stringify(_progSessaoFilmsArr)!==JSON.stringify(_shFilms)){
-      var _shLbl=(_shChk.data&&_shChk.data.name)||_progSessaoShowId;
-      if(!confirm('Esta sessão está vinculada ao programa "'+_shLbl+'".\n\nOs filmes foram alterados aqui, e isso DESVINCULA a sessão do programa — o conjunto de filmes deve ser editado no próprio programa (painel Programas), onde a mudança vale para todas as sessões vinculadas.\n\nDesvincular esta sessão e salvar com os filmes alterados?'))return;
-      _progSessaoShowId='';data.show_id='';
-      var _shSel=document.getElementById('progSessaoShowSelect');if(_shSel)_shSel.value='';
-      _progSessaoShowHintUpd();
+    if(_shChk&&_shChk.data){
+      var _shFilms=Array.isArray(_shChk.data.films)?_shChk.data.films:null;
+      var _fDiff=!!(_shFilms&&JSON.stringify(_progSessaoFilmsArr)!==JSON.stringify(_shFilms));
+      var _shPid=_shChk.data.program_id||'';
+      var _mDiff=!!(_shPid&&((data.program_id||'')!==_shPid||(data.subprogram_id||'')!==(_shChk.data.subprogram_id||'')));
+      if(_fDiff||_mDiff){
+        var _oQue=[];if(_fDiff)_oQue.push('os filmes');if(_mDiff)_oQue.push('a mostra/submostra');
+        var _shLbl=(_shChk.data&&_shChk.data.name)||_progSessaoShowId;
+        if(!confirm('Esta sessão está vinculada ao programa "'+_shLbl+'".\n\nForam alterados aqui: '+_oQue.join(' e ')+' — isso DESVINCULA a sessão do programa; essas definições devem ser editadas no próprio programa (painel Programas), onde a mudança vale para todas as sessões vinculadas.\n\nDesvincular esta sessão e salvar assim mesmo?'))return;
+        _progSessaoShowId='';data.show_id='';
+        var _shSel=document.getElementById('progSessaoShowSelect');if(_shSel)_shSel.value='';
+        _progSessaoShowHintUpd();
+      }
     }
   }
   var btn=document.getElementById('progSessaoModalSave');btn.disabled=true;btn.textContent='Salvando…';
@@ -19964,6 +20044,19 @@ async function openCatCriaSessao(filmCode, opts){
   document.getElementById('catCriaSessaoErr').style.display='none';
   // Selects dependentes do evento (mostra, sala, vinhetas)
   await _catCriaSessApplyEvento();
+  // Criação a partir de programa: pré-preencher mostra/submostra definidas nele
+  if(_catCriaSessShowId){
+    var _shPre=_showById(_catCriaSessShowId);
+    if(_shPre&&_shPre.data&&_shPre.data.program_id){
+      var _pS=document.getElementById('catCriaSessaoProgram');
+      if(_pS){
+        _pS.value=_shPre.data.program_id;
+        _catCriaSessProgramChanged();
+        var _sS=document.getElementById('catCriaSessaoSubprogram');
+        if(_sS)_sS.value=_shPre.data.subprogram_id||'';
+      }
+    }
+  }
   // Render listas
   _catCriaSessRenderFilms();
   _catCriaSessRenderBumpers();
@@ -20170,13 +20263,21 @@ async function saveCatCriaSessao(){
   if(_catCriaSessFilmCode&&!_catCriaSessFilms.length){_catCriaSessErr('Inclua pelo menos um filme.');return;}
   var existing=_catCriaSessExistingIds();
   if(existing[id.toLowerCase()]){_catCriaSessErr('Código "'+id+'" já está em uso.');return;}
-  // Criação a partir de programa: alterar os filmes cria a sessão desvinculada — sempre com aviso
+  // Criação a partir de programa: alterar filmes ou mostra/submostra cria desvinculada — sempre com aviso
   if(_catCriaSessShowId){
     var _shC=_showById(_catCriaSessShowId);
-    var _shF=(_shC&&_shC.data&&Array.isArray(_shC.data.films))?_shC.data.films:null;
-    if(_shF&&JSON.stringify(_catCriaSessFilms)!==JSON.stringify(_shF)){
-      if(!confirm('Esta sessão está sendo criada a partir do programa "'+((_shC.data&&_shC.data.name)||_catCriaSessShowId)+'", mas os filmes foram alterados aqui.\n\nIsso cria a sessão DESVINCULADA do programa — o conjunto de filmes deve ser editado no próprio programa.\n\nCriar desvinculada assim mesmo?'))return;
-      _catCriaSessShowId='';
+    if(_shC&&_shC.data){
+      var _shF=Array.isArray(_shC.data.films)?_shC.data.films:null;
+      var _fD=!!(_shF&&JSON.stringify(_catCriaSessFilms)!==JSON.stringify(_shF));
+      var _shP=_shC.data.program_id||'';
+      var _pidNow=(document.getElementById('catCriaSessaoProgram')||{}).value||'';
+      var _sidNow=(document.getElementById('catCriaSessaoSubprogram')||{}).value||'';
+      var _mD=!!(_shP&&(_pidNow!==_shP||_sidNow!==(_shC.data.subprogram_id||'')));
+      if(_fD||_mD){
+        var _oQ=[];if(_fD)_oQ.push('os filmes');if(_mD)_oQ.push('a mostra/submostra');
+        if(!confirm('Esta sessão está sendo criada a partir do programa "'+((_shC.data&&_shC.data.name)||_catCriaSessShowId)+'", mas foram alterados aqui: '+_oQ.join(' e ')+'.\n\nIsso cria a sessão DESVINCULADA do programa — essas definições devem ser editadas no próprio programa.\n\nCriar desvinculada assim mesmo?'))return;
+        _catCriaSessShowId='';
+      }
     }
   }
   var name=(document.getElementById('catCriaSessaoName').value||'').trim();
@@ -26557,7 +26658,7 @@ function _sxcPrint(){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 14/07/2026 às 10:18</span></div>
+<div id="page-footer"><span>última atualização · 14/07/2026 às 10:43</span></div>
 
 </div>
 

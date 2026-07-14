@@ -17918,7 +17918,7 @@ function renderDash(){
   html+=colBlock('legendagem','Legendagem',legBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 14/07/2026 às 09:33';
+  var sysUpdate='última atualização do sistema · 14/07/2026 às 09:37';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -18143,6 +18143,20 @@ async function openShowsPanel(){
   _showsPanelRender();
 }
 function closeShowsPanel(){var m=document.getElementById('showsPanelModal');if(m)m.style.display='none';}
+function _showsPanelNewSession(id){
+  var sh=_showById(id);if(!sh)return;
+  var ev=(sh.data&&sh.data.event_name)||'';
+  if(!ev){alert('Programa sem evento definido.');return;}
+  closeShowsPanel();
+  openCatCriaSessao(null,{
+    evento:ev,eventos:[ev],
+    films:((sh.data&&sh.data.films)||[]).slice(),
+    showId:id,
+    titleLabel:(sh.data&&sh.data.name)||id,
+    idBase:(sh.data&&sh.data.name)||'',
+    onSaved:function(){openShowsPanel();}
+  });
+}
 async function openShowsPanelFromFilm(filmCode){
   var f=filmesMap[filmCode]||{};
   var meta=(catalogoFilmesMap&&catalogoFilmesMap[filmCode])||{};
@@ -18199,7 +18213,7 @@ function _showsPanelRender(){
       return'<div style="display:flex;align-items:center;gap:10px;padding:8px 10px;border:1px solid var(--border);background:var(--surface2);">'
         +'<div style="flex:1;min-width:0;"><div style="font-family:var(--sans);font-size:12px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+esc((sh.data&&sh.data.name)||sh.id)+'</div>'
         +'<div style="font-family:var(--mono);font-size:9px;color:var(--text-muted);margin-top:2px;">'+nf+' filme'+(nf!==1?'s':'')+' · '+ns+' sessão(ões) vinculada(s)</div></div>'
-        +(canEdit?'<button class="print-btn" onclick="_showsPanelEdit(\''+sh.id+'\')">editar</button><button class="print-btn" style="color:var(--warn);border-color:var(--warn);" onclick="_showsPanelDelete(\''+sh.id+'\')">excluir</button>':'')
+        +(canEdit?'<button class="print-btn" onclick="_showsPanelNewSession(\''+sh.id+'\')">+ sessão</button><button class="print-btn" onclick="_showsPanelEdit(\''+sh.id+'\')">editar</button><button class="print-btn" style="color:var(--warn);border-color:var(--warn);" onclick="_showsPanelDelete(\''+sh.id+'\')">excluir</button>':'')
         +'</div>';
     }).join('');
     body='<div style="padding:18px 20px;display:flex;flex-direction:column;gap:12px;overflow-y:auto;">'
@@ -19856,9 +19870,9 @@ async function duplicateProgSessao(nome){
   catch(e){alert('Erro ao duplicar: '+e.message);}
 }
 
-/* === Criação de sessão a partir do filme (Catálogo) === */
+/* === Criação de sessão a partir do filme (Catálogo) ou de um programa === */
 var _catCriaSessFilmCode=null,_catCriaSessEvento='',_catCriaSessFilms=[],_catCriaSessBumpers=[];
-var _catCriaSessLockSala=false,_catCriaSessPrefillSala='',_catCriaSessOnSaved=null;
+var _catCriaSessLockSala=false,_catCriaSessPrefillSala='',_catCriaSessOnSaved=null,_catCriaSessShowId='';
 // Abre a partir de uma sala (módulo Cinemas) — sala fixa, eventos restritos aos ativos do módulo
 function openCriaSessaoCinema(sala){
   var evs=Array.from(activeEventsCinemas||[]);
@@ -19883,8 +19897,9 @@ async function openCatCriaSessao(filmCode, opts){
   var copia=isFilm?(filmesMap[filmCode]||{}):{};
   var ev=isFilm?(copia.evento||meta.evento||''):(opts.evento||'');
   _catCriaSessEvento=ev;
-  _catCriaSessFilms=isFilm?[filmCode]:[];
+  _catCriaSessFilms=isFilm?[filmCode]:(Array.isArray(opts.films)?opts.films.slice():[]);
   _catCriaSessBumpers=[];
+  _catCriaSessShowId=opts.showId||'';
   var btn=document.getElementById('catCriaSessaoSave');if(btn){btn.disabled=true;btn.textContent='Carregando…';}
   document.getElementById('catCriaSessaoModal').style.display='flex';
   try{
@@ -19896,9 +19911,9 @@ async function openCatCriaSessao(filmCode, opts){
   }catch(e){}
   // Título
   var label=(meta.title_pt||meta.title||copia.titulo||filmCode);
-  document.getElementById('catCriaSessaoTitle').textContent=isFilm?('Criar sessão · '+label):'Criar sessão';
-  // ID pré-preenchido a partir do nome do filme (só no modo filme)
-  document.getElementById('catCriaSessaoId').value=isFilm?_catCriaSessDefaultId(filmCode):'';
+  document.getElementById('catCriaSessaoTitle').textContent=isFilm?('Criar sessão · '+label):(opts.titleLabel?('Criar sessão · '+opts.titleLabel):'Criar sessão');
+  // ID pré-preenchido a partir do nome do filme (modo filme) ou do programa
+  document.getElementById('catCriaSessaoId').value=isFilm?_catCriaSessDefaultId(filmCode):(opts.idBase?_catCriaSessUniqueId(opts.idBase):'');
   // Seletor de evento — só no modo genérico (no modo filme o evento vem do filme)
   var evRow=document.getElementById('catCriaSessaoEventoRow');
   var evSel=document.getElementById('catCriaSessaoEventoSel');
@@ -20104,15 +20119,18 @@ function _catCriaSessExistingIds(){
   if(window._usedIds&&_usedIds.sessoes)Object.keys(_usedIds.sessoes).forEach(function(k){m[k.toLowerCase()]=1;});
   return m;
 }
-function _catCriaSessDefaultId(filmCode){
-  var meta=(catalogoFilmesMap&&catalogoFilmesMap[filmCode])||{};
-  var copia=filmesMap[filmCode]||{};
-  var base=(meta.title_pt||meta.title||copia.titulo||filmCode).replace(/\s+/g,'');
-  if(!base)base=filmCode;
+function _catCriaSessUniqueId(base){
+  base=(base||'').replace(/\s+/g,'');
+  if(!base)return'';
   var existing=_catCriaSessExistingIds();
   if(!existing[base.toLowerCase()])return base;
   var n=2;while(existing[(base+'.'+n).toLowerCase()])n++;
   return base+'.'+n;
+}
+function _catCriaSessDefaultId(filmCode){
+  var meta=(catalogoFilmesMap&&catalogoFilmesMap[filmCode])||{};
+  var copia=filmesMap[filmCode]||{};
+  return _catCriaSessUniqueId((meta.title_pt||meta.title||copia.titulo||filmCode))||filmCode;
 }
 async function saveCatCriaSessao(){
   var ev=_catCriaSessEvento;
@@ -20128,6 +20146,15 @@ async function saveCatCriaSessao(){
   if(_catCriaSessFilmCode&&!_catCriaSessFilms.length){_catCriaSessErr('Inclua pelo menos um filme.');return;}
   var existing=_catCriaSessExistingIds();
   if(existing[id.toLowerCase()]){_catCriaSessErr('Código "'+id+'" já está em uso.');return;}
+  // Criação a partir de programa: alterar os filmes cria a sessão desvinculada — sempre com aviso
+  if(_catCriaSessShowId){
+    var _shC=_showById(_catCriaSessShowId);
+    var _shF=(_shC&&_shC.data&&Array.isArray(_shC.data.films))?_shC.data.films:null;
+    if(_shF&&JSON.stringify(_catCriaSessFilms)!==JSON.stringify(_shF)){
+      if(!confirm('Esta sessão está sendo criada a partir do programa "'+((_shC.data&&_shC.data.name)||_catCriaSessShowId)+'", mas os filmes foram alterados aqui.\n\nIsso cria a sessão DESVINCULADA do programa — o conjunto de filmes deve ser editado no próprio programa.\n\nCriar desvinculada assim mesmo?'))return;
+      _catCriaSessShowId='';
+    }
+  }
   var name=(document.getElementById('catCriaSessaoName').value||'').trim();
   var pid=document.getElementById('catCriaSessaoProgram').value;
   var sid=document.getElementById('catCriaSessaoSubprogram').value;
@@ -20143,6 +20170,7 @@ async function saveCatCriaSessao(){
     venue_name:sala,
     program_id:pid||'',
     subprogram_id:sid||'',
+    show_id:_catCriaSessShowId||'',
     session_description:'',
     films:_catCriaSessFilms.slice(),
     bumpers:_catCriaSessBumpers.slice(),
@@ -26505,7 +26533,7 @@ function _sxcPrint(){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 14/07/2026 às 09:33</span></div>
+<div id="page-footer"><span>última atualização · 14/07/2026 às 09:37</span></div>
 
 </div>
 

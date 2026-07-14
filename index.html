@@ -17918,7 +17918,7 @@ function renderDash(){
   html+=colBlock('legendagem','Legendagem',legBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 14/07/2026 às 02:14';
+  var sysUpdate='última atualização do sistema · 14/07/2026 às 02:19';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -18119,6 +18119,16 @@ async function openShowsPanel(){
   _showsPanelRender();
 }
 function closeShowsPanel(){var m=document.getElementById('showsPanelModal');if(m)m.style.display='none';}
+async function openShowsPanelFromFilm(filmCode){
+  var f=filmesMap[filmCode]||{};
+  var meta=(catalogoFilmesMap&&catalogoFilmesMap[filmCode])||{};
+  await openShowsPanel();
+  var ev=f.evento||meta.evento||'';
+  if(ev)_showsPanelState.ev=ev;
+  _showsPanelState.creating=true;_showsPanelState.editId=null;
+  _showEdFilms=[filmCode];
+  _showsPanelRender();
+}
 function _showsPanelEventos(){
   var set=new Set();
   (sessoesArr||[]).forEach(function(s){if(s.evento)set.add(s.evento);});
@@ -22001,7 +22011,8 @@ function renderCatDetail(){
   var sessoes=sessoesArr.filter(function(s){return s.filmes&&s.filmes.indexOf(_catCode)!==-1;})
     .sort(function(a,b){return(a.date&&b.date?a.date-b.date:0)||(a.time&&b.time?(a.time.h*60+a.time.m)-(b.time.h*60+b.time.m):0);});
   var _canEditSess=window._olgaUser&&window._olgaCanEdit&&window._olgaCanEdit('programacao')&&!(window._olgaHasRestricao&&window._olgaHasRestricao('sessoes.somente_vinhetas'));
-  var _newSessBtn=_canEditSess?'<button class="cat-edit-btn" style="margin-bottom:10px;" onclick="openCatCriaSessao(\''+_catCode.replace(/\'/g,"\\\'")+'\')">+ Criar sessão a partir do filme</button>':'';
+  var _newSessBtn=_canEditSess?'<button class="cat-edit-btn" style="margin-bottom:10px;" onclick="openCatCriaSessao(\''+_catCode.replace(/\'/g,"\\\'")+'\')">+ Criar sessão a partir do filme</button>'
+    +'<button class="cat-edit-btn" style="margin-bottom:10px;margin-left:6px;" onclick="openShowsPanelFromFilm(\''+_catCode.replace(/\'/g,"\\\'")+'\')">+ Criar programa a partir do filme</button>':'';
   if(sessoes.length){
     var sh='<div class="cat-sess-list">';
     sessoes.forEach(function(s){
@@ -26463,7 +26474,7 @@ function _sxcPrint(){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 14/07/2026 às 02:14</span></div>
+<div id="page-footer"><span>última atualização · 14/07/2026 às 02:19</span></div>
 
 </div>
 

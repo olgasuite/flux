@@ -14573,15 +14573,16 @@ function _revRenderTabelaDiaPages(evName,evBg,evText,mostras,msr,allPages,startP
 function _revMakeCoverPage(evName,evBg,evText,mostras,salaParaComplexo,pageNum){
   var eventSess=sessoesArr.filter(function(s){return s.evento===evName;});
   var complexosSet={},complexosList=[];
-  var allDates=[],titleSet={};
+  var allDates=[],titleSet={},showSet={};
   eventSess.forEach(function(s){
     if(s.cinema){var cx=salaParaComplexo[s.cinema]||s.cinema;if(!complexosSet[cx]){complexosSet[cx]=true;complexosList.push(cx);}}
     if(s.date)allDates.push(s.date);
     (s.filmes||[]).forEach(function(c){titleSet[c]=true;});
+    if(s.show_id)showSet[s.show_id]=true;
   });
   allDates.sort(function(a,b){return a-b;});
   var dMin=allDates[0]||null,dMax=allDates[allDates.length-1]||null;
-  var sessCount=eventSess.length,titleCount=Object.keys(titleSet).length;
+  var sessCount=eventSess.length,titleCount=Object.keys(titleSet).length,showCount=Object.keys(showSet).length;
 
   var page=document.createElement('div');
   page.className='rev-page';
@@ -14617,6 +14618,7 @@ function _revMakeCoverPage(evName,evBg,evText,mostras,salaParaComplexo,pageNum){
   var scol=document.createElement('div');scol.className='rev-cover-info-col';
   scol.innerHTML=
     '<div class="rev-cover-stat"><span class="rev-cover-stat-num">'+sessCount+'</span><span class="rev-cover-stat-lbl">sessões</span></div>'+
+    (showCount?'<div class="rev-cover-stat"><span class="rev-cover-stat-num">'+showCount+'</span><span class="rev-cover-stat-lbl">programas</span></div>':'')+
     '<div class="rev-cover-stat"><span class="rev-cover-stat-num">'+titleCount+'</span><span class="rev-cover-stat-lbl">filmes</span></div>';
   infoRow.appendChild(scol);
 
@@ -17918,7 +17920,7 @@ function renderDash(){
   html+=colBlock('legendagem','Legendagem',legBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 14/07/2026 às 10:16';
+  var sysUpdate='última atualização do sistema · 14/07/2026 às 10:18';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -26555,7 +26557,7 @@ function _sxcPrint(){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 14/07/2026 às 10:16</span></div>
+<div id="page-footer"><span>última atualização · 14/07/2026 às 10:18</span></div>
 
 </div>
 

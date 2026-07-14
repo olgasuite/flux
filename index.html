@@ -4342,6 +4342,20 @@ html[data-theme="indexof"]:not([data-theme="win98"]) .module-icon{display:flex!i
     remove: async function(id) { await deleteDoc(doc(db, 'subprograms', id)); }
   };
 
+  // API shows — "Programa" na UI: conjunto ordenado de filmes reutilizado por várias sessões.
+  // A sessão vinculada guarda show_id E a cópia materializada em films (leituras não mudam);
+  // editar o programa propaga films para as sessões vinculadas.
+  window._olgaShows = {
+    list: async function() {
+      var snap = await getDocs(collection(db, 'shows'));
+      var arr = [];
+      snap.forEach(function(d) { arr.push({ id: d.id, data: d.data() }); });
+      return arr;
+    },
+    save: async function(id, data) { await setDoc(doc(db, 'shows', id), data, {merge:true}); },
+    remove: async function(id) { await deleteDoc(doc(db, 'shows', id)); }
+  };
+
   // API sessoes — escrita com merge (campos ausentes são preservados; sem leitura prévia)
   window._olgaSessoes = {
     save: async function(id, data) {
@@ -4373,7 +4387,7 @@ html[data-theme="indexof"]:not([data-theme="win98"]) .module-icon{display:flex!i
         if(Array.isArray(r['bumpers'])&&r['bumpers'].length){r['bumpers'].forEach(function(vc){var vcs=_fs(vc);if(vcs&&vcs!=='-'&&!/^=/.test(vcs))vin2.push(vcs);});}
         else{for(var vi=1;vi<=10;vi++){var vc=_fs(r['bumper_'+vi]);if(vc&&vc!=='-'&&!/^=/.test(vc))vin2.push(vc);}}
         var dv=_fs(r['date']),tv=_fs(r['time']);
-        var s={nome:nome,cinema:_fs(r['venue_name']),local_livre:_fs(r['venue_custom']),dia:_fd(dv),hora:tv?tv.slice(0,5):'—',filmes:codes,date:_pd(dv),time:_pt(tv),evento:evento,vinhetas:vin2,convidados:_fs(r['guests']),apresentacao:_fs(r['has_introduction']),publico:_fs(r['total_audience']),renda:_fs(r['total_revenue']),ingressos:_fs(r['reserved_tickets']),leg_eletronica:_fs(r['has_electronic_subtitles']),acessibilidades:_fs(r['available_accessibility']),col_ag:_fs(r['has_debate']),para_convidados:_fs(r['for_guests']),name:_fs(r['name']),program_id:_fs(r['program_id']),_docId:d.id,subprogram_id:_fs(r['subprogram_id']),session_description:_fs(r['session_description']),notes:_fs(r['notes']),operador:_parseOperadores(r['subtitle_operators']),template_id:_fs(r['template_id'])};
+        var s={nome:nome,cinema:_fs(r['venue_name']),local_livre:_fs(r['venue_custom']),dia:_fd(dv),hora:tv?tv.slice(0,5):'—',filmes:codes,date:_pd(dv),time:_pt(tv),evento:evento,vinhetas:vin2,convidados:_fs(r['guests']),apresentacao:_fs(r['has_introduction']),publico:_fs(r['total_audience']),renda:_fs(r['total_revenue']),ingressos:_fs(r['reserved_tickets']),leg_eletronica:_fs(r['has_electronic_subtitles']),acessibilidades:_fs(r['available_accessibility']),col_ag:_fs(r['has_debate']),para_convidados:_fs(r['for_guests']),name:_fs(r['name']),program_id:_fs(r['program_id']),_docId:d.id,subprogram_id:_fs(r['subprogram_id']),session_description:_fs(r['session_description']),notes:_fs(r['notes']),operador:_parseOperadores(r['subtitle_operators']),template_id:_fs(r['template_id']),show_id:_fs(r['show_id'])};
         a2.push(s);m2[nome]=s;
         codes.forEach(function(c){if(!r2[c])r2[c]=[];r2[c].push(nome);});
         vin2.forEach(function(c){if(!vr2[c])vr2[c]=[];vr2[c].push(nome);});
@@ -5324,7 +5338,8 @@ html[data-theme="indexof"]:not([data-theme="win98"]) .module-icon{display:flex!i
           subprogram_id: fs(r['subprogram_id']), session_description: fs(r['session_description']),
           notes: fs(r['notes']),
           operador: _parseOperadores(r['subtitle_operators']),
-          template_id: fs(r['template_id'])
+          template_id: fs(r['template_id']),
+          show_id: fs(r['show_id'])
         };
         arr.push(s); map[nome] = s;
         codes.forEach(function(c) { if (!brev[c]) brev[c] = []; brev[c].push(nome); });
@@ -6071,6 +6086,7 @@ window.addEventListener('DOMContentLoaded',function(){
   <input type="text" id="sessoesTituloInput" placeholder="título, diretor, idioma…" style="height:28px;padding:0 8px;border:1px solid var(--border);border-radius:4px;background:var(--surface);color:var(--text);font-family:var(--mono);font-size:10px;min-width:220px;margin-left:4px;" oninput="_sessoesFiltroTitulo=this.value;var _s=this.selectionStart,_e=this.selectionEnd;renderSessoes();this.focus();this.setSelectionRange(_s,_e);">
   <input type="date" id="sessoesDataInput" style="height:28px;padding:0 6px;border:1px solid var(--border);border-radius:4px;background:var(--surface);color:var(--text);font-family:var(--mono);font-size:10px;margin-left:4px;" onchange="_sessoesFiltroData=this.value;renderSessoes();">
   <button class="print-btn" id="btnSessoesBatch" onclick="_sessoesBatchToggleMode()" style="margin-left:8px;display:none;">☑ Selecionar sessões</button>
+  <button class="print-btn" id="btnSessoesProgramas" onclick="openShowsPanel()" style="margin-left:6px;">⧉ Programas</button>
   <button class="print-btn" id="btnSessoesExportCinemas" onclick="openSessoesExportCinemas()" style="margin-left:6px;">⤓ Exportar para cinemas</button>
 </div>
 <div class="mode-bar hidden" id="barBusca">
@@ -7245,7 +7261,7 @@ function _olgaPreBackup(op,docs,extra){
 function _restSessDoc(s){
   var d={session_id:s.nome,name:s.name||'',event_name:s.evento||'',
     venue_name:s.cinema||'',venue_custom:s.local_livre||'',program_id:s.program_id||'',subprogram_id:s.subprogram_id||'',
-    session_description:s.session_description||'',template_id:s.template_id||'',
+    session_description:s.session_description||'',template_id:s.template_id||'',show_id:s.show_id||'',
     films:Array.isArray(s.filmes)?s.filmes:[],bumpers:Array.isArray(s.vinhetas)?s.vinhetas:[],
     guests:s.convidados||'',has_introduction:s.apresentacao||'',has_debate:s.col_ag||'',
     for_guests:s.para_convidados||'',has_electronic_subtitles:s.leg_eletronica||'',
@@ -7348,6 +7364,7 @@ async function _olgaRestoreBackup(payload){
       else if(item.tipo==='triagem')planTriagem(dd.festival_code,dd);
       else if(item.tipo==='mostra'&&dd.id)plan.push({label:'mostra '+dd.id,fn:function(){return window._olgaPrograms.save(dd.id,dd.data||{});}});
       else if(item.tipo==='submostra'&&dd.id)plan.push({label:'submostra '+dd.id,fn:function(){return window._olgaSubprograms.save(dd.id,dd.data||{});}});
+      else if(item.tipo==='show'&&dd.id)plan.push({label:'programa '+dd.id,fn:function(){return window._olgaShows.save(dd.id,dd.data||{});}});
       else if(item.tipo==='evento'&&dd.id)plan.push({label:'evento '+dd.id,fn:function(){return window._olgaEventos.save(dd.id,dd.data||{});}});
       else if(item.tipo==='cinema')planCinema(dd);
     }else if(item.tipo==='legfile'&&item.id&&item.data&&window._olgaLegFiles){
@@ -17901,7 +17918,7 @@ function renderDash(){
   html+=colBlock('legendagem','Legendagem',legBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 14/07/2026 às 01:49';
+  var sysUpdate='última atualização do sistema · 14/07/2026 às 02:14';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -18020,6 +18037,267 @@ var _usedIds={films:{},programs:{},subprograms:{},sessoes:{}};
 var _progProgramEditId=null,_progSubprogramEditId=null,_progSubprogramProgramId=null;
 var _progSessaoEditNome=null,_progSessaoContextProgramId=null,_progSessaoContextSubId=null;
 var _progSessaoFilmsArr=[],_progSessaoBumpersArr=[],_progSessaoVinOnly=false,_progSessaoTemplateId='';
+var _progSessaoShowId='',_progSessaoEvNome='';
+
+/* === Programas (coleção shows) — conjunto de filmes reutilizável entre sessões === */
+var _showsCache=null;
+async function _ensureShowsLoaded(force){
+  if(_showsCache&&!force&&!(window._olgaCacheExpired&&window._olgaCacheExpired('shows',10*60*1000)))return _showsCache;
+  if(!window._olgaShows){_showsCache=_showsCache||[];return _showsCache;}
+  _showsCache=await window._olgaShows.list();
+  if(window._olgaCacheTouch)window._olgaCacheTouch('shows');
+  return _showsCache;
+}
+function _showById(id){return(_showsCache||[]).find(function(x){return x.id===id;})||null;}
+function _showsOfEvent(ev,evNome){
+  return(_showsCache||[]).filter(function(x){var e=(x.data&&x.data.event_name)||'';return e===ev||(evNome&&e===evNome);})
+    .sort(function(a,b){return((a.data&&a.data.name)||a.id).localeCompare((b.data&&b.data.name)||b.id,'pt-BR',{sensitivity:'base'});});
+}
+function _showSessions(id){return(sessoesArr||[]).filter(function(s){return s.show_id===id;});}
+function _progSessaoRenderShowSelect(){
+  var row=document.getElementById('progSessaoShowRow'),sel=document.getElementById('progSessaoShowSelect');
+  if(!row||!sel)return;
+  var shows=_showsOfEvent(_progSessaoEvento,_progSessaoEvNome);
+  if(!shows.length&&!_progSessaoShowId){row.style.display='none';return;}
+  var opts='<option value="">— sem programa (filmes manuais) —</option>'+shows.map(function(sh){
+    var n=(sh.data&&sh.data.name)||sh.id;
+    var nf=(sh.data&&Array.isArray(sh.data.films))?sh.data.films.length:0;
+    return'<option value="'+esc(sh.id)+'"'+(sh.id===_progSessaoShowId?' selected':'')+'>'+esc(n)+' ('+nf+' filme'+(nf!==1?'s':'')+')</option>';
+  }).join('');
+  // vínculo com programa que não está mais no cache (ex.: excluído) — mantém visível
+  if(_progSessaoShowId&&!shows.some(function(sh){return sh.id===_progSessaoShowId;})){
+    opts+='<option value="'+esc(_progSessaoShowId)+'" selected>'+esc(_progSessaoShowId)+' (não encontrado)</option>';
+  }
+  sel.innerHTML=opts;
+  row.style.display='';
+  _progSessaoShowHintUpd();
+}
+function _progSessaoShowHintUpd(){
+  var h=document.getElementById('progSessaoShowHint');
+  if(h)h.style.display=_progSessaoShowId?'':'none';
+}
+function _progSessaoShowChanged(id){
+  _progSessaoShowId=id||'';
+  if(id){
+    var sh=_showById(id);
+    if(sh&&sh.data&&Array.isArray(sh.data.films)){_progSessaoFilmsArr=sh.data.films.slice();_progRenderFilmsEdit();}
+  }
+  _progSessaoShowHintUpd();
+}
+async function _progSessaoMakeShow(){
+  if(!(window._olgaCanEdit&&window._olgaCanEdit('programacao'))){alert('Sem permissão para criar programas.');return;}
+  if(!_progSessaoFilmsArr.length){alert('Adicione filmes antes de salvar como programa.');return;}
+  var nome=prompt('Nome do novo programa (conjunto de '+_progSessaoFilmsArr.length+' filme'+(_progSessaoFilmsArr.length!==1?'s':'')+'):');
+  if(!nome||!nome.trim())return;
+  var id='show_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,7);
+  var dataShow={event_name:_progSessaoEvento||'',name:nome.trim(),films:_progSessaoFilmsArr.slice()};
+  try{
+    await window._olgaShows.save(id,dataShow);
+    window._logFirestoreEdit&&window._logFirestoreEdit('individual',id,dataShow,'programacao','shows');
+    _showsCache=_showsCache||[];_showsCache.push({id:id,data:dataShow});
+    _progSessaoShowId=id;
+    _progSessaoRenderShowSelect();
+    _progRenderFilmsEdit();
+  }catch(e){alert('Erro ao criar programa: '+e.message);}
+}
+
+/* === Painel de gestão de Programas === */
+var _showsPanelState={ev:'',editId:null,creating:false};
+var _showEdFilms=[];
+async function openShowsPanel(){
+  var modal=document.getElementById('showsPanelModal');
+  if(!modal){modal=document.createElement('div');modal.id='showsPanelModal';modal.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,0.78);z-index:700;display:flex;align-items:center;justify-content:center;padding:20px;';document.body.appendChild(modal);}
+  modal.style.display='flex';
+  modal.innerHTML='<div style="background:var(--surface);border:1px solid var(--border);width:100%;max-width:720px;max-height:90vh;display:flex;flex-direction:column;color:var(--text);padding:30px;font-family:var(--mono);font-size:11px;">Carregando programas…</div>';
+  try{await _ensureShowsLoaded(true);}catch(e){}
+  if(!_showsPanelState.ev){
+    var evs=_showsPanelEventos();
+    var withShows=evs.find(function(ev){return _showsOfEvent(ev,ev).length;});
+    _showsPanelState.ev=withShows||evs[0]||'';
+  }
+  _showsPanelState.editId=null;_showsPanelState.creating=false;
+  _showsPanelRender();
+}
+function closeShowsPanel(){var m=document.getElementById('showsPanelModal');if(m)m.style.display='none';}
+function _showsPanelEventos(){
+  var set=new Set();
+  (sessoesArr||[]).forEach(function(s){if(s.evento)set.add(s.evento);});
+  (filmesArr||[]).forEach(function(f){if(f.evento)set.add(f.evento);});
+  (_showsCache||[]).forEach(function(sh){if(sh.data&&sh.data.event_name)set.add(sh.data.event_name);});
+  return Array.from(set).sort(function(a,b){return a.localeCompare(b,'pt-BR');});
+}
+function _showsPanelRender(){
+  var modal=document.getElementById('showsPanelModal');if(!modal)return;
+  var canEdit=!!(window._olgaCanEdit&&window._olgaCanEdit('programacao'));
+  var st=_showsPanelState;
+  var head='<div style="display:flex;align-items:center;justify-content:space-between;padding:14px 20px;border-bottom:1px solid var(--border);">'
+    +'<span style="font-family:var(--mono);font-size:11px;font-weight:600;letter-spacing:0.18em;text-transform:uppercase;color:var(--accent);">Programas — conjuntos de filmes</span>'
+    +'<button onclick="closeShowsPanel()" style="background:none;border:none;color:var(--text-muted);font-size:18px;cursor:pointer;">×</button>'
+    +'</div>';
+  var body='';
+  if(st.editId||st.creating){
+    var sh=st.editId?_showById(st.editId):null;
+    var nomeCur=sh&&sh.data?(sh.data.name||''):'';
+    var linked=st.editId?_showSessions(st.editId):[];
+    body='<div style="padding:18px 20px;display:flex;flex-direction:column;gap:12px;overflow-y:auto;">'
+      +'<div style="display:flex;flex-direction:column;gap:4px;"><label style="font-family:var(--mono);font-size:9px;color:var(--text-muted);letter-spacing:0.08em;text-transform:uppercase;">Nome do programa · evento '+esc(st.ev)+'</label>'
+      +'<input id="showEdName" class="cat-input" value="'+esc(nomeCur)+'" placeholder="ex: Programa Infantil 1"></div>'
+      +'<div style="display:flex;flex-direction:column;gap:4px;"><label style="font-family:var(--mono);font-size:9px;color:var(--text-muted);letter-spacing:0.08em;text-transform:uppercase;">Filmes (em ordem de exibição)</label>'
+      +'<div class="prog-films-list" id="showEdFilmsList"></div>'
+      +'<div class="prog-autocomplete-wrap" style="margin-top:6px;">'
+        +'<input id="showEdFilmSearch" type="text" class="prog-modal-input" placeholder="Buscar por código ou título…" oninput="_showEdFilmAutocomplete()" onblur="setTimeout(function(){var r=document.getElementById(\'showEdFilmResults\');if(r)r.style.display=\'none\';},200)">'
+        +'<div id="showEdFilmResults" class="prog-autocomplete-results"></div>'
+      +'</div></div>'
+      +(linked.length?'<div style="font-family:var(--mono);font-size:10px;color:var(--text-muted);">Sessões vinculadas ('+linked.length+'): '+linked.map(function(s){return esc(s.nome);}).join(' · ')+'<br>Ao salvar com filmes alterados, todas serão atualizadas (backup automático antes).</div>':'')
+      +'<div id="showEdErr" style="font-family:var(--mono);font-size:10px;color:var(--warn);display:none;"></div>'
+      +'</div>'
+      +'<div style="padding:12px 20px;border-top:1px solid var(--border);display:flex;gap:8px;justify-content:flex-end;">'
+      +'<button onclick="_showsPanelState.editId=null;_showsPanelState.creating=false;_showsPanelRender()" style="font-family:var(--mono);font-size:10px;padding:7px 14px;background:transparent;color:var(--text-dim);border:1px solid var(--border);cursor:pointer;">← Voltar</button>'
+      +'<button id="showEdSaveBtn" onclick="_showsPanelSave()" style="font-family:var(--mono);font-size:10px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;padding:7px 20px;background:var(--accent);color:var(--on-accent);border:none;cursor:pointer;">Salvar programa</button>'
+      +'</div>';
+  }else{
+    var evs=_showsPanelEventos();
+    var evOpts=evs.map(function(ev){return'<option value="'+esc(ev)+'"'+(ev===st.ev?' selected':'')+'>'+esc(ev)+'</option>';}).join('');
+    var shows=_showsOfEvent(st.ev,st.ev);
+    var rows=shows.map(function(sh){
+      var nf=(sh.data&&Array.isArray(sh.data.films))?sh.data.films.length:0;
+      var ns=_showSessions(sh.id).length;
+      return'<div style="display:flex;align-items:center;gap:10px;padding:8px 10px;border:1px solid var(--border);background:var(--surface2);">'
+        +'<div style="flex:1;min-width:0;"><div style="font-family:var(--sans);font-size:12px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+esc((sh.data&&sh.data.name)||sh.id)+'</div>'
+        +'<div style="font-family:var(--mono);font-size:9px;color:var(--text-muted);margin-top:2px;">'+nf+' filme'+(nf!==1?'s':'')+' · '+ns+' sessão(ões) vinculada(s)</div></div>'
+        +(canEdit?'<button class="print-btn" onclick="_showsPanelEdit(\''+sh.id+'\')">editar</button><button class="print-btn" style="color:var(--warn);border-color:var(--warn);" onclick="_showsPanelDelete(\''+sh.id+'\')">excluir</button>':'')
+        +'</div>';
+    }).join('');
+    body='<div style="padding:18px 20px;display:flex;flex-direction:column;gap:12px;overflow-y:auto;">'
+      +'<div style="display:flex;align-items:center;gap:10px;">'
+        +'<label style="font-family:var(--mono);font-size:9px;color:var(--text-muted);letter-spacing:0.08em;text-transform:uppercase;">Evento</label>'
+        +'<select class="cat-input" style="max-width:280px;" onchange="_showsPanelState.ev=this.value;_showsPanelRender()">'+evOpts+'</select>'
+        +(canEdit?'<button class="print-btn" style="margin-left:auto;" onclick="_showsPanelNew()">+ Novo programa</button>':'')
+      +'</div>'
+      +'<div style="font-family:var(--mono);font-size:9px;color:var(--text-muted);">Um programa reúne um conjunto de filmes; várias sessões podem apontar para o mesmo programa. Editar o programa atualiza os filmes de todas as sessões vinculadas.</div>'
+      +'<div style="display:flex;flex-direction:column;gap:6px;">'+(rows||'<div style="font-family:var(--mono);font-size:10px;color:var(--text-muted);padding:16px 0;">Nenhum programa neste evento.</div>')+'</div>'
+      +'</div>';
+  }
+  modal.innerHTML='<div style="background:var(--surface);border:1px solid var(--border);width:100%;max-width:720px;max-height:90vh;display:flex;flex-direction:column;color:var(--text);">'+head+body+'</div>';
+  if(st.editId||st.creating)_showEdRenderFilms();
+}
+function _showsPanelNew(){
+  _showsPanelState.creating=true;_showsPanelState.editId=null;_showEdFilms=[];
+  _showsPanelRender();
+}
+function _showsPanelEdit(id){
+  var sh=_showById(id);if(!sh)return;
+  _showsPanelState.editId=id;_showsPanelState.creating=false;
+  _showEdFilms=(sh.data&&Array.isArray(sh.data.films))?sh.data.films.slice():[];
+  _showsPanelRender();
+}
+function _showEdRenderFilms(){
+  var c=document.getElementById('showEdFilmsList');if(!c)return;
+  if(!_showEdFilms.length){c.innerHTML='<span style="font-family:var(--mono);font-size:10px;color:var(--text-muted);">Nenhum filme.</span>';return;}
+  c.innerHTML=_showEdFilms.map(function(cod,i){
+    var cm=(catalogoFilmesMap&&catalogoFilmesMap[cod])||{};var f=filmesMap[cod]||{};
+    var label=cm.title_pt||f.titulo||cod;
+    return'<div style="display:flex;align-items:center;gap:6px;padding:4px 0;border-bottom:1px solid var(--border);">'
+      +'<span style="font-family:var(--mono);font-size:9px;color:var(--text-muted);min-width:16px;">'+(i+1)+'</span>'
+      +'<span style="font-family:var(--sans);font-size:11px;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="'+esc(label)+'">'+esc(label)+'</span>'
+      +'<span style="font-family:var(--mono);font-size:9px;color:var(--text-muted);">'+esc(cod)+'</span>'
+      +(i>0?'<button style="background:none;border:none;cursor:pointer;color:var(--text-muted);padding:0 2px;" onclick="_showEdFilmsMv('+i+',-1)">↑</button>':'<span style="width:18px;"></span>')
+      +(i<_showEdFilms.length-1?'<button style="background:none;border:none;cursor:pointer;color:var(--text-muted);padding:0 2px;" onclick="_showEdFilmsMv('+i+',1)">↓</button>':'<span style="width:18px;"></span>')
+      +'<button style="background:none;border:none;cursor:pointer;color:var(--warn);font-size:14px;padding:0 2px;line-height:1;" onclick="_showEdFilms.splice('+i+',1);_showEdRenderFilms()">×</button>'
+      +'</div>';
+  }).join('');
+}
+function _showEdFilmsMv(i,d){var a=_showEdFilms,j=i+d;if(j<0||j>=a.length)return;var t=a[i];a[i]=a[j];a[j]=t;_showEdRenderFilms();}
+function _showEdFilmAutocomplete(){
+  var inp=document.getElementById('showEdFilmSearch'),res=document.getElementById('showEdFilmResults');
+  if(!inp||!res)return;
+  var q=(inp.value||'').trim().toLowerCase();
+  if(q.length<2){res.style.display='none';return;}
+  var ev=_showsPanelState.ev;
+  var matches=(filmesArr||[]).filter(function(f){
+    if(_showEdFilms.indexOf(f.codigo)>=0)return false;
+    if(ev&&f.evento&&f.evento!==ev)return false;
+    return f.codigo.toLowerCase().includes(q)||(f.titulo||'').toLowerCase().includes(q)||((catalogoFilmesMap&&catalogoFilmesMap[f.codigo]&&catalogoFilmesMap[f.codigo].title_pt)||'').toLowerCase().includes(q);
+  }).slice(0,10);
+  if(!matches.length){res.innerHTML='<div class="prog-autocomplete-item" style="color:var(--text-muted);">Sem resultados.</div>';res.style.display='block';return;}
+  res.innerHTML=matches.map(function(f){
+    var cm=(catalogoFilmesMap&&catalogoFilmesMap[f.codigo])||{};var label=cm.title_pt||f.titulo||f.codigo;
+    var safeCod=f.codigo.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+    return'<div class="prog-autocomplete-item" onmousedown="_showEdAddFilm(\''+safeCod+'\')">'+esc(label)+' <span style="color:var(--text-muted);">'+esc(f.codigo)+'</span></div>';
+  }).join('');
+  res.style.display='block';
+}
+function _showEdAddFilm(cod){
+  if(_showEdFilms.indexOf(cod)<0)_showEdFilms.push(cod);
+  var inp=document.getElementById('showEdFilmSearch');if(inp)inp.value='';
+  var res=document.getElementById('showEdFilmResults');if(res)res.style.display='none';
+  _showEdRenderFilms();
+}
+async function _showsPanelSave(){
+  var st=_showsPanelState;
+  var errEl=document.getElementById('showEdErr');
+  function err(m){if(errEl){errEl.textContent=m;errEl.style.display='block';}}
+  var nome=(document.getElementById('showEdName').value||'').trim();
+  if(!nome){err('Nome do programa obrigatório.');return;}
+  if(!_showEdFilms.length){err('Adicione ao menos um filme.');return;}
+  var btn=document.getElementById('showEdSaveBtn');if(btn){btn.disabled=true;btn.textContent='Salvando…';}
+  try{
+    var id=st.editId||('show_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,7));
+    var old=st.editId?_showById(st.editId):null;
+    var filmsChanged=!old||JSON.stringify((old.data&&old.data.films)||[])!==JSON.stringify(_showEdFilms);
+    var dataShow={event_name:st.ev||'',name:nome,films:_showEdFilms.slice()};
+    // Propagação: sessões vinculadas recebem o novo conjunto de filmes
+    var linked=st.editId?_showSessions(st.editId):[];
+    if(st.editId&&filmsChanged&&linked.length){
+      if(!confirm('O conjunto de filmes deste programa mudou.\n\n'+linked.length+' sessão(ões) vinculada(s) terão os filmes atualizados:\n'+linked.map(function(s){return s.nome;}).slice(0,10).join('\n')+(linked.length>10?'\n…':'')+'\n\nContinuar?')){
+        if(btn){btn.disabled=false;btn.textContent='Salvar programa';}
+        return;
+      }
+      _olgaPreBackup('programa-editar-filmes',[{tipo:'show',doc:{id:id,data:(old&&old.data)||{}}}].concat(linked),'programa '+nome);
+    }
+    await window._olgaShows.save(id,dataShow);
+    window._logFirestoreEdit&&window._logFirestoreEdit('individual',id,dataShow,'programacao','shows');
+    if(st.editId&&filmsChanged){
+      for(var i=0;i<linked.length;i++){
+        var s=linked[i];
+        await window._olgaSessoes.saveField(s._docId||s.nome,{films:_showEdFilms.slice()});
+        s.filmes=_showEdFilms.slice();
+        window._logFirestoreEdit&&window._logFirestoreEdit('batch',s.nome,{films:_showEdFilms},'programacao','sessoes');
+      }
+      await window._olgaSessoes.reload();
+    }
+    // atualizar cache local
+    _showsCache=_showsCache||[];
+    var idx=_showsCache.findIndex(function(x){return x.id===id;});
+    if(idx>=0)_showsCache[idx]={id:id,data:dataShow};else _showsCache.push({id:id,data:dataShow});
+    st.editId=null;st.creating=false;
+    _showsPanelRender();
+    if(typeof renderSessoes==='function'&&currentMode==='sessoes')renderSessoes();
+  }catch(e){err('Erro: '+e.message);}
+  finally{if(btn){btn.disabled=false;btn.textContent='Salvar programa';}}
+}
+async function _showsPanelDelete(id){
+  var sh=_showById(id);if(!sh)return;
+  var nome=(sh.data&&sh.data.name)||id;
+  var linked=_showSessions(id);
+  var msg='Excluir o programa "'+nome+'"?';
+  if(linked.length)msg+='\n\n'+linked.length+' sessão(ões) vinculada(s) serão DESVINCULADAS (mantêm os filmes atuais como manuais):\n'+linked.map(function(s){return s.nome;}).slice(0,10).join('\n')+(linked.length>10?'\n…':'');
+  if(!confirm(msg))return;
+  try{
+    _olgaPreBackup('programa-excluir',[{tipo:'show',doc:{id:id,data:sh.data||{}}}].concat(linked),'programa '+nome);
+    for(var i=0;i<linked.length;i++){
+      var s=linked[i];
+      await window._olgaSessoes.saveField(s._docId||s.nome,{show_id:''});
+      s.show_id='';
+      window._logFirestoreEdit&&window._logFirestoreEdit('batch',s.nome,{show_id:''},'programacao','sessoes');
+    }
+    await window._olgaShows.remove(id);
+    window._logFirestoreEdit&&window._logFirestoreEdit('delete',id,{},'programacao','shows');
+    _showsCache=(_showsCache||[]).filter(function(x){return x.id!==id;});
+    if(linked.length)await window._olgaSessoes.reload();
+    _showsPanelRender();
+  }catch(e){alert('Erro ao excluir: '+e.message);}
+}
 var _progSessaoConvidadosTags=[],_progSessaoEvento='';
 var _progVinTemplates=[];
 var _progFiltroTitulo='',_progFiltroComplexo='',_progFiltroCinema='',_progFiltroData='';
@@ -19175,6 +19453,10 @@ function openProgSessaoModal(sessaoNome,programId,subprogramId){
   _progSessaoFilmsArr=s?s.filmes.slice():[];
   _progSessaoBumpersArr=s?(s.vinhetas||[]).slice():[];
   _progSessaoTemplateId=(s&&s.template_id)||'';
+  _progSessaoShowId=(s&&s.show_id)||'';
+  _progSessaoEvNome=evNome||'';
+  var _showRowEl=document.getElementById('progSessaoShowRow');if(_showRowEl)_showRowEl.style.display='none';
+  _ensureShowsLoaded().then(function(){_progSessaoRenderShowSelect();}).catch(function(){});
   // Vinheta templates select
   var evTemplates=_vinTemplatesCache[ev]||[];
   var tmplOpts=evTemplates.map(function(t,i){return'<option value="'+i+'">'+esc(t.name||'Template '+(i+1))+'</option>';}).join('');
@@ -19218,7 +19500,7 @@ function openProgSessaoModal(sessaoNome,programId,subprogramId){
   document.getElementById('progSessaoModalErr').style.display='none';
   _progSessaoVinOnly=!!(sessaoNome&&window._olgaHasRestricao('sessoes.somente_vinhetas'));
   _progRenderFilmsEdit();_progRenderBumpersEdit();
-  ['progSessaoName','progSessaoDate','progSessaoTime','progSessaoCinemaSelect','progSessaoSubprogramSelect','progSessaoDesc','progSessaoIngressos','progSessaoAcessibilidade','progSessaoApresentacao','progSessaoLegEletronica','progSessaoDebate','progSessaoParaConvidados','progFilmSearch'].forEach(function(fid){var el=document.getElementById(fid);if(el){el.disabled=_progSessaoVinOnly;el.style.opacity=_progSessaoVinOnly?'0.4':'';}});
+  ['progSessaoName','progSessaoDate','progSessaoTime','progSessaoCinemaSelect','progSessaoSubprogramSelect','progSessaoShowSelect','progSessaoDesc','progSessaoIngressos','progSessaoAcessibilidade','progSessaoApresentacao','progSessaoLegEletronica','progSessaoDebate','progSessaoParaConvidados','progFilmSearch'].forEach(function(fid){var el=document.getElementById(fid);if(el){el.disabled=_progSessaoVinOnly;el.style.opacity=_progSessaoVinOnly?'0.4':'';}});
   document.getElementById('progSessaoModalTitle').textContent=_progSessaoVinOnly?'editar vinhetas · '+sessaoNome:'';
   document.getElementById('progSessaoModal').style.display='flex';
   _progRenderConvidadosTags();
@@ -19324,6 +19606,8 @@ function _progLocalCanonico(txt){
 }
 function _progRenderFilmsEdit(){
   var c=document.getElementById('progSessaoFilmsList');if(!c)return;
+  var _mkBtn=document.getElementById('progSessaoMakeShowBtn');
+  if(_mkBtn)_mkBtn.style.display=(!_progSessaoShowId&&_progSessaoFilmsArr.length&&!_progSessaoVinOnly&&window._olgaCanEdit&&window._olgaCanEdit('programacao'))?'':'none';
   if(!_progSessaoFilmsArr.length){c.innerHTML='<span style="font-family:var(--mono);font-size:10px;color:var(--text-muted);">Nenhum filme.</span>';return;}
   c.innerHTML=_progSessaoFilmsArr.map(function(cod,i){
     var cm=(catalogoFilmesMap&&catalogoFilmesMap[cod])||{};var f=filmesMap[cod]||{};
@@ -19430,6 +19714,7 @@ async function saveProgSessaoModal(){
     subprogram_id:(document.getElementById('progSessaoSubprogramSelect').value)||_progSessaoContextSubId||'',
     session_description:(document.getElementById('progSessaoDesc').value||'').trim(),
     films:_progSessaoFilmsArr,bumpers:_progSessaoBumpersArr,template_id:_progSessaoTemplateId||'',
+    show_id:_progSessaoShowId||'',
     guests:_progSessaoConvidadosTags.join(', '),
     has_introduction:document.getElementById('progSessaoApresentacao').checked?'Sim':'Não',
     has_debate:document.getElementById('progSessaoDebate').checked?'Sim':'Não',
@@ -19441,6 +19726,18 @@ async function saveProgSessaoModal(){
     total_revenue:(sessoesMap[nome]&&sessoesMap[nome].renda)||'',
     notes:(sessoesMap[nome]&&sessoesMap[nome].notes)||''
   };
+  // Sessão vinculada a programa: alterar os filmes manualmente desvincula — sempre com aviso.
+  if(_progSessaoShowId){
+    var _shChk=_showById(_progSessaoShowId);
+    var _shFilms=(_shChk&&_shChk.data&&Array.isArray(_shChk.data.films))?_shChk.data.films:null;
+    if(_shFilms&&JSON.stringify(_progSessaoFilmsArr)!==JSON.stringify(_shFilms)){
+      var _shLbl=(_shChk.data&&_shChk.data.name)||_progSessaoShowId;
+      if(!confirm('Esta sessão está vinculada ao programa "'+_shLbl+'".\n\nOs filmes foram alterados aqui, e isso DESVINCULA a sessão do programa — o conjunto de filmes deve ser editado no próprio programa (painel Programas), onde a mudança vale para todas as sessões vinculadas.\n\nDesvincular esta sessão e salvar com os filmes alterados?'))return;
+      _progSessaoShowId='';data.show_id='';
+      var _shSel=document.getElementById('progSessaoShowSelect');if(_shSel)_shSel.value='';
+      _progSessaoShowHintUpd();
+    }
+  }
   var btn=document.getElementById('progSessaoModalSave');btn.disabled=true;btn.textContent='Salvando…';
   try{
     var _saveDocId=_progSessaoEditNome?((sessoesMap[nome]&&sessoesMap[nome]._docId)||nome):_sessaoNomeReal;
@@ -19454,7 +19751,7 @@ async function saveProgSessaoModal(){
         time:_ex2.time&&_ex2.time.str&&_ex2.time.str!=='?'?_ex2.time.str:'',
         venue_name:_ex2.cinema||'',venue_custom:_ex2.local_livre||'',program_id:_ex2.program_id||'',subprogram_id:_ex2.subprogram_id||'',
         session_description:_ex2.session_description||'',films:_ex2.filmes||[],bumpers:_ex2.vinhetas||[],
-        template_id:_ex2.template_id||'',guests:_ex2.convidados||'',
+        template_id:_ex2.template_id||'',show_id:_ex2.show_id||'',guests:_ex2.convidados||'',
         has_introduction:_ex2.apresentacao||'',has_debate:_ex2.col_ag||'',for_guests:_ex2.para_convidados||'',
         has_electronic_subtitles:_ex2.leg_eletronica||'',reserved_tickets:_ex2.ingressos||'',
         available_accessibility:_ex2.acessibilidades||'',
@@ -19513,7 +19810,7 @@ async function duplicateProgSessao(nome){
   var newNome=_progPromptSuffix('Sufixo para o código da sessão duplicada',base,n);
   if(!newNome)return;
   if(sessoesMap[newNome]){alert('Código já existe: '+newNome);return;}
-  var data={session_id:newNome,name:(s.name||nome),event_name:s.evento,date:s.date?s.date.toISOString().slice(0,10):'',time:s.time?s.time.str:'',venue_name:s.cinema,program_id:s.program_id||'',subprogram_id:s.subprogram_id||'',session_description:s.session_description||'',films:s.filmes.slice(),bumpers:s.vinhetas.slice(),guests:s.convidados||'',has_introduction:s.apresentacao||'Não',has_debate:s.col_ag||'Não',for_guests:s.para_convidados||'Não',has_electronic_subtitles:s.leg_eletronica||'Não',reserved_tickets:s.ingressos||'',available_accessibility:s.acessibilidades||''};
+  var data={session_id:newNome,name:(s.name||nome),event_name:s.evento,date:s.date?s.date.toISOString().slice(0,10):'',time:s.time?s.time.str:'',venue_name:s.cinema,program_id:s.program_id||'',subprogram_id:s.subprogram_id||'',show_id:s.show_id||'',session_description:s.session_description||'',films:s.filmes.slice(),bumpers:s.vinhetas.slice(),guests:s.convidados||'',has_introduction:s.apresentacao||'Não',has_debate:s.col_ag||'Não',for_guests:s.para_convidados||'Não',has_electronic_subtitles:s.leg_eletronica||'Não',reserved_tickets:s.ingressos||'',available_accessibility:s.acessibilidades||''};
   try{await window._olgaSessoes.save(newNome,data);await window._olgaSessoes.reload();if(typeof renderCatDetail==='function'&&document.getElementById('catalogo-container'))renderCatDetail();if(typeof _progRender==='function')_progRender();}
   catch(e){alert('Erro ao duplicar: '+e.message);}
 }
@@ -25781,9 +26078,17 @@ function _sxcPrint(){
         <label class="prog-modal-label">Descrição da sessão</label>
         <textarea id="progSessaoDesc" class="prog-modal-textarea" placeholder="Texto curatorial da sessão (opcional)" style="min-height:50px;"></textarea>
       </div>
+      <!-- Programa (coleção shows): conjunto de filmes compartilhado entre sessões -->
+      <div class="prog-modal-field" id="progSessaoShowRow" style="display:none;">
+        <label class="prog-modal-label">Programa</label>
+        <select id="progSessaoShowSelect" class="prog-modal-input" onchange="_progSessaoShowChanged(this.value)"></select>
+        <span id="progSessaoShowHint" style="font-family:var(--mono);font-size:9px;color:var(--text-muted);margin-top:3px;display:none;">Filmes definidos pelo programa. Alterar os filmes abaixo desvincula esta sessão — o conjunto deve ser editado no painel Programas.</span>
+      </div>
       <!-- Filmes -->
       <div class="prog-modal-field">
-        <label class="prog-modal-label">Filmes (em ordem de exibição)</label>
+        <label class="prog-modal-label" style="display:flex;align-items:center;gap:10px;">Filmes (em ordem de exibição)
+          <button type="button" id="progSessaoMakeShowBtn" onclick="_progSessaoMakeShow()" style="display:none;font-family:var(--mono);font-size:8px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;padding:2px 8px;background:transparent;color:var(--accent);border:1px solid var(--accent);cursor:pointer;">salvar como programa</button>
+        </label>
         <div class="prog-films-list" id="progSessaoFilmsList"></div>
         <div class="prog-autocomplete-wrap" style="margin-top:6px;">
           <input id="progFilmSearch" type="text" class="prog-modal-input" placeholder="Buscar por código ou título…" oninput="_progFilmAutocomplete()" onblur="setTimeout(function(){document.getElementById('progFilmResults').style.display='none';},200)">
@@ -26158,7 +26463,7 @@ function _sxcPrint(){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 14/07/2026 às 01:49</span></div>
+<div id="page-footer"><span>última atualização · 14/07/2026 às 02:14</span></div>
 
 </div>
 

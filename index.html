@@ -17920,7 +17920,7 @@ function renderDash(){
   html+=colBlock('legendagem','Legendagem',legBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 14/07/2026 às 10:43';
+  var sysUpdate='última atualização do sistema · 14/07/2026 às 23:55';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -18128,11 +18128,16 @@ function _showFindMatchingSessions(films,ev,evNome,excludeNome){
   });
 }
 async function _showLinkSessions(id,sessoes){
+  // Se o programa define mostra/submostra, o vínculo também as aplica às sessões
+  var sh=_showById(id);
+  var patch={show_id:id};
+  if(sh&&sh.data&&sh.data.program_id){patch.program_id=sh.data.program_id;patch.subprogram_id=sh.data.subprogram_id||'';}
   for(var i=0;i<sessoes.length;i++){
     var s=sessoes[i];
-    await window._olgaSessoes.saveField(s._docId||s.nome,{show_id:id});
+    await window._olgaSessoes.saveField(s._docId||s.nome,patch);
     s.show_id=id;
-    window._logFirestoreEdit&&window._logFirestoreEdit('batch',s.nome,{show_id:id},'programacao','sessoes');
+    if(patch.program_id!==undefined){s.program_id=patch.program_id;s.subprogram_id=patch.subprogram_id;}
+    window._logFirestoreEdit&&window._logFirestoreEdit('batch',s.nome,patch,'programacao','sessoes');
   }
   if(sessoes.length)await window._olgaSessoes.reload();
 }
@@ -18142,7 +18147,11 @@ async function _progSessaoMakeShow(){
   var nome=prompt('Nome do novo programa (conjunto de '+_progSessaoFilmsArr.length+' filme'+(_progSessaoFilmsArr.length!==1?'s':'')+'):');
   if(!nome||!nome.trim())return;
   var id='show_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,7);
-  var dataShow={event_name:_progSessaoEvento||'',name:nome.trim(),films:_progSessaoFilmsArr.slice()};
+  // Herda mostra/submostra da sessão de origem (mesma leitura do saveProgSessaoModal)
+  var _pSel=document.getElementById('progSessaoProgramSelect'),_pRow=document.getElementById('progSessaoProgramRow');
+  var _mkPid=(_pSel&&_pRow&&_pRow.style.display!=='none')?(_pSel.value||_progSessaoContextProgramId||''):(_progSessaoContextProgramId||'');
+  var _mkSid=((document.getElementById('progSessaoSubprogramSelect')||{}).value)||_progSessaoContextSubId||'';
+  var dataShow={event_name:_progSessaoEvento||'',name:nome.trim(),films:_progSessaoFilmsArr.slice(),program_id:_mkPid||'',subprogram_id:_mkPid?(_mkSid||''):''};
   try{
     await window._olgaShows.save(id,dataShow);
     window._logFirestoreEdit&&window._logFirestoreEdit('individual',id,dataShow,'programacao','shows');
@@ -18152,7 +18161,7 @@ async function _progSessaoMakeShow(){
     _progRenderFilmsEdit();
     // Outras sessões duplicadas (mesmo conjunto de filmes) podem ser vinculadas de uma vez
     var iguais=_showFindMatchingSessions(dataShow.films,_progSessaoEvento,_progSessaoEvNome,_progSessaoEditNome);
-    if(iguais.length&&confirm('Encontrada(s) '+iguais.length+' outra(s) sessão(ões) deste evento com exatamente o mesmo conjunto de filmes:\n'+iguais.map(function(s){return s.nome;}).slice(0,10).join('\n')+(iguais.length>10?'\n…':'')+'\n\nVincular todas ao programa "'+dataShow.name+'"?')){
+    if(iguais.length&&confirm('Encontrada(s) '+iguais.length+' outra(s) sessão(ões) deste evento com exatamente o mesmo conjunto de filmes:\n'+iguais.map(function(s){return s.nome;}).slice(0,10).join('\n')+(iguais.length>10?'\n…':'')+'\n\nVincular todas ao programa "'+dataShow.name+'"?'+(dataShow.program_id?'\n(a mostra/submostra do programa será aplicada a elas)':''))){
       await _showLinkSessions(id,iguais);
     }
   }catch(e){alert('Erro ao criar programa: '+e.message);}
@@ -18413,7 +18422,7 @@ async function _showsPanelSave(){
     // Programa novo: oferecer vínculo de sessões existentes com o mesmo conjunto de filmes
     if(!st.editId){
       var iguais=_showFindMatchingSessions(dataShow.films,st.ev,st.ev,null);
-      if(iguais.length&&confirm('Encontrada(s) '+iguais.length+' sessão(ões) deste evento com exatamente o mesmo conjunto de filmes:\n'+iguais.map(function(s){return s.nome;}).slice(0,10).join('\n')+(iguais.length>10?'\n…':'')+'\n\nVincular todas ao programa "'+dataShow.name+'"?')){
+      if(iguais.length&&confirm('Encontrada(s) '+iguais.length+' sessão(ões) deste evento com exatamente o mesmo conjunto de filmes:\n'+iguais.map(function(s){return s.nome;}).slice(0,10).join('\n')+(iguais.length>10?'\n…':'')+'\n\nVincular todas ao programa "'+dataShow.name+'"?'+(dataShow.program_id?'\n(a mostra/submostra do programa será aplicada a elas)':''))){
         await _showLinkSessions(id,iguais);
       }
     }
@@ -26658,7 +26667,7 @@ function _sxcPrint(){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 14/07/2026 às 10:43</span></div>
+<div id="page-footer"><span>última atualização · 14/07/2026 às 23:55</span></div>
 
 </div>
 

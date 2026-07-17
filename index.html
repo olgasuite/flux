@@ -15989,11 +15989,17 @@ function parseDurMinutes(v){
 function parseGB(v){if(!v)return null;var n=parseFloat(v.toString().replace(',','.'));return isNaN(n)?null:n;}
 
 function applyBuscaFilters(f){
-  var normMap={evento:'evento',hd:'hd',idioma:'idioma',legenda:'legenda',vf:'vf',lente:'lente',som:'som',kdm:'kdm',status:'status',col_k:'col_k',resolucao:'resolucao',fps:'fps',exhibition_format:'exhibition_format',col_n:'col_n'};
+  var normMap={evento:'evento',idioma:'idioma',legenda:'legenda',vf:'vf',lente:'lente',som:'som',kdm:'kdm',status:'status',col_k:'col_k',resolucao:'resolucao',fps:'fps',exhibition_format:'exhibition_format',col_n:'col_n'};
   for(var key in normMap){
     var val=(f[normMap[key]]||'').toString().trim();
     if(buscaFilters[key].size>0&&!buscaFilters[key].has(val))return false;
     if(buscaFilters[key+'_ex']&&buscaFilters[key+'_ex'].has(val))return false;
+  }
+  // hd é multivalor ("HD A; HD B") — basta um dos valores bater
+  if(buscaFilters.hd.size>0||buscaFilters.hd_ex.size>0){
+    var _hds=(f.hd||'').split(/[;]+/).map(function(x){return x.trim();}).filter(Boolean);
+    if(buscaFilters.hd.size>0&&!_hds.some(function(h){return buscaFilters.hd.has(h);}))return false;
+    if(_hds.some(function(h){return buscaFilters.hd_ex.has(h);}))return false;
   }
   if(buscaFilters.responsavel.size>0||buscaFilters.responsavel_ex.size>0){
     var _fm=catalogoFilmesMap&&catalogoFilmesMap[f.codigo];
@@ -16046,7 +16052,7 @@ function buildBuscaFilterPanel(){
 
   var fieldMap=[
     {key:'evento',label:'Evento',field:'evento'},
-    {key:'hd',label:'Storage / HD',field:'hd'},
+    {key:'hd',label:'Storage / HD',getVals:function(f){return(f.hd||'').split(/[;]+/).map(function(x){return x.trim();}).filter(Boolean);}},
     {key:'idioma',label:'Idioma',field:'idioma'},
     {key:'legenda',label:'Leg DCP',field:'legenda'},
     {key:'vf',label:'VF',field:'vf'},
@@ -17957,7 +17963,7 @@ function renderDash(){
   html+=colBlock('legendagem','Legendagem',legBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 17/07/2026 às 18:51';
+  var sysUpdate='última atualização do sistema · 17/07/2026 às 19:24';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -23698,6 +23704,20 @@ async function duplicateCatFilm(codigo){
 var _acervoEditIdx=-1;
 var _acervoOriginalData=null;
 var _aeAcessTags=[];
+var _aeHdTags=[];
+function _aeHdRender(){
+  var wrap=document.getElementById('ae_hd_wrap');if(!wrap)return;
+  var chips=_aeHdTags.map(function(t,i){return'<span class="convidados-tag-chip">'+esc(t)+'<button type="button" class="convidados-tag-rm" onmousedown="event.preventDefault();_aeHdRemove('+i+')">×</button></span>';}).join('');
+  wrap.innerHTML=chips+'<input id="ae_hd_inp" type="text" class="convidados-tag-input" autocomplete="off" placeholder="'+(!_aeHdTags.length?'HD/storage + Enter…':'')+'" onkeydown="_aeHdKeydown(event)">';
+  var h=document.getElementById('ae_hd');if(h)h.value=_aeHdTags.join('; ');
+}
+function _aeHdKeydown(e){
+  var inp=document.getElementById('ae_hd_inp');if(!inp)return;
+  var v=(inp.value||'').trim();
+  if(e.key==='Enter'){e.preventDefault();if(v&&_aeHdTags.indexOf(v)<0)_aeHdTags.push(v);inp.value='';_aeHdRender();setTimeout(function(){var ni=document.getElementById('ae_hd_inp');if(ni)ni.focus();},0);}
+  else if(e.key==='Backspace'&&!v&&_aeHdTags.length){_aeHdTags.pop();_aeHdRender();setTimeout(function(){var ni=document.getElementById('ae_hd_inp');if(ni)ni.focus();},0);}
+}
+function _aeHdRemove(i){_aeHdTags.splice(i,1);_aeHdRender();setTimeout(function(){var ni=document.getElementById('ae_hd_inp');if(ni)ni.focus();},0);}
 
 async function openAcervoEdit(idx){
   _acervoEditIdx=idx;
@@ -23758,7 +23778,7 @@ async function openAcervoEdit(idx){
     +'<div></div>'
     +'</div>'
     +'<div class="cat-grid">'
-    +aeRow('Storage / HD',aeInp('hd',f.hd))
+    +aeRow('Storage / HD','<div class="convidados-tag-wrap" id="ae_hd_wrap" onclick="var i=document.getElementById(\'ae_hd_inp\');if(i)i.focus()"></div><input type="hidden" id="ae_hd">')
     +aeRow('DCP Creator',aeInp('creator',f.col_k))
     +'</div>'
     +aeRow('DCP UUID',aeInp('uuid',f.dcp_uuid))
@@ -23775,6 +23795,8 @@ async function openAcervoEdit(idx){
   _langTagWidget('lw_ae_idioma','cldr',_aeIdioma?[_aeIdioma]:[]);
   _aeAcessTags=(f.acessibilidade||'').split(/[,;\/\n]+/).map(function(t){return t.trim();}).filter(Boolean);
   _aeAcessRender();
+  _aeHdTags=(f.hd||'').split(/[;,\n]+/).map(function(t){return t.trim();}).filter(Boolean);
+  _aeHdRender();
   _acervoOriginalData={
     festival_code:f.codigo,event_name:f.evento||'',
     title:f.titulo||'',original_language:_aeIdioma,
@@ -23786,7 +23808,7 @@ async function openAcervoEdit(idx){
     ov_cpl_id:f.cplOV||'',dcp_resolution:f.resolucao||'',
     dcp_duration:f.duracao||'',dcp_size:f.gb||'',
     dcp_bitrate:f.bitrate||'',
-    dcp_fps:f.fps||'',storage_location:f.hd||'',
+    dcp_fps:f.fps||'',storage_location:_aeHdTags.join('; '),
     dcp_uuid:f.dcp_uuid||'',accessibility_features:_aeAcessTags.join(', '),
     exhibition_format:f.exhibition_format||'',
     exhibition_format_notes:f.exhibition_format_notes||'',
@@ -26716,7 +26738,7 @@ function _sxcPrint(){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 17/07/2026 às 18:51</span></div>
+<div id="page-footer"><span>última atualização · 17/07/2026 às 19:24</span></div>
 
 </div>
 

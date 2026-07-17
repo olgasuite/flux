@@ -17920,7 +17920,7 @@ function renderDash(){
   html+=colBlock('legendagem','Legendagem',legBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 14/07/2026 às 23:55';
+  var sysUpdate='última atualização do sistema · 17/07/2026 às 09:55';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -18456,19 +18456,19 @@ async function _showsPanelDelete(id){
 }
 var _progSessaoConvidadosTags=[],_progSessaoEvento='';
 var _progVinTemplates=[];
-var _progFiltroTitulo='',_progFiltroComplexo='',_progFiltroCinema='',_progFiltroData='';
+var _progFiltroTitulo='',_progFiltroComplexo='',_progFiltroCinema='',_progFiltroData='',_progFiltroShow='';
 var _progBatchSelected=new Set(),_progBatchMode=false,_progBatchBumpers=[];
 
 function buildProgramacaoFilters(){
   buildPills(document.getElementById('headerEventFilters'),eventColors,activeEventsProgramacao,function(){
-    _progFiltroTitulo='';_progFiltroComplexo='';_progFiltroCinema='';_progFiltroData='';
+    _progFiltroTitulo='';_progFiltroComplexo='';_progFiltroCinema='';_progFiltroData='';_progFiltroShow='';
     _progView={level:'landing',programId:null,sessaoNome:null};
     _progRender();
   });
 }
 
 function renderProgramacao(){
-  if(!_progSkipReset){_progView={level:'landing',programId:null,sessaoNome:null};_progFiltroTitulo='';_progFiltroComplexo='';_progFiltroCinema='';_progFiltroData='';_progBatchSelected.clear();_progBatchMode=false;_progBatchBumpers=[];}
+  if(!_progSkipReset){_progView={level:'landing',programId:null,sessaoNome:null};_progFiltroTitulo='';_progFiltroComplexo='';_progFiltroCinema='';_progFiltroData='';_progFiltroShow='';_progBatchSelected.clear();_progBatchMode=false;_progBatchBumpers=[];}
   _progSkipReset=false;
   var c=document.getElementById('programacao-container');
   c.innerHTML='<div style="padding:40px;text-align:center;color:var(--text-muted);font-family:var(--mono);font-size:11px;">Carregando…</div>';
@@ -18493,7 +18493,7 @@ function _progRender(){
 }
 function _progBack(){
   _progBatchSelected.clear();_progBatchMode=false;_progBatchBumpers=[];
-  _progFiltroTitulo='';_progFiltroComplexo='';_progFiltroCinema='';_progFiltroData='';
+  _progFiltroTitulo='';_progFiltroComplexo='';_progFiltroCinema='';_progFiltroData='';_progFiltroShow='';
   if(_progView.level==='sessao'){_progView.level='program';_progView.sessaoNome=null;_progRender();}
   else{_progView={level:'landing',programId:null,sessaoNome:null};_progRender();}
 }
@@ -18653,6 +18653,7 @@ function _progApplyFilters(sessions){
       var _ss=function(v){return String(v||'').toLowerCase();};
       if(!s.filmes.some(function(c){var f=filmesMap[c],cm=catalogoFilmesMap&&catalogoFilmesMap[c]||{};return _ss(f&&f.titulo).includes(t)||_ss(cm.title_pt).includes(t)||_ss(cm.original_title).includes(t)||_ss(cm.english_title).includes(t)||_ss(cm.system_name).includes(t)||_ss(f&&f.idioma).includes(t)||(cm.director&&cm.director.some(function(d){return _ss(d).includes(t);}));}))return false;
     }
+    if(_progFiltroShow&&s.show_id!==_progFiltroShow)return false;
     if(_progFiltroComplexo&&_getSalaComplexo(s.cinema)!==_progFiltroComplexo)return false;
     if(_progFiltroCinema&&s.cinema!==_progFiltroCinema)return false;
     if(_progFiltroData){var dk=s.date?s.date.toISOString().slice(0,10):'';if(dk!==_progFiltroData)return false;}
@@ -18946,6 +18947,17 @@ function _progRenderProgram(programId){
   // Filter bar
   html+='<div class="prog-filter-bar">';
   html+='<input type="text" placeholder="título, diretor, idioma…" value="'+esc(_progFiltroTitulo)+'" oninput="_progFiltroTitulo=this.value;var _pos=this.selectionStart;_progRender();var _ni=document.querySelector(\'.prog-filter-bar input[type=text]\');if(_ni){_ni.focus();try{_ni.setSelectionRange(_pos,_pos);}catch(e){}}">';
+  // Filtro por programa (shows referenciados pelas sessões desta mostra)
+  var _fShowIds=[];allProgSess.forEach(function(s){if(s.show_id&&_fShowIds.indexOf(s.show_id)<0)_fShowIds.push(s.show_id);});
+  if(_fShowIds.length){
+    var _fShowOpts=_fShowIds.map(function(sid){
+      var sh=_showById(sid);
+      return{id:sid,name:(sh&&sh.data&&sh.data.name)||sid};
+    }).sort(function(a,b){return a.name.localeCompare(b.name,'pt-BR',{sensitivity:'base'});});
+    html+='<select onchange="_progFiltroShow=this.value;_progRender();"><option value="">Todos os programas</option>';
+    _fShowOpts.forEach(function(o){html+='<option value="'+esc(o.id)+'"'+(o.id===_progFiltroShow?' selected':'')+'>'+esc(o.name)+'</option>';});
+    html+='</select>';
+  }
   html+='<select onchange="_progFiltroComplexo=this.value;_progFiltroCinema=\'\';_progRender();"><option value="">Todos os complexos</option>';
   Array.from(filterCxs).sort().forEach(function(c){html+='<option value="'+esc(c)+'"'+( c===_progFiltroComplexo?' selected':'')+'>'+esc(c)+'</option>';});
   html+='</select>';
@@ -26667,7 +26679,7 @@ function _sxcPrint(){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 14/07/2026 às 23:55</span></div>
+<div id="page-footer"><span>última atualização · 17/07/2026 às 09:55</span></div>
 
 </div>
 

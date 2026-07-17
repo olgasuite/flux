@@ -7521,11 +7521,28 @@ function _langTagWidget(wid,mode,initial){
   if(!inp||!drop)return;
   inp.addEventListener('input',function(){_langDropShow(wid,inp.value);});
   inp.addEventListener('keydown',function(e){
-    if(e.key==='Enter'){e.preventDefault();var v=(inp.value||'').trim();if(v){_langTagAdd(wid,v);inp.value='';}}
+    if(e.key==='Enter'){e.preventDefault();var v=(inp.value||'').trim();if(v){_langTagAdd(wid,_langResolveInput(s.mode,v));inp.value='';}}
     if(e.key==='Escape'){drop.style.display='none';}
   });
   inp.addEventListener('blur',function(){setTimeout(function(){var d=document.getElementById(wid);if(d){var dr=d.querySelector('.lang-drop');if(dr)dr.style.display='none';}},150);});
   w.addEventListener('click',function(e){if(e.target===w||e.target.classList.contains('lang-chips'))inp.focus();});
+}
+// Assistente de código: aceita código DCNC/ISDCF (ex.: PT-BR, QBP) ou nome com caixa
+// diferente e resolve para o valor canônico do modo do widget (nome ou código)
+function _langResolveInput(mode,v){
+  if(!_langCache||!v)return v;
+  if(mode==='cldr'){
+    var byCode=_langCache.byDcnc[v.toUpperCase()];
+    if(byCode&&byCode.cldr)return byCode.cldr;
+    var exact=_langCache.cldrList.find(function(n){return n.toLowerCase()===v.toLowerCase();});
+    if(exact)return exact;
+  }else if(mode==='dcnc'){
+    var exactD=_langCache.dcncList.find(function(c){return c.toLowerCase()===v.toLowerCase();});
+    if(exactD)return exactD;
+    var nm=_langCache.cldrList.find(function(n){return n.toLowerCase()===v.toLowerCase();});
+    if(nm){var e2=_langCache.byCldr[nm];if(e2&&e2.dcnc)return e2.dcnc;}
+  }
+  return v;
 }
 function _langTagAdd(wid,val){
   var s=_langWidgets[wid];if(!s)return;
@@ -7543,12 +7560,32 @@ function _langDropShow(wid,query){
   var w=document.getElementById(wid);if(!w)return;
   var drop=w.querySelector('.lang-drop');if(!drop)return;
   if(!_langCache){drop.style.display='none';return;}
-  var list=s.mode==='dcnc'?_langCache.dcncList:_langCache.cldrList;
   var q=(query||'').toLowerCase();
-  var m=list.filter(function(v){return!q||v.toLowerCase().includes(q);}).slice(0,12);
+  var m,codeOf;
+  if(s.mode==='dcnc'){
+    m=_langCache.dcncList.filter(function(v){return!q||v.toLowerCase().includes(q);});
+    // também acha o código pelo nome do idioma digitado
+    if(q){
+      _langCache.cldrList.forEach(function(n){
+        if(n.toLowerCase().includes(q)){var e=_langCache.byCldr[n];if(e&&e.dcnc&&m.indexOf(e.dcnc)<0)m.push(e.dcnc);}
+      });
+    }
+    m=m.slice(0,12);
+    codeOf=function(v){var e=_langCache.byDcnc[v.toUpperCase()];return e?e.cldr:'';};
+  }else{
+    // modo nome: busca por nome OU por código DCNC (assistente de código)
+    m=_langCache.cldrList.filter(function(v){
+      if(!q)return true;
+      if(v.toLowerCase().includes(q))return true;
+      var e=_langCache.byCldr[v];
+      return!!(e&&e.dcnc&&e.dcnc.toLowerCase().includes(q));
+    }).slice(0,12);
+    codeOf=function(v){var e=_langCache.byCldr[v];return(e&&e.dcnc)||'';};
+  }
   if(!m.length){drop.style.display='none';return;}
   drop.innerHTML=m.map(function(v){
-    return'<div class="lang-drop-item" onmousedown="event.preventDefault();_langTagAdd(\''+wid+'\',\''+v.replace(/\\/g,'\\\\').replace(/'/g,"\\'")+'\')">'+esc(v)+'</div>';
+    var hint=codeOf(v);
+    return'<div class="lang-drop-item" onmousedown="event.preventDefault();_langTagAdd(\''+wid+'\',\''+v.replace(/\\/g,'\\\\').replace(/'/g,"\\'")+'\')">'+esc(v)+(hint?' <span style="color:var(--text-muted);font-size:9px;">'+esc(hint)+'</span>':'')+'</div>';
   }).join('');
   drop.style.display='block';
 }
@@ -17920,7 +17957,7 @@ function renderDash(){
   html+=colBlock('legendagem','Legendagem',legBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 17/07/2026 às 09:55';
+  var sysUpdate='última atualização do sistema · 17/07/2026 às 18:51';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -22580,7 +22617,7 @@ function renderCatCreate(){
   // Campos de copias (acervo técnico) — só na criação
   html+=catBlock('Acervo Técnico',
     '<div class="cat-grid">'
-    +catFld('Idioma',langTagHtml('lw_catf_original_language','catf_original_language','Idioma…'))
+    +catFld('Idioma',langTagHtml('lw_catf_original_language','catf_original_language','digite o idioma ou código e aperte Enter…'))
     +catFld('Legendas','<input class="cat-input" id="catf_dcp_subtitle_code" list="catf_legenda_list" autocomplete="off" oninput="_catCreateCheckVF()"><datalist id="catf_legenda_list"></datalist>')
     +'</div>'
     +'<div id="catc_vf_row" style="display:none;">'
@@ -23675,7 +23712,7 @@ async function openAcervoEdit(idx){
   var body=''
     +aeRow('Título (copias)',aeInp('titulo',f.titulo))
     +'<div class="cat-grid">'
-    +aeRow('Idioma',langTagHtml('lw_ae_idioma','ae_idioma','Idioma…'))
+    +aeRow('Idioma',langTagHtml('lw_ae_idioma','ae_idioma','digite o idioma ou código e aperte Enter…'))
     +aeRow('Legendas',aeInp('legenda',f.legenda))
     +'</div>'
     +aeRow('Legenda de exibição',(function(){
@@ -26679,7 +26716,7 @@ function _sxcPrint(){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 17/07/2026 às 09:55</span></div>
+<div id="page-footer"><span>última atualização · 17/07/2026 às 18:51</span></div>
 
 </div>
 

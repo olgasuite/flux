@@ -17968,7 +17968,7 @@ function renderDash(){
   html+=colBlock('legendagem','Legendagem',legBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 17/07/2026 às 19:37';
+  var sysUpdate='última atualização do sistema · 18/07/2026 às 11:20';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -25410,7 +25410,7 @@ function _iuRenderStep3(){
   var _idMappedNow=sch.idField&&!!_iuState.map[sch.idField];
   var _pfxLabel=(_iuState.event||'').toUpperCase().replace(/[^A-Z0-9]/g,'');
   var prefixHtml=(sch.needsEv&&_iuState.event&&_idMappedNow)?
-    '<label style="display:flex;align-items:center;gap:6px;margin-top:8px;font-family:var(--mono);font-size:10px;color:var(--text);cursor:pointer;"><input type="checkbox" id="iuPrefixId"'+(_iuState.prefixId?' checked':'')+' onchange="_iuState.prefixId=this.checked;_iuRenderStep3();"> Prefixar código com o evento ('+esc(_pfxLabel)+' + ID) — para casar com filmes já importados do Kinoforum</label>':'';
+    '<label style="display:flex;align-items:center;gap:6px;margin-top:8px;font-family:var(--mono);font-size:10px;color:var(--text);cursor:pointer;"><input type="checkbox" id="iuPrefixId"'+(_iuState.prefixId?' checked':'')+' onchange="_iuState.prefixId=this.checked;_iuRenderStep3();"> Prefixar código com o evento ('+esc(_pfxLabel)+' + ID) — para casar com filmes já importados do atual evento</label>':'';
   var _iuConflicts=_iuComputeConflicts(grouped);
   _iuState._conflicts=_iuConflicts;
   var conflictsHtml=_iuRenderConflictsHtml(_iuConflicts);
@@ -26743,7 +26743,7 @@ function _sxcPrint(){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 17/07/2026 às 19:37</span></div>
+<div id="page-footer"><span>última atualização · 18/07/2026 às 11:20</span></div>
 
 </div>
 

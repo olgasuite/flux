@@ -6310,6 +6310,7 @@ window.addEventListener('DOMContentLoaded',function(){
 </div>
 <div class="mode-bar hidden" id="barEquipe">
   <button class="print-btn" onclick="openEquipeNewUser()">+ novo usuário</button>
+  <button class="print-btn" onclick="equipeLimparAuth()" title="Exclui do Firebase Auth a conta de login de um e-mail já removido da equipe, liberando-o para novo cadastro">limpar conta de login</button>
   <button class="print-btn" onclick="openEventoModal(null)" style="margin-left:6px;">+ novo evento</button>
   <button class="print-btn" onclick="importarEventosExistentes()" style="margin-left:6px;">↓ importar eventos</button>
   <button class="print-btn" data-keep-readonly="1" onclick="document.getElementById('planilhaModeInput').click()" style="margin-left:6px;" title="Carrega uma planilha local (gerada pelo backup-to-xlsx.js) e entra em modo leitura offline">↑ trabalhar a partir de planilha local</button>
@@ -18037,7 +18038,7 @@ function renderDash(){
   html+=colBlock('legendagem','Legendagem',legBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 18/07/2026 às 22:16';
+  var sysUpdate='última atualização do sistema · 18/07/2026 às 22:21';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -21569,10 +21570,25 @@ window.confirmEquipeDelete=async function(){
   try{
     await window._olgaUsuarios.remove(_equipeDeleteId);
     window._logFirestoreEdit&&window._logFirestoreEdit('delete',_equipeDeleteId,{},'equipe','usuarios');
+    // remove também a conta do Firebase Auth para o e-mail poder se recadastrar
+    try{await _olgaCallFn(_DELETEAUTH_FN,{email:_equipeDeleteId});}catch(eA){console.warn('deleteAuthUser:',eA);}
     document.getElementById('equipeDeleteModal').style.display='none';
     _equipeInvalidateRender();
   }catch(e){alert('Erro ao excluir: '+e.message);}
   btn.disabled=false;btn.textContent='Excluir';
+};
+
+window.equipeLimparAuth=async function(){
+  var email=prompt('Excluir a conta de login (Firebase Auth) de qual e-mail?\n\nUse quando um e-mail já excluído da equipe não consegue se recadastrar ("Este email já tem uma conta").');
+  if(!email)return;
+  email=email.trim().toLowerCase();
+  if(email.indexOf('@')===-1){alert('E-mail inválido.');return;}
+  if(_equipeUsers.some(function(u){return u.id===email;})&&!confirm('Este e-mail ainda tem perfil ativo na equipe. Excluir mesmo assim a conta de login?'))return;
+  if(!confirm('Excluir a conta de login de '+email+'?\n\nA pessoa precisará se cadastrar de novo (ou entrar com Google).'))return;
+  try{
+    var r=await _olgaCallFn(_DELETEAUTH_FN,{email:email});
+    alert(r&&r.deleted?'Conta de login excluída. O e-mail está livre para novo cadastro.':((r&&r.message)||'Nenhuma conta de login para este e-mail.'));
+  }catch(e){alert('Erro: '+e.message);}
 };
 
 window.aprovarSolicitacao=function(docId,email){
@@ -23456,6 +23472,7 @@ var _CINEMATECA_FN='https://us-central1-olga-suite.cloudfunctions.net/cinemateca
 var _PARSECPL_FN='https://us-central1-olga-suite.cloudfunctions.net/parseCPL';
 var _CHECKKDM_FN='https://us-central1-olga-suite.cloudfunctions.net/checkKDM';
 var _PARSECERT_FN='https://us-central1-olga-suite.cloudfunctions.net/parseCert';
+var _DELETEAUTH_FN='https://us-central1-olga-suite.cloudfunctions.net/deleteAuthUser';
 function _readFileText(file){return new Promise(function(res,rej){var r=new FileReader();r.onload=function(e){res(e.target.result);};r.onerror=function(){rej(new Error('Falha ao ler '+(file&&file.name||'arquivo')));};r.readAsText(file);});}
 async function _olgaCallFn(url,body){
   var token=await window._olgaGetIdToken();
@@ -26822,7 +26839,7 @@ function _sxcPrint(){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 18/07/2026 às 22:16</span></div>
+<div id="page-footer"><span>última atualização · 18/07/2026 às 22:21</span></div>
 
 </div>
 

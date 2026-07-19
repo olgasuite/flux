@@ -16939,7 +16939,7 @@ function renderBuscaResults(){
             (f.evento&&col?'<span class="card-evento" style="background:'+col.bg+';color:'+col.text+'">'+f.evento+'</span>':'')+
             '<span class="card-codigo" title="'+f.codigo.replace(/"/g,'&quot;')+'">'+hl(stripEvPrefix(f.codigo,f.evento),buscaQuery)+'</span>'+
             statusBadge(f.status)+
-            (function(){var _r=(catalogoFilmesMap&&catalogoFilmesMap[f.codigo]&&catalogoFilmesMap[f.codigo].responsaveis)||[];return _r.length?'<span class="card-resp" title="Responsáveis" style="font-family:var(--mono);font-size:9px;color:var(--accent);background:var(--accent-dim);border:1px solid var(--accent);border-radius:8px;padding:1px 8px;margin-left:6px;">'+_r.map(esc).join(' · ')+'</span>':'';})()+
+            (function(){var _r=(catalogoFilmesMap&&catalogoFilmesMap[f.codigo]&&catalogoFilmesMap[f.codigo].responsaveis)||[];return _r.length?'<span style="margin-left:6px;">'+respPills(_r)+'</span>':'';})()+
           '</div>'+
           '<div class="card-meta">'+
             kdmTag+
@@ -17902,7 +17902,7 @@ function renderDash(){
       var f=item.f;
       var col=f.evento&&eventColors[f.evento]?eventColors[f.evento]:null;
       var evBadge=f.evento&&col?'<span class="card-evento" style="background:'+col.bg+';color:'+col.text+'">'+esc(f.evento)+'</span>':'';
-      var respBadge=(function(){var _r=(catalogoFilmesMap&&catalogoFilmesMap[f.codigo]&&catalogoFilmesMap[f.codigo].responsaveis)||[];return _r.length?'<span class="card-resp" title="Responsáveis" style="font-family:var(--mono);font-size:9px;color:var(--accent);background:var(--accent-dim);border:1px solid var(--accent);border-radius:8px;padding:1px 8px;">'+_r.map(esc).join(' · ')+'</span>':'';})();
+      var respBadge=(function(){var _r=(catalogoFilmesMap&&catalogoFilmesMap[f.codigo]&&catalogoFilmesMap[f.codigo].responsaveis)||[];return _r.length?respPills(_r):'';})();
       var titulo=esc(clean(f.titulo)||f.codigo);
       var sessLinks=item.sessions.map(function(s){
         var safe=s.nome.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
@@ -18038,7 +18038,7 @@ function renderDash(){
   html+=colBlock('legendagem','Legendagem',legBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 18/07/2026 às 22:21';
+  var sysUpdate='última atualização do sistema · 18/07/2026 às 23:50';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -22286,7 +22286,7 @@ function renderCatDetail(){
     +'<div class="cat-grid">'+catFld('Distribuidora(s)',_catEditing?catTagInp('distribution_company',toArr(meta.distribution_company)):catTags(toArr(meta.distribution_company)))+catFld('Ano',_catEditing?catInp('year',meta.year||'','number'):(meta.year?String(meta.year):'\u2014'))+'</div>'
     +'<div class="cat-grid">'+catFld('Email de contato',_catEditing?catInp('contact_email',meta.contact_email||''):(meta.contact_email||'\u2014'))+catFld('Idioma original',_catEditing?catInp('original_language',meta.original_language||''):(meta.original_language||'\u2014'))+'</div>'
     +catFld('Palavras-chave',_catEditing?catTagInp('keywords',meta.keywords||[]):catTags(meta.keywords||[]))
-    +catFld('Responsáveis',_catEditing?catTagInp('responsaveis',meta.responsaveis||[]):(_catRespArr.length?catTags(_catRespArr):'<span style="color:var(--text-muted);font-style:italic;">—</span>'))
+    +catFld('Responsáveis',_catEditing?catTagInp('responsaveis',meta.responsaveis||[]):(_catRespArr.length?respPills(_catRespArr,'font-size:10px;padding:2px 9px;'):'<span style="color:var(--text-muted);font-style:italic;">—</span>'))
     +'<div class="cat-grid">'
     +catFld('Seleção',_catEditing
       ?'<select class="cat-input" id="catf_selecao"><option value="">—</option>'+selOpts.map(function(o){return'<option value="'+o+'"'+(meta.selecao===o?' selected':'')+'>'+o+'</option>';}).join('')+'</select>'
@@ -22431,6 +22431,20 @@ function renderCatDetail(){
 function catBlock(t,b){return'<div class="cat-block"><div class="cat-block-hdr">'+t+'</div><div class="cat-block-body">'+b+'</div></div>';}
 function catFld(l,v){return'<div class="cat-field"><div class="cat-label">'+l+'</div><div class="cat-value">'+v+'</div></div>';}
 function catTags(arr){if(!arr||!arr.length)return'<span style="color:var(--text-muted)">—</span>';return arr.map(function(t){return'<span class="cat-tag">'+t+'</span>';}).join('');}
+// Pills de responsável: cor determinística derivada dos caracteres do nome
+function respHue(name){
+  var h=0;
+  for(var i=0;i<name.length;i++){h=((h*31)+name.charCodeAt(i))>>>0;}
+  return ((h*2654435761)>>>0)%360;
+}
+function respPill(name,extraStyle){
+  var n=String(name||'').trim();if(!n)return'';
+  var h=respHue(n);
+  return '<span class="card-resp" title="Responsável" style="font-family:var(--mono);font-size:9px;color:#fff;background:hsl('+h+',45%,38%);border:1px solid hsl('+h+',50%,30%);border-radius:8px;padding:1px 8px;'+(extraStyle||'')+'">'+esc(n)+'</span>';
+}
+function respPills(arr,extraStyle){
+  return(Array.isArray(arr)?arr:[]).filter(Boolean).map(function(n){return respPill(n,extraStyle);}).join(' ');
+}
 function catInp(id,val,type){return'<input class="cat-input" id="catf_'+id+'" type="'+(type||'text')+'" value="'+(String(val==null?'':val).replace(/"/g,'&quot;'))+'">';}
 function catTagHtml(tags,id){
   return tags.map(function(t,i){
@@ -26839,7 +26853,7 @@ function _sxcPrint(){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 18/07/2026 às 22:21</span></div>
+<div id="page-footer"><span>última atualização · 18/07/2026 às 23:50</span></div>
 
 </div>
 
@@ -30936,7 +30950,7 @@ function renderTriagemDetail(){
     +'</div>'
     +(_triagemEditing||meta.website?catFld('Website',_triagemEditing?catInp('website',meta.website||''):(meta.website?'<a href="'+esc(meta.website)+'" target="_blank" style="color:var(--accent)">'+esc(meta.website)+'</a>':'—')):'')
     +catFld('Palavras-chave',_triagemEditing?catTagInp('keywords',toArr(meta.keywords)):catTags(toArr(meta.keywords)))
-    +catFld('Responsáveis',_triagemEditing?catTagInp('responsaveis',toArr(meta.responsaveis)):(toArr(meta.responsaveis).length?catTags(toArr(meta.responsaveis)):'<span style="color:var(--text-muted);font-style:italic;">—</span>'))
+    +catFld('Responsáveis',_triagemEditing?catTagInp('responsaveis',toArr(meta.responsaveis)):(toArr(meta.responsaveis).length?respPills(toArr(meta.responsaveis),'font-size:10px;padding:2px 9px;'):'<span style="color:var(--text-muted);font-style:italic;">—</span>'))
   );
   // ── DADOS EXTRAS (estudantil / primeiro filme) ─
   (function(){

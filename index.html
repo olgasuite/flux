@@ -18053,7 +18053,7 @@ function renderDash(){
   html+=colBlock('legendagem','Legendagem',legBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 19/07/2026 às 22:30';
+  var sysUpdate='última atualização do sistema · 21/07/2026 às 18:37';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -22229,7 +22229,7 @@ function renderCatDetail(){
   var _evBadge=copia.evento&&_evColDet?'<span class="cat-status-badge" style="background:'+_evColDet.bg+';color:'+_evColDet.text+';border-color:transparent;font-family:var(--sans);text-transform:none;letter-spacing:0;">'+copia.evento+'</span>':'';
   html+='<div class="cat-header-code">'+_catCode+(copia.status?'<span class="cat-status-badge '+sCls+'">'+copia.status+'</span>':'')+kdmBadge+selBadge+_evBadge+'</div>';
   var _catRespArr=Array.isArray(meta.responsaveis)?meta.responsaveis:[];
-  if(_catRespArr.length&&!_catEditing)html+='<div class="cat-header-resp" style="margin-top:6px;display:flex;flex-wrap:wrap;gap:6px;align-items:center;"><span style="font-family:var(--mono);font-size:9px;letter-spacing:0.12em;text-transform:uppercase;color:var(--text-muted);">resp.</span>'+_catRespArr.map(function(r){return'<span class="cat-resp-chip" style="display:inline-block;padding:3px 10px;background:var(--accent-dim);color:var(--accent);font-family:var(--mono);font-size:10px;font-weight:600;border-radius:10px;border:1px solid var(--accent);">'+esc(r)+'</span>';}).join('')+'</div>';
+  if(_catRespArr.length&&!_catEditing)html+='<div class="cat-header-resp" style="margin-top:6px;display:flex;flex-wrap:wrap;gap:6px;align-items:center;"><span style="font-family:var(--mono);font-size:9px;letter-spacing:0.12em;text-transform:uppercase;color:var(--text-muted);">resp.</span>'+respPills(_catRespArr,'padding:3px 10px;border-radius:10px;')+'</div>';
   if(_catEditing){
     html+=catFld('Nome no sistema',_catEditing
       ?'<input class="cat-input" id="catf_system_name" value="'+esc(meta.system_name||'')+'" readonly style="opacity:0.6;" title="Campo imutável">'
@@ -26868,7 +26868,7 @@ function _sxcPrint(){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 19/07/2026 às 22:30</span></div>
+<div id="page-footer"><span>última atualização · 21/07/2026 às 18:37</span></div>
 
 </div>
 
@@ -30853,7 +30853,7 @@ function renderTriagemDetail(){
   var _evBadgeTr=meta.evento&&_evColTr?'<span class="cat-status-badge" style="background:'+_evColTr.bg+';color:'+_evColTr.text+';border-color:transparent;font-family:var(--sans);text-transform:none;letter-spacing:0;margin-left:8px;">'+esc(meta.evento)+'</span>':(meta.evento?'<span class="cat-status-badge" style="margin-left:8px;">'+esc(meta.evento)+'</span>':'');
   html+='<div class="cat-header-code">'+esc(_triagemCode)+selBadge+importadoBadge+_evBadgeTr+'</div>';
   var _respArr=Array.isArray(meta.responsaveis)?meta.responsaveis:[];
-  if(_respArr.length)html+='<div class="cat-header-resp" style="margin-top:6px;display:flex;flex-wrap:wrap;gap:6px;align-items:center;"><span style="font-family:var(--mono);font-size:9px;letter-spacing:0.12em;text-transform:uppercase;color:var(--text-muted);">resp.</span>'+_respArr.map(function(r){return'<span class="cat-resp-chip" style="display:inline-block;padding:3px 10px;background:var(--accent-dim);color:var(--accent);font-family:var(--mono);font-size:10px;font-weight:600;border-radius:10px;border:1px solid var(--accent);">'+esc(r)+'</span>';}).join('')+'</div>';
+  if(_respArr.length)html+='<div class="cat-header-resp" style="margin-top:6px;display:flex;flex-wrap:wrap;gap:6px;align-items:center;"><span style="font-family:var(--mono);font-size:9px;letter-spacing:0.12em;text-transform:uppercase;color:var(--text-muted);">resp.</span>'+respPills(_respArr,'padding:3px 10px;border-radius:10px;')+'</div>';
   html+='<div class="cat-header-title">'+esc(title)+'</div>';
   if(meta.original_title||meta.english_title){
     html+='<div class="cat-header-orig">'+esc([meta.original_title,meta.english_title].filter(Boolean).join(' · '))+'</div>';

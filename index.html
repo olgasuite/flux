@@ -5528,20 +5528,28 @@ html[data-theme="indexof"]:not([data-theme="win98"]) .module-icon{display:flex!i
     function parseEventosSnap(snap) {
       var fs2 = [], full = [];
       if (!window._olgaEventoNomes) window._olgaEventoNomes = {};
+      var corChanged = false;
       snap.forEach(function(d) {
         var r = d.data();
         var nome = (r.nome || d.id || '').trim();
         if (!nome) return;
         if (!allowedEvento(nome)) return;
-        fs2.push({ nome: nome, texto_curatorial: r.texto_curatorial || '', cor: (r.cor && r.cor.bg) ? r.cor : null });
+        var cor = (r.cor && r.cor.bg) ? r.cor : null;
+        fs2.push({ nome: nome, texto_curatorial: r.texto_curatorial || '', cor: cor });
         full.push({ id: d.id, data: r });
         if (r.nome_exibicao) {
           window._olgaEventoNomes[d.id] = r.nome_exibicao;
           window._olgaEventoNomes[nome] = r.nome_exibicao;
         }
+        // Cor salva no Firestore tem prioridade absoluta — corrige eventColors assim que o
+        // doc chega, mesmo que o cálculo único inicial (_olgaFinalizeInitial) tenha rodado
+        // antes desta consulta (filtrada por evento, mais lenta pra usuário restrito) terminar
+        // e caído no fallback de paleta. Sem isso a cor errada ficava presa a sessão toda.
+        if (cor && (!eventColors[nome] || eventColors[nome].bg !== cor.bg)) { eventColors[nome] = cor; corChanged = true; }
       });
       window._olgaEventosCache = fs2;
       window._adminEventosFullCache = full;
+      if (corChanged && initialApplied && typeof _olgaRerenderActive === 'function') _olgaRerenderActive();
     }
 
     // Coleções estáticas: kdm_results + _registry (uma leitura, sem listener)
@@ -18087,7 +18095,7 @@ function renderDash(){
   html+=colBlock('legendagem','Legendagem',legBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 24/07/2026 às 09:48';
+  var sysUpdate='última atualização do sistema · 24/07/2026 às 10:15';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -27296,7 +27304,7 @@ function _sxcPrint(){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 24/07/2026 às 09:48</span></div>
+<div id="page-footer"><span>última atualização · 24/07/2026 às 10:15</span></div>
 
 </div>
 

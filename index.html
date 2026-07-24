@@ -4215,7 +4215,7 @@ html[data-theme="indexof"]:not([data-theme="win98"]) .module-icon{display:flex!i
 <script type="module">
   import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
   import { getAuth, connectAuthEmulator, GoogleAuthProvider, GithubAuthProvider, signInWithPopup, signInWithEmailAndPassword, createUserWithEmailAndPassword, sendPasswordResetEmail, signOut, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
-  import { initializeFirestore, persistentLocalCache, persistentMultipleTabManager, connectFirestoreEmulator, collection, doc, getDoc, getDocs, setDoc, deleteDoc, addDoc, serverTimestamp, query, where, orderBy, onSnapshot, writeBatch } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+  import { initializeFirestore, persistentLocalCache, persistentMultipleTabManager, connectFirestoreEmulator, collection, doc, getDoc, getDocs, setDoc, deleteDoc, addDoc, serverTimestamp, query, where, documentId, orderBy, onSnapshot, writeBatch } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
 
   const firebaseConfig = {
     apiKey: "AIzaSyDIBhcsqlK3QebTmbWMNqsN_rPPybREj64",
@@ -5631,7 +5631,10 @@ html[data-theme="indexof"]:not([data-theme="win98"]) .module-icon{display:flex!i
       unsubs.push(onSnapshot(_evFilter ? query(collection(db,'filmes'),   where('evento','in',_evFilter))     : collection(db,'filmes'),   _onSnap('filmes',      parseFilmesSnap),      _onSnapErr('filmes')));
       unsubs.push(onSnapshot(collection(db,'programs'),                                                                                     _onSnap('programs',    parseProgramsSnap),    _onSnapErr('programs')));
       unsubs.push(onSnapshot(collection(db,'subprograms'),                                                                                  _onSnap('subprograms', parseSubprogramsSnap), _onSnapErr('subprograms')));
-      unsubs.push(onSnapshot(_evFilter ? query(collection(db,'eventos'),  where('nome','in',_evFilter))      : collection(db,'eventos'),   _onSnap('eventos',     parseEventosSnap),     _onSnapErr('eventos')));
+      // filtra por documentId(), não pelo campo 'nome' — a maioria dos docs de evento nunca
+      // tem esse campo gravado (só nome_exibicao); o "nome" usado no resto do app cai no
+      // fallback pro próprio id, e where('nome','in',...) nunca bate se o campo não existe.
+      unsubs.push(onSnapshot(_evFilter ? query(collection(db,'eventos'),  where(documentId(),'in',_evFilter)) : collection(db,'eventos'),   _onSnap('eventos',     parseEventosSnap),     _onSnapErr('eventos')));
       window._olgaSnapshotUnsubs = unsubs;
       window._olgaSnapshotsActive = true;
       // Triagem: subscription lazy — só ativa quando o usuário entra no módulo
@@ -18095,7 +18098,7 @@ function renderDash(){
   html+=colBlock('legendagem','Legendagem',legBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 24/07/2026 às 10:15';
+  var sysUpdate='última atualização do sistema · 24/07/2026 às 11:22';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -27304,7 +27307,7 @@ function _sxcPrint(){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 24/07/2026 às 10:15</span></div>
+<div id="page-footer"><span>última atualização · 24/07/2026 às 11:22</span></div>
 
 </div>
 

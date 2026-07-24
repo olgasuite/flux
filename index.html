@@ -18098,7 +18098,7 @@ function renderDash(){
   html+=colBlock('legendagem','Legendagem',legBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 24/07/2026 às 15:36';
+  var sysUpdate='última atualização do sistema · 24/07/2026 às 16:45';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -18347,7 +18347,15 @@ async function _progSessaoMakeShow(){
 
 /* === Programador Visual — grade dias × horários por cinema === */
 var _progGridsCache=null;
-var _pvState={ev:'',venue:'',gridId:'',grid:null,selected:new Set()};
+// pending: rascunho de alocação de célula (sessão/programa) — só grava no Firestore quando
+// o usuário clica em Salvar. Chave é colId_rowId; valor {kind,value,colId,rowId}.
+var _pvState={ev:'',venue:'',gridId:'',grid:null,selected:new Set(),pending:{}};
+function _pvHasPending(){return!!(_pvState.pending&&Object.keys(_pvState.pending).length);}
+function _pvConfirmDiscardPending(){
+  if(!_pvHasPending())return true;
+  var n=Object.keys(_pvState.pending).length;
+  return confirm('Você tem '+n+' célula'+(n>1?'s':'')+' pendente'+(n>1?'s':'')+' não salva'+(n>1?'s':'')+'.\n\nDescartar e continuar?');
+}
 async function _ensureProgGridsLoaded(force){
   if(_progGridsCache&&!force&&!(window._olgaCacheExpired&&window._olgaCacheExpired('prog_grids',10*60*1000)))return _progGridsCache;
   if(!window._olgaProgGrids){_progGridsCache=_progGridsCache||[];return _progGridsCache;}
@@ -18393,13 +18401,24 @@ async function openProgramadorVisual(ev){
   await _pvLoadGrid();
   _pvRender();
 }
-function closeProgramadorVisual(){var m=document.getElementById('pvModal');if(m)m.style.display='none';}
+function closeProgramadorVisual(){
+  if(!_pvConfirmDiscardPending())return;
+  _pvState.pending={};
+  var m=document.getElementById('pvModal');if(m)m.style.display='none';
+}
 async function _pvChangeEv(ev){
+  if(!_pvConfirmDiscardPending()){_pvRender();return;}
+  _pvState.pending={};
   _pvState.ev=ev;
   if(!_pvVenues().some(function(v){return v===_pvState.venue;}))_pvState.venue=_pvVenues()[0]||'';
   await _pvLoadGrid();_pvRender();
 }
-async function _pvChangeVenue(venue){_pvState.venue=venue;await _pvLoadGrid();_pvRender();}
+async function _pvChangeVenue(venue){
+  if(!_pvConfirmDiscardPending()){_pvRender();return;}
+  _pvState.pending={};
+  _pvState.venue=venue;
+  await _pvLoadGrid();_pvRender();
+}
 function _pvNewId(){return'x'+Date.now().toString(36)+Math.random().toString(36).slice(2,7);}
 function _pvBlankCols(n){var a=[];for(var i=0;i<n;i++)a.push({id:_pvNewId(),date:''});return a;}
 function _pvBlankRows(n){var a=[];for(var i=0;i<n;i++)a.push({id:_pvNewId(),time:''});return a;}
@@ -18425,7 +18444,7 @@ function _pvNormRows(rows){
   });
 }
 async function _pvLoadGrid(){
-  if(!_pvState.ev||!_pvState.venue){_pvState.gridId='';_pvState.grid=null;_pvState.selected=new Set();return;}
+  if(!_pvState.ev||!_pvState.venue){_pvState.gridId='';_pvState.grid=null;_pvState.selected=new Set();_pvState.pending={};return;}
   _pvState.gridId=_pvGridId(_pvState.ev,_pvState.venue);
   var g=(_progGridsCache||[]).find(function(x){return x.id===_pvState.gridId;});
   if(g){
@@ -18449,6 +18468,7 @@ async function _pvLoadGrid(){
     }
   }
   _pvState.selected=new Set();
+  _pvState.pending={};
 }
 async function _pvSaveGridField(patch){
   if(!(window._olgaCanEdit&&window._olgaCanEdit('programacao'))){alert('Sem permissão para editar a grade.');return;}
@@ -18589,10 +18609,17 @@ function _pvSortedRows(){
 function _pvSessionAt(colId,rowId){
   return (sessoesArr||[]).find(function(s){return s.grid_col===colId&&s.grid_row===rowId;})||null;
 }
+function _pvPendingSessNomes(){
+  var set=new Set();
+  Object.keys(_pvState.pending||{}).forEach(function(k){var p=_pvState.pending[k];if(p.kind==='sess')set.add(p.value);});
+  return set;
+}
 function _pvUnallocated(){
   // "Sem cinema" é o único critério de disponibilidade — sobra de grid_col/date de uma
   // remoção antiga não pode deixar a sessão presa (invisível na grade E fora do dropdown).
-  return (sessoesArr||[]).filter(function(s){return s.evento===_pvState.ev&&!s.cinema;});
+  // Sessão já escolhida numa célula pendente (ainda não salva) some das outras opções.
+  var pend=_pvPendingSessNomes();
+  return (sessoesArr||[]).filter(function(s){return s.evento===_pvState.ev&&!s.cinema&&!pend.has(s.nome);});
 }
 async function _pvAssignSession(colId,rowId,nome){
   var s=sessoesMap[nome];if(!s){alert('Sessão não encontrada.');return;}
@@ -18638,13 +18665,36 @@ async function _pvCreateFromShowCell(colId,rowId,showId){
 }
 // Sessão OU programa, nunca os dois — selecionar um desabilita o outro na hora; voltar pro
 // placeholder (valor vazio) reabilita, já que nesse estado nenhuma escolha foi feita ainda.
+// Escolher sessão ou programa só marca como pendente (rascunho) — nada grava no Firestore
+// até o usuário clicar em Salvar (_pvCommitPending). A célula troca pro visual "pendente",
+// que já substitui os dois selects, então sessão/programa nunca ficam escolhidos ao mesmo
+// tempo por construção.
 function _pvCellSelChange(colId,rowId,kind,val){
-  var key=colId+'_'+rowId;
-  var other=document.getElementById((kind==='sess'?'pvShow_':'pvSess_')+key);
-  if(other)other.disabled=!!val;
   if(!val)return;
-  if(kind==='sess')_pvAssignSession(colId,rowId,val);
-  else _pvCreateFromShowCell(colId,rowId,val);
+  var key=colId+'_'+rowId;
+  _pvState.pending=_pvState.pending||{};
+  _pvState.pending[key]={kind:kind,value:val,colId:colId,rowId:rowId};
+  _pvRender();
+}
+function _pvCancelPending(key){
+  if(_pvState.pending)delete _pvState.pending[key];
+  _pvRender();
+}
+async function _pvCommitPending(){
+  var keys=Object.keys(_pvState.pending||{});
+  if(!keys.length)return;
+  var preImgs=keys.map(function(k){var p=_pvState.pending[k];return p.kind==='sess'?sessoesMap[p.value]:null;})
+    .filter(Boolean).map(function(s){return Object.assign({},s);});
+  if(preImgs.length&&typeof _olgaPreBackup==='function')await _olgaPreBackup('programador-visual-consolidar',preImgs);
+  for(var i=0;i<keys.length;i++){
+    var p=_pvState.pending[keys[i]];
+    try{
+      if(p.kind==='sess')await _pvAssignSession(p.colId,p.rowId,p.value);
+      else await _pvCreateFromShowCell(p.colId,p.rowId,p.value);
+    }catch(e){}
+  }
+  _pvState.pending={};
+  _pvRender();
 }
 async function _pvOverrideTime(nome,val){
   val=(val||'').trim();
@@ -18692,9 +18742,20 @@ function _pvCellHtml(colId,rowId,warnMap,canEdit,colw){
   var cellStyle='border:1px solid var(--border);padding:6px;vertical-align:top;height:56px;box-sizing:border-box;'+(colw?'width:'+colw+'px;':'');
   var wrapStyle='white-space:normal;word-break:break-word;overflow-wrap:anywhere;';
   var s=_pvSessionAt(colId,rowId);
+  var key=colId+'_'+rowId;
+  var pend=_pvState.pending&&_pvState.pending[key];
+  if(!s&&pend){
+    var pendLbl;
+    if(pend.kind==='sess'){var u=sessoesMap[pend.value];pendLbl=u?stripEvPrefix(u.nome,u.evento):pend.value;}
+    else{var pSh=_showById(pend.value);pendLbl=(pSh&&pSh.data&&pSh.data.name)||pend.value;}
+    return'<td style="'+cellStyle+'background:var(--surface);position:relative;border-style:dashed;">'
+      +(canEdit?'<span onclick="_pvCancelPending(\''+key+'\')" title="Cancelar" style="position:absolute;top:3px;right:4px;cursor:pointer;opacity:.6;font-weight:700;">×</span>':'')
+      +'<div style="'+wrapStyle+'font-weight:600;padding-right:16px;opacity:.75;">'+esc(pendLbl)+'</div>'
+      +'<div style="font-size:8px;opacity:.55;margin-top:4px;text-transform:uppercase;letter-spacing:.05em;">pendente — não salvo</div>'
+      +'</td>';
+  }
   if(!s){
     if(!canEdit)return'<td style="'+cellStyle+'"></td>';
-    var key=colId+'_'+rowId;
     var sessOpts='<option value="">— sessão —</option>'+_pvUnallocated().map(function(u){
       var lbl=stripEvPrefix(u.nome,u.evento);
       return'<option value="'+esc(u.nome)+'">'+esc(lbl)+'</option>';
@@ -18745,6 +18806,8 @@ function _pvRender(){
     toolbar+='<button class="print-btn" onclick="_pvAddCol()">+ coluna</button>'
       +'<button class="print-btn" onclick="_pvAddRow()">+ linha</button>';
   }
+  var pendCount=Object.keys(st.pending||{}).length;
+  if(pendCount)toolbar+='<button class="print-btn" style="'+(st.selected.size?'':'margin-left:auto;')+'background:var(--accent);color:#000;border-color:var(--accent);" onclick="_pvCommitPending()">Salvar '+pendCount+' pendente'+(pendCount>1?'s':'')+'</button>';
   if(st.selected.size)toolbar+='<button class="print-btn" style="margin-left:auto;background:var(--accent);color:#000;border-color:var(--accent);" onclick="_pvOpenBatch()">Editar '+st.selected.size+' selecionada'+(st.selected.size>1?'s':'')+'</button>';
   toolbar+='</div>';
   var body;
@@ -27353,7 +27416,7 @@ function _sxcPrint(){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 24/07/2026 às 15:36</span></div>
+<div id="page-footer"><span>última atualização · 24/07/2026 às 16:45</span></div>
 
 </div>
 

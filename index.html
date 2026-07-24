@@ -18367,17 +18367,32 @@ async function openProgramadorVisual(ev){
   if(ev)_pvState.ev=ev;
   if(!_pvState.ev||!_pvEventos().some(function(e){return e===_pvState.ev;}))_pvState.ev=_pvEventos()[0]||'';
   if(!_pvState.venue||!_pvVenues().some(function(v){return v===_pvState.venue;}))_pvState.venue=_pvVenues()[0]||'';
-  _pvLoadGrid();
+  await _pvLoadGrid();
   _pvRender();
 }
 function closeProgramadorVisual(){var m=document.getElementById('pvModal');if(m)m.style.display='none';}
-function _pvChangeEv(ev){_pvState.ev=ev;_pvLoadGrid();_pvRender();}
-function _pvChangeVenue(venue){_pvState.venue=venue;_pvLoadGrid();_pvRender();}
-function _pvLoadGrid(){
+async function _pvChangeEv(ev){_pvState.ev=ev;await _pvLoadGrid();_pvRender();}
+async function _pvChangeVenue(venue){_pvState.venue=venue;await _pvLoadGrid();_pvRender();}
+function _pvNewId(){return'x'+Date.now().toString(36)+Math.random().toString(36).slice(2,7);}
+function _pvBlankCols(n){var a=[];for(var i=0;i<n;i++)a.push({id:_pvNewId(),date:''});return a;}
+function _pvBlankRows(n){var a=[];for(var i=0;i<n;i++)a.push({id:_pvNewId(),time:''});return a;}
+// Grade sempre nasce com 5×5 células em branco (persistidas de imediato se o usuário puder
+// editar), pra não depender de um fluxo manual de "+dia"/"+horário" antes de ficar utilizável.
+async function _pvLoadGrid(){
   if(!_pvState.ev||!_pvState.venue){_pvState.gridId='';_pvState.grid=null;_pvState.selected=new Set();return;}
   _pvState.gridId=_pvGridId(_pvState.ev,_pvState.venue);
   var g=(_progGridsCache||[]).find(function(x){return x.id===_pvState.gridId;});
-  _pvState.grid=g?g.data:{event_id:_pvState.ev,venue_name:_pvState.venue,days:[],rows:[]};
+  if(g){
+    _pvState.grid=g.data;
+  }else{
+    _pvState.grid={event_id:_pvState.ev,venue_name:_pvState.venue,cols:_pvBlankCols(5),rows:_pvBlankRows(5)};
+    if(window._olgaCanEdit&&window._olgaCanEdit('programacao')){
+      try{
+        await window._olgaProgGrids.save(_pvState.gridId,_pvState.grid);
+        _progGridsCache=_progGridsCache||[];_progGridsCache.push({id:_pvState.gridId,data:_pvState.grid});
+      }catch(e){}
+    }
+  }
   _pvState.selected=new Set();
 }
 async function _pvSaveGridField(patch){
@@ -18390,29 +18405,50 @@ async function _pvSaveGridField(patch){
   else _progGridsCache.push({id:_pvState.gridId,data:full});
   _pvRender();
 }
-async function _pvAddDay(){
-  var inp=document.getElementById('pvNewDay');var v=inp&&inp.value;if(!v)return;
-  var days=(_pvState.grid.days||[]).slice();
-  if(days.indexOf(v)<0){days.push(v);days.sort();}
-  await _pvSaveGridField({days:days});
-  var inp2=document.getElementById('pvNewDay');if(inp2)inp2.value='';
-}
-async function _pvRemoveDay(day){
-  if(!confirm('Remover a coluna do dia '+_pvFmtDate(day)+' da grade?\n\nSessões já alocadas nesse dia continuam existindo, só saem desta visualização.'))return;
-  var days=(_pvState.grid.days||[]).filter(function(d){return d!==day;});
-  await _pvSaveGridField({days:days});
+async function _pvAddCol(){
+  var cols=(_pvState.grid.cols||[]).slice();
+  cols.push({id:_pvNewId(),date:''});
+  await _pvSaveGridField({cols:cols});
 }
 async function _pvAddRow(){
-  var inp=document.getElementById('pvNewRow');var v=(inp&&inp.value||'').slice(0,5);if(!v)return;
   var rows=(_pvState.grid.rows||[]).slice();
-  if(rows.indexOf(v)<0){rows.push(v);rows.sort();}
+  rows.push({id:_pvNewId(),time:''});
   await _pvSaveGridField({rows:rows});
-  var inp2=document.getElementById('pvNewRow');if(inp2)inp2.value='';
 }
-async function _pvRemoveRow(row){
-  if(!confirm('Remover a linha das '+row+' da grade?'))return;
-  var rows=(_pvState.grid.rows||[]).filter(function(r){return r!==row;});
+async function _pvSetColDate(id,val){
+  var cols=(_pvState.grid.cols||[]).map(function(c){return c.id===id?Object.assign({},c,{date:val||''}):c;});
+  await _pvSaveGridField({cols:cols});
+}
+async function _pvSetRowTime(id,val){
+  val=(val||'').slice(0,5);
+  var rows=(_pvState.grid.rows||[]).map(function(r){return r.id===id?Object.assign({},r,{time:val}):r;});
   await _pvSaveGridField({rows:rows});
+}
+async function _pvRemoveCol(id){
+  var col=(_pvState.grid.cols||[]).find(function(c){return c.id===id;});
+  if(col&&col.date&&!confirm('Remover a coluna do dia '+_pvFmtDate(col.date)+' da grade?\n\nSessões já alocadas nesse dia continuam existindo, só saem desta visualização.'))return;
+  var cols=(_pvState.grid.cols||[]).filter(function(c){return c.id!==id;});
+  await _pvSaveGridField({cols:cols});
+}
+async function _pvRemoveRow(id){
+  var row=(_pvState.grid.rows||[]).find(function(r){return r.id===id;});
+  if(row&&row.time&&!confirm('Remover a linha das '+row.time+' da grade?'))return;
+  var rows=(_pvState.grid.rows||[]).filter(function(r){return r.id!==id;});
+  await _pvSaveGridField({rows:rows});
+}
+// Ordenação cronológica forçada na exibição — colunas/linhas ainda sem valor vão pro final,
+// prontas pra preencher, sem precisar reordenar nada manualmente.
+function _pvSortedCols(){
+  return(_pvState.grid.cols||[]).slice().sort(function(a,b){
+    if(!a.date&&!b.date)return 0;if(!a.date)return 1;if(!b.date)return-1;
+    return a.date<b.date?-1:a.date>b.date?1:0;
+  });
+}
+function _pvSortedRows(){
+  return(_pvState.grid.rows||[]).slice().sort(function(a,b){
+    if(!a.time&&!b.time)return 0;if(!a.time)return 1;if(!b.time)return-1;
+    return a.time<b.time?-1:a.time>b.time?1:0;
+  });
 }
 function _pvSessionAt(day,row){
   return (sessoesArr||[]).find(function(s){
@@ -18513,7 +18549,7 @@ function _pvOpenBatch(){
 // Por coluna (dia): ordena as sessões pelo horário real e avisa quando uma invade a
 // seguinte ou sobra menos de 15min de intervalo — cálculo client-side, sem leitura extra.
 function _pvConflicts(day){
-  var list=(_pvState.grid.rows||[]).map(function(row){return _pvSessionAt(day,row);}).filter(function(s){return s&&s.time&&s.time.str!=='?';});
+  var list=(_pvState.grid.rows||[]).map(function(r){return _pvSessionAt(day,r.time);}).filter(function(s){return s&&s.time&&s.time.str!=='?';});
   list.sort(function(a,b){return(a.time.h*60+a.time.m)-(b.time.h*60+b.time.m);});
   var warn={};
   for(var i=0;i<list.length-1;i++){
@@ -18529,6 +18565,7 @@ function _pvConflicts(day){
   return warn;
 }
 function _pvCellHtml(day,row,warnMap,canEdit){
+  if(!day||!row)return'<td style="border:1px solid var(--border);padding:4px;background:var(--surface);opacity:.35;"></td>';
   var s=_pvSessionAt(day,row);
   var key=_pvCellKey(day,row);
   if(!s){
@@ -18541,13 +18578,11 @@ function _pvCellHtml(day,row,warnMap,canEdit){
   }
   var warn=warnMap&&warnMap[s.nome];
   var checked=_pvState.selected.has(s.nome);
-  var title=(s.name?s.name+' — ':'')+stripEvPrefix(s.nome,s.evento);
-  var filmsLbl=(s.filmes||[]).map(function(c){var f=filmesMap[c];return f?(f.titulo||c):c;}).join(', ');
+  var codigo=stripEvPrefix(s.nome,s.evento);
   return'<td style="border:1px solid var(--border);padding:5px;vertical-align:top;background:var(--surface2);position:relative;">'
     +(canEdit?'<input type="checkbox" '+(checked?'checked ':'')+'onchange="_pvToggleSel(\''+_pvEsc(s.nome)+'\',this.checked)" style="position:absolute;top:4px;right:4px;cursor:pointer;">':'')
     +(warn?'<span title="'+esc(warn)+'" style="position:absolute;top:4px;left:4px;color:var(--warn,#e57);cursor:help;font-weight:700;">⚠</span>':'')
-    +'<div style="font-weight:600;padding-right:16px;'+(warn?'padding-left:16px;':'')+'">'+esc(title)+'</div>'
-    +(filmsLbl?'<div style="opacity:.6;margin-top:2px;">'+esc(filmsLbl.slice(0,60))+(filmsLbl.length>60?'…':'')+'</div>':'')
+    +'<div style="font-weight:600;padding-right:16px;'+(warn?'padding-left:16px;':'')+'">'+esc(codigo)+'</div>'
     +(canEdit?('<div style="display:flex;align-items:center;gap:4px;margin-top:4px;"><input type="time" value="'+(s.time&&s.time.str!=='?'?s.time.str:'')+'" onchange="_pvOverrideTime(\''+_pvEsc(s.nome)+'\',this.value)" style="height:20px;padding:0 4px;border:1px solid var(--border2);background:var(--bg);color:var(--text);font-family:var(--mono);font-size:9px;"></div>')
       :('<div style="opacity:.5;margin-top:2px;">'+esc(s.time&&s.time.str!=='?'?s.time.str:'')+'</div>'))
     +'</td>';
@@ -18569,10 +18604,8 @@ function _pvRender(){
     +venues.map(function(v){return'<option value="'+esc(v)+'"'+(v===st.venue?' selected':'')+'>'+esc(v)+'</option>';}).join('')
     +'</select>';
   if(canEdit&&st.venue){
-    toolbar+='<input type="date" id="pvNewDay" style="height:28px;padding:0 6px;border:1px solid var(--border);background:var(--surface);color:var(--text);font-family:var(--mono);font-size:10px;">'
-      +'<button class="print-btn" onclick="_pvAddDay()">+ dia</button>'
-      +'<input type="time" id="pvNewRow" style="height:28px;padding:0 6px;border:1px solid var(--border);background:var(--surface);color:var(--text);font-family:var(--mono);font-size:10px;">'
-      +'<button class="print-btn" onclick="_pvAddRow()">+ horário</button>';
+    toolbar+='<button class="print-btn" onclick="_pvAddCol()">+ coluna</button>'
+      +'<button class="print-btn" onclick="_pvAddRow()">+ linha</button>';
   }
   if(st.selected.size)toolbar+='<button class="print-btn" style="margin-left:auto;background:var(--accent);color:#000;border-color:var(--accent);" onclick="_pvOpenBatch()">Editar '+st.selected.size+' selecionada'+(st.selected.size>1?'s':'')+'</button>';
   toolbar+='</div>';
@@ -18580,23 +18613,25 @@ function _pvRender(){
   if(!st.venue){
     body='<div style="padding:40px;text-align:center;color:var(--text-muted);">Nenhum cinema cadastrado.</div>';
   }else{
-    var days=(st.grid&&st.grid.days||[]).slice().sort();
-    var rows=(st.grid&&st.grid.rows||[]).slice().sort();
-    if(!days.length||!rows.length){
-      body='<div style="padding:40px;text-align:center;color:var(--text-muted);">'+(canEdit?'Adicione dias e horários acima para montar a grade.':'Grade ainda não configurada para este cinema.')+'</div>';
+    var cols=_pvSortedCols(),rows=_pvSortedRows();
+    if(!cols.length||!rows.length){
+      body='<div style="padding:40px;text-align:center;color:var(--text-muted);">'+(canEdit?'Use "+ coluna" / "+ linha" para montar a grade.':'Grade vazia para este cinema.')+'</div>';
     }else{
-      var warnByDay={};days.forEach(function(d){warnByDay[d]=_pvConflicts(d);});
+      var dateInp='height:26px;padding:0 4px;border:1px solid var(--border2);background:var(--bg);color:var(--text);font-family:var(--mono);font-size:9px;width:120px;';
+      var warnByDay={};cols.forEach(function(c){if(c.date)warnByDay[c.date]=_pvConflicts(c.date);});
       var tbl='<div style="overflow:auto;flex:1;"><table style="border-collapse:collapse;width:100%;font-family:var(--mono);font-size:10px;">'
         +'<thead><tr><th style="position:sticky;left:0;top:0;background:var(--surface2);border:1px solid var(--border);padding:6px 10px;z-index:2;">Horário</th>'
-        +days.map(function(d){
-          return'<th style="position:sticky;top:0;background:var(--surface2);border:1px solid var(--border);padding:6px 10px;min-width:170px;">'+esc(_pvFmtDate(d))
-            +(canEdit?' <span style="cursor:pointer;opacity:.5;" title="Remover dia" onclick="_pvRemoveDay(\''+d+'\')">×</span>':'')+'</th>';
+        +cols.map(function(c){
+          return'<th style="position:sticky;top:0;background:var(--surface2);border:1px solid var(--border);padding:6px 10px;min-width:150px;">'
+            +(canEdit?'<input type="date" value="'+esc(c.date)+'" onchange="_pvSetColDate(\''+c.id+'\',this.value)" style="'+dateInp+'">':esc(c.date?_pvFmtDate(c.date):'—'))
+            +(canEdit?' <span style="cursor:pointer;opacity:.5;" title="Remover coluna" onclick="_pvRemoveCol(\''+c.id+'\')">×</span>':'')+'</th>';
         }).join('')
         +'</tr></thead><tbody>';
-      rows.forEach(function(row){
-        tbl+='<tr><td style="position:sticky;left:0;background:var(--surface2);border:1px solid var(--border);padding:6px 10px;font-weight:600;white-space:nowrap;">'+esc(row)
-          +(canEdit?' <span style="cursor:pointer;opacity:.5;" title="Remover horário" onclick="_pvRemoveRow(\''+row+'\')">×</span>':'')+'</td>';
-        days.forEach(function(day){tbl+=_pvCellHtml(day,row,warnByDay[day],canEdit);});
+      rows.forEach(function(r){
+        tbl+='<tr><td style="position:sticky;left:0;background:var(--surface2);border:1px solid var(--border);padding:6px 10px;font-weight:600;white-space:nowrap;">'
+          +(canEdit?'<input type="time" value="'+esc(r.time)+'" onchange="_pvSetRowTime(\''+r.id+'\',this.value)" style="'+dateInp+'width:90px;">':esc(r.time||'—'))
+          +(canEdit?' <span style="cursor:pointer;opacity:.5;" title="Remover linha" onclick="_pvRemoveRow(\''+r.id+'\')">×</span>':'')+'</td>';
+        cols.forEach(function(c){tbl+=_pvCellHtml(c.date,r.time,warnByDay[c.date],canEdit);});
         tbl+='</tr>';
       });
       tbl+='</tbody></table></div>';

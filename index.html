@@ -18087,7 +18087,7 @@ function renderDash(){
   html+=colBlock('legendagem','Legendagem',legBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 24/07/2026 às 09:39';
+  var sysUpdate='última atualização do sistema · 24/07/2026 às 09:48';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -18355,13 +18355,17 @@ function _pvEventos(){
   return Array.from(set).sort(function(a,b){return a.localeCompare(b,'pt-BR');});
 }
 function _pvVenues(){
+  // Mesma checagem de associação sala↔evento do editor tradicional de sessão (_salaAssoc):
+  // c.evento é lista ';' comparada contra o NOME do evento (não o id), sem fallback pra
+  // sala sem evento nenhum — essa "flutuação" é só pro contexto do editor de sessão avulsa.
+  var evData=(window._adminEventosFullCache||[]).find(function(e){return e.id===_pvState.ev||(e.data&&e.data.nome===_pvState.ev);});
+  var evNome=evData?((evData.data&&evData.data.nome)||evData.id):_pvState.ev;
   var set=new Set();
-  // c.evento é lista separada por ';' (uma sala pode servir vários eventos) — igualdade
-  // estrita descartava salas com mais de um evento associado.
   (cinemasArr||[]).forEach(function(c){
     if(!c.sala)return;
-    var evs=c.evento?c.evento.split(';').map(function(e){return e.trim();}).filter(Boolean):[];
-    if(!_pvState.ev||!evs.length||evs.indexOf(_pvState.ev)!==-1)set.add(c.sala);
+    if(!evNome){set.add(c.sala);return;}
+    var evs=(c.evento||'').split(';').map(function(e){return e.trim();});
+    if(evs.indexOf(evNome)!==-1)set.add(c.sala);
   });
   return Array.from(set).sort(function(a,b){return a.localeCompare(b,'pt-BR');});
 }
@@ -18523,7 +18527,7 @@ async function _pvRemoveCol(id){
   if(col&&col.date&&!confirm('Remover a coluna do dia '+_pvFmtDate(col.date)+' da grade?\n\nSessões já alocadas nela permanecem com esse dia definido, só saem desta grade.'))return;
   var cols=(_pvState.grid.cols||[]).filter(function(c){return c.id!==id;});
   var sess=(sessoesArr||[]).filter(function(s){return s.grid_col===id;});
-  for(var i=0;i<sess.length;i++){try{await window._olgaSessoes.saveField(sess[i]._docId||sess[i].nome,{grid_col:''});sess[i].grid_col='';}catch(e){}}
+  for(var i=0;i<sess.length;i++){try{await window._olgaSessoes.saveField(sess[i]._docId||sess[i].nome,_pvReleaseFields());Object.assign(sess[i],_pvReleaseLocal());}catch(e){}}
   if(sess.length)await window._olgaSessoes.reload();
   await _pvSaveGridField({cols:cols});
 }
@@ -18532,9 +18536,26 @@ async function _pvRemoveRow(id){
   if(row&&row.time&&!confirm('Remover a linha das '+row.time+' da grade?'))return;
   var rows=(_pvState.grid.rows||[]).filter(function(r){return r.id!==id;});
   var sess=(sessoesArr||[]).filter(function(s){return s.grid_row===id;});
-  for(var i=0;i<sess.length;i++){try{await window._olgaSessoes.saveField(sess[i]._docId||sess[i].nome,{grid_row:''});sess[i].grid_row='';}catch(e){}}
+  for(var i=0;i<sess.length;i++){try{await window._olgaSessoes.saveField(sess[i]._docId||sess[i].nome,_pvReleaseFields());Object.assign(sess[i],_pvReleaseLocal());}catch(e){}}
   if(sess.length)await window._olgaSessoes.reload();
   await _pvSaveGridField({rows:rows});
+}
+// Liberação completa (sair da grade por qualquer via): limpa cinema/dia/hora/posição juntos —
+// meio-liberada (só grid_col/grid_row) é o que deixava sessão presa, invisível na grade e fora
+// do dropdown ao mesmo tempo.
+function _pvReleaseFields(){return{grid_col:'',grid_row:'',venue_name:'',date:'',slot_time:'',time:''};}
+function _pvReleaseLocal(){return{cinema:'',grid_col:'',grid_row:'',date:null,dia:'—',slot_time:'',time:_pvParseTimeStr(''),hora:'—'};}
+async function _pvUnassignSession(nome){
+  var s=sessoesMap[nome];if(!s)return;
+  if(!confirm('Remover a sessão "'+stripEvPrefix(nome,s.evento)+'" desta célula?\n\nA sessão volta a ficar disponível (sem cinema/dia/hora) pra ser alocada em outro lugar.'))return;
+  try{
+    await window._olgaSessoes.saveField(s._docId||nome,_pvReleaseFields());
+    window._logFirestoreEdit&&window._logFirestoreEdit('individual',nome,_pvReleaseFields(),'programacao','sessoes');
+    Object.assign(s,_pvReleaseLocal());
+    _pvState.selected.delete(nome);
+    await window._olgaSessoes.reload();
+    _pvRender();
+  }catch(e){alert('Erro: '+e.message);}
 }
 function _pvColById(id){return(_pvState.grid.cols||[]).find(function(c){return c.id===id;});}
 function _pvRowById(id){return(_pvState.grid.rows||[]).find(function(r){return r.id===id;});}
@@ -18558,7 +18579,9 @@ function _pvSessionAt(colId,rowId){
   return (sessoesArr||[]).find(function(s){return s.grid_col===colId&&s.grid_row===rowId;})||null;
 }
 function _pvUnallocated(){
-  return (sessoesArr||[]).filter(function(s){return s.evento===_pvState.ev&&!s.grid_col&&!s.cinema&&!s.date;});
+  // "Sem cinema" é o único critério de disponibilidade — sobra de grid_col/date de uma
+  // remoção antiga não pode deixar a sessão presa (invisível na grade E fora do dropdown).
+  return (sessoesArr||[]).filter(function(s){return s.evento===_pvState.ev&&!s.cinema;});
 }
 async function _pvAssignSession(colId,rowId,nome){
   var s=sessoesMap[nome];if(!s){alert('Sessão não encontrada.');return;}
@@ -18638,8 +18661,9 @@ function _pvCellHtml(colId,rowId,warnMap,canEdit,colw){
   var durLbl=_showDurLabel(_showFilmsDurMin(s.filmes));
   return'<td style="'+cellStyle+'background:var(--surface2);position:relative;">'
     +(canEdit?'<input type="checkbox" '+(checked?'checked ':'')+'onchange="_pvToggleSel(\''+_pvEsc(s.nome)+'\',this.checked)" style="position:absolute;top:4px;right:4px;cursor:pointer;">':'')
+    +(canEdit?'<span onclick="_pvUnassignSession(\''+_pvEsc(s.nome)+'\')" title="Remover da célula (libera a sessão)" style="position:absolute;top:3px;right:20px;cursor:pointer;opacity:.5;font-weight:700;">×</span>':'')
     +(warn?'<span title="'+esc(warn)+'" style="position:absolute;top:4px;left:4px;color:var(--warn,#e57);cursor:help;font-weight:700;">⚠</span>':'')
-    +'<div style="'+wrapStyle+'font-weight:600;padding-right:16px;'+(warn?'padding-left:16px;':'')+'">'+esc(codigo)+(durLbl?' <span style="font-weight:400;opacity:.6;">('+esc(durLbl)+')</span>':'')+'</div>'
+    +'<div style="'+wrapStyle+'font-weight:600;padding-right:32px;'+(warn?'padding-left:16px;':'')+'">'+esc(codigo)+(durLbl?' <span style="font-weight:400;opacity:.6;">('+esc(durLbl)+')</span>':'')+'</div>'
     +(canEdit?('<div style="display:flex;align-items:center;gap:4px;margin-top:4px;"><input type="text" inputmode="numeric" maxlength="5" placeholder="HH:MM" oninput="_pvTimeMask(this)" value="'+(s.time&&s.time.str!=='?'?s.time.str:'')+'" onchange="_pvOverrideTime(\''+_pvEsc(s.nome)+'\',this.value)" style="height:20px;padding:0 4px;border:1px solid var(--border2);background:var(--bg);color:var(--text);font-family:var(--mono);font-size:9px;width:52px;"></div>')
       :('<div style="opacity:.5;margin-top:2px;">'+esc(s.time&&s.time.str!=='?'?s.time.str:'')+'</div>'))
     +'</td>';
@@ -27272,7 +27296,7 @@ function _sxcPrint(){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 24/07/2026 às 09:39</span></div>
+<div id="page-footer"><span>última atualização · 24/07/2026 às 09:48</span></div>
 
 </div>
 

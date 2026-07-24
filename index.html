@@ -18087,7 +18087,7 @@ function renderDash(){
   html+=colBlock('legendagem','Legendagem',legBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 24/07/2026 às 09:16';
+  var sysUpdate='última atualização do sistema · 24/07/2026 às 09:34';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -18336,7 +18336,7 @@ async function _progSessaoMakeShow(){
 
 /* === Programador Visual — grade dias × horários por cinema === */
 var _progGridsCache=null;
-var _pvState={ev:'',venue:'',gridId:'',grid:null,selected:new Set(),colsView:null,rowsView:null};
+var _pvState={ev:'',venue:'',gridId:'',grid:null,selected:new Set()};
 async function _ensureProgGridsLoaded(force){
   if(_progGridsCache&&!force&&!(window._olgaCacheExpired&&window._olgaCacheExpired('prog_grids',10*60*1000)))return _progGridsCache;
   if(!window._olgaProgGrids){_progGridsCache=_progGridsCache||[];return _progGridsCache;}
@@ -18356,7 +18356,13 @@ function _pvEventos(){
 }
 function _pvVenues(){
   var set=new Set();
-  (cinemasArr||[]).forEach(function(c){if(c.sala&&(!_pvState.ev||c.evento===_pvState.ev))set.add(c.sala);});
+  // c.evento é lista separada por ';' (uma sala pode servir vários eventos) — igualdade
+  // estrita descartava salas com mais de um evento associado.
+  (cinemasArr||[]).forEach(function(c){
+    if(!c.sala)return;
+    var evs=c.evento?c.evento.split(';').map(function(e){return e.trim();}).filter(Boolean):[];
+    if(!_pvState.ev||!evs.length||evs.indexOf(_pvState.ev)!==-1)set.add(c.sala);
+  });
   return Array.from(set).sort(function(a,b){return a.localeCompare(b,'pt-BR');});
 }
 async function openProgramadorVisual(ev){
@@ -18404,7 +18410,7 @@ function _pvNormRows(rows){
   });
 }
 async function _pvLoadGrid(){
-  if(!_pvState.ev||!_pvState.venue){_pvState.gridId='';_pvState.grid=null;_pvState.colsView=null;_pvState.rowsView=null;_pvState.selected=new Set();return;}
+  if(!_pvState.ev||!_pvState.venue){_pvState.gridId='';_pvState.grid=null;_pvState.selected=new Set();return;}
   _pvState.gridId=_pvGridId(_pvState.ev,_pvState.venue);
   var g=(_progGridsCache||[]).find(function(x){return x.id===_pvState.gridId;});
   if(g){
@@ -18427,7 +18433,6 @@ async function _pvLoadGrid(){
       }catch(e){}
     }
   }
-  _pvState.colsView=_pvSortedCols();_pvState.rowsView=_pvSortedRows();
   _pvState.selected=new Set();
 }
 async function _pvSaveGridField(patch){
@@ -18452,15 +18457,11 @@ async function _pvAddCol(){
   }
   cols.push({id:_pvNewId(),date:nextDate});
   await _pvSaveGridField({cols:cols});
-  _pvState.colsView=_pvSortedCols();
-  _pvRender();
 }
 async function _pvAddRow(){
   var rows=(_pvState.grid.rows||[]).slice();
   rows.push({id:_pvNewId(),time:''});
   await _pvSaveGridField({rows:rows});
-  _pvState.rowsView=_pvSortedRows();
-  _pvRender();
 }
 // Propaga o dia/horário definido no cabeçalho pra toda sessão já colocada naquela coluna/linha
 // (a célula pode ser ocupada antes mesmo de a coluna/linha terem data/hora definidas).
@@ -18497,9 +18498,6 @@ async function _pvSetColDate(id,val){
   val=val||'';
   var cols=(_pvState.grid.cols||[]).map(function(c){return c.id===id?Object.assign({},c,{date:val}):c;});
   await _pvSaveGridField({cols:cols});
-  // Atualiza o valor na posição já exibida sem reordenar — reordenar aqui faria a coluna
-  // pular de lugar bem na hora em que o usuário acabou de digitar, parecendo que sumiu.
-  if(_pvState.colsView)_pvState.colsView=_pvState.colsView.map(function(c){return c.id===id?Object.assign({},c,{date:val}):c;});
   await _pvPropagateCol(id,val);
   _pvRender();
 }
@@ -18517,8 +18515,6 @@ async function _pvSetRowTime(id,val){
   if(val&&!_pvValidTime(val)){alert('Horário inválido — use o formato HH:MM (24h).');_pvRender();return;}
   var rows=(_pvState.grid.rows||[]).map(function(r){return r.id===id?Object.assign({},r,{time:val}):r;});
   await _pvSaveGridField({rows:rows});
-  // Idem colunas: atualiza a linha na posição já exibida sem reordenar.
-  if(_pvState.rowsView)_pvState.rowsView=_pvState.rowsView.map(function(r){return r.id===id?Object.assign({},r,{time:val}):r;});
   await _pvPropagateRow(id,val);
   _pvRender();
 }
@@ -18530,8 +18526,6 @@ async function _pvRemoveCol(id){
   for(var i=0;i<sess.length;i++){try{await window._olgaSessoes.saveField(sess[i]._docId||sess[i].nome,{grid_col:''});sess[i].grid_col='';}catch(e){}}
   if(sess.length)await window._olgaSessoes.reload();
   await _pvSaveGridField({cols:cols});
-  _pvState.colsView=_pvSortedCols();
-  _pvRender();
 }
 async function _pvRemoveRow(id){
   var row=(_pvState.grid.rows||[]).find(function(r){return r.id===id;});
@@ -18541,8 +18535,6 @@ async function _pvRemoveRow(id){
   for(var i=0;i<sess.length;i++){try{await window._olgaSessoes.saveField(sess[i]._docId||sess[i].nome,{grid_row:''});sess[i].grid_row='';}catch(e){}}
   if(sess.length)await window._olgaSessoes.reload();
   await _pvSaveGridField({rows:rows});
-  _pvState.rowsView=_pvSortedRows();
-  _pvRender();
 }
 function _pvColById(id){return(_pvState.grid.cols||[]).find(function(c){return c.id===id;});}
 function _pvRowById(id){return(_pvState.grid.rows||[]).find(function(r){return r.id===id;});}
@@ -18627,7 +18619,7 @@ function _pvConflicts(colId){
 function _pvCellHtml(colId,rowId,warnMap,canEdit,colw){
   // Altura dobrada em relação à original (~24px de conteúdo) + quebra de linha forçada no
   // texto, pra código/nome de sessão comprido não estourar a largura da coluna.
-  var cellStyle='border:1px solid var(--border);padding:6px;vertical-align:top;min-height:56px;box-sizing:border-box;'+(colw?'width:'+colw+'px;max-width:'+colw+'px;':'');
+  var cellStyle='border:1px solid var(--border);padding:6px;vertical-align:top;height:56px;box-sizing:border-box;'+(colw?'width:'+colw+'px;':'');
   var wrapStyle='white-space:normal;word-break:break-word;overflow-wrap:anywhere;';
   var s=_pvSessionAt(colId,rowId);
   if(!s){
@@ -18637,7 +18629,7 @@ function _pvCellHtml(colId,rowId,warnMap,canEdit,colw){
       return'<option value="'+esc(u.nome)+'">'+esc(lbl)+'</option>';
     }).join('');
     return'<td style="'+cellStyle+'">'
-      +'<select onchange="if(this.value)_pvAssignSession(\''+_pvEsc(colId)+'\',\''+_pvEsc(rowId)+'\',this.value)" style="width:100%;box-sizing:border-box;height:24px;border:1px solid var(--border2);background:var(--bg);color:var(--text);font-family:var(--mono);font-size:9px;">'+opts+'</select>'
+      +'<select onchange="if(this.value)_pvAssignSession(\''+_pvEsc(colId)+'\',\''+_pvEsc(rowId)+'\',this.value)" style="width:100%;box-sizing:border-box;padding:4px 3px;line-height:1.4;border:1px solid var(--border2);background:var(--bg);color:var(--text);font-family:var(--mono);font-size:9px;">'+opts+'</select>'
       +'</td>';
   }
   var warn=warnMap&&warnMap[s.nome];
@@ -18678,17 +18670,17 @@ function _pvRender(){
   if(!st.venue){
     body='<div style="padding:40px;text-align:center;color:var(--text-muted);">Nenhum cinema cadastrado.</div>';
   }else{
-    if(!st.colsView)st.colsView=_pvSortedCols();
-    if(!st.rowsView)st.rowsView=_pvSortedRows();
-    var cols=st.colsView,rows=st.rowsView;
+    var cols=_pvSortedCols(),rows=_pvSortedRows();
     if(!cols.length||!rows.length){
       body='<div style="padding:40px;text-align:center;color:var(--text-muted);">'+(canEdit?'Use "+ coluna" / "+ linha" para montar a grade.':'Grade vazia para este cinema.')+'</div>';
     }else{
       // Largura da coluna igual ao bloco do input de data no cabeçalho (alinhamento cabeçalho×célula).
+      // Sem table-layout:fixed (achatava bordas/larguras) — mesma largura explícita em th e td
+      // já converge no layout automático, já que o texto quebra linha em vez de forçar expansão.
       var COLW=150;
       var dateInp='height:26px;padding:0 4px;border:1px solid var(--border2);background:var(--bg);color:var(--text);font-family:var(--mono);font-size:9px;width:'+(COLW-30)+'px;';
       var warnByCol={};cols.forEach(function(c){warnByCol[c.id]=_pvConflicts(c.id);});
-      var tbl='<div style="overflow:auto;flex:1;"><table style="border-collapse:collapse;width:100%;table-layout:fixed;font-family:var(--mono);font-size:10px;">'
+      var tbl='<div style="overflow:auto;flex:1;"><table style="border-collapse:collapse;width:100%;font-family:var(--mono);font-size:10px;">'
         +'<thead><tr><th style="position:sticky;left:0;top:0;background:var(--surface2);border:1px solid var(--border);padding:6px 10px;z-index:2;width:110px;">Horário</th>'
         +cols.map(function(c){
           return'<th style="position:sticky;top:0;background:var(--surface2);border:1px solid var(--border);padding:6px 10px;width:'+COLW+'px;">'
@@ -27280,7 +27272,7 @@ function _sxcPrint(){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 24/07/2026 às 09:16</span></div>
+<div id="page-footer"><span>última atualização · 24/07/2026 às 09:34</span></div>
 
 </div>
 

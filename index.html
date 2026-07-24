@@ -18098,7 +18098,7 @@ function renderDash(){
   html+=colBlock('legendagem','Legendagem',legBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 24/07/2026 às 11:22';
+  var sysUpdate='última atualização do sistema · 24/07/2026 às 15:36';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -18610,6 +18610,42 @@ async function _pvAssignSession(colId,rowId,nome){
     _pvRender();
   }catch(e){alert('Erro: '+e.message);}
 }
+async function _pvCreateFromShowCell(colId,rowId,showId){
+  var sh=_showById(showId);if(!sh){alert('Programa não encontrado.');return;}
+  var base=(sh.data&&sh.data.name)||showId;
+  var code=_catCriaSessUniqueId(base);
+  if(!code){alert('Não foi possível gerar um código de sessão a partir do nome do programa.');return;}
+  var col=_pvColById(colId),row=_pvRowById(rowId);
+  var colDate=(col&&col.date)||'',rowTime=(row&&row.time)||'';
+  var data={
+    session_id:code,name:'',event_name:_pvState.ev,
+    date:colDate,time:rowTime,slot_time:rowTime,
+    venue_name:_pvState.venue,venue_custom:'',
+    grid_col:colId,grid_row:rowId,
+    program_id:(sh.data&&sh.data.program_id)||'',subprogram_id:(sh.data&&sh.data.subprogram_id)||'',
+    films:(sh.data&&Array.isArray(sh.data.films))?sh.data.films.slice():[],bumpers:[],
+    show_id:showId,session_description:'',guests:'',
+    has_introduction:'Não',has_debate:'Não',for_guests:'Não',
+    has_electronic_subtitles:'Não',reserved_tickets:'',available_accessibility:'Não'
+  };
+  try{
+    await window._olgaSessoes.save(code,data);
+    if(window._olgaRegistry)await window._olgaRegistry.register('sessoes',code);
+    window._logFirestoreEdit&&window._logFirestoreEdit('individual',code,data,'programacao','sessoes');
+    await window._olgaSessoes.reload();
+    _pvRender();
+  }catch(e){alert('Erro ao criar sessão: '+e.message);}
+}
+// Sessão OU programa, nunca os dois — selecionar um desabilita o outro na hora; voltar pro
+// placeholder (valor vazio) reabilita, já que nesse estado nenhuma escolha foi feita ainda.
+function _pvCellSelChange(colId,rowId,kind,val){
+  var key=colId+'_'+rowId;
+  var other=document.getElementById((kind==='sess'?'pvShow_':'pvSess_')+key);
+  if(other)other.disabled=!!val;
+  if(!val)return;
+  if(kind==='sess')_pvAssignSession(colId,rowId,val);
+  else _pvCreateFromShowCell(colId,rowId,val);
+}
 async function _pvOverrideTime(nome,val){
   val=(val||'').trim();
   if(!val)return;
@@ -18658,13 +18694,23 @@ function _pvCellHtml(colId,rowId,warnMap,canEdit,colw){
   var s=_pvSessionAt(colId,rowId);
   if(!s){
     if(!canEdit)return'<td style="'+cellStyle+'"></td>';
-    var opts='<option value="">— sessão —</option>'+_pvUnallocated().map(function(u){
+    var key=colId+'_'+rowId;
+    var sessOpts='<option value="">— sessão —</option>'+_pvUnallocated().map(function(u){
       var lbl=stripEvPrefix(u.nome,u.evento);
       return'<option value="'+esc(u.nome)+'">'+esc(lbl)+'</option>';
     }).join('');
+    var shows=_showsOfEvent(_pvState.ev,_pvState.ev);
+    var showOpts='<option value="">— programa —</option>'+shows.map(function(sh){
+      var nm=(sh.data&&sh.data.name)||sh.id;
+      var nf=(sh.data&&Array.isArray(sh.data.films))?sh.data.films.length:0;
+      return'<option value="'+esc(sh.id)+'">'+esc(nm)+' ('+nf+')</option>';
+    }).join('');
+    var selStyle='width:50%;box-sizing:border-box;padding:3px 2px;line-height:1.4;border:1px solid var(--border2);background:var(--bg);color:var(--text);font-family:var(--mono);font-size:8px;';
     return'<td style="'+cellStyle+'">'
-      +'<select onchange="if(this.value)_pvAssignSession(\''+_pvEsc(colId)+'\',\''+_pvEsc(rowId)+'\',this.value)" style="width:100%;box-sizing:border-box;padding:4px 3px;line-height:1.4;border:1px solid var(--border2);background:var(--bg);color:var(--text);font-family:var(--mono);font-size:9px;">'+opts+'</select>'
-      +'</td>';
+      +'<div style="display:flex;gap:3px;">'
+      +'<select id="pvSess_'+key+'" onchange="_pvCellSelChange(\''+_pvEsc(colId)+'\',\''+_pvEsc(rowId)+'\',\'sess\',this.value)" style="'+selStyle+'">'+sessOpts+'</select>'
+      +'<select id="pvShow_'+key+'" onchange="_pvCellSelChange(\''+_pvEsc(colId)+'\',\''+_pvEsc(rowId)+'\',\'show\',this.value)" style="'+selStyle+'">'+showOpts+'</select>'
+      +'</div></td>';
   }
   var warn=warnMap&&warnMap[s.nome];
   var checked=_pvState.selected.has(s.nome);
@@ -27307,7 +27353,7 @@ function _sxcPrint(){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 24/07/2026 às 11:22</span></div>
+<div id="page-footer"><span>última atualização · 24/07/2026 às 15:36</span></div>
 
 </div>
 

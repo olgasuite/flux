@@ -4401,7 +4401,7 @@ html[data-theme="indexof"]:not([data-theme="win98"]) .module-icon{display:flex!i
         if(Array.isArray(r['bumpers'])&&r['bumpers'].length){r['bumpers'].forEach(function(vc){var vcs=_fs(vc);if(vcs&&vcs!=='-'&&!/^=/.test(vcs))vin2.push(vcs);});}
         else{for(var vi=1;vi<=10;vi++){var vc=_fs(r['bumper_'+vi]);if(vc&&vc!=='-'&&!/^=/.test(vc))vin2.push(vc);}}
         var dv=_fs(r['date']),tv=_fs(r['time']);
-        var s={nome:nome,cinema:_fs(r['venue_name']),local_livre:_fs(r['venue_custom']),dia:_fd(dv),hora:tv?tv.slice(0,5):'—',filmes:codes,date:_pd(dv),time:_pt(tv),evento:evento,vinhetas:vin2,convidados:_fs(r['guests']),apresentacao:_fs(r['has_introduction']),publico:_fs(r['total_audience']),renda:_fs(r['total_revenue']),ingressos:_fs(r['reserved_tickets']),leg_eletronica:_fs(r['has_electronic_subtitles']),acessibilidades:_fs(r['available_accessibility']),col_ag:_fs(r['has_debate']),para_convidados:_fs(r['for_guests']),name:_fs(r['name']),program_id:_fs(r['program_id']),_docId:d.id,subprogram_id:_fs(r['subprogram_id']),session_description:_fs(r['session_description']),notes:_fs(r['notes']),operador:_parseOperadores(r['subtitle_operators']),template_id:_fs(r['template_id']),show_id:_fs(r['show_id']),slot_time:_fs(r['slot_time'])};
+        var s={nome:nome,cinema:_fs(r['venue_name']),local_livre:_fs(r['venue_custom']),dia:_fd(dv),hora:tv?tv.slice(0,5):'—',filmes:codes,date:_pd(dv),time:_pt(tv),evento:evento,vinhetas:vin2,convidados:_fs(r['guests']),apresentacao:_fs(r['has_introduction']),publico:_fs(r['total_audience']),renda:_fs(r['total_revenue']),ingressos:_fs(r['reserved_tickets']),leg_eletronica:_fs(r['has_electronic_subtitles']),acessibilidades:_fs(r['available_accessibility']),col_ag:_fs(r['has_debate']),para_convidados:_fs(r['for_guests']),name:_fs(r['name']),program_id:_fs(r['program_id']),_docId:d.id,subprogram_id:_fs(r['subprogram_id']),session_description:_fs(r['session_description']),notes:_fs(r['notes']),operador:_parseOperadores(r['subtitle_operators']),template_id:_fs(r['template_id']),show_id:_fs(r['show_id']),slot_time:_fs(r['slot_time']),grid_col:_fs(r['grid_col']),grid_row:_fs(r['grid_row'])};
         a2.push(s);m2[nome]=s;
         codes.forEach(function(c){if(!r2[c])r2[c]=[];r2[c].push(nome);});
         vin2.forEach(function(c){if(!vr2[c])vr2[c]=[];vr2[c].push(nome);});
@@ -5354,7 +5354,8 @@ html[data-theme="indexof"]:not([data-theme="win98"]) .module-icon{display:flex!i
           operador: _parseOperadores(r['subtitle_operators']),
           template_id: fs(r['template_id']),
           show_id: fs(r['show_id']),
-          slot_time: fs(r['slot_time'])
+          slot_time: fs(r['slot_time']),
+          grid_col: fs(r['grid_col']), grid_row: fs(r['grid_row'])
         };
         arr.push(s); map[nome] = s;
         codes.forEach(function(c) { if (!brev[c]) brev[c] = []; brev[c].push(nome); });
@@ -7351,7 +7352,8 @@ function _restSessDoc(s){
     guests:s.convidados||'',has_introduction:s.apresentacao||'',has_debate:s.col_ag||'',
     for_guests:s.para_convidados||'',has_electronic_subtitles:s.leg_eletronica||'',
     reserved_tickets:s.ingressos||'',available_accessibility:s.acessibilidades||'',
-    total_audience:s.publico||'',total_revenue:s.renda||'',notes:s.notes||'',slot_time:s.slot_time||''};
+    total_audience:s.publico||'',total_revenue:s.renda||'',notes:s.notes||'',slot_time:s.slot_time||'',
+    grid_col:s.grid_col||'',grid_row:s.grid_row||''};
   if(s.date){var dt=new Date(s.date);if(!isNaN(dt))d.date=dt.getFullYear()+'-'+String(dt.getMonth()+1).padStart(2,'0')+'-'+String(dt.getDate()).padStart(2,'0');}
   if(s.time&&s.time.str&&s.time.str!=='?')d.time=s.time.str;
   if(Array.isArray(s.operador))d.subtitle_operators=s.operador;
@@ -18085,7 +18087,7 @@ function renderDash(){
   html+=colBlock('legendagem','Legendagem',legBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 24/07/2026 às 00:40';
+  var sysUpdate='última atualização do sistema · 24/07/2026 às 00:52';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -18415,27 +18417,71 @@ async function _pvAddRow(){
   rows.push({id:_pvNewId(),time:''});
   await _pvSaveGridField({rows:rows});
 }
+// Propaga o dia/horário definido no cabeçalho pra toda sessão já colocada naquela coluna/linha
+// (a célula pode ser ocupada antes mesmo de a coluna/linha terem data/hora definidas).
+async function _pvPropagateCol(colId,date){
+  var sess=(sessoesArr||[]).filter(function(s){return s.grid_col===colId;});
+  for(var i=0;i<sess.length;i++){
+    var s=sess[i];
+    try{
+      await window._olgaSessoes.saveField(s._docId||s.nome,{date:date});
+      window._logFirestoreEdit&&window._logFirestoreEdit('individual',s.nome,{date:date},'programacao','sessoes');
+      s.date=date?new Date(date+'T00:00:00'):null;s.dia=date?_pvFmtDate(date):'—';
+    }catch(e){}
+  }
+  if(sess.length)await window._olgaSessoes.reload();
+}
+async function _pvPropagateRow(rowId,time){
+  var sess=(sessoesArr||[]).filter(function(s){return s.grid_row===rowId;});
+  for(var i=0;i<sess.length;i++){
+    var s=sess[i];
+    // só sobrescreve o horário real se ele nunca tiver sido customizado à parte (override na célula)
+    var noOverride=!s.slot_time||(s.time&&s.time.str===s.slot_time);
+    var patch={slot_time:time};
+    if(noOverride&&time)patch.time=time;
+    try{
+      await window._olgaSessoes.saveField(s._docId||s.nome,patch);
+      window._logFirestoreEdit&&window._logFirestoreEdit('individual',s.nome,patch,'programacao','sessoes');
+      s.slot_time=time;
+      if(patch.time){s.time=_pvParseTimeStr(time);s.hora=time;}
+    }catch(e){}
+  }
+  if(sess.length)await window._olgaSessoes.reload();
+}
 async function _pvSetColDate(id,val){
-  var cols=(_pvState.grid.cols||[]).map(function(c){return c.id===id?Object.assign({},c,{date:val||''}):c;});
+  val=val||'';
+  var cols=(_pvState.grid.cols||[]).map(function(c){return c.id===id?Object.assign({},c,{date:val}):c;});
   await _pvSaveGridField({cols:cols});
+  await _pvPropagateCol(id,val);
+  _pvRender();
 }
 async function _pvSetRowTime(id,val){
   val=(val||'').slice(0,5);
   var rows=(_pvState.grid.rows||[]).map(function(r){return r.id===id?Object.assign({},r,{time:val}):r;});
   await _pvSaveGridField({rows:rows});
+  await _pvPropagateRow(id,val);
+  _pvRender();
 }
 async function _pvRemoveCol(id){
   var col=(_pvState.grid.cols||[]).find(function(c){return c.id===id;});
-  if(col&&col.date&&!confirm('Remover a coluna do dia '+_pvFmtDate(col.date)+' da grade?\n\nSessões já alocadas nesse dia continuam existindo, só saem desta visualização.'))return;
+  if(col&&col.date&&!confirm('Remover a coluna do dia '+_pvFmtDate(col.date)+' da grade?\n\nSessões já alocadas nela permanecem com esse dia definido, só saem desta grade.'))return;
   var cols=(_pvState.grid.cols||[]).filter(function(c){return c.id!==id;});
+  var sess=(sessoesArr||[]).filter(function(s){return s.grid_col===id;});
+  for(var i=0;i<sess.length;i++){try{await window._olgaSessoes.saveField(sess[i]._docId||sess[i].nome,{grid_col:''});sess[i].grid_col='';}catch(e){}}
+  if(sess.length)await window._olgaSessoes.reload();
   await _pvSaveGridField({cols:cols});
 }
 async function _pvRemoveRow(id){
   var row=(_pvState.grid.rows||[]).find(function(r){return r.id===id;});
   if(row&&row.time&&!confirm('Remover a linha das '+row.time+' da grade?'))return;
   var rows=(_pvState.grid.rows||[]).filter(function(r){return r.id!==id;});
+  var sess=(sessoesArr||[]).filter(function(s){return s.grid_row===id;});
+  for(var i=0;i<sess.length;i++){try{await window._olgaSessoes.saveField(sess[i]._docId||sess[i].nome,{grid_row:''});sess[i].grid_row='';}catch(e){}}
+  if(sess.length)await window._olgaSessoes.reload();
   await _pvSaveGridField({rows:rows});
 }
+function _pvColById(id){return(_pvState.grid.cols||[]).find(function(c){return c.id===id;});}
+function _pvRowById(id){return(_pvState.grid.rows||[]).find(function(r){return r.id===id;});}
 // Ordenação cronológica forçada na exibição — colunas/linhas ainda sem valor vão pro final,
 // prontas pra preencher, sem precisar reordenar nada manualmente.
 function _pvSortedCols(){
@@ -18450,15 +18496,15 @@ function _pvSortedRows(){
     return a.time<b.time?-1:a.time>b.time?1:0;
   });
 }
-function _pvSessionAt(day,row){
-  return (sessoesArr||[]).find(function(s){
-    return s.evento===_pvState.ev&&s.cinema===_pvState.venue&&s.date&&_pvIso(s.date)===day&&s.slot_time===row;
-  })||null;
+// Vínculo célula↔sessão é por posição (id da coluna/linha), não por data/hora já preenchida —
+// assim dá pra ocupar a célula antes mesmo de a coluna/linha terem dia/horário definidos.
+function _pvSessionAt(colId,rowId){
+  return (sessoesArr||[]).find(function(s){return s.grid_col===colId&&s.grid_row===rowId;})||null;
 }
 function _pvUnallocated(){
-  return (sessoesArr||[]).filter(function(s){return s.evento===_pvState.ev&&!s.cinema&&!s.date;});
+  return (sessoesArr||[]).filter(function(s){return s.evento===_pvState.ev&&!s.grid_col&&!s.cinema&&!s.date;});
 }
-function _pvCellKey(day,row){return(day+'_'+row).replace(/[^a-zA-Z0-9]/g,'_');}
+function _pvCellKey(colId,rowId){return colId+'_'+rowId;}
 function _pvAutocomplete(term){
   term=(term||'').trim().toLowerCase();
   if(!term)return[];
@@ -18476,8 +18522,8 @@ function _pvAutocomplete(term){
   });
   return out.slice(0,12);
 }
-function _pvOnCellInput(day,row){
-  var key=_pvCellKey(day,row);
+function _pvOnCellInput(colId,rowId){
+  var key=_pvCellKey(colId,rowId);
   var inp=document.getElementById('pvInp_'+key),res=document.getElementById('pvRes_'+key);
   if(!inp||!res)return;
   var items=_pvAutocomplete(inp.value);
@@ -18485,33 +18531,41 @@ function _pvOnCellInput(day,row){
   res.innerHTML=items.map(function(it){
     return'<div class="prog-autocomplete-item" onmousedown="event.preventDefault();'
       +(it.type==='show'?'_pvCreateFromShow(':'_pvAssignSession(')
-      +'\''+_pvEsc(day)+'\',\''+_pvEsc(row)+'\',\''+_pvEsc(it.id)+'\')">'
+      +'\''+_pvEsc(colId)+'\',\''+_pvEsc(rowId)+'\',\''+_pvEsc(it.id)+'\')">'
       +'<span style="opacity:.6;margin-right:5px;">'+(it.type==='show'?'▦':'▤')+'</span>'
       +esc(it.label)+(it.sub?' <span style="color:var(--text-muted);font-size:9px;">'+esc(it.sub)+'</span>':'')
       +'</div>';
   }).join('');
   res.style.display='block';
 }
-async function _pvAssignSession(day,row,nome){
+async function _pvAssignSession(colId,rowId,nome){
   var s=sessoesMap[nome];if(!s){alert('Sessão não encontrada.');return;}
-  var patch={venue_name:_pvState.venue,date:day,slot_time:row,time:row};
+  var col=_pvColById(colId),row=_pvRowById(rowId);
+  var patch={venue_name:_pvState.venue,grid_col:colId,grid_row:rowId};
+  if(col&&col.date)patch.date=col.date;
+  if(row&&row.time){patch.slot_time=row.time;patch.time=row.time;}
   try{
     await window._olgaSessoes.saveField(s._docId||nome,patch);
     window._logFirestoreEdit&&window._logFirestoreEdit('individual',nome,patch,'programacao','sessoes');
-    Object.assign(s,{cinema:_pvState.venue,date:new Date(day+'T00:00:00'),dia:_pvFmtDate(day),slot_time:row,time:_pvParseTimeStr(row),hora:row});
+    Object.assign(s,{cinema:_pvState.venue,grid_col:colId,grid_row:rowId});
+    if(patch.date){s.date=new Date(patch.date+'T00:00:00');s.dia=_pvFmtDate(patch.date);}
+    if(patch.time){s.time=_pvParseTimeStr(patch.time);s.hora=patch.time;s.slot_time=patch.time;}
     await window._olgaSessoes.reload();
     _pvRender();
   }catch(e){alert('Erro: '+e.message);}
 }
-async function _pvCreateFromShow(day,row,showId){
+async function _pvCreateFromShow(colId,rowId,showId){
   var sh=_showById(showId);if(!sh){alert('Programa não encontrado.');return;}
   var base=(sh.data&&sh.data.name)||showId;
   var code=_catCriaSessUniqueId(base);
   if(!code){alert('Não foi possível gerar um código de sessão a partir do nome do programa.');return;}
+  var col=_pvColById(colId),row=_pvRowById(rowId);
+  var colDate=(col&&col.date)||'',rowTime=(row&&row.time)||'';
   var data={
     session_id:code,name:'',event_name:_pvState.ev,
-    date:day,time:row,slot_time:row,
+    date:colDate,time:rowTime,slot_time:rowTime,
     venue_name:_pvState.venue,venue_custom:'',
+    grid_col:colId,grid_row:rowId,
     program_id:(sh.data&&sh.data.program_id)||'',subprogram_id:(sh.data&&sh.data.subprogram_id)||'',
     films:(sh.data&&Array.isArray(sh.data.films))?sh.data.films.slice():[],bumpers:[],
     show_id:showId,session_description:'',guests:'',
@@ -18548,8 +18602,8 @@ function _pvOpenBatch(){
 }
 // Por coluna (dia): ordena as sessões pelo horário real e avisa quando uma invade a
 // seguinte ou sobra menos de 15min de intervalo — cálculo client-side, sem leitura extra.
-function _pvConflicts(day){
-  var list=(_pvState.grid.rows||[]).map(function(r){return _pvSessionAt(day,r.time);}).filter(function(s){return s&&s.time&&s.time.str!=='?';});
+function _pvConflicts(colId){
+  var list=(_pvState.grid.rows||[]).map(function(r){return _pvSessionAt(colId,r.id);}).filter(function(s){return s&&s.time&&s.time.str!=='?';});
   list.sort(function(a,b){return(a.time.h*60+a.time.m)-(b.time.h*60+b.time.m);});
   var warn={};
   for(var i=0;i<list.length-1;i++){
@@ -18564,26 +18618,26 @@ function _pvConflicts(day){
   }
   return warn;
 }
-function _pvCellHtml(day,row,warnMap,canEdit){
-  if(!day||!row)return'<td style="border:1px solid var(--border);padding:4px;background:var(--surface);opacity:.35;"></td>';
-  var s=_pvSessionAt(day,row);
-  var key=_pvCellKey(day,row);
+function _pvCellHtml(colId,rowId,warnMap,canEdit){
+  var s=_pvSessionAt(colId,rowId);
+  var key=_pvCellKey(colId,rowId);
   if(!s){
     if(!canEdit)return'<td style="border:1px solid var(--border);padding:4px;"></td>';
     return'<td style="border:1px solid var(--border);padding:4px;vertical-align:top;">'
       +'<div class="prog-autocomplete-wrap">'
-      +'<input id="pvInp_'+key+'" type="text" placeholder="código de sessão ou programa…" oninput="_pvOnCellInput(\''+_pvEsc(day)+'\',\''+_pvEsc(row)+'\')" onblur="setTimeout(function(){var r=document.getElementById(\'pvRes_'+key+'\');if(r)r.style.display=\'none\';},200)" style="width:100%;box-sizing:border-box;height:24px;padding:0 6px;border:1px solid var(--border2);background:var(--bg);color:var(--text);font-family:var(--mono);font-size:9px;">'
+      +'<input id="pvInp_'+key+'" type="text" placeholder="código de sessão ou programa…" oninput="_pvOnCellInput(\''+_pvEsc(colId)+'\',\''+_pvEsc(rowId)+'\')" onblur="setTimeout(function(){var r=document.getElementById(\'pvRes_'+key+'\');if(r)r.style.display=\'none\';},200)" style="width:100%;box-sizing:border-box;height:24px;padding:0 6px;border:1px solid var(--border2);background:var(--bg);color:var(--text);font-family:var(--mono);font-size:9px;">'
       +'<div id="pvRes_'+key+'" class="prog-autocomplete-results"></div>'
       +'</div></td>';
   }
   var warn=warnMap&&warnMap[s.nome];
   var checked=_pvState.selected.has(s.nome);
   var codigo=stripEvPrefix(s.nome,s.evento);
+  var durLbl=_showDurLabel(_showFilmsDurMin(s.filmes));
   return'<td style="border:1px solid var(--border);padding:5px;vertical-align:top;background:var(--surface2);position:relative;">'
     +(canEdit?'<input type="checkbox" '+(checked?'checked ':'')+'onchange="_pvToggleSel(\''+_pvEsc(s.nome)+'\',this.checked)" style="position:absolute;top:4px;right:4px;cursor:pointer;">':'')
     +(warn?'<span title="'+esc(warn)+'" style="position:absolute;top:4px;left:4px;color:var(--warn,#e57);cursor:help;font-weight:700;">⚠</span>':'')
-    +'<div style="font-weight:600;padding-right:16px;'+(warn?'padding-left:16px;':'')+'">'+esc(codigo)+'</div>'
-    +(canEdit?('<div style="display:flex;align-items:center;gap:4px;margin-top:4px;"><input type="time" value="'+(s.time&&s.time.str!=='?'?s.time.str:'')+'" onchange="_pvOverrideTime(\''+_pvEsc(s.nome)+'\',this.value)" style="height:20px;padding:0 4px;border:1px solid var(--border2);background:var(--bg);color:var(--text);font-family:var(--mono);font-size:9px;"></div>')
+    +'<div style="font-weight:600;padding-right:16px;'+(warn?'padding-left:16px;':'')+'">'+esc(codigo)+(durLbl?' <span style="font-weight:400;opacity:.6;">('+esc(durLbl)+')</span>':'')+'</div>'
+    +(canEdit?('<div style="display:flex;align-items:center;gap:4px;margin-top:4px;"><input type="time" lang="pt-BR" value="'+(s.time&&s.time.str!=='?'?s.time.str:'')+'" onchange="_pvOverrideTime(\''+_pvEsc(s.nome)+'\',this.value)" style="height:20px;padding:0 4px;border:1px solid var(--border2);background:var(--bg);color:var(--text);font-family:var(--mono);font-size:9px;"></div>')
       :('<div style="opacity:.5;margin-top:2px;">'+esc(s.time&&s.time.str!=='?'?s.time.str:'')+'</div>'))
     +'</td>';
 }
@@ -18618,7 +18672,7 @@ function _pvRender(){
       body='<div style="padding:40px;text-align:center;color:var(--text-muted);">'+(canEdit?'Use "+ coluna" / "+ linha" para montar a grade.':'Grade vazia para este cinema.')+'</div>';
     }else{
       var dateInp='height:26px;padding:0 4px;border:1px solid var(--border2);background:var(--bg);color:var(--text);font-family:var(--mono);font-size:9px;width:120px;';
-      var warnByDay={};cols.forEach(function(c){if(c.date)warnByDay[c.date]=_pvConflicts(c.date);});
+      var warnByCol={};cols.forEach(function(c){warnByCol[c.id]=_pvConflicts(c.id);});
       var tbl='<div style="overflow:auto;flex:1;"><table style="border-collapse:collapse;width:100%;font-family:var(--mono);font-size:10px;">'
         +'<thead><tr><th style="position:sticky;left:0;top:0;background:var(--surface2);border:1px solid var(--border);padding:6px 10px;z-index:2;">Horário</th>'
         +cols.map(function(c){
@@ -18629,9 +18683,9 @@ function _pvRender(){
         +'</tr></thead><tbody>';
       rows.forEach(function(r){
         tbl+='<tr><td style="position:sticky;left:0;background:var(--surface2);border:1px solid var(--border);padding:6px 10px;font-weight:600;white-space:nowrap;">'
-          +(canEdit?'<input type="time" value="'+esc(r.time)+'" onchange="_pvSetRowTime(\''+r.id+'\',this.value)" style="'+dateInp+'width:90px;">':esc(r.time||'—'))
+          +(canEdit?'<input type="time" lang="pt-BR" value="'+esc(r.time)+'" onchange="_pvSetRowTime(\''+r.id+'\',this.value)" style="'+dateInp+'width:90px;">':esc(r.time||'—'))
           +(canEdit?' <span style="cursor:pointer;opacity:.5;" title="Remover linha" onclick="_pvRemoveRow(\''+r.id+'\')">×</span>':'')+'</td>';
-        cols.forEach(function(c){tbl+=_pvCellHtml(c.date,r.time,warnByDay[c.date],canEdit);});
+        cols.forEach(function(c){tbl+=_pvCellHtml(c.id,r.id,warnByCol[c.id],canEdit);});
         tbl+='</tr>';
       });
       tbl+='</tbody></table></div>';
@@ -27211,7 +27265,7 @@ function _sxcPrint(){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 24/07/2026 às 00:40</span></div>
+<div id="page-footer"><span>última atualização · 24/07/2026 às 00:52</span></div>
 
 </div>
 

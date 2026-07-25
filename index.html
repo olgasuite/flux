@@ -18098,7 +18098,7 @@ function renderDash(){
   html+=colBlock('legendagem','Legendagem',legBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 24/07/2026 às 22:46';
+  var sysUpdate='última atualização do sistema · 24/07/2026 às 23:19';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -18388,24 +18388,26 @@ function _pvVenues(){
   });
   return Array.from(set).sort(function(a,b){return a.localeCompare(b,'pt-BR');});
 }
+// Sub-view do módulo Programação (mesmo padrão de _progView usado por landing/program/sessão) —
+// não é mais popup/overlay: cabeçalho, menu lateral e o resto do site continuam visíveis,
+// só o conteúdo de #programacao-container troca, com "← Programação" pra voltar.
 async function openProgramadorVisual(ev){
-  var modal=document.getElementById('pvModal');
-  // Tela cheia, sem fundo escurecido/caixa centralizada — comportamento de página, não de popup.
-  if(!modal){modal=document.createElement('div');modal.id='pvModal';modal.style.cssText='position:fixed;inset:0;background:var(--bg);z-index:550;display:flex;flex-direction:column;';document.body.appendChild(modal);}
-  modal.style.display='flex';
-  modal.innerHTML='<div style="display:flex;flex-direction:column;height:100%;color:var(--text);padding:30px;font-family:var(--mono);font-size:13px;">Carregando…</div>';
+  var c=document.getElementById('programacao-container');
+  if(c)c.innerHTML='<div style="padding:40px;text-align:center;color:var(--text-muted);font-family:var(--mono);font-size:12px;">Carregando…</div>';
   try{await _ensureShowsLoaded(true);}catch(e){}
   try{await _ensureProgGridsLoaded(true);}catch(e){}
   if(ev)_pvState.ev=ev;
   if(!_pvState.ev||!_pvEventos().some(function(e){return e===_pvState.ev;}))_pvState.ev=_pvEventos()[0]||'';
   if(!_pvState.venue||!_pvVenues().some(function(v){return v===_pvState.venue;}))_pvState.venue=_pvVenues()[0]||'';
   await _pvLoadGrid();
-  _pvRender();
+  _progView={level:'pv',programId:null,sessaoNome:null};
+  _progRender();
 }
 function closeProgramadorVisual(){
   if(!_pvConfirmDiscardPending())return;
   _pvState.pending={};
-  var m=document.getElementById('pvModal');if(m)m.style.display='none';
+  _progView={level:'landing',programId:null,sessaoNome:null};
+  _progRender();
 }
 async function _pvChangeEv(ev){
   if(!_pvConfirmDiscardPending()){_pvRender();return;}
@@ -18789,15 +18791,13 @@ function _pvCellHtml(colId,rowId,warnMap,canEdit,colw){
     +'</td>';
 }
 function _pvRender(){
-  var modal=document.getElementById('pvModal');if(!modal)return;
+  var pvContainer=document.getElementById('programacao-container');if(!pvContainer)return;
   var canEdit=!!(window._olgaCanEdit&&window._olgaCanEdit('programacao'));
   var st=_pvState;
   var evs=_pvEventos(),venues=_pvVenues();
-  var head='<div style="display:flex;align-items:center;justify-content:space-between;padding:18px 28px;border-bottom:1px solid var(--border);flex-shrink:0;">'
-    +'<span style="font-family:var(--mono);font-size:15px;font-weight:600;letter-spacing:0.18em;text-transform:uppercase;color:var(--accent);">Programador Visual</span>'
-    +'<button onclick="closeProgramadorVisual()" style="background:none;border:none;color:var(--text-muted);font-size:24px;cursor:pointer;">×</button>'
-    +'</div>';
-  var toolbar='<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:14px 28px;border-bottom:1px solid var(--border);flex-shrink:0;">'
+  var head='<button class="prog-back-btn" onclick="closeProgramadorVisual()">← Programação</button>'
+    +'<div class="prog-prog-title" style="margin-top:14px;">Programador Visual</div>';
+  var toolbar='<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:10px 0 18px;border-bottom:1px solid var(--border);margin-bottom:16px;">'
     +'<select onchange="_pvChangeEv(this.value)" style="height:34px;padding:0 10px;border:1px solid var(--border);background:var(--surface);color:var(--text);font-family:var(--mono);font-size:13px;">'
     +evs.map(function(ev){return'<option value="'+esc(ev)+'"'+(ev===st.ev?' selected':'')+'>'+esc(ev)+'</option>';}).join('')
     +'</select>'
@@ -18826,7 +18826,7 @@ function _pvRender(){
       var COLW=190;
       var dateInp='height:32px;padding:0 6px;border:1px solid var(--border2);background:var(--bg);color:var(--text);font-family:var(--mono);font-size:12px;width:'+(COLW-30)+'px;';
       var warnByCol={};cols.forEach(function(c){warnByCol[c.id]=_pvConflicts(c.id);});
-      var tbl='<div style="overflow:auto;flex:1;"><table style="border-collapse:collapse;width:100%;font-family:var(--mono);font-size:13px;">'
+      var tbl='<div style="overflow:auto;max-height:calc(100vh - 320px);border:1px solid var(--border);"><table style="border-collapse:collapse;width:100%;font-family:var(--mono);font-size:13px;">'
         +'<thead><tr><th style="position:sticky;left:0;top:0;background:var(--surface2);border:1px solid var(--border);padding:10px 14px;z-index:2;width:130px;">Horário</th>'
         +cols.map(function(c){
           return'<th style="position:sticky;top:0;background:var(--surface2);border:1px solid var(--border);padding:10px 14px;width:'+COLW+'px;">'
@@ -18845,7 +18845,7 @@ function _pvRender(){
       body=tbl;
     }
   }
-  modal.innerHTML='<div style="width:100%;height:100%;display:flex;flex-direction:column;color:var(--text);">'+head+toolbar+'<div style="flex:1;overflow:hidden;display:flex;flex-direction:column;">'+body+'</div></div>';
+  pvContainer.innerHTML='<div class="prog-module-wrap">'+head+toolbar+body+'</div>';
 }
 
 /* === Painel de gestão de Programas === */
@@ -19181,6 +19181,7 @@ function _progRender(){
   if(_progView.level==='landing')_progRenderLanding();
   else if(_progView.level==='program')_progRenderProgram(_progView.programId);
   else if(_progView.level==='sessao')_progRenderSessao(_progView.sessaoNome);
+  else if(_progView.level==='pv')_pvRender();
 }
 function _progBack(){
   _progBatchSelected.clear();_progBatchMode=false;_progBatchBumpers=[];
@@ -19596,9 +19597,8 @@ async function saveProgBatch(){
     _progBatchMode=false;
     await window._olgaSessoes.reload();
     if(newPid)_progView={level:'program',programId:newPid,sessaoNome:null};
+    if(_progView.level==='pv')_pvState.selected.clear();
     _progRender();
-    var _pvM=document.getElementById('pvModal');
-    if(_pvM&&_pvM.style.display==='flex'){_pvState.selected.clear();_pvRender();}
   }catch(e){
     alert('Erro ao salvar: '+e.message);
     btn.disabled=false;btn.textContent='Aplicar em '+selArr.length+' sess'+(selArr.length===1?'ão':'ões');
@@ -27418,7 +27418,7 @@ function _sxcPrint(){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 24/07/2026 às 22:46</span></div>
+<div id="page-footer"><span>última atualização · 24/07/2026 às 23:19</span></div>
 
 </div>
 

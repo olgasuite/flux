@@ -6755,17 +6755,40 @@ var dashCinemaFilter='__todos__',dashRespFilter='',dashDayFilter=new Set(),dashS
 // Dashboard (mostra sessões vinculadas ao clicar) — chave 'mostra_ID'/'sub_ID'/'show_ID'.
 var _dashProgRowExpand={};
 function _dashProgToggleRow(key){_dashProgRowExpand[key]=!_dashProgRowExpand[key];renderDash();}
-function _dashSessListHtml(sess){
-  if(!sess.length)return'<div style="padding:6px 0 6px 20px;font-family:var(--mono);font-size:10px;color:var(--text-muted);">Nenhuma sessão.</div>';
+function _dashSessListHtml(sess,indent){
+  indent=indent||20;
+  if(!sess.length)return'<div style="padding:6px 0 6px '+indent+'px;font-family:var(--mono);font-size:10px;color:var(--text-muted);">Nenhuma sessão.</div>';
   var sorted=sess.slice().sort(function(a,b){return a.date&&b.date?a.date-b.date||(a.time&&b.time?a.time.h*60+a.time.m-(b.time.h*60+b.time.m):0):0;});
   var html='';
   sorted.forEach(function(s){
     var safe=s.nome.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
-    html+='<div class="dsd-sess-row" style="cursor:pointer;padding-left:20px;" onclick="event.stopPropagation();goToFicha(\''+safe+'\')">'
+    html+='<div class="dsd-sess-row" style="cursor:pointer;padding-left:'+indent+'px;" onclick="event.stopPropagation();goToFicha(\''+safe+'\')">'
       +'<span class="dsd-date">'+s.dia+'</span><span class="dsd-time">'+s.hora+'</span>'
       +'<span class="dsd-name" title="'+esc(s.nome)+'">'+esc(stripEvPrefix(s.nome,s.evento))+'</span><span class="dsd-cinema">'+s.cinema+'</span>'
       +'</div>';
   });
+  return html;
+}
+// Dentro do colapsável de uma mostra: agrupa as sessões por submostra (cabeçalho com o nome),
+// sessões sem submostra ficam numa seção à parte no final.
+function _dashSessListGroupedBySub(sess,subs){
+  var bySub={},semSub=[];
+  sess.forEach(function(s){
+    if(s.subprogram_id){(bySub[s.subprogram_id]=bySub[s.subprogram_id]||[]).push(s);}
+    else semSub.push(s);
+  });
+  var html='';
+  subs.slice().sort(function(a,b){return((a.data&&a.data.name)||a.id).localeCompare((b.data&&b.data.name)||b.id,'pt-BR');}).forEach(function(sub){
+    var list=bySub[sub.id];
+    if(!list||!list.length)return;
+    html+='<div style="padding:5px 0 2px 20px;font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text-dim);">'+esc((sub.data&&sub.data.name)||sub.id)+'</div>';
+    html+=_dashSessListHtml(list,36);
+  });
+  if(semSub.length){
+    if(subs.length)html+='<div style="padding:5px 0 2px 20px;font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text-dim);">Sem submostra</div>';
+    html+=_dashSessListHtml(semSub,subs.length?36:20);
+  }
+  if(!html)html='<div style="padding:6px 0 6px 20px;font-family:var(--mono);font-size:10px;color:var(--text-muted);">Nenhuma sessão.</div>';
   return html;
 }
 var dashKdmCinemaFilter='',dashKdmStatusSelected=null;
@@ -17650,7 +17673,7 @@ function renderDash(){
             +'<span class="dsd-film-sess">'+m.cnt+' sess'+(m.cnt===1?'ão':'ões')+'</span>'
             +(m.subs.length?'<span class="dsd-extra" style="width:100%;color:var(--text-dim);">'+m.subs.length+' submostra'+(m.subs.length!==1?'s':'')+': '+esc(subNames.join(', '))+'</span>':'')
             +'</div>';
-          if(exp)bodyHtml+=_dashSessListHtml(m.sess);
+          if(exp)bodyHtml+=_dashSessListGroupedBySub(m.sess,m.subs);
         });
       }else if(key==='p_sub'){
         var sortedSB=Array.from(_pSubs).map(function(sid){
@@ -18144,7 +18167,7 @@ function renderDash(){
   html+=colBlock('legendagem','Legendagem',legBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 25/07/2026 às 10:12';
+  var sysUpdate='última atualização do sistema · 25/07/2026 às 10:16';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -27464,7 +27487,7 @@ function _sxcPrint(){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 25/07/2026 às 10:12</span></div>
+<div id="page-footer"><span>última atualização · 25/07/2026 às 10:16</span></div>
 
 </div>
 

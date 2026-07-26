@@ -6740,6 +6740,7 @@ var activeEventsCatalogo=_userEvSel,activeEventsProgramacao=_userEvSel,activeEve
 var activeEventsLanding=_userEvSel;
 var catalogoFilmesMap={};
 var triagemFilmesMap={};
+function normText(s){return String(s||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'');}
 var days=[],currentDay=null,buscaQuery='',dataLoaded=false,currentMode=null;
 var _browserNav=false;
 var filteredFilmes=[];
@@ -16962,7 +16963,7 @@ async function executeBatchCopiasSave(){
 function renderBuscaResults(){
   var re=document.getElementById('busca-results'),be=document.getElementById('buscaEmpty');
   document.getElementById('buscaLoading').style.display='none';
-  var q=buscaQuery.toLowerCase();
+  var q=normText(buscaQuery);
   var hasCurrentFilters=q||(countActiveFilters()>0);
   // nada ativo: mostrar estado vazio sem renderizar
   if(!q&&!countActiveFilters()&&!buscaAdditiveSlots.length){
@@ -16980,7 +16981,7 @@ function renderBuscaResults(){
       if(f.evento&&!activeEventsBusca.has(f.evento))return false;
       if(!applyBuscaFilters(f))return false;
       if(!q)return true;
-      var _s=function(v){return String(v||'').toLowerCase();};
+      var _s=normText;
       var _cm3=catalogoFilmesMap&&catalogoFilmesMap[f.codigo]||{};var _sn2=_cm3.system_name||'';var _tp2=_cm3.title_pt||'';var _to2=_cm3.original_title||'';var _te2=_cm3.english_title||'';var _rsp=(Array.isArray(_cm3.responsaveis)?_cm3.responsaveis.join(' '):'');return _s(f.titulo).includes(q)||_s(f.codigo).includes(q)||_s(f.cpl).includes(q)||_s(f.idioma).includes(q)||_s(f.obs).includes(q)||_s(f.status).includes(q)||_s(f.cplOV).includes(q)||_s(f.hd).includes(q)||_s(_sn2).includes(q)||_s(_tp2).includes(q)||_s(_to2).includes(q)||_s(_te2).includes(q)||_s(_rsp).includes(q);
     });
   }else{
@@ -18178,7 +18179,7 @@ function renderDash(){
   html+=colBlock('legendagem','Legendagem',legBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 25/07/2026 às 12:50';
+  var sysUpdate='última atualização do sistema · 26/07/2026 às 20:27';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -22340,7 +22341,7 @@ function _catSlotDesc(s){
 /* ── filter logic ── */
 function _catMatch(f,s){
   var copia=filmesMap[f.codigo]||{};var meta=catalogoFilmesMap[f.codigo]||{};
-  function strMatch(hay,q){if(q==='*')return!!(hay&&String(hay).trim());return(hay||'').toLowerCase().includes(q.toLowerCase());}
+  function strMatch(hay,q){if(q==='*')return!!(hay&&String(hay).trim());return normText(hay).includes(normText(q));}
   function arrMatch(arr,q){var a=Array.isArray(arr)?arr:(arr?[arr]:[]);if(q==='*')return a.length>0;return a.some(function(v){return strMatch(v,q);});}
   function check(matches,neg){return neg?!matches:matches;}
   if(s.texto){var hay=[f.codigo,f.titulo,meta.title,meta.title_pt,meta.original_title,meta.english_title].join(' ');if(!check(strMatch(hay,s.texto),s.texto_neg))return false;}
@@ -22378,7 +22379,7 @@ function _catMatch(f,s){
   if(s.uf){if(!check(arrMatch(meta.uf,s.uf),s.uf_neg))return false;}
   if(s.ff_student){var _sv=(meta.ff_student||'').toLowerCase();var _spv=(meta.student_project||'').toLowerCase();var _isYes=_sv.indexOf('yes')>=0||_sv.indexOf('sim')>=0||_spv.indexOf('yes')>=0||_spv.indexOf('sim')>=0;var _wantsYes=s.ff_student==='sim';if(!check(_wantsYes?_isYes:!_isYes,s.ff_student_neg))return false;}
   if(s.ff_first_time){var _fv=(meta.ff_first_time||'').toLowerCase();var _isFY=_fv.indexOf('yes')>=0||_fv.indexOf('sim')>=0;var _wantsFY=s.ff_first_time==='sim';if(!check(_wantsFY?_isFY:!_isFY,s.ff_first_time_neg))return false;}
-  if(s.escola){var eq=s.escola.toLowerCase();var escolaNome=(meta.ff_school||meta.sfd_school||'').toLowerCase();if(!check(escolaNome.includes(eq),s.escola_neg))return false;}
+  if(s.escola){var eq=normText(s.escola);var escolaNome=normText(meta.ff_school||meta.sfd_school||'');if(!check(escolaNome.includes(eq),s.escola_neg))return false;}
   if(s.program_id){var hasProg=sessoesArr.some(function(sess){return sess.program_id===s.program_id&&sess.filmes&&sess.filmes.indexOf(f.codigo)>=0;});if(!check(hasProg,s.program_id_neg))return false;}
   if(s.subprogram_id){var hasSub=sessoesArr.some(function(sess){return sess.subprogram_id===s.subprogram_id&&sess.filmes&&sess.filmes.indexOf(f.codigo)>=0;});if(!check(hasSub,s.subprogram_id_neg))return false;}
   if(s.sessao_cat){var hasSessao=sessoesArr.some(function(sess){return sess.nome===s.sessao_cat&&sess.filmes&&sess.filmes.indexOf(f.codigo)>=0;});if(!check(hasSessao,s.sessao_cat_neg))return false;}
@@ -27498,7 +27499,7 @@ function _sxcPrint(){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 25/07/2026 às 12:50</span></div>
+<div id="page-footer"><span>última atualização · 26/07/2026 às 20:27</span></div>
 
 </div>
 
@@ -31202,7 +31203,7 @@ function _triagemHasCriteria(s){return s.texto||s.director||s.selecao||s.ftype||
 
 function _triagemMatch(cod,s){
   var meta=triagemFilmesMap[cod]||{};
-  function t(v){return(v||'').toString().toLowerCase();}
+  function t(v){return normText(v);}
   function check(cond,neg){return neg?!cond:cond;}
   if(s.texto){var q=t(s.texto);var hit=t(meta.festival_code).includes(q)||t(meta.system_name).includes(q)||t(meta.title_pt).includes(q)||t(meta.title).includes(q)||t(meta.original_title).includes(q)||(Array.isArray(meta.director)&&meta.director.some(function(d){return t(d).includes(q);}));if(!check(hit,s.texto_neg))return false;}
   if(s.director){var q=t(s.director);var hit=(Array.isArray(meta.director)&&meta.director.some(function(d){return t(d).includes(q);}));if(!check(hit,s.director_neg))return false;}

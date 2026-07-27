@@ -18179,7 +18179,7 @@ function renderDash(){
   html+=colBlock('legendagem','Legendagem',legBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 26/07/2026 às 22:14';
+  var sysUpdate='última atualização do sistema · 26/07/2026 às 22:46';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -22371,7 +22371,13 @@ function _catSlotDesc(s){
 function _catMatch(f,s){
   var copia=filmesMap[f.codigo]||{};var meta=catalogoFilmesMap[f.codigo]||{};
   function strMatch(hay,q){if(q==='*')return!!(hay&&String(hay).trim());return normText(hay).includes(normText(q));}
-  function arrMatch(arr,q){var a=Array.isArray(arr)?arr:(arr?[arr]:[]);if(q==='*')return a.length>0;return a.some(function(v){return strMatch(v,q);});}
+  function arrMatch(arr,q){
+    var a=Array.isArray(arr)?arr:(arr?[arr]:[]);
+    if(q==='*')return a.length>0;
+    var terms=String(q).split(';').map(function(x){return x.trim();}).filter(Boolean);
+    if(!terms.length)return false;
+    return terms.some(function(t){return a.some(function(v){return strMatch(v,t);});});
+  }
   function check(matches,neg){return neg?!matches:matches;}
   if(s.texto){var hay=[f.codigo,f.titulo,meta.title,meta.title_pt,meta.original_title,meta.english_title].join(' ');if(!check(strMatch(hay,s.texto),s.texto_neg))return false;}
   if(s.director){
@@ -22750,17 +22756,17 @@ function renderCatalogo(){
   html+='</div>';
   // row 3: gênero + país + produtora + distribuidora
   html+='<div class="cat-sf-row">';
-  html+='<div class="cat-sf-cell"><div class="cat-sf-lbl">Gênero</div><div class="cat-sf-wrap">'+_catInp('genre','ex: drama',s.genre)+_catNegBtn('genre')+'</div></div>';
-  html+='<div class="cat-sf-cell"><div class="cat-sf-lbl">País</div><div class="cat-sf-wrap">'+_catInp('pais','ex: Brasil',s.pais)+_catNegBtn('pais')+'</div></div>';
-  html+='<div class="cat-sf-cell"><div class="cat-sf-lbl">Produtora</div><div class="cat-sf-wrap">'+_catInp('prod','nome da produtora',s.prod)+_catNegBtn('prod')+'</div></div>';
-  html+='<div class="cat-sf-cell"><div class="cat-sf-lbl">Distribuidora</div><div class="cat-sf-wrap">'+_catInp('dist','nome da distribuidora',s.dist)+_catNegBtn('dist')+'</div></div>';
+  html+='<div class="cat-sf-cell"><div class="cat-sf-lbl">Gênero</div><div class="cat-sf-wrap">'+_catInp('genre','ex: drama · vários: drama;comédia',s.genre)+_catNegBtn('genre')+'</div></div>';
+  html+='<div class="cat-sf-cell"><div class="cat-sf-lbl">País</div><div class="cat-sf-wrap">'+_catInp('pais','ex: Brasil · vários: Brasil;Argentina',s.pais)+_catNegBtn('pais')+'</div></div>';
+  html+='<div class="cat-sf-cell"><div class="cat-sf-lbl">Produtora</div><div class="cat-sf-wrap">'+_catInp('prod','nome da produtora · vários: A;B',s.prod)+_catNegBtn('prod')+'</div></div>';
+  html+='<div class="cat-sf-cell"><div class="cat-sf-lbl">Distribuidora</div><div class="cat-sf-wrap">'+_catInp('dist','nome da distribuidora · vários: A;B',s.dist)+_catNegBtn('dist')+'</div></div>';
   html+='</div>';
   // row 4: presence toggles
   html+='<div class="cat-sf-row">';
   html+='<div class="cat-sf-cell"><div class="cat-sf-lbl">Sinopse</div><div class="cat-sf-wrap">'+_catInp('syn','busca no texto · * para qualquer valor',s.syn)+_catNegBtn('syn')+'</div></div>';
   html+='<div class="cat-sf-cell"><div class="cat-sf-lbl">Screener</div><div class="cat-sf-wrap">'+_catInp('scr','URL ou * para qualquer valor',s.scr)+_catNegBtn('scr')+'</div></div>';
   html+='<div class="cat-sf-cell"><div class="cat-sf-lbl">Email de contato</div><div class="cat-sf-wrap">'+_catInp('email','endereço ou * para qualquer valor',s.email)+_catNegBtn('email')+'</div></div>';
-  html+='<div class="cat-sf-cell"><div class="cat-sf-lbl">Palavras-chave</div><div class="cat-sf-wrap">'+_catInp('keywords','busca nas palavras-chave',s.keywords)+_catNegBtn('keywords')+'</div></div>';
+  html+='<div class="cat-sf-cell"><div class="cat-sf-lbl">Palavras-chave</div><div class="cat-sf-wrap">'+_catInp('keywords','busca nas palavras-chave · vários: A;B',s.keywords)+_catNegBtn('keywords')+'</div></div>';
   (function(){
     var _respSet={};
     Object.keys(catalogoFilmesMap||{}).forEach(function(c){
@@ -27573,7 +27579,7 @@ function _sxcPrint(){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 26/07/2026 às 22:14</span></div>
+<div id="page-footer"><span>última atualização · 26/07/2026 às 22:46</span></div>
 
 </div>
 
@@ -31292,6 +31298,13 @@ function _triagemMatch(cod,s){
   var meta=triagemFilmesMap[cod]||{};
   function t(v){return normText(v);}
   function check(cond,neg){return neg?!cond:cond;}
+  function arrMatch(arr,q){
+    var a=Array.isArray(arr)?arr:(arr?[arr]:[]);
+    if(q==='*')return a.length>0;
+    var terms=String(q).split(';').map(function(x){return x.trim();}).filter(Boolean);
+    if(!terms.length)return false;
+    return terms.some(function(term){return a.some(function(v){return t(v).includes(t(term));});});
+  }
   if(s.texto){var q=t(s.texto);var hit=t(meta.festival_code).includes(q)||t(meta.system_name).includes(q)||t(meta.title_pt).includes(q)||t(meta.title).includes(q)||t(meta.original_title).includes(q)||(Array.isArray(meta.director)&&meta.director.some(function(d){return t(d).includes(q);}));if(!check(hit,s.texto_neg))return false;}
   if(s.director){var q=t(s.director);var hit=(Array.isArray(meta.director)&&meta.director.some(function(d){return t(d).includes(q);}));if(!check(hit,s.director_neg))return false;}
   function setCheck(field,val){var inc=s[field],exc=s[field+'_ex'];if(inc.size&&!inc.has(val))return false;if(exc.has(val))return false;return true;}
@@ -31299,9 +31312,9 @@ function _triagemMatch(cod,s){
   if(!setCheck('selecao',(meta.selecao||'').trim()))return false;
   if(!setCheck('ftype',(meta.film_type||'').trim()))return false;
   if(s.idioma){var q=t(s.idioma);if(!check(t(meta.original_language).includes(q),s.idioma_neg))return false;}
-  if(s.genre){var q=t(s.genre);var hit=(Array.isArray(meta.genre)&&meta.genre.some(function(g){return t(g).includes(q);}));if(!check(hit,s.genre_neg))return false;}
-  if(s.pais){var q=t(s.pais);var hit=(Array.isArray(meta.countries)&&meta.countries.some(function(c){return t(c).includes(q);}));if(!check(hit,s.pais_neg))return false;}
-  if(s.prod){var q=t(s.prod);var hit=(Array.isArray(meta.production_company)&&meta.production_company.some(function(p){return t(p).includes(q);}));if(!check(hit,s.prod_neg))return false;}
+  if(s.genre){if(!check(arrMatch(meta.genre,s.genre),s.genre_neg))return false;}
+  if(s.pais){if(!check(arrMatch(meta.countries,s.pais),s.pais_neg))return false;}
+  if(s.prod){if(!check(arrMatch(meta.production_company,s.prod),s.prod_neg))return false;}
   if(!setCheck('source',(meta.import_source||'').trim()))return false;
   if(s.importado){var isCat=!!meta.importado_catalogo;var wantsYes_i=s.importado==='sim';if(wantsYes_i?!isCat:isCat)return false;}
   var _ufArr=(Array.isArray(meta.uf)?meta.uf:(meta.uf?[meta.uf]:[])).map(function(u){return String(u||'').trim().toUpperCase();});
@@ -31403,9 +31416,9 @@ function renderTriagem(){
   html+='<div class="cat-sf-cell narrow"><div class="cat-sf-lbl">No Catálogo</div><div class="cat-sf-wrap">'+_trBinaryGroup('importado','No Catálogo')+'</div></div>';
   html+='</div>';
   html+='<div class="cat-sf-row">';
-  html+='<div class="cat-sf-cell"><div class="cat-sf-lbl">Gênero</div><div class="cat-sf-wrap">'+_trInp('genre','ex: drama',s.genre)+_trNeg('genre')+'</div></div>';
-  html+='<div class="cat-sf-cell"><div class="cat-sf-lbl">País</div><div class="cat-sf-wrap">'+_trInp('pais','ex: Brasil',s.pais)+_trNeg('pais')+'</div></div>';
-  html+='<div class="cat-sf-cell"><div class="cat-sf-lbl">Produtora</div><div class="cat-sf-wrap">'+_trInp('prod','nome da produtora',s.prod)+_trNeg('prod')+'</div></div>';
+  html+='<div class="cat-sf-cell"><div class="cat-sf-lbl">Gênero</div><div class="cat-sf-wrap">'+_trInp('genre','ex: drama · vários: drama;comédia',s.genre)+_trNeg('genre')+'</div></div>';
+  html+='<div class="cat-sf-cell"><div class="cat-sf-lbl">País</div><div class="cat-sf-wrap">'+_trInp('pais','ex: Brasil · vários: Brasil;Argentina',s.pais)+_trNeg('pais')+'</div></div>';
+  html+='<div class="cat-sf-cell"><div class="cat-sf-lbl">Produtora</div><div class="cat-sf-wrap">'+_trInp('prod','nome da produtora · vários: A;B',s.prod)+_trNeg('prod')+'</div></div>';
   html+='</div>';
   html+='<div class="cat-sf-row">';
   (function(){

@@ -18179,7 +18179,7 @@ function renderDash(){
   html+=colBlock('legendagem','Legendagem',legBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 26/07/2026 às 22:46';
+  var sysUpdate='última atualização do sistema · 26/07/2026 às 23:05';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -22427,7 +22427,12 @@ function _catMatch(f,s){
   if(!arrSetCheck('uf',_ufArr))return false;
   if(s.ff_student){var _sv=(meta.ff_student||'').toLowerCase();var _spv=(meta.student_project||'').toLowerCase();var _isYes=_sv.indexOf('yes')>=0||_sv.indexOf('sim')>=0||_spv.indexOf('yes')>=0||_spv.indexOf('sim')>=0;var _wantsYes=s.ff_student==='sim';if(_wantsYes?!_isYes:_isYes)return false;}
   if(s.ff_first_time){var _fv=(meta.ff_first_time||'').toLowerCase();var _isFY=_fv.indexOf('yes')>=0||_fv.indexOf('sim')>=0;var _wantsFY=s.ff_first_time==='sim';if(_wantsFY?!_isFY:_isFY)return false;}
-  if(s.escola){var eq=normText(s.escola);var escolaNome=normText(meta.ff_school||meta.sfd_school||'');if(!check(escolaNome.includes(eq),s.escola_neg))return false;}
+  if(s.escola){
+    var escolaNome=normText(meta.ff_school||meta.sfd_school||'');
+    var escolaTerms=String(s.escola).split(';').map(function(x){return x.trim();}).filter(Boolean);
+    var escolaHit=escolaTerms.some(function(term){return escolaNome.includes(normText(term));});
+    if(!check(escolaHit,s.escola_neg))return false;
+  }
   if(s.program_id.size){var hasProg=sessoesArr.some(function(sess){return sess.program_id&&s.program_id.has(sess.program_id)&&sess.filmes&&sess.filmes.indexOf(f.codigo)>=0;});if(!hasProg)return false;}
   if(s.subprogram_id.size){var hasSub=sessoesArr.some(function(sess){return sess.subprogram_id&&s.subprogram_id.has(sess.subprogram_id)&&sess.filmes&&sess.filmes.indexOf(f.codigo)>=0;});if(!hasSub)return false;}
   if(s.sessao_cat.size){var hasSessao=sessoesArr.some(function(sess){return sess.nome&&s.sessao_cat.has(sess.nome)&&sess.filmes&&sess.filmes.indexOf(f.codigo)>=0;});if(!hasSessao)return false;}
@@ -22676,10 +22681,14 @@ function _catInp(field,ph,restore){
 function _jsq(s){return String(s==null?'':s).replace(/\\/g,'\\\\').replace(/'/g,"\\'");}
 var _catOpenGroups={};
 function _catToggleGroup(el,field){_catOpenGroups[field]=!_catOpenGroups[field];el.classList.toggle('open');}
-function _catPillGroup(field,label,opts){
+function _catPillGroup(field,label,opts,collapsible){
   var inc=_catSearch[field],exc=_catSearch[field+'_ex'];
   var n=inc.size+exc.size;
-  var html='<div class="fp-group"><button type="button" class="fp-group-label'+(n>0?' has-active':'')+(_catOpenGroups[field]?' open':'')+'" onclick="_catToggleGroup(this,\''+field+'\')"><span class="fp-group-arrow">▶</span>'+esc(label)+'<span class="fp-group-count" style="display:'+(n>0?'inline-block':'none')+'">'+n+'</span></button><div class="fp-pills">';
+  var open=collapsible?!!_catOpenGroups[field]:true;
+  var labelHtml=collapsible
+    ?'<button type="button" class="fp-group-label'+(n>0?' has-active':'')+(open?' open':'')+'" onclick="_catToggleGroup(this,\''+field+'\')"><span class="fp-group-arrow">▶</span>'+esc(label)+'<span class="fp-group-count" style="display:'+(n>0?'inline-block':'none')+'">'+n+'</span></button>'
+    :'<div class="fp-group-label'+(n>0?' has-active':'')+'" style="cursor:default;">'+esc(label)+'<span class="fp-group-count" style="display:'+(n>0?'inline-block':'none')+'">'+n+'</span></div>';
+  var html='<div class="fp-group">'+labelHtml+'<div class="fp-pills"'+(open?' style="display:flex"':'')+'>';
   opts.forEach(function(v){
     var cls='fpill'+(inc.has(v)?' active':exc.has(v)?' excluded':'');
     html+='<button type="button" class="'+cls+'" onclick="_catPillClick(\''+field+'\',\''+_jsq(v)+'\')">'+esc(v)+'</button>';
@@ -22697,7 +22706,7 @@ function _catPillClick(field,val){
 function _catBinaryGroup(field,label){
   var st=_catSearch[field];
   var n=st?1:0;
-  var html='<div class="fp-group"><button type="button" class="fp-group-label'+(n>0?' has-active':'')+(_catOpenGroups[field]?' open':'')+'" onclick="_catToggleGroup(this,\''+field+'\')"><span class="fp-group-arrow">▶</span>'+esc(label)+'<span class="fp-group-count" style="display:'+(n>0?'inline-block':'none')+'">'+n+'</span></button><div class="fp-pills">'
+  var html='<div class="fp-group"><div class="fp-group-label'+(n>0?' has-active':'')+'" style="cursor:default;">'+esc(label)+'<span class="fp-group-count" style="display:'+(n>0?'inline-block':'none')+'">'+n+'</span></div><div class="fp-pills" style="display:flex">'
     +'<button type="button" class="bpill'+(st==='sim'?' active-yes':'')+'" onclick="_catBinClick(\''+field+'\',\'sim\')">Sim</button>'
     +'<button type="button" class="bpill'+(st==='nao'?' active-no':'')+'" onclick="_catBinClick(\''+field+'\',\'nao\')">Não</button>'
     +'</div></div>';
@@ -22740,6 +22749,7 @@ function renderCatalogo(){
   var _idiomaCount={};filmesArr.filter(function(f){return activeEventsCatalogo.has(f.evento);}).forEach(function(f){if(f.idioma)_idiomaCount[f.idioma]=(_idiomaCount[f.idioma]||0)+1;});
   var idiomaVals=Object.keys(_idiomaCount).sort(function(a,b){return _idiomaCount[b]-_idiomaCount[a];}).slice(0,20).sort(function(a,b){return a.localeCompare(b,'pt');});
   var html='<div class="cat-sf-form">';
+  html+='<div class="fp-hint" style="padding-bottom:6px;">nos campos de pill: 1 clique = incluir · 2 cliques = excluir · 3 cliques = limpar</div>';
   // row 1: texto + director
   html+='<div class="cat-sf-row">';
   html+='<div class="cat-sf-cell wide"><div class="cat-sf-lbl">Título / Código</div><div class="cat-sf-wrap">'+_catInp('texto','busca em todos os títulos e código',s.texto)+_catNegBtn('texto')+'</div></div>';
@@ -22791,8 +22801,8 @@ function renderCatalogo(){
     });
     var _ufVals=Array.from(_ufSet).sort();
     html+='<div class="cat-sf-row">';
-    var _escolaInp='<input class="cat-sf-inp" id="catsf_escola" type="text" placeholder="nome da escola ou instituição" value="'+(s.escola||'').replace(/"/g,'&quot;')+'" onkeydown="if(event.key===\'Enter\')runCatSearch()">';
-    html+='<div class="cat-sf-cell narrow"><div class="cat-sf-lbl">UF</div><div class="cat-sf-wrap">'+_catPillGroup('uf','UF',_ufVals)+'</div></div>';
+    var _escolaInp='<input class="cat-sf-inp" id="catsf_escola" type="text" placeholder="nome da escola ou instituição · vários: A;B" value="'+(s.escola||'').replace(/"/g,'&quot;')+'" onkeydown="if(event.key===\'Enter\')runCatSearch()">';
+    html+='<div class="cat-sf-cell narrow"><div class="cat-sf-lbl">UF</div><div class="cat-sf-wrap">'+_catPillGroup('uf','UF',_ufVals,true)+'</div></div>';
     html+='<div class="cat-sf-cell narrow"><div class="cat-sf-lbl">Proj. estudantil</div><div class="cat-sf-wrap">'+_catBinaryGroup('ff_student','Proj. estud.')+'</div></div>';
     html+='<div class="cat-sf-cell narrow"><div class="cat-sf-lbl">Primeiro longa/curta</div><div class="cat-sf-wrap">'+_catBinaryGroup('ff_first_time','1º longa/curta')+'</div></div>';
     html+='<div class="cat-sf-cell"><div class="cat-sf-lbl">Escola/instituição</div><div class="cat-sf-wrap">'+_escolaInp+_catNegBtn('escola')+'</div></div>';
@@ -27579,7 +27589,7 @@ function _sxcPrint(){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 26/07/2026 às 22:46</span></div>
+<div id="page-footer"><span>última atualização · 26/07/2026 às 23:05</span></div>
 
 </div>
 
@@ -31321,7 +31331,12 @@ function _triagemMatch(cod,s){
   if(!arrSetCheck('uf',_ufArr))return false;
   if(s.ff_student){var _sv=t(meta.ff_student||'');var _spv=t(meta.student_project||'');var isYes=_sv.indexOf('yes')>=0||_sv.indexOf('sim')>=0||_spv.indexOf('yes')>=0||_spv.indexOf('sim')>=0;var wantsYes_s=s.ff_student==='sim';if(wantsYes_s?!isYes:isYes)return false;}
   if(s.ff_first_time){var fv=t(meta.ff_first_time||'');var isFY=fv.indexOf('yes')>=0||fv.indexOf('sim')>=0;var wantsYes_f=s.ff_first_time==='sim';if(wantsYes_f?!isFY:isFY)return false;}
-  if(s.escola){var eq=t(s.escola);var escolaNome=t((meta.ff_school||meta.sfd_school||''));if(!check(escolaNome.includes(eq),s.escola_neg))return false;}
+  if(s.escola){
+    var escolaNome=t(meta.ff_school||meta.sfd_school||'');
+    var escolaTerms=String(s.escola).split(';').map(function(x){return x.trim();}).filter(Boolean);
+    var escolaHit=escolaTerms.some(function(term){return escolaNome.includes(t(term));});
+    if(!check(escolaHit,s.escola_neg))return false;
+  }
   var avs=Array.isArray(meta.avaliadores)?meta.avaliadores:[];
   if(!arrSetCheck('avaliador',avs))return false;
   var resps=Array.isArray(meta.responsaveis)?meta.responsaveis:[];
@@ -31351,10 +31366,14 @@ function _trInp(field,ph,val){return'<input class="cat-sf-inp" id="trsf_'+field+
 function _trNeg(field){return'<button class="cat-neg-btn" id="trneg_'+field+'" onclick="triagemToggleNeg(\''+field+'\')" title="Pesquisa negativa">±</button>';}
 var _trOpenGroups={};
 function _trToggleGroup(el,field){_trOpenGroups[field]=!_trOpenGroups[field];el.classList.toggle('open');}
-function _trPillGroup(field,label,opts){
+function _trPillGroup(field,label,opts,collapsible){
   var inc=_triagemSearch[field],exc=_triagemSearch[field+'_ex'];
   var n=inc.size+exc.size;
-  var html='<div class="fp-group"><button type="button" class="fp-group-label'+(n>0?' has-active':'')+(_trOpenGroups[field]?' open':'')+'" onclick="_trToggleGroup(this,\''+field+'\')"><span class="fp-group-arrow">▶</span>'+esc(label)+'<span class="fp-group-count" style="display:'+(n>0?'inline-block':'none')+'">'+n+'</span></button><div class="fp-pills">';
+  var open=collapsible?!!_trOpenGroups[field]:true;
+  var labelHtml=collapsible
+    ?'<button type="button" class="fp-group-label'+(n>0?' has-active':'')+(open?' open':'')+'" onclick="_trToggleGroup(this,\''+field+'\')"><span class="fp-group-arrow">▶</span>'+esc(label)+'<span class="fp-group-count" style="display:'+(n>0?'inline-block':'none')+'">'+n+'</span></button>'
+    :'<div class="fp-group-label'+(n>0?' has-active':'')+'" style="cursor:default;">'+esc(label)+'<span class="fp-group-count" style="display:'+(n>0?'inline-block':'none')+'">'+n+'</span></div>';
+  var html='<div class="fp-group">'+labelHtml+'<div class="fp-pills"'+(open?' style="display:flex"':'')+'>';
   opts.forEach(function(v){
     var cls='fpill'+(inc.has(v)?' active':exc.has(v)?' excluded':'');
     html+='<button type="button" class="'+cls+'" onclick="_trPillClick(\''+field+'\',\''+_jsq(v)+'\')">'+esc(v)+'</button>';
@@ -31372,7 +31391,7 @@ function _trPillClick(field,val){
 function _trBinaryGroup(field,label){
   var st=_triagemSearch[field];
   var n=st?1:0;
-  var html='<div class="fp-group"><button type="button" class="fp-group-label'+(n>0?' has-active':'')+(_trOpenGroups[field]?' open':'')+'" onclick="_trToggleGroup(this,\''+field+'\')"><span class="fp-group-arrow">▶</span>'+esc(label)+'<span class="fp-group-count" style="display:'+(n>0?'inline-block':'none')+'">'+n+'</span></button><div class="fp-pills">'
+  var html='<div class="fp-group"><div class="fp-group-label'+(n>0?' has-active':'')+'" style="cursor:default;">'+esc(label)+'<span class="fp-group-count" style="display:'+(n>0?'inline-block':'none')+'">'+n+'</span></div><div class="fp-pills" style="display:flex">'
     +'<button type="button" class="bpill'+(st==='sim'?' active-yes':'')+'" onclick="_trBinClick(\''+field+'\',\'sim\')">Sim</button>'
     +'<button type="button" class="bpill'+(st==='nao'?' active-no':'')+'" onclick="_trBinClick(\''+field+'\',\'nao\')">Não</button>'
     +'</div></div>';
@@ -31404,6 +31423,7 @@ function renderTriagem(){
   var idiomaVals=Object.keys(_idCount).sort(function(a,b){return _idCount[b]-_idCount[a];}).slice(0,20).sort(function(a,b){return a.localeCompare(b,'pt');});
   var canEdit=window._olgaUser&&window._olgaCanEdit&&window._olgaCanEdit('triagem');
   var html='<div class="cat-sf-form">';
+  html+='<div class="fp-hint" style="padding-bottom:6px;">nos campos de pill: 1 clique = incluir · 2 cliques = excluir · 3 cliques = limpar</div>';
   html+='<div class="cat-sf-row">';
   html+='<div class="cat-sf-cell wide"><div class="cat-sf-lbl">Título / Código</div><div class="cat-sf-wrap">'+_trInp('texto','busca em títulos e código',s.texto)+_trNeg('texto')+'</div></div>';
   html+='<div class="cat-sf-cell"><div class="cat-sf-lbl">Direção</div><div class="cat-sf-wrap">'+_trInp('director','nome de diretor(a)',s.director)+_trNeg('director')+'</div></div>';
@@ -31430,8 +31450,8 @@ function renderTriagem(){
       arr.forEach(function(u){var v=String(u||'').trim().toUpperCase();if(v)_ufSet.add(v);});
     });
     var _ufVals=Array.from(_ufSet).sort();
-    var _trEscolaInp='<input class="cat-sf-inp" id="trsf_escola" type="text" placeholder="nome da escola ou instituição" value="'+(s.escola||'').replace(/"/g,'&quot;')+'" onkeydown="if(event.key===\'Enter\')runTriagemSearch()">';
-    html+='<div class="cat-sf-cell narrow"><div class="cat-sf-lbl">UF</div><div class="cat-sf-wrap">'+_trPillGroup('uf','UF',_ufVals)+'</div></div>';
+    var _trEscolaInp='<input class="cat-sf-inp" id="trsf_escola" type="text" placeholder="nome da escola ou instituição · vários: A;B" value="'+(s.escola||'').replace(/"/g,'&quot;')+'" onkeydown="if(event.key===\'Enter\')runTriagemSearch()">';
+    html+='<div class="cat-sf-cell narrow"><div class="cat-sf-lbl">UF</div><div class="cat-sf-wrap">'+_trPillGroup('uf','UF',_ufVals,true)+'</div></div>';
     html+='<div class="cat-sf-cell narrow"><div class="cat-sf-lbl">Proj. estudantil</div><div class="cat-sf-wrap">'+_trBinaryGroup('ff_student','Proj. estud.')+'</div></div>';
     html+='<div class="cat-sf-cell narrow"><div class="cat-sf-lbl">Primeiro longa/curta</div><div class="cat-sf-wrap">'+_trBinaryGroup('ff_first_time','1º longa/curta')+'</div></div>';
     html+='<div class="cat-sf-cell"><div class="cat-sf-lbl">Escola/instituição</div><div class="cat-sf-wrap">'+_trEscolaInp+_trNeg('escola')+'</div></div>';

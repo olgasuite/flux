@@ -18179,7 +18179,7 @@ function renderDash(){
   html+=colBlock('legendagem','Legendagem',legBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 27/07/2026 às 10:49';
+  var sysUpdate='última atualização do sistema · 27/07/2026 às 11:06';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -24551,7 +24551,7 @@ async function duplicateCatFilm(codigo){
 }
 
 /* ═══ ACERVO TÉCNICO — EDIÇÃO ═══ */
-var _acervoEditIdx=-1;
+var _acervoEditCode=null;
 var _acervoOriginalData=null;
 var _aeAcessTags=[];
 var _aeHdTags=[];
@@ -24570,8 +24570,8 @@ function _aeHdKeydown(e){
 function _aeHdRemove(i){_aeHdTags.splice(i,1);_aeHdRender();setTimeout(function(){var ni=document.getElementById('ae_hd_inp');if(ni)ni.focus();},0);}
 
 async function openAcervoEdit(idx){
-  _acervoEditIdx=idx;
   var f=filteredFilmes[idx];if(!f)return;
+  _acervoEditCode=f.codigo;
   var statusVals=[...new Set(filmesArr.map(function(x){return x.status;}).filter(Boolean))].sort();
   var lentes=[...new Set(filmesArr.map(function(x){return x.lente;}).filter(Boolean))].sort();
   var sons=[...new Set(filmesArr.map(function(x){return x.som;}).filter(Boolean))].sort();
@@ -24681,7 +24681,7 @@ function _aeAcessKeydown(e){
 function _aeAcessRemove(i){_aeAcessTags.splice(i,1);_aeAcessRender();setTimeout(function(){var ni=document.getElementById('ae_acess_inp');if(ni)ni.focus();},0);}
 
 async function doSaveAcervoEdit(){
-  var f=filteredFilmes[_acervoEditIdx];
+  var f=filmesMap[_acervoEditCode];
   if(!f||!window._olgaCopias){alert('Acesso não disponível.');return;}
   var msg=document.getElementById('acervoEditMsg');
   if(msg){msg.className='cat-msg';msg.textContent='Salvando…';}
@@ -24730,17 +24730,9 @@ async function doSaveAcervoEdit(){
       m.fps=data.dcp_fps;m.hd=data.storage_location;m.dcp_uuid=data.dcp_uuid;
       m.acessibilidade=data.accessibility_features;m.dcp_link=data.dcp_link;m.file_link=data.file_link;
       m.exhibition_format=data.exhibition_format;m.exhibition_format_notes=data.exhibition_format_notes;
-      Object.assign(filteredFilmes[_acervoEditIdx],m);
     }
     closeAcervoEditModal();
-    // Atualizar header e expand do card
-    var card=document.getElementById('bcard-'+_acervoEditIdx);
-    if(card){
-      var titleEl=card.querySelector('.card-titulo');
-      if(titleEl)titleEl.textContent=data.title||f.codigo;
-      var ex=card.querySelector('.card-expand');
-      if(ex){ex.dataset.lazy='1';if(card.classList.contains('expanded')){card.classList.remove('expanded');toggleExpand(_acervoEditIdx);}}
-    }
+    renderBuscaResults();
   }catch(e){if(msg){msg.className='cat-msg err';msg.textContent='Erro: '+e.message;}}
 }
 
@@ -27588,7 +27580,7 @@ function _sxcPrint(){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 27/07/2026 às 10:49</span></div>
+<div id="page-footer"><span>última atualização · 27/07/2026 às 11:06</span></div>
 
 </div>
 

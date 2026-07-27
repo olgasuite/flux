@@ -18179,7 +18179,7 @@ function renderDash(){
   html+=colBlock('legendagem','Legendagem',legBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 27/07/2026 às 11:06';
+  var sysUpdate='última atualização do sistema · 27/07/2026 às 20:46';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -18614,15 +18614,29 @@ async function _pvPropagateRow(rowId,time){
   if(sess.length)await window._olgaSessoes.reload();
 }
 async function _pvSetColDate(id,val){
-  val=val||'';
-  var cols=(_pvState.grid.cols||[]).map(function(c){return c.id===id?Object.assign({},c,{date:val}):c;});
+  val=(val||'').trim();
+  var iso='';
+  if(val){
+    if(!_pvValidDateBR(val)){alert('Data inválida — use o formato DD/MM/AAAA.');_pvRender();return;}
+    iso=_pvBRtoISO(val);
+  }
+  var cols=(_pvState.grid.cols||[]).map(function(c){return c.id===id?Object.assign({},c,{date:iso}):c;});
   await _pvSaveGridField({cols:cols});
-  await _pvPropagateCol(id,val);
+  await _pvPropagateCol(id,iso);
   _pvRender();
 }
-// input type=time nativo depende de locale do SO/navegador pra 24h e alguns navegadores
-// disparam onchange (perdendo o valor em edição) ao completar o último dígito — por isso os
-// campos de horário são texto simples mascarado (HH:MM, sempre 24h), sem widget nativo.
+// input type=date/time nativos disparam onchange (perdendo o valor em edição, ou pior, disparando
+// um save+re-render no meio da digitação do ano) antes do usuário terminar de digitar — por isso os
+// campos de data e horário são texto simples mascarado (DD/MM/AAAA e HH:MM), sem widget nativo.
+function _pvDateMask(el){
+  var v=el.value.replace(/[^0-9]/g,'').slice(0,8);
+  if(v.length>=5)v=v.slice(0,2)+'/'+v.slice(2,4)+'/'+v.slice(4);
+  else if(v.length>=3)v=v.slice(0,2)+'/'+v.slice(2);
+  el.value=v;
+}
+function _pvValidDateBR(v){return/^([0-2]\d|3[01])\/(0\d|1[0-2])\/\d{4}$/.test(v||'');}
+function _pvBRtoISO(v){var m=v.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);return m?(m[3]+'-'+m[2]+'-'+m[1]):'';}
+function _pvISOtoBR(iso){var m=(iso||'').match(/^(\d{4})-(\d{2})-(\d{2})$/);return m?(m[3]+'/'+m[2]+'/'+m[1]):'';}
 function _pvTimeMask(el){
   var v=el.value.replace(/[^0-9]/g,'').slice(0,4);
   if(v.length>=3)v=v.slice(0,2)+':'+v.slice(2);
@@ -18904,14 +18918,14 @@ function _pvRender(){
       // Largura da coluna igual ao bloco do input de data no cabeçalho (alinhamento cabeçalho×célula).
       // Sem table-layout:fixed (achatava bordas/larguras) — mesma largura explícita em th e td
       // já converge no layout automático, já que o texto quebra linha em vez de forçar expansão.
-      var COLW=190;
-      var dateInp='height:32px;padding:0 6px;border:1px solid var(--border2);background:var(--bg);color:var(--text);font-family:var(--mono);font-size:12px;width:'+(COLW-30)+'px;';
+      var COLW=62;
+      var dateInp='height:32px;padding:0 4px;border:1px solid var(--border2);background:var(--bg);color:var(--text);font-family:var(--mono);font-size:11px;width:100%;box-sizing:border-box;';
       var warnByCol={};cols.forEach(function(c){warnByCol[c.id]=_pvConflicts(c.id);});
       var tbl='<div style="overflow:auto;max-height:calc(100vh - 320px);border:1px solid var(--border);"><table style="border-collapse:collapse;width:100%;font-family:var(--mono);font-size:13px;">'
         +'<thead><tr><th style="position:sticky;left:0;top:0;background:var(--surface2);border:1px solid var(--border);padding:10px 14px;z-index:2;width:130px;">Horário</th>'
         +cols.map(function(c){
-          return'<th style="position:sticky;top:0;background:var(--surface2);border:1px solid var(--border);padding:10px 14px;width:'+COLW+'px;">'
-            +(canEdit?'<input type="date" value="'+esc(c.date)+'" onchange="_pvSetColDate(\''+c.id+'\',this.value)" style="'+dateInp+'">':esc(c.date?_pvFmtDate(c.date):'—'))
+          return'<th style="position:sticky;top:0;background:var(--surface2);border:1px solid var(--border);padding:6px 4px;width:'+COLW+'px;">'
+            +(canEdit?'<input type="text" inputmode="numeric" maxlength="10" placeholder="DD/MM/AAAA" oninput="_pvDateMask(this)" value="'+esc(_pvISOtoBR(c.date))+'" onchange="_pvSetColDate(\''+c.id+'\',this.value)" style="'+dateInp+'">':esc(c.date?_pvFmtDate(c.date):'—'))
             +(canEdit?' <span style="cursor:pointer;opacity:.5;font-size:15px;" title="Remover coluna" onclick="_pvRemoveCol(\''+c.id+'\')">×</span>':'')+'</th>';
         }).join('')
         +'</tr></thead><tbody>';
@@ -27580,7 +27594,7 @@ function _sxcPrint(){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 27/07/2026 às 11:06</span></div>
+<div id="page-footer"><span>última atualização · 27/07/2026 às 20:46</span></div>
 
 </div>
 

@@ -18179,7 +18179,7 @@ function renderDash(){
   html+=colBlock('legendagem','Legendagem',legBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 26/07/2026 às 23:05';
+  var sysUpdate='última atualização do sistema · 27/07/2026 às 10:49';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -22687,7 +22687,7 @@ function _catPillGroup(field,label,opts,collapsible){
   var open=collapsible?!!_catOpenGroups[field]:true;
   var labelHtml=collapsible
     ?'<button type="button" class="fp-group-label'+(n>0?' has-active':'')+(open?' open':'')+'" onclick="_catToggleGroup(this,\''+field+'\')"><span class="fp-group-arrow">▶</span>'+esc(label)+'<span class="fp-group-count" style="display:'+(n>0?'inline-block':'none')+'">'+n+'</span></button>'
-    :'<div class="fp-group-label'+(n>0?' has-active':'')+'" style="cursor:default;">'+esc(label)+'<span class="fp-group-count" style="display:'+(n>0?'inline-block':'none')+'">'+n+'</span></div>';
+    :'';
   var html='<div class="fp-group">'+labelHtml+'<div class="fp-pills"'+(open?' style="display:flex"':'')+'>';
   opts.forEach(function(v){
     var cls='fpill'+(inc.has(v)?' active':exc.has(v)?' excluded':'');
@@ -22703,10 +22703,9 @@ function _catPillClick(field,val){
   else{inc.add(val);}
   renderCatalogo();
 }
-function _catBinaryGroup(field,label){
+function _catBinaryGroup(field){
   var st=_catSearch[field];
-  var n=st?1:0;
-  var html='<div class="fp-group"><div class="fp-group-label'+(n>0?' has-active':'')+'" style="cursor:default;">'+esc(label)+'<span class="fp-group-count" style="display:'+(n>0?'inline-block':'none')+'">'+n+'</span></div><div class="fp-pills" style="display:flex">'
+  var html='<div class="fp-group"><div class="fp-pills" style="display:flex">'
     +'<button type="button" class="bpill'+(st==='sim'?' active-yes':'')+'" onclick="_catBinClick(\''+field+'\',\'sim\')">Sim</button>'
     +'<button type="button" class="bpill'+(st==='nao'?' active-no':'')+'" onclick="_catBinClick(\''+field+'\',\'nao\')">Não</button>'
     +'</div></div>';
@@ -22803,8 +22802,8 @@ function renderCatalogo(){
     html+='<div class="cat-sf-row">';
     var _escolaInp='<input class="cat-sf-inp" id="catsf_escola" type="text" placeholder="nome da escola ou instituição · vários: A;B" value="'+(s.escola||'').replace(/"/g,'&quot;')+'" onkeydown="if(event.key===\'Enter\')runCatSearch()">';
     html+='<div class="cat-sf-cell narrow"><div class="cat-sf-lbl">UF</div><div class="cat-sf-wrap">'+_catPillGroup('uf','UF',_ufVals,true)+'</div></div>';
-    html+='<div class="cat-sf-cell narrow"><div class="cat-sf-lbl">Proj. estudantil</div><div class="cat-sf-wrap">'+_catBinaryGroup('ff_student','Proj. estud.')+'</div></div>';
-    html+='<div class="cat-sf-cell narrow"><div class="cat-sf-lbl">Primeiro longa/curta</div><div class="cat-sf-wrap">'+_catBinaryGroup('ff_first_time','1º longa/curta')+'</div></div>';
+    html+='<div class="cat-sf-cell narrow"><div class="cat-sf-lbl">Proj. estudantil</div><div class="cat-sf-wrap">'+_catBinaryGroup('ff_student')+'</div></div>';
+    html+='<div class="cat-sf-cell narrow"><div class="cat-sf-lbl">Primeiro longa/curta</div><div class="cat-sf-wrap">'+_catBinaryGroup('ff_first_time')+'</div></div>';
     html+='<div class="cat-sf-cell"><div class="cat-sf-lbl">Escola/instituição</div><div class="cat-sf-wrap">'+_escolaInp+_catNegBtn('escola')+'</div></div>';
     html+='</div>';
   })();
@@ -27589,7 +27588,7 @@ function _sxcPrint(){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 26/07/2026 às 23:05</span></div>
+<div id="page-footer"><span>última atualização · 27/07/2026 às 10:49</span></div>
 
 </div>
 
@@ -31372,7 +31371,7 @@ function _trPillGroup(field,label,opts,collapsible){
   var open=collapsible?!!_trOpenGroups[field]:true;
   var labelHtml=collapsible
     ?'<button type="button" class="fp-group-label'+(n>0?' has-active':'')+(open?' open':'')+'" onclick="_trToggleGroup(this,\''+field+'\')"><span class="fp-group-arrow">▶</span>'+esc(label)+'<span class="fp-group-count" style="display:'+(n>0?'inline-block':'none')+'">'+n+'</span></button>'
-    :'<div class="fp-group-label'+(n>0?' has-active':'')+'" style="cursor:default;">'+esc(label)+'<span class="fp-group-count" style="display:'+(n>0?'inline-block':'none')+'">'+n+'</span></div>';
+    :'';
   var html='<div class="fp-group">'+labelHtml+'<div class="fp-pills"'+(open?' style="display:flex"':'')+'>';
   opts.forEach(function(v){
     var cls='fpill'+(inc.has(v)?' active':exc.has(v)?' excluded':'');
@@ -31388,10 +31387,9 @@ function _trPillClick(field,val){
   else{inc.add(val);}
   renderTriagem();
 }
-function _trBinaryGroup(field,label){
+function _trBinaryGroup(field){
   var st=_triagemSearch[field];
-  var n=st?1:0;
-  var html='<div class="fp-group"><div class="fp-group-label'+(n>0?' has-active':'')+'" style="cursor:default;">'+esc(label)+'<span class="fp-group-count" style="display:'+(n>0?'inline-block':'none')+'">'+n+'</span></div><div class="fp-pills" style="display:flex">'
+  var html='<div class="fp-group"><div class="fp-pills" style="display:flex">'
     +'<button type="button" class="bpill'+(st==='sim'?' active-yes':'')+'" onclick="_trBinClick(\''+field+'\',\'sim\')">Sim</button>'
     +'<button type="button" class="bpill'+(st==='nao'?' active-no':'')+'" onclick="_trBinClick(\''+field+'\',\'nao\')">Não</button>'
     +'</div></div>';
@@ -31433,7 +31431,7 @@ function renderTriagem(){
   html+='<div class="cat-sf-cell narrow"><div class="cat-sf-lbl">Metragem</div><div class="cat-sf-wrap">'+_trPillGroup('ftype','Metragem',['curta','média','longa'])+'</div></div>';
   html+='<div class="cat-sf-cell"><div class="cat-sf-lbl">Idioma</div><div class="cat-sf-wrap"><input class="cat-sf-inp" id="trsf_idioma" type="text" list="trdl_idioma" placeholder="selecione ou digite" value="'+(s.idioma||'')+'" onkeydown="if(event.key===\'Enter\')runTriagemSearch()"><datalist id="trdl_idioma">'+idiomaVals.map(function(o){return'<option value="'+esc(o)+'"></option>';}).join('')+'</datalist>'+_trNeg('idioma')+'</div></div>';
   html+='<div class="cat-sf-cell narrow"><div class="cat-sf-lbl">Origem</div><div class="cat-sf-wrap">'+_trPillGroup('source','Origem',['Curta Cinema','Kinoforum','manual'])+'</div></div>';
-  html+='<div class="cat-sf-cell narrow"><div class="cat-sf-lbl">No Catálogo</div><div class="cat-sf-wrap">'+_trBinaryGroup('importado','No Catálogo')+'</div></div>';
+  html+='<div class="cat-sf-cell narrow"><div class="cat-sf-lbl">No Catálogo</div><div class="cat-sf-wrap">'+_trBinaryGroup('importado')+'</div></div>';
   html+='</div>';
   html+='<div class="cat-sf-row">';
   html+='<div class="cat-sf-cell"><div class="cat-sf-lbl">Gênero</div><div class="cat-sf-wrap">'+_trInp('genre','ex: drama · vários: drama;comédia',s.genre)+_trNeg('genre')+'</div></div>';
@@ -31452,8 +31450,8 @@ function renderTriagem(){
     var _ufVals=Array.from(_ufSet).sort();
     var _trEscolaInp='<input class="cat-sf-inp" id="trsf_escola" type="text" placeholder="nome da escola ou instituição · vários: A;B" value="'+(s.escola||'').replace(/"/g,'&quot;')+'" onkeydown="if(event.key===\'Enter\')runTriagemSearch()">';
     html+='<div class="cat-sf-cell narrow"><div class="cat-sf-lbl">UF</div><div class="cat-sf-wrap">'+_trPillGroup('uf','UF',_ufVals,true)+'</div></div>';
-    html+='<div class="cat-sf-cell narrow"><div class="cat-sf-lbl">Proj. estudantil</div><div class="cat-sf-wrap">'+_trBinaryGroup('ff_student','Proj. estud.')+'</div></div>';
-    html+='<div class="cat-sf-cell narrow"><div class="cat-sf-lbl">Primeiro longa/curta</div><div class="cat-sf-wrap">'+_trBinaryGroup('ff_first_time','1º longa/curta')+'</div></div>';
+    html+='<div class="cat-sf-cell narrow"><div class="cat-sf-lbl">Proj. estudantil</div><div class="cat-sf-wrap">'+_trBinaryGroup('ff_student')+'</div></div>';
+    html+='<div class="cat-sf-cell narrow"><div class="cat-sf-lbl">Primeiro longa/curta</div><div class="cat-sf-wrap">'+_trBinaryGroup('ff_first_time')+'</div></div>';
     html+='<div class="cat-sf-cell"><div class="cat-sf-lbl">Escola/instituição</div><div class="cat-sf-wrap">'+_trEscolaInp+_trNeg('escola')+'</div></div>';
     // Avaliador: editor/admin vê todos; viewer vê só o próprio.
     var _evAvOpts=_triagemAvaliadoresDisponiveis();

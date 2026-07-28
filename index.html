@@ -18186,7 +18186,7 @@ function renderDash(){
   html+=colBlock('legendagem','Legendagem',legBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 27/07/2026 às 23:29';
+  var sysUpdate='última atualização do sistema · 27/07/2026 às 23:37';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -18732,7 +18732,7 @@ async function _pvCreateFromShowCell(colId,rowId,showId){
   var col=_pvColById(colId),row=_pvRowById(rowId);
   var colDate=(col&&col.date)||'',rowTime=(row&&row.time)||'';
   var data={
-    session_id:code,name:'',event_name:_pvState.ev,
+    session_id:code,name:base,event_name:_pvState.ev,
     date:colDate,time:rowTime,slot_time:rowTime,
     venue_name:_pvState.venue,venue_custom:'',
     grid_col:colId,grid_row:rowId,
@@ -27591,7 +27591,7 @@ function _sxcPrint(){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 27/07/2026 às 23:29</span></div>
+<div id="page-footer"><span>última atualização · 27/07/2026 às 23:37</span></div>
 
 </div>
 

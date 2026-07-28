@@ -18179,7 +18179,7 @@ function renderDash(){
   html+=colBlock('legendagem','Legendagem',legBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 27/07/2026 às 21:00';
+  var sysUpdate='última atualização do sistema · 27/07/2026 às 21:17';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -18865,7 +18865,7 @@ function _pvCellHtml(colId,rowId,warnMap,canEdit,colw){
       var nf=(sh.data&&Array.isArray(sh.data.films))?sh.data.films.length:0;
       return'<option value="'+esc(sh.id)+'">'+esc(nm)+' ('+nf+')</option>';
     }).join('');
-    var selStyle='width:50%;box-sizing:border-box;padding:5px 4px;line-height:1.4;border:1px solid var(--border2);background:var(--bg);color:var(--text);font-family:var(--mono);font-size:11px;';
+    var selStyle='width:50%;max-width:66px;min-width:0;box-sizing:border-box;padding:5px 4px;line-height:1.4;border:1px solid var(--border2);background:var(--bg);color:var(--text);font-family:var(--mono);font-size:11px;';
     return'<td style="'+cellStyle+'">'
       +'<div style="display:flex;gap:4px;">'
       +'<select id="pvSess_'+key+'" onchange="_pvCellSelChange(\''+_pvEsc(colId)+'\',\''+_pvEsc(rowId)+'\',\'sess\',this.value)" style="'+selStyle+'">'+sessOpts+'</select>'
@@ -18880,7 +18880,7 @@ function _pvCellHtml(colId,rowId,warnMap,canEdit,colw){
     +(canEdit?'<input type="checkbox" '+(checked?'checked ':'')+'onchange="_pvToggleSel(\''+_pvEsc(s.nome)+'\',this.checked)" style="position:absolute;top:6px;right:6px;cursor:pointer;transform:scale(1.2);">':'')
     +(canEdit?'<span onclick="_pvUnassignSession(\''+_pvEsc(s.nome)+'\')" title="Remover da célula (libera a sessão)" style="position:absolute;top:4px;right:26px;cursor:pointer;opacity:.5;font-weight:700;font-size:16px;">×</span>':'')
     +(warn?'<span title="'+esc(warn)+'" style="position:absolute;top:5px;left:6px;color:var(--warn,#e57);cursor:help;font-weight:700;font-size:15px;">⚠</span>':'')
-    +'<div style="'+wrapStyle+'font-weight:600;padding-right:38px;'+(warn?'padding-left:18px;':'')+'">'+esc(codigo)+(durLbl?' <span style="font-weight:400;opacity:.6;">('+esc(durLbl)+')</span>':'')+'</div>'
+    +'<div style="'+wrapStyle+'max-width:100px;font-weight:600;padding-right:38px;'+(warn?'padding-left:18px;':'')+'">'+esc(codigo)+(durLbl?' <span style="font-weight:400;opacity:.6;">('+esc(durLbl)+')</span>':'')+'</div>'
     +(canEdit?('<div style="display:flex;align-items:center;gap:4px;margin-top:5px;"><input type="text" inputmode="numeric" maxlength="5" placeholder="HH:MM" oninput="_pvTimeMask(this)" value="'+(s.time&&s.time.str!=='?'?s.time.str:'')+'" onchange="_pvOverrideTime(\''+_pvEsc(s.nome)+'\',this.value)" style="height:26px;padding:0 6px;border:1px solid var(--border2);background:var(--bg);color:var(--text);font-family:var(--mono);font-size:12px;width:66px;"></div>')
       :('<div style="opacity:.5;margin-top:3px;">'+esc(s.time&&s.time.str!=='?'?s.time.str:'')+'</div>'))
     +'</td>';
@@ -18915,23 +18915,25 @@ function _pvRender(){
     if(!cols.length||!rows.length){
       body='<div style="padding:60px;text-align:center;color:var(--text-muted);font-size:14px;">'+(canEdit?'Use "+ coluna" / "+ linha" para montar a grade.':'Grade vazia para este cinema.')+'</div>';
     }else{
-      // table-layout:fixed: a largura de cada coluna vem só do width no <th> do cabeçalho e vale
-      // igual pra todas as linhas dessa coluna — colunas novas (sem sessão) e antigas (com sessão
-      // alocada, texto mais longo) ficam com a MESMA largura, em vez do layout automático alargar
-      // colunas com conteúdo maior.
-      var COLW=176;
-      var dateInp='height:28px;padding:0 4px;border:1px solid var(--border2);background:var(--bg);color:var(--text);font-family:var(--mono);font-size:11px;width:100%;box-sizing:border-box;';
+      // Sem table-layout:fixed (interage mal com o zoom/scale da UI e desalinha bordas) — layout
+      // automático, mas com max-width explícito (em px, não %) nos elementos DE DENTRO da célula
+      // (selects, título da sessão) — é isso que trava a largura da coluna no automático, já que
+      // width:% em select não conta pro cálculo de largura mínima da coluna, só o max-width em px.
+      var COLW=156; // ~20 caracteres monoespaçados — o dobro do campo de data (10 caracteres, 78px)
+      var THBASE='box-sizing:border-box;position:sticky;top:0;background:var(--surface2);border:1px solid var(--border);';
+      var TDBASE='box-sizing:border-box;border:1px solid var(--border);';
+      var dateInp='height:28px;padding:0 4px;border:1px solid var(--border2);background:var(--bg);color:var(--text);font-family:var(--mono);font-size:11px;width:78px;max-width:78px;box-sizing:border-box;';
       var warnByCol={};cols.forEach(function(c){warnByCol[c.id]=_pvConflicts(c.id);});
-      var tbl='<div style="overflow:auto;max-height:calc(100vh - 320px);border:1px solid var(--border);"><table style="border-collapse:collapse;table-layout:fixed;font-family:var(--mono);font-size:13px;">'
-        +'<thead><tr><th style="position:sticky;left:0;top:0;background:var(--surface2);border:1px solid var(--border);padding:10px 14px;z-index:2;width:130px;">Horário</th>'
+      var tbl='<div style="overflow:auto;max-height:calc(100vh - 320px);border:1px solid var(--border);"><table style="border-collapse:collapse;font-family:var(--mono);font-size:13px;">'
+        +'<thead><tr><th style="'+THBASE+'left:0;padding:10px 14px;z-index:2;width:130px;">Horário</th>'
         +cols.map(function(c){
-          return'<th style="position:sticky;top:0;background:var(--surface2);border:1px solid var(--border);padding:6px 4px;width:'+COLW+'px;">'
+          return'<th style="'+THBASE+'padding:6px 4px;width:'+COLW+'px;">'
             +(canEdit?'<input type="text" inputmode="numeric" maxlength="10" placeholder="DD/MM/AAAA" oninput="_pvDateMask(this)" value="'+esc(_pvISOtoBR(c.date))+'" onchange="_pvSetColDate(\''+c.id+'\',this.value)" style="'+dateInp+'">':esc(c.date?_pvFmtDate(c.date):'—'))
             +(canEdit?' <span style="cursor:pointer;opacity:.5;font-size:15px;" title="Remover coluna" onclick="_pvRemoveCol(\''+c.id+'\')">×</span>':'')+'</th>';
         }).join('')
         +'</tr></thead><tbody>';
       rows.forEach(function(r){
-        tbl+='<tr><td style="position:sticky;left:0;background:var(--surface2);border:1px solid var(--border);padding:10px 14px;font-weight:600;white-space:nowrap;">'
+        tbl+='<tr><td style="'+TDBASE+'position:sticky;left:0;background:var(--surface2);padding:10px 14px;width:130px;font-weight:600;white-space:nowrap;">'
           +(canEdit?'<input type="text" inputmode="numeric" maxlength="5" placeholder="HH:MM" oninput="_pvTimeMask(this)" value="'+esc(r.time)+'" onchange="_pvSetRowTime(\''+r.id+'\',this.value)" style="'+dateInp+'width:76px;">':esc(r.time||'—'))
           +(canEdit?' <span style="cursor:pointer;opacity:.5;font-size:15px;" title="Remover linha" onclick="_pvRemoveRow(\''+r.id+'\')">×</span>':'')+'</td>';
         cols.forEach(function(c){tbl+=_pvCellHtml(c.id,r.id,warnByCol[c.id],canEdit,COLW);});
@@ -27595,7 +27597,7 @@ function _sxcPrint(){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 27/07/2026 às 21:00</span></div>
+<div id="page-footer"><span>última atualização · 27/07/2026 às 21:17</span></div>
 
 </div>
 

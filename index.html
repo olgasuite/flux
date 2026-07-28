@@ -18179,7 +18179,7 @@ function renderDash(){
   html+=colBlock('legendagem','Legendagem',legBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 27/07/2026 às 21:17';
+  var sysUpdate='última atualização do sistema · 27/07/2026 às 21:43';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -18506,8 +18506,8 @@ async function _pvChangeVenue(venue){
 function _pvNewId(){return'x'+Date.now().toString(36)+Math.random().toString(36).slice(2,7);}
 function _pvBlankCols(n){var a=[];for(var i=0;i<n;i++)a.push({id:_pvNewId(),date:''});return a;}
 function _pvBlankRows(n){var a=[];for(var i=0;i<n;i++)a.push({id:_pvNewId(),time:''});return a;}
-// Grade sempre nasce com 5×5 células em branco (persistidas de imediato se o usuário puder
-// editar), pra não depender de um fluxo manual de "+dia"/"+horário" antes de ficar utilizável.
+// Grade sempre nasce com 2 colunas × 5 linhas em branco (persistidas de imediato se o usuário
+// puder editar), pra não depender de um fluxo manual de "+dia"/"+horário" antes de ficar utilizável.
 // Docs criados em versões antigas da grade guardavam cols/rows como strings soltas (sem id) —
 // normaliza pra {id,date}/{id,time} aqui, senão a linha/coluna fica "travada" (o id não bate
 // com nada e nenhuma edição ou remoção nela funciona).
@@ -18543,7 +18543,7 @@ async function _pvLoadGrid(){
       }catch(e){}
     }
   }else{
-    _pvState.grid={event_id:_pvState.ev,venue_name:_pvState.venue,cols:_pvBlankCols(5),rows:_pvBlankRows(5)};
+    _pvState.grid={event_id:_pvState.ev,venue_name:_pvState.venue,cols:_pvBlankCols(2),rows:_pvBlankRows(5)};
     if(window._olgaCanEdit&&window._olgaCanEdit('programacao')){
       try{
         await window._olgaProgGrids.save(_pvState.gridId,_pvState.grid);
@@ -18614,29 +18614,18 @@ async function _pvPropagateRow(rowId,time){
   if(sess.length)await window._olgaSessoes.reload();
 }
 async function _pvSetColDate(id,val){
-  val=(val||'').trim();
-  var iso='';
-  if(val){
-    if(!_pvValidDateBR(val)){alert('Data inválida — use o formato DD/MM/AAAA.');_pvRender();return;}
-    iso=_pvBRtoISO(val);
-  }
-  var cols=(_pvState.grid.cols||[]).map(function(c){return c.id===id?Object.assign({},c,{date:iso}):c;});
+  val=val||'';
+  var cols=(_pvState.grid.cols||[]).map(function(c){return c.id===id?Object.assign({},c,{date:val}):c;});
   await _pvSaveGridField({cols:cols});
-  await _pvPropagateCol(id,iso);
+  await _pvPropagateCol(id,val);
   _pvRender();
 }
-// input type=date/time nativos disparam onchange (perdendo o valor em edição, ou pior, disparando
-// um save+re-render no meio da digitação do ano) antes do usuário terminar de digitar — por isso os
-// campos de data e horário são texto simples mascarado (DD/MM/AAAA e HH:MM), sem widget nativo.
-function _pvDateMask(el){
-  var v=el.value.replace(/[^0-9]/g,'').slice(0,8);
-  if(v.length>=5)v=v.slice(0,2)+'/'+v.slice(2,4)+'/'+v.slice(4);
-  else if(v.length>=3)v=v.slice(0,2)+'/'+v.slice(2);
-  el.value=v;
-}
-function _pvValidDateBR(v){return/^([0-2]\d|3[01])\/(0\d|1[0-2])\/\d{4}$/.test(v||'');}
-function _pvBRtoISO(v){var m=v.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);return m?(m[3]+'-'+m[2]+'-'+m[1]):'';}
-function _pvISOtoBR(iso){var m=(iso||'').match(/^(\d{4})-(\d{2})-(\d{2})$/);return m?(m[3]+'/'+m[2]+'/'+m[1]):'';}
+// input type=date nativo (mesmo padrão do campo de data ao criar sessão — digita OU abre o
+// calendário): o gatilho é onblur, não onchange, porque o browser pode disparar onchange no meio
+// da digitação do ano (antes do usuário terminar), o que salvaria e re-renderizaria a grade cedo
+// demais, perdendo o valor em edição. onblur só dispara quando o usuário sai do campo de vez.
+// O campo de horário continua texto mascarado (HH:MM) — o mesmo problema existe em input
+// type=time nativo, mas ali não há equivalente de calendário a preservar.
 function _pvTimeMask(el){
   var v=el.value.replace(/[^0-9]/g,'').slice(0,4);
   if(v.length>=3)v=v.slice(0,2)+':'+v.slice(2);
@@ -18865,7 +18854,7 @@ function _pvCellHtml(colId,rowId,warnMap,canEdit,colw){
       var nf=(sh.data&&Array.isArray(sh.data.films))?sh.data.films.length:0;
       return'<option value="'+esc(sh.id)+'">'+esc(nm)+' ('+nf+')</option>';
     }).join('');
-    var selStyle='width:50%;max-width:66px;min-width:0;box-sizing:border-box;padding:5px 4px;line-height:1.4;border:1px solid var(--border2);background:var(--bg);color:var(--text);font-family:var(--mono);font-size:11px;';
+    var selStyle='width:50%;max-width:100px;min-width:0;box-sizing:border-box;padding:5px 4px;line-height:1.4;border:1px solid var(--border2);background:var(--bg);color:var(--text);font-family:var(--mono);font-size:11px;';
     return'<td style="'+cellStyle+'">'
       +'<div style="display:flex;gap:4px;">'
       +'<select id="pvSess_'+key+'" onchange="_pvCellSelChange(\''+_pvEsc(colId)+'\',\''+_pvEsc(rowId)+'\',\'sess\',this.value)" style="'+selStyle+'">'+sessOpts+'</select>'
@@ -18919,22 +18908,22 @@ function _pvRender(){
       // automático, mas com max-width explícito (em px, não %) nos elementos DE DENTRO da célula
       // (selects, título da sessão) — é isso que trava a largura da coluna no automático, já que
       // width:% em select não conta pro cálculo de largura mínima da coluna, só o max-width em px.
-      var COLW=156; // ~20 caracteres monoespaçados — o dobro do campo de data (10 caracteres, 78px)
+      var COLW=222; // acompanha os dois selects de sessão/programa (100px cada) + espaçamento/padding
       var THBASE='box-sizing:border-box;position:sticky;top:0;background:var(--surface2);border:1px solid var(--border);';
       var TDBASE='box-sizing:border-box;border:1px solid var(--border);';
-      var dateInp='height:28px;padding:0 4px;border:1px solid var(--border2);background:var(--bg);color:var(--text);font-family:var(--mono);font-size:11px;width:78px;max-width:78px;box-sizing:border-box;';
+      var dateInp='height:28px;padding:0 4px;border:1px solid var(--border2);background:var(--bg);color:var(--text);font-family:var(--mono);font-size:11px;width:130px;max-width:130px;box-sizing:border-box;';
       var warnByCol={};cols.forEach(function(c){warnByCol[c.id]=_pvConflicts(c.id);});
       var tbl='<div style="overflow:auto;max-height:calc(100vh - 320px);border:1px solid var(--border);"><table style="border-collapse:collapse;font-family:var(--mono);font-size:13px;">'
-        +'<thead><tr><th style="'+THBASE+'left:0;padding:10px 14px;z-index:2;width:130px;">Horário</th>'
+        +'<thead><tr><th style="'+THBASE+'left:0;padding:6px 4px;z-index:2;width:65px;">Horário</th>'
         +cols.map(function(c){
           return'<th style="'+THBASE+'padding:6px 4px;width:'+COLW+'px;">'
-            +(canEdit?'<input type="text" inputmode="numeric" maxlength="10" placeholder="DD/MM/AAAA" oninput="_pvDateMask(this)" value="'+esc(_pvISOtoBR(c.date))+'" onchange="_pvSetColDate(\''+c.id+'\',this.value)" style="'+dateInp+'">':esc(c.date?_pvFmtDate(c.date):'—'))
+            +(canEdit?'<input type="date" value="'+esc(c.date)+'" onblur="_pvSetColDate(\''+c.id+'\',this.value)" style="'+dateInp+'">':esc(c.date?_pvFmtDate(c.date):'—'))
             +(canEdit?' <span style="cursor:pointer;opacity:.5;font-size:15px;" title="Remover coluna" onclick="_pvRemoveCol(\''+c.id+'\')">×</span>':'')+'</th>';
         }).join('')
         +'</tr></thead><tbody>';
       rows.forEach(function(r){
-        tbl+='<tr><td style="'+TDBASE+'position:sticky;left:0;background:var(--surface2);padding:10px 14px;width:130px;font-weight:600;white-space:nowrap;">'
-          +(canEdit?'<input type="text" inputmode="numeric" maxlength="5" placeholder="HH:MM" oninput="_pvTimeMask(this)" value="'+esc(r.time)+'" onchange="_pvSetRowTime(\''+r.id+'\',this.value)" style="'+dateInp+'width:76px;">':esc(r.time||'—'))
+        tbl+='<tr><td style="'+TDBASE+'position:sticky;left:0;background:var(--surface2);padding:6px 4px;width:65px;font-weight:600;white-space:nowrap;">'
+          +(canEdit?'<input type="text" inputmode="numeric" maxlength="5" placeholder="HH:MM" oninput="_pvTimeMask(this)" value="'+esc(r.time)+'" onchange="_pvSetRowTime(\''+r.id+'\',this.value)" style="'+dateInp+'width:46px;max-width:46px;">':esc(r.time||'—'))
           +(canEdit?' <span style="cursor:pointer;opacity:.5;font-size:15px;" title="Remover linha" onclick="_pvRemoveRow(\''+r.id+'\')">×</span>':'')+'</td>';
         cols.forEach(function(c){tbl+=_pvCellHtml(c.id,r.id,warnByCol[c.id],canEdit,COLW);});
         tbl+='</tr>';
@@ -27597,7 +27586,7 @@ function _sxcPrint(){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 27/07/2026 às 21:17</span></div>
+<div id="page-footer"><span>última atualização · 27/07/2026 às 21:43</span></div>
 
 </div>
 

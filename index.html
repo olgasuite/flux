@@ -17717,7 +17717,7 @@ function renderDash(){
         }
         var sortedPG=Array.from(_pProgs).map(function(shid){
           var sh=(typeof _showById==='function')?_showById(shid):null;
-          var name=sh&&sh.data&&sh.data.name?sh.data.name:shid;
+          var name=sh&&sh.data&&(sh.data.name||sh.data.code)?(sh.data.name||sh.data.code):shid;
           var films=(sh&&sh.data&&Array.isArray(sh.data.films))?sh.data.films:[];
           var sess=_progSessoes.filter(function(s){return s.show_id===shid;});
           return{shid:shid,name:name,films:films,cnt:sess.length,sess:sess};
@@ -18186,7 +18186,7 @@ function renderDash(){
   html+=colBlock('legendagem','Legendagem',legBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 27/07/2026 às 23:37';
+  var sysUpdate='última atualização do sistema · 27/07/2026 às 23:52';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -18344,7 +18344,7 @@ function _progSessaoRenderShowSelect(){
   var shows=_showsOfEvent(_progSessaoEvento,_progSessaoEvNome);
   if(!shows.length&&!_progSessaoShowId){row.style.display='none';return;}
   var opts='<option value="">— sem programa (filmes manuais) —</option>'+shows.map(function(sh){
-    var n=(sh.data&&sh.data.name)||sh.id;
+    var n=(sh.data&&(sh.data.name||sh.data.code))||sh.id;
     var nf=(sh.data&&Array.isArray(sh.data.films))?sh.data.films.length:0;
     return'<option value="'+esc(sh.id)+'"'+(sh.id===_progSessaoShowId?' selected':'')+'>'+esc(n)+' ('+nf+' filme'+(nf!==1?'s':'')+')</option>';
   }).join('');
@@ -18726,13 +18726,12 @@ async function _pvAssignSession(colId,rowId,nome){
 }
 async function _pvCreateFromShowCell(colId,rowId,showId){
   var sh=_showById(showId);if(!sh){alert('Programa não encontrado.');return;}
-  var base=(sh.data&&sh.data.name)||showId;
-  var code=_catCriaSessUniqueId(base);
-  if(!code){alert('Não foi possível gerar um código de sessão a partir do nome do programa.');return;}
+  var code=_catCriaSessUniqueId((sh.data&&sh.data.code)||'');
+  if(!code){alert('Este programa não tem código cadastrado — edite o programa e preencha o código antes de criar sessões a partir dele.');return;}
   var col=_pvColById(colId),row=_pvRowById(rowId);
   var colDate=(col&&col.date)||'',rowTime=(row&&row.time)||'';
   var data={
-    session_id:code,name:base,event_name:_pvState.ev,
+    session_id:code,name:(sh.data&&sh.data.name)||'',event_name:_pvState.ev,
     date:colDate,time:rowTime,slot_time:rowTime,
     venue_name:_pvState.venue,venue_custom:'',
     grid_col:colId,grid_row:rowId,
@@ -18849,7 +18848,7 @@ function _pvCellHtml(colId,rowId,warnMap,canEdit,colw){
     }).join('');
     var shows=_showsOfEvent(_pvState.ev,_pvState.ev);
     var showOpts='<option value="">— programa —</option>'+shows.map(function(sh){
-      var nm=(sh.data&&sh.data.name)||sh.id;
+      var nm=(sh.data&&(sh.data.name||sh.data.code))||sh.id;
       var nf=(sh.data&&Array.isArray(sh.data.films))?sh.data.films.length:0;
       return'<option value="'+esc(sh.id)+'">'+esc(nm)+' ('+nf+')</option>';
     }).join('');
@@ -18975,7 +18974,7 @@ function _showsPanelNewSession(id){
     evento:ev,eventos:[ev],
     films:((sh.data&&sh.data.films)||[]).slice(),
     showId:id,
-    titleLabel:(sh.data&&sh.data.name)||id,
+    titleLabel:(sh.data&&(sh.data.name||sh.data.code))||id,
     idBase:(sh.data&&sh.data.name)||'',
     onSaved:function(){openShowsPanel();}
   });
@@ -19008,6 +19007,7 @@ function _showsPanelRender(){
   var body='';
   if(st.editId||st.creating){
     var sh=st.editId?_showById(st.editId):null;
+    var codeCur=sh&&sh.data?(sh.data.code||''):'';
     var nomeCur=sh&&sh.data?(sh.data.name||''):'';
     var curPid=sh&&sh.data?(sh.data.program_id||''):'';
     var curSid=sh&&sh.data?(sh.data.subprogram_id||''):'';
@@ -19017,8 +19017,12 @@ function _showsPanelRender(){
     var subsCur=(_progData&&_progData.subprograms||[]).filter(function(s){return s.data&&s.data.program_id===curPid;});
     var subOpts='<option value="">— sem submostra —</option>'+subsCur.map(function(s){return'<option value="'+esc(s.id)+'"'+(s.id===curSid?' selected':'')+'>'+esc(s.data.name||s.id)+'</option>';}).join('');
     body='<div style="padding:18px 20px;display:flex;flex-direction:column;gap:12px;overflow-y:auto;">'
-      +'<div style="display:flex;flex-direction:column;gap:4px;"><label style="font-family:var(--mono);font-size:9px;color:var(--text-muted);letter-spacing:0.08em;text-transform:uppercase;">Nome do programa · evento '+esc(st.ev)+'</label>'
-      +'<input id="showEdName" class="cat-input" value="'+esc(nomeCur)+'" placeholder="ex: Programa Infantil 1"></div>'
+      +'<div style="display:flex;gap:10px;">'
+        +'<div style="flex:1;display:flex;flex-direction:column;gap:4px;"><label style="font-family:var(--mono);font-size:9px;color:var(--text-muted);letter-spacing:0.08em;text-transform:uppercase;">Código do programa · evento '+esc(st.ev)+'</label>'
+        +'<input id="showEdCode" class="cat-input" value="'+esc(codeCur)+'" placeholder="ex: ProgramaInfantil1"></div>'
+        +'<div style="flex:1;display:flex;flex-direction:column;gap:4px;"><label style="font-family:var(--mono);font-size:9px;color:var(--text-muted);letter-spacing:0.08em;text-transform:uppercase;">Nome (opcional)</label>'
+        +'<input id="showEdName" class="cat-input" value="'+esc(nomeCur)+'" placeholder="ex: Programa Infantil 1"></div>'
+      +'</div>'
       +'<div style="display:flex;gap:10px;">'
         +'<div style="flex:1;display:flex;flex-direction:column;gap:4px;"><label style="font-family:var(--mono);font-size:9px;color:var(--text-muted);letter-spacing:0.08em;text-transform:uppercase;">Mostra</label>'
         +'<select id="showEdProgram" class="cat-input" onchange="_showEdProgramChanged()">'+progOpts+'</select></div>'
@@ -19047,7 +19051,7 @@ function _showsPanelRender(){
       var ns=_showSessions(sh.id).length;
       var durMin=_showFilmsDurMin(sh.data&&sh.data.films);
       return'<div style="display:flex;align-items:center;gap:10px;padding:8px 10px;border:1px solid var(--border);background:var(--surface2);">'
-        +'<div style="flex:1;min-width:0;"><div style="font-family:var(--sans);font-size:12px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+esc((sh.data&&sh.data.name)||sh.id)+'</div>'
+        +'<div style="flex:1;min-width:0;"><div style="font-family:var(--sans);font-size:12px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+esc((sh.data&&(sh.data.name||sh.data.code))||sh.id)+'</div>'
         +'<div style="font-family:var(--mono);font-size:9px;color:var(--text-muted);margin-top:2px;">'+nf+' filme'+(nf!==1?'s':'')+(durMin?' · <span style="color:var(--accent);">'+_showDurLabel(durMin)+'</span>':'')+' · '+ns+' sessão(ões) vinculada(s)</div></div>'
         +(canEdit?'<button class="print-btn" onclick="_showsPanelNewSession(\''+sh.id+'\')">+ sessão</button><button class="print-btn" onclick="_showsPanelEdit(\''+sh.id+'\')">editar</button><button class="print-btn" style="color:var(--warn);border-color:var(--warn);" onclick="_showsPanelDelete(\''+sh.id+'\')">excluir</button>':'')
         +'</div>';
@@ -19160,8 +19164,9 @@ async function _showsPanelSave(){
   var st=_showsPanelState;
   var errEl=document.getElementById('showEdErr');
   function err(m){if(errEl){errEl.textContent=m;errEl.style.display='block';}}
+  var code=(document.getElementById('showEdCode').value||'').replace(/\s+/g,'');
+  if(!code){err('Código do programa obrigatório.');return;}
   var nome=(document.getElementById('showEdName').value||'').trim();
-  if(!nome){err('Nome do programa obrigatório.');return;}
   if(!_showEdFilms.length){err('Adicione ao menos um filme.');return;}
   var btn=document.getElementById('showEdSaveBtn');if(btn){btn.disabled=true;btn.textContent='Salvando…';}
   try{
@@ -19171,7 +19176,7 @@ async function _showsPanelSave(){
     var sid=(document.getElementById('showEdSubprogram')||{}).value||'';
     var filmsChanged=!old||JSON.stringify((old.data&&old.data.films)||[])!==JSON.stringify(_showEdFilms);
     var mostraChanged=!!old&&(((old.data&&old.data.program_id)||'')!==pid||((old.data&&old.data.subprogram_id)||'')!==sid);
-    var dataShow={event_name:st.ev||'',name:nome,films:_showEdFilms.slice(),program_id:pid,subprogram_id:sid};
+    var dataShow={event_name:st.ev||'',code:code,name:nome,films:_showEdFilms.slice(),program_id:pid,subprogram_id:sid};
     // Propagação: sessões vinculadas recebem filmes e/ou mostra/submostra atualizados
     var linked=st.editId?_showSessions(st.editId):[];
     var propaga=st.editId&&(filmsChanged||mostraChanged);
@@ -19217,7 +19222,7 @@ async function _showsPanelSave(){
 }
 async function _showsPanelDelete(id){
   var sh=_showById(id);if(!sh)return;
-  var nome=(sh.data&&sh.data.name)||id;
+  var nome=(sh.data&&(sh.data.name||sh.data.code))||id;
   var linked=_showSessions(id);
   var msg='Excluir o programa "'+nome+'"?';
   if(linked.length)msg+='\n\n'+linked.length+' sessão(ões) vinculada(s) serão DESVINCULADAS (mantêm os filmes atuais como manuais):\n'+linked.map(function(s){return s.nome;}).slice(0,10).join('\n')+(linked.length>10?'\n…':'');
@@ -19737,7 +19742,7 @@ function _progRenderProgram(programId){
   if(_fShowIds.length){
     var _fShowOpts=_fShowIds.map(function(sid){
       var sh=_showById(sid);
-      return{id:sid,name:(sh&&sh.data&&sh.data.name)||sid};
+      return{id:sid,name:(sh&&sh.data&&(sh.data.name||sh.data.code))||sid};
     }).sort(function(a,b){return a.name.localeCompare(b.name,'pt-BR',{sensitivity:'base'});});
     html+='<select onchange="_progFiltroShow=this.value;_progRender();"><option value="">Todos os programas</option>';
     _fShowOpts.forEach(function(o){html+='<option value="'+esc(o.id)+'"'+(o.id===_progFiltroShow?' selected':'')+'>'+esc(o.name)+'</option>';});
@@ -27591,7 +27596,7 @@ function _sxcPrint(){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 27/07/2026 às 23:37</span></div>
+<div id="page-footer"><span>última atualização · 27/07/2026 às 23:52</span></div>
 
 </div>
 

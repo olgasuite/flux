@@ -6740,17 +6740,26 @@ var activeEventsLanding=_userEvSel;
 var catalogoFilmesMap={};
 var triagemFilmesMap={};
 function normText(s){return String(s||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'');}
-// Título de exibição de um filme, com prioridade: PT > original > inglês > demais campos legados.
+// Título original só entra ANTES do inglês se estiver em escrita latina — título original em
+// persa/japonês/árabe/etc. cai pra depois do inglês (ainda aparece, só não tem prioridade sobre ele).
+function _isLatinTitle(s){return!s||!/[Ѐ-ӿ֐-׿؀-ۿݐ-ݿऀ-ॿ぀-ヿ㐀-䶿一-鿿가-힯]/.test(s);}
+// Título de exibição de um filme, com prioridade: PT > original (latino) > inglês > original (não-latino) > demais campos legados.
 // Centraliza o que antes eram ~75 cadeias de fallback duplicadas e divergentes pelo sistema.
 function filmDisplayTitle(cod){
   var cm=catalogoFilmesMap&&catalogoFilmesMap[cod];
   var f=filmesMap&&filmesMap[cod];
-  return(cm&&cm.title_pt)||(cm&&cm.original_title)||(cm&&cm.english_title)||(cm&&cm.title)||(f&&f.titulo)||(cm&&cm.system_name)||cod;
+  var orig=cm&&cm.original_title;
+  var origLatin=orig&&_isLatinTitle(orig)?orig:'';
+  var origOther=orig&&!origLatin?orig:'';
+  return(cm&&cm.title_pt)||origLatin||(cm&&cm.english_title)||origOther||(cm&&cm.title)||(f&&f.titulo)||(cm&&cm.system_name)||cod;
 }
 // Mesma prioridade, mas pra filmes que só existem na Triagem (ainda não importados pro Catálogo).
 function triagemDisplayTitle(cod){
   var m=triagemFilmesMap&&triagemFilmesMap[cod];
-  return(m&&m.title_pt)||(m&&m.original_title)||(m&&m.english_title)||(m&&m.title)||(m&&m.system_name)||cod;
+  var orig=m&&m.original_title;
+  var origLatin=orig&&_isLatinTitle(orig)?orig:'';
+  var origOther=orig&&!origLatin?orig:'';
+  return(m&&m.title_pt)||origLatin||(m&&m.english_title)||origOther||(m&&m.title)||(m&&m.system_name)||cod;
 }
 var days=[],currentDay=null,buscaQuery='',dataLoaded=false,currentMode=null;
 var _browserNav=false;
@@ -18194,7 +18203,7 @@ function renderDash(){
   html+=colBlock('legendagem','Legendagem',legBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 28/07/2026 às 20:26';
+  var sysUpdate='última atualização do sistema · 28/07/2026 às 20:38';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -27605,7 +27614,7 @@ function _sxcPrint(){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 28/07/2026 às 20:26</span></div>
+<div id="page-footer"><span>última atualização · 28/07/2026 às 20:38</span></div>
 
 </div>
 

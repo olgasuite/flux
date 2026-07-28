@@ -2149,7 +2149,7 @@ mark{background:rgba(255,186,32,0.28);color:var(--accent);border-radius:2px;padd
 .rev-tabela{border-collapse:collapse;width:100%;table-layout:fixed;}
 .rev-tabela th,.rev-tabela td{border:1px solid #ccc;font-family:'IBM Plex Mono',monospace;font-size:10px;padding:3px 4px;line-height:1.35;}
 .rev-tabela-time-th{width:46px;background:none;border:none !important;text-align:center;}
-.rev-tabela-day-th{background:#e8e8e8;text-align:center;font-weight:700;font-size:10px;color:#111;}
+.rev-tabela-day-th{background:#e8e8e8;text-align:center;font-weight:700;font-size:10px;color:#111;word-break:break-word;overflow-wrap:anywhere;}
 .rev-tabela-time-td{background:#f8f7f4;border:none !important;border-right:1px solid #ddd !important;text-align:right;font-weight:700;font-size:10px;color:#555;white-space:nowrap;width:46px;padding-right:4px;padding-left:0;}
 .rev-tabela-cell{font-size:10px;font-weight:400;color:#111;vertical-align:top;text-align:left;overflow:hidden;}
 .rev-tabela-cell-empty{background:#fafafa;}
@@ -13859,7 +13859,7 @@ function _revGetSessionGroups(sessoes){
           duracao:_revFmtDur(f.duracao||''),
           exhibition_format:f.exhibition_format||''};
       });
-      var entry={name:sName,description:sDesc,films:films,instances:[inst]};
+      var entry={name:sName,description:sDesc,films:films,instances:[inst],show_id:s.show_id||''};
       sessSigs[sig]=entry;
       g.sessions.push(entry);
     } else {
@@ -13869,7 +13869,7 @@ function _revGetSessionGroups(sessoes){
       if(namedSessions[nsig]){
         namedSessions[nsig].instances.push(ninst);
       } else {
-        var ns={name:sName,description:sDesc,instances:[ninst]};
+        var ns={name:sName,description:sDesc,instances:[ninst],show_id:s.show_id||''};
         g.namedSessions.push(ns);
         namedSessions[nsig]=ns;
       }
@@ -13883,10 +13883,23 @@ function _revGetSessionGroups(sessoes){
     if(!da&&!db)return 0;if(!da)return 1;if(!db)return -1;
     var dd=da-db;return dd!==0?dd:((a.instances[0].hora||'').localeCompare(b.instances[0].hora||''));
   }
+  // Ordena pelo código do Programa vinculado (show_id -> shows/{id}.code), alfabético.
+  // Sessões sem programa vinculado (filmes manuais) caem no critério antigo (data/hora), no final.
+  function _progCode(item){
+    var sh=item.show_id?_showById(item.show_id):null;
+    return(sh&&sh.data&&sh.data.code)||'';
+  }
+  function _sortByProgCode(a,b){
+    var ca=_progCode(a),cb=_progCode(b);
+    if(ca&&cb)return ca.localeCompare(cb,'pt-BR',{sensitivity:'base'});
+    if(ca)return -1;
+    if(cb)return 1;
+    return _sortByFirstInst(a,b);
+  }
   order.forEach(function(sid){
     var g=groups[sid];
-    g.sessions.sort(_sortByFirstInst);
-    g.namedSessions.sort(_sortByFirstInst);
+    g.sessions.sort(_sortByProgCode);
+    g.namedSessions.sort(_sortByProgCode);
   });
   return{groups:groups,order:order};
 }
@@ -14838,6 +14851,7 @@ function _revMakeCoverPage(evName,evBg,evText,mostras,salaParaComplexo,pageNum){
 
 function renderRevista(){
   if(!_langCache){_langEnsure().then(function(){renderRevista();});return;}
+  if(_showsCache===null){_ensureShowsLoaded().then(function(){renderRevista();});return;}
   var container=document.getElementById('revista-container');
   var empty=document.getElementById('revistaEmpty');
   if(!container)return;
@@ -18186,7 +18200,7 @@ function renderDash(){
   html+=colBlock('legendagem','Legendagem',legBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 28/07/2026 às 00:13';
+  var sysUpdate='última atualização do sistema · 28/07/2026 às 00:23';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -27598,7 +27612,7 @@ function _sxcPrint(){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 28/07/2026 às 00:13</span></div>
+<div id="page-footer"><span>última atualização · 28/07/2026 às 00:23</span></div>
 
 </div>
 

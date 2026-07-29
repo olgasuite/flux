@@ -5120,7 +5120,24 @@ html[data-theme="indexof"]:not([data-theme="win98"]) .module-icon{display:flex!i
     // vin_templates: doc cujo id === evId
     var vinTplN=0;
     try{var vt=await getDoc(doc(db,'vin_templates',evId));if(vt.exists())vinTplN=1;}catch(e){}
-    return{filmes:filmesN,copias:copiasN,triagem:triagemN,sessoes:sessoesN,programs:programsN,subprograms:subprogramsN,vinhetas:vinhetasN,guests:guestsN,hotels:hotelsN,flights:flightsN,transfers:transfersN,bookings:bookingsN,vin_templates:vinTplN};
+    var showsN=await _q('shows','event_name');
+    // cinemas: event_name é lista ';'-separada (sala pode pertencer a vários eventos) — conta
+    // só as salas que de fato têm este evento na lista, não a coleção inteira.
+    var cinemasN=0;
+    try{
+      var cinSnap=await getDocs(collection(db,'cinemas'));
+      cinSnap.forEach(function(d){
+        var r=d.data();var list=(r&&r.event_name||'').split(';').map(function(x){return x.trim();}).filter(Boolean);
+        if(list.indexOf(evId)>=0)cinemasN++;
+      });
+    }catch(e){}
+    // prog_grids: id é `${evento}__${sala}` (sem campo de evento pra query direta)
+    var progGridsN=0;
+    try{
+      var pgSnap=await getDocs(collection(db,'prog_grids'));
+      pgSnap.forEach(function(d){if(d.id.indexOf(evId+'__')===0)progGridsN++;});
+    }catch(e){}
+    return{filmes:filmesN,copias:copiasN,triagem:triagemN,sessoes:sessoesN,programs:programsN,subprograms:subprogramsN,vinhetas:vinhetasN,guests:guestsN,hotels:hotelsN,flights:flightsN,transfers:transfersN,bookings:bookingsN,vin_templates:vinTplN,shows:showsN,cinemas:cinemasN,prog_grids:progGridsN};
   };
   window._olgaCascadeDeleteEvento = async function(evId, onProgress){
     function _step(label, count){if(typeof onProgress==='function')try{onProgress(label, count);}catch(e){}}
@@ -5188,10 +5205,35 @@ html[data-theme="indexof"]:not([data-theme="win98"]) .module-icon{display:flex!i
     var vinTplN=0;
     try{await deleteDoc(doc(db,'vin_templates',evId));vinTplN=1;}catch(e){}
     _step('templates de vinheta',vinTplN);
+    var showsN=await _delByField('shows','event_name');_step('programas',showsN);
+    // cinemas: sala é recurso compartilhado entre eventos — NUNCA apaga a sala, só tira
+    // este evento da lista ';'-separada em event_name (a causa raiz do evento "reaparecer").
+    var cinemasN=0;
+    try{
+      var cinSnap=await getDocs(collection(db,'cinemas'));
+      var cinRefs=[],cinVals=[];
+      cinSnap.forEach(function(d){
+        var r=d.data();var list=(r&&r.event_name||'').split(';').map(function(x){return x.trim();}).filter(Boolean);
+        if(list.indexOf(evId)<0)return;
+        cinRefs.push(d.ref);cinVals.push(list.filter(function(x){return x!==evId;}).join(';'));
+      });
+      for(var cu=0;cu<cinRefs.length;cu++){await setDoc(cinRefs[cu],{event_name:cinVals[cu]},{merge:true});}
+      cinemasN=cinRefs.length;
+    }catch(e){}
+    _step('salas (vínculo removido)',cinemasN);
+    // prog_grids: id é `${evento}__${sala}` — apaga por prefixo do id, sem campo pra query direta.
+    var progGridsN=0;
+    try{
+      var pgSnap=await getDocs(collection(db,'prog_grids'));
+      var pgRefs=[];
+      pgSnap.forEach(function(d){if(d.id.indexOf(evId+'__')===0)pgRefs.push(d.ref);});
+      progGridsN=await _delRefs(pgRefs);
+    }catch(e){}
+    _step('grades do programador visual',progGridsN);
     // o doc do evento é o último a cair: se algo falhar antes, o evento continua
     // listado e a exclusão pode ser reexecutada para completar o restante
     await deleteDoc(doc(db,'eventos',evId));_step('evento',1);
-    return{filmes:filmesN,copias:copiasN,triagem:triagemN,sessoes:sessoesN,programs:programsN,subprograms:subprogramsN,vinhetas:vinhetasN,guests:guestsN,hotels:hotelsN,flights:flightsN,transfers:transfersN,bookings:bookingsN,vin_templates:vinTplN};
+    return{filmes:filmesN,copias:copiasN,triagem:triagemN,sessoes:sessoesN,programs:programsN,subprograms:subprogramsN,vinhetas:vinhetasN,guests:guestsN,hotels:hotelsN,flights:flightsN,transfers:transfersN,bookings:bookingsN,vin_templates:vinTplN,shows:showsN,cinemas:cinemasN,prog_grids:progGridsN};
   };
 
   // ── TTL cache ────────────────────────────────────────────────────
@@ -18203,7 +18245,7 @@ function renderDash(){
   html+=colBlock('legendagem','Legendagem',legBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 29/07/2026 às 12:57';
+  var sysUpdate='última atualização do sistema · 29/07/2026 às 20:16';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -21723,7 +21765,7 @@ async function deleteEvento(id,label){
   var counts;
   try{counts=await window._olgaCascadeCountEvento(id);}
   catch(e){alert('Erro ao contar vínculos: '+e.message);return;}
-  var labels={filmes:'filmes (catálogo)',copias:'cópias / arquivo técnico',triagem:'itens da triagem',sessoes:'sessões',programs:'mostras',subprograms:'submostras',vinhetas:'vinhetas',vin_templates:'templates de vinheta',guests:'convidados',hotels:'hotéis',flights:'voos',transfers:'transportes',bookings:'reservas de hotel'};
+  var labels={filmes:'filmes (catálogo)',copias:'cópias / arquivo técnico',triagem:'itens da triagem',sessoes:'sessões',programs:'mostras',subprograms:'submostras',vinhetas:'vinhetas',vin_templates:'templates de vinheta',guests:'convidados',hotels:'hotéis',flights:'voos',transfers:'transportes',bookings:'reservas de hotel',shows:'programas',cinemas:'salas (vínculo será removido, sala não é apagada)',prog_grids:'grades do programador visual'};
   var lines=Object.keys(labels).filter(function(k){return counts[k]>0;}).map(function(k){return '  · '+counts[k]+' '+labels[k];});
   var total=Object.values(counts).reduce(function(a,b){return a+b;},0);
   var msg='Excluir o evento "'+label+'"?\n\n';
@@ -21757,7 +21799,7 @@ async function deleteEvento(id,label){
     +'<div id="_evDelLog" style="font-family:var(--mono);font-size:10px;color:var(--text-dim);max-height:200px;overflow:auto;line-height:1.5;"></div>'
     +'</div>';
   document.body.appendChild(modal);
-  var TOTAL_STEPS=14;var doneSteps=0;
+  var TOTAL_STEPS=17;var doneSteps=0;
   function _onStep(stageLabel,count){
     doneSteps++;
     var pct=Math.min(100,Math.round((doneSteps/TOTAL_STEPS)*100));
@@ -27614,7 +27656,7 @@ function _sxcPrint(){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 29/07/2026 às 12:57</span></div>
+<div id="page-footer"><span>última atualização · 29/07/2026 às 20:16</span></div>
 
 </div>
 

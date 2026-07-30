@@ -18245,7 +18245,7 @@ function renderDash(){
   html+=colBlock('legendagem','Legendagem',legBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 29/07/2026 às 21:08';
+  var sysUpdate='última atualização do sistema · 29/07/2026 às 21:25';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -18921,7 +18921,9 @@ function _pvCellHtml(colId,rowId,warnMap,canEdit,colw){
   // comprido não estourar a largura da coluna. Fontes na mesma escala do resto do site
   // (13px de corpo, não os 9-10px originais que ficavam pequenos demais).
   var cellStyle='border:1px solid var(--border);padding:8px;vertical-align:top;height:72px;box-sizing:border-box;font-size:13px;'+(colw?'width:'+colw+'px;':'');
-  var wrapStyle='white-space:normal;word-break:break-word;overflow-wrap:anywhere;';
+  // overflow-wrap:break-word (não "anywhere") só quebra quando o pedaço realmente não cabe —
+  // evita deixar sobrinha de 1-2 caracteres numa linha à toa.
+  var wrapStyle='white-space:normal;overflow-wrap:break-word;';
   var s=_pvSessionAt(colId,rowId);
   var key=colId+'_'+rowId;
   var pend=_pvState.pending&&_pvState.pending[key];
@@ -18962,7 +18964,7 @@ function _pvCellHtml(colId,rowId,warnMap,canEdit,colw){
     +(canEdit?'<input type="checkbox" '+(checked?'checked ':'')+'onchange="_pvToggleSel(\''+_pvEsc(s.nome)+'\',this.checked)" style="position:absolute;top:6px;right:6px;cursor:pointer;transform:scale(1.2);">':'')
     +(canEdit?'<span onclick="_pvUnassignSession(\''+_pvEsc(s.nome)+'\')" title="Remover da célula (libera a sessão)" style="position:absolute;top:4px;right:26px;cursor:pointer;opacity:.5;font-weight:700;font-size:16px;">×</span>':'')
     +(warn?'<span title="'+esc(warn)+'" style="position:absolute;top:5px;left:6px;color:var(--warn,#e57);cursor:help;font-weight:700;font-size:15px;">⚠</span>':'')
-    +'<div style="'+wrapStyle+'max-width:100px;font-weight:600;padding-right:38px;'+(warn?'padding-left:18px;':'')+'">'+esc(codigo)+(durLbl?' <span style="font-weight:400;opacity:.6;">('+esc(durLbl)+')</span>':'')+'</div>'
+    +'<div style="'+wrapStyle+'font-weight:600;padding-right:38px;'+(warn?'padding-left:18px;':'')+'">'+esc(codigo)+(durLbl?' <span style="font-weight:400;opacity:.6;">('+esc(durLbl)+')</span>':'')+'</div>'
     +(canEdit?('<div style="display:flex;align-items:center;gap:4px;margin-top:5px;"><input type="time" value="'+(s.time&&s.time.str!=='?'?s.time.str:'')+'" onblur="_pvOverrideTime(\''+_pvEsc(s.nome)+'\',this.value)" style="height:26px;padding:0 6px;border:1px solid var(--border2);background:var(--bg);color:var(--text);font-family:var(--mono);font-size:12px;width:88px;"></div>')
       :('<div style="opacity:.5;margin-top:3px;">'+esc(s.time&&s.time.str!=='?'?s.time.str:'')+'</div>'))
     +'</td>';
@@ -27692,7 +27694,7 @@ function _sxcPrint(){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 29/07/2026 às 21:08</span></div>
+<div id="page-footer"><span>última atualização · 29/07/2026 às 21:25</span></div>
 
 </div>
 

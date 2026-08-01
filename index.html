@@ -4135,6 +4135,9 @@ html[data-theme="indexof"]:not([data-theme="win98"]) .module-icon{display:flex!i
 [data-theme="zen"] .search-wrap input::placeholder{color:var(--text-muted);}
 [data-theme="zen"] .obs-text{color:rgba(191,51,22,0.85);}
 [data-theme="zen"] .card-obs{color:rgba(191,51,22,0.85);border-left-color:rgba(247,111,83,0.5);background:rgba(247,111,83,0.06);}
+[data-theme="zen"] .landing-badge{color:#7a2410;}
+[data-theme="zen"] .fps-val,[data-theme="zen"] .gb-val{color:var(--text);font-weight:600;}
+[data-theme="zen"] .expand-value.accent{color:#2e6b34;font-weight:600;}
 
 /* ───────── ZEN DARK — mesmo tema com cores invertidas (modo escuro do site) ───────── */
 [data-theme="zen-dark"]{
@@ -18248,7 +18251,7 @@ function renderDash(){
   html+=colBlock('legendagem','Legendagem',legBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 01/08/2026 às 13:08';
+  var sysUpdate='última atualização do sistema · 01/08/2026 às 13:43';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -27697,7 +27700,7 @@ function _sxcPrint(){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 01/08/2026 às 13:08</span></div>
+<div id="page-footer"><span>última atualização · 01/08/2026 às 13:43</span></div>
 
 </div>
 

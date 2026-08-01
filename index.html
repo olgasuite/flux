@@ -3831,6 +3831,9 @@ html[data-theme]:not([data-theme="win98"]){--mono:var(--sans);}
   --mono:'Inter',system-ui,sans-serif;
 }
 [data-theme="light"] header{background:rgba(248,250,252,0.96);}
+[data-theme="light"] .landing-badge{color:var(--text-dim);}
+[data-theme="light"] .fps-val,[data-theme="light"] .gb-val{color:var(--text);font-weight:600;}
+[data-theme="light"] .expand-value.accent{color:#1543b3;font-weight:600;}
 
 /* Midnight Premiere (dark) */
 [data-theme="dark"]{
@@ -18245,7 +18248,7 @@ function renderDash(){
   html+=colBlock('legendagem','Legendagem',legBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 29/07/2026 às 21:25';
+  var sysUpdate='última atualização do sistema · 01/08/2026 às 13:08';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -27694,7 +27697,7 @@ function _sxcPrint(){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 29/07/2026 às 21:25</span></div>
+<div id="page-footer"><span>última atualização · 01/08/2026 às 13:08</span></div>
 
 </div>
 

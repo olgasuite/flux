@@ -6370,6 +6370,9 @@ window.addEventListener('DOMContentLoaded',function(){
 </div>
 <div class="mode-bar hidden" id="barLegendagem">
   <div class="event-filters" id="legendagemEventFilters"></div>
+  <button class="print-btn" id="legViewListBtn" style="margin-left:8px;" onclick="_legSetView('lista')">Lista</button>
+  <button class="print-btn" id="legViewGradeBtn" onclick="_legSetView('grade')">Grade</button>
+  <button class="print-btn" id="legGradeTableBtn" style="display:none;margin-left:8px;" onclick="openGradePrintModal('leg')">⎙ Tabela</button>
 </div>
 <div class="mode-bar hidden" id="barBilheteria" style="flex-direction:column;align-items:stretch;gap:4px;padding-bottom:6px;">
   <div style="display:flex;align-items:center;flex-wrap:wrap;gap:4px;">
@@ -8233,13 +8236,13 @@ function printAcervoRelatorio(){
 /* GRADE PRINT TABLE — compartilhada entre "Grade" (ctx='grade', ficha de programação) e
    "Grade de Projeção" (ctx='grade2', ficha de projeção); _gptCtx guarda o contexto ativo. */
 var _gptCtx='grade';
-function _gptSessoes(){return _gptCtx==='grade2'?sessoesGrade2():sessoesGrade();}
-function _gptActiveEvents(){return _gptCtx==='grade2'?activeEventsGrade2:activeEventsGrade;}
-function _gptClickFn(){return _gptCtx==='grade2'?'goToFicha':'goToProgFichaFromGrade';}
+function _gptSessoes(){return _gptCtx==='grade2'?sessoesGrade2():_gptCtx==='leg'?sessoesLegGrade():sessoesGrade();}
+function _gptActiveEvents(){return _gptCtx==='grade2'?activeEventsGrade2:_gptCtx==='leg'?activeEventsLegendagem:activeEventsGrade;}
+function _gptClickFn(){return _gptCtx==='grade2'||_gptCtx==='leg'?'goToFicha':'goToProgFichaFromGrade';}
 function openGradePrintModal(ctx){
-  _gptCtx=ctx==='grade2'?'grade2':'grade';
+  _gptCtx=ctx==='grade2'?'grade2':ctx==='leg'?'leg':'grade';
   var t=document.getElementById('gptModalTitle');
-  if(t)t.textContent=_gptCtx==='grade2'?'⎙ Tabela de projeção':'⎙ Tabela de programação';
+  if(t)t.textContent=_gptCtx==='grade2'?'⎙ Tabela de projeção':_gptCtx==='leg'?'⎙ Tabela de legendagem':'⎙ Tabela de programação';
   var modal=document.getElementById('gradePrintModal');
   // populate sala select — only cinemas with sessions from active events
   var cinemaSet=new Set();
@@ -8353,6 +8356,10 @@ function gptRenderTable(headers,slots,getSessionsFn){
         html+='<div class="gpt-sess-entry" onclick="closeGradePrintModal();'+_gptClickFn()+'(\''+safeName+'\')" title="Abrir ficha: '+esc(s.nome)+'">';
         if(durStr)html+='<div class="gpt-sess-time">'+esc(durStr)+'</div>';
         html+='<div class="gpt-sess-name" title="'+esc(s.nome)+'">'+esc(_gptNameDisp||_gptCodeDisp)+'</div>';
+        if(_gptCtx==='leg'){
+          var _gptOps=(s.operador||[]).filter(Boolean);
+          html+=_gptOps.length?('<div class="gpt-sess-films" style="color:var(--accent);">'+esc(_gptOps.join(', '))+'</div>'):'<div class="gpt-sess-films" style="font-style:italic;">sem operador</div>';
+        }
         if(nf)html+='<div class="gpt-sess-films">'+nf+' filme'+(nf!==1?'s':'')+'</div>';
         if(s.evento)html+='<div class="gpt-sess-event">'+esc(s.evento)+'</div>';
         if(_gptProg)html+='<div class="gpt-sess-mostra">'+esc(_gptProg)+'</div>';
@@ -12556,8 +12563,68 @@ function _legFilterBar(opts){
     '<button class="leg-filter-clear" style="margin-left:auto;" onclick="_legOpenExport()">⤓ exportar</button>'+
   '</div>';
 }
+/* ─── GRADE (dia × cinema, só sessões com legendagem eletrônica) ─── */
+var _legView='lista';
+var _legGradeDay=null;
+function _legSetView(v){_legView=v;renderLegendagem();}
+function sessoesLegGrade(){
+  var as=allowedSalas();
+  return sessoesArr.filter(function(s){
+    if(s.evento&&!activeEventsLegendagem.has(s.evento))return false;
+    if(as&&s.cinema&&!as.has(s.cinema))return false;
+    return !!(s.leg_eletronica&&s.leg_eletronica.toUpperCase()==='SIM');
+  });
+}
+function _legGradeCell(s){
+  var safeName=String(s.nome).replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+  var codeDisp=stripEvPrefix(s.nome,s.evento);
+  var nameDisp=(s.name&&s.name!==s.nome&&s.name!==codeDisp)?s.name:'';
+  var ops=(s.operador||[]).filter(Boolean);
+  return'<div class="gpt-sess-entry" onclick="goToFicha(\''+safeName+'\')" title="Abrir ficha: '+esc(s.nome)+'">'+
+    '<div class="gpt-sess-name" title="'+esc(s.nome)+'">'+esc(nameDisp||codeDisp)+'</div>'+
+    (ops.length?'<div class="gpt-sess-films" style="color:var(--accent);">'+esc(ops.join(', '))+'</div>':'<div class="gpt-sess-films" style="font-style:italic;">sem operador</div>')+
+    (s.evento?'<div class="gpt-sess-event">'+esc(s.evento)+'</div>':'')+
+  '</div>';
+}
+function renderLegGrade(cont){
+  buildGradeDays();
+  var byDay=sessoesLegGrade();
+  if(!_legGradeDay||!byDay.some(function(s){return s.date&&s.date.toISOString().slice(0,10)===_legGradeDay;})){
+    var withSess=days.filter(function(d){return byDay.some(function(s){return s.date&&s.date.toISOString().slice(0,10)===d.key;});});
+    _legGradeDay=withSess.length?pickBestDay(withSess):(days[0]?days[0].key:null);
+  }
+  var dayTabsHtml=days.filter(function(d){return byDay.some(function(s){return s.date&&s.date.toISOString().slice(0,10)===d.key;});}).map(function(d){
+    return'<button class="day-tab'+(d.key===_legGradeDay?' active':'')+'" onclick="_legGradeDay=\''+d.key+'\';renderLegendagem();">'+esc(d.date.toLocaleDateString('pt-BR',{weekday:'short',day:'2-digit',month:'2-digit'}))+'</button>';
+  }).join('');
+  var html='<div class="day-tabs" style="margin-bottom:16px;">'+(dayTabsHtml||'<span style="font-family:var(--mono);font-size:11px;color:var(--text-muted);">Nenhuma sessão com legendagem eletrônica nos eventos ativos.</span>')+'</div>';
+  var sessions=byDay.filter(function(s){return s.date&&s.date.toISOString().slice(0,10)===_legGradeDay&&s.time;});
+  if(!sessions.length){cont.innerHTML=html;return;}
+  var cinemaSet=[],seenCx=new Set();sessions.forEach(function(s){if(s.cinema&&!seenCx.has(s.cinema)){seenCx.add(s.cinema);cinemaSet.push(s.cinema);}});
+  cinemaSet.sort(function(a,b){return a.localeCompare(b,'pt-BR',{sensitivity:'base'});});
+  var slotSet=new Set();sessions.forEach(function(s){slotSet.add(slotKey(s.time.h,s.time.m));});
+  var slots=Array.from(slotSet).sort(function(a,b){return a-b;});
+  var idx={};sessions.forEach(function(s){var key=s.cinema+'|'+slotKey(s.time.h,s.time.m);(idx[key]=idx[key]||[]).push(s);});
+  html+='<div style="overflow-x:auto;"><table class="gpt-table"><thead><tr><th>Horário</th>'+cinemaSet.map(function(c){return'<th>'+esc(c)+'</th>';}).join('')+'</tr></thead><tbody>';
+  slots.forEach(function(sk){
+    html+='<tr><td class="slot-label">'+slotLabel(sk)+'</td>';
+    cinemaSet.forEach(function(c){
+      var ss=idx[c+'|'+sk]||[];
+      html+=ss.length?('<td>'+ss.map(_legGradeCell).join('')+'</td>'):'<td class="empty"></td>';
+    });
+    html+='</tr>';
+  });
+  html+='</tbody></table></div>';
+  cont.innerHTML=html;
+}
 function renderLegendagem(){
   var cont=document.getElementById('legendagem-container');if(!cont)return;
+  var lb=document.getElementById('legViewListBtn'),gb=document.getElementById('legViewGradeBtn'),tb=document.getElementById('legGradeTableBtn');
+  if(lb&&gb){
+    lb.style.cssText='margin-left:8px;'+(_legView==='lista'?'border-color:var(--accent);color:var(--accent);':'');
+    gb.style.cssText=_legView==='grade'?'border-color:var(--accent);color:var(--accent);':'';
+  }
+  if(tb)tb.style.display=_legView==='grade'?'':'none';
+  if(_legView==='grade'){renderLegGrade(cont);return;}
   if(!_langCache){_langEnsure().then(function(){if(currentMode==='legendagem')renderLegendagem();});return;}
   if(!_legFilesLoaded&&window._olgaLegFiles){_legFilesLoaded=true;window._olgaLegFiles.list().then(function(arr){_legFilesMap={};arr.forEach(function(d){_legFilesMap[d.id]=d.data;});if(currentMode==='legendagem')renderLegendagem();}).catch(function(){});}
   if(typeof _ensureProgData==='function'&&(typeof _progData==='undefined'||!_progData||!((_progData&&_progData.programs)||[]).length)&&!_legProgLoaded){
@@ -18282,7 +18349,7 @@ function renderDash(){
   html+=colBlock('legendagem','Legendagem',legBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 06/08/2026 às 18:02';
+  var sysUpdate='última atualização do sistema · 07/08/2026 às 20:40';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -27758,7 +27825,7 @@ function _sxcPrint(){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 06/08/2026 às 18:02</span></div>
+<div id="page-footer"><span>última atualização · 07/08/2026 às 20:40</span></div>
 
 </div>
 

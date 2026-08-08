@@ -8358,7 +8358,7 @@ function gptRenderTable(headers,slots,getSessionsFn){
         html+='<div class="gpt-sess-name" title="'+esc(s.nome)+'">'+esc(_gptNameDisp||_gptCodeDisp)+'</div>';
         if(_gptCtx==='leg'){
           var _gptShowName=_sessShowName(s);
-          if(_gptShowName)html+='<div class="gpt-sess-mostra">'+esc(_gptShowName)+'</div>';
+          if(_gptShowName)html+='<div class="gpt-sess-name">'+esc(_gptShowName)+'</div>';
           var _gptOps=(s.operador||[]).filter(Boolean);
           html+=_gptOps.length?('<div class="gpt-sess-films" style="color:var(--accent);">'+esc(_gptOps.join(', '))+'</div>'):'<div class="gpt-sess-films" style="font-style:italic;">sem operador</div>';
         }
@@ -12590,7 +12590,7 @@ function _legGradeCell(s){
   var progName=_sessShowName(s);
   return'<div class="gpt-sess-entry" onclick="goToFicha(\''+safeName+'\')" title="Abrir ficha: '+esc(s.nome)+'">'+
     '<div class="gpt-sess-name" title="'+esc(s.nome)+'">'+esc(nameDisp||codeDisp)+'</div>'+
-    (progName?'<div class="gpt-sess-mostra">'+esc(progName)+'</div>':'')+
+    (progName?'<div class="gpt-sess-name">'+esc(progName)+'</div>':'')+
     (ops.length?'<div class="gpt-sess-films" style="color:var(--accent);">'+esc(ops.join(', '))+'</div>':'<div class="gpt-sess-films" style="font-style:italic;">sem operador</div>')+
     (s.evento?'<div class="gpt-sess-event">'+esc(s.evento)+'</div>':'')+
   '</div>';
@@ -18359,7 +18359,7 @@ function renderDash(){
   html+=colBlock('legendagem','Legendagem',legBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 07/08/2026 às 21:05';
+  var sysUpdate='última atualização do sistema · 07/08/2026 às 21:17';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -27835,7 +27835,7 @@ function _sxcPrint(){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 07/08/2026 às 21:05</span></div>
+<div id="page-footer"><span>última atualização · 07/08/2026 às 21:17</span></div>
 
 </div>
 

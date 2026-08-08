@@ -8357,6 +8357,8 @@ function gptRenderTable(headers,slots,getSessionsFn){
         if(durStr)html+='<div class="gpt-sess-time">'+esc(durStr)+'</div>';
         html+='<div class="gpt-sess-name" title="'+esc(s.nome)+'">'+esc(_gptNameDisp||_gptCodeDisp)+'</div>';
         if(_gptCtx==='leg'){
+          var _gptShowName=_sessShowName(s);
+          if(_gptShowName)html+='<div class="gpt-sess-mostra">'+esc(_gptShowName)+'</div>';
           var _gptOps=(s.operador||[]).filter(Boolean);
           html+=_gptOps.length?('<div class="gpt-sess-films" style="color:var(--accent);">'+esc(_gptOps.join(', '))+'</div>'):'<div class="gpt-sess-films" style="font-style:italic;">sem operador</div>';
         }
@@ -12575,18 +12577,26 @@ function sessoesLegGrade(){
     return !!(s.leg_eletronica&&s.leg_eletronica.toUpperCase()==='SIM');
   });
 }
+function _sessShowName(s){
+  if(!s||!s.show_id)return'';
+  var sh=_showById(s.show_id);
+  return(sh&&sh.data&&(sh.data.name||sh.data.code))||'';
+}
 function _legGradeCell(s){
   var safeName=String(s.nome).replace(/\\/g,'\\\\').replace(/'/g,"\\'");
   var codeDisp=stripEvPrefix(s.nome,s.evento);
   var nameDisp=(s.name&&s.name!==s.nome&&s.name!==codeDisp)?s.name:'';
   var ops=(s.operador||[]).filter(Boolean);
+  var progName=_sessShowName(s);
   return'<div class="gpt-sess-entry" onclick="goToFicha(\''+safeName+'\')" title="Abrir ficha: '+esc(s.nome)+'">'+
     '<div class="gpt-sess-name" title="'+esc(s.nome)+'">'+esc(nameDisp||codeDisp)+'</div>'+
+    (progName?'<div class="gpt-sess-mostra">'+esc(progName)+'</div>':'')+
     (ops.length?'<div class="gpt-sess-films" style="color:var(--accent);">'+esc(ops.join(', '))+'</div>':'<div class="gpt-sess-films" style="font-style:italic;">sem operador</div>')+
     (s.evento?'<div class="gpt-sess-event">'+esc(s.evento)+'</div>':'')+
   '</div>';
 }
 function renderLegGrade(cont){
+  if(_showsCache===null){_ensureShowsLoaded().then(function(){if(currentMode==='legendagem')renderLegendagem();});}
   buildGradeDays();
   var byDay=sessoesLegGrade();
   if(!_legGradeDay||!byDay.some(function(s){return s.date&&s.date.toISOString().slice(0,10)===_legGradeDay;})){
@@ -18349,7 +18359,7 @@ function renderDash(){
   html+=colBlock('legendagem','Legendagem',legBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 07/08/2026 às 20:40';
+  var sysUpdate='última atualização do sistema · 07/08/2026 às 21:05';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -27825,7 +27835,7 @@ function _sxcPrint(){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 07/08/2026 às 20:40</span></div>
+<div id="page-footer"><span>última atualização · 07/08/2026 às 21:05</span></div>
 
 </div>
 

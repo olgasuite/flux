@@ -7831,6 +7831,7 @@ function _langTagInit(wid,mode,initial){
 }
 
 function renderFicha(nome,s){
+  if(_showsCache===null){_ensureShowsLoaded().then(function(){if(currentMode==='ficha')renderFicha(nome,s);});return;}
   var films=s.filmes.filter(function(c){return _isFest(c);}).map(function(c){return Object.assign({codigo:c},filmesMap[c]||{});}).filter(function(f){return f.titulo||f.codigo;});
   var totalSecs=0,totalGB=0;
   films.forEach(function(f){totalSecs+=_parseDurSecs(f.duracao);var g=parseFloat((f.gb||'').toString().replace(',','.'));if(!isNaN(g))totalGB+=g;});
@@ -7933,7 +7934,8 @@ function renderFicha(nome,s){
   var _fichaNavSafe=nome.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
   var _fichaNavBtn=window._olgaHasRestricao('projecao.btn_programacao')?'':'<div class="ficha-nav-bar"><button class="prog-btn-sm" onclick="_goToProgFromFicha(\''+_fichaNavSafe+'\')">← ficha de programação</button></div>';
   var legFootnote=_legStar?'<div class="ficha-leg-note">*não existe um operador de legendagem eletrônica associado a esta sessão, consulte a equipe de programação para confirmar se esta sessão contará com este recurso</div>':'';
-  document.getElementById('fichaWrap').innerHTML=_fichaNavBtn+'<div class="ficha"><div class="ficha-header"><div class="ficha-header-main"><div class="ficha-session-wrap"><div class="ficha-session-name" title="'+esc(nome)+'">'+esc(stripEvPrefix(nome,s.evento))+'</div>'+(s.name?'<div class="prog-sess-display-name-ficha">'+esc(s.name)+'</div>':'')+eventoBadge+(fichaRatingBadge?fichaRatingBadge:'')+'</div><div class="ficha-meta"><div class="meta-item"><div class="meta-label">Cinema</div><div class="meta-value">'+esc(s.cinema||'—')+_fpUtcTag+'</div></div><div class="meta-item"><div class="meta-label">Data</div><div class="meta-value">'+s.dia+'</div></div><div class="meta-item"><div class="meta-label">Hora</div><div class="meta-value">'+s.hora+'</div></div><div class="meta-item"><div class="meta-label">Filmes</div><div class="meta-value highlight">'+films.length+'</div></div></div></div>'+extraHtml+'</div>'+vinhetasHtml+'<div class="film-table-wrap"><table><thead><tr><th>#</th><th>Filme</th><th class="center">Lente</th><th class="center">Som</th><th>Legenda</th><th class="center">Idioma</th><th class="center">KDM</th><th>CPL</th><th>Duração</th><th>OBS</th><th class="center">FPS · GB</th><th class="center" title="Acessibilidade"><svg width="13" height="13" viewBox="0 0 24 24" style="stroke:currentColor;stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round;vertical-align:middle;"><circle cx="11" cy="4" r="1"/><path d="m11 9 2 7h5l-1.5 3"/><path d="M9 9H7l1 7"/><path d="M13.5 19a4.5 4.5 0 1 1-9 0 4.5 4.5 0 0 1 9 0z"/></svg></th></tr></thead><tbody>'+(rows||'<tr><td colspan="12" style="text-align:center;color:var(--text-muted);padding:24px">Nenhum filme encontrado para esta sessão.</td></tr>')+'</tbody></table></div>'+legFootnote+'<div class="ficha-footer"><div class="footer-total">Duração total dos filmes: <strong>'+totalDur+'</strong>'+(totalVinSecs>0?' &nbsp;·&nbsp; Vinhetas: <strong>'+_secsToHMS(totalVinSecs)+'</strong>':'')+' &nbsp;·&nbsp; Tamanho: <strong>'+totalGBStr+'</strong></div><div class="footer-stamp">OLGA · '+new Date().toLocaleString('pt-BR')+'</div></div></div>';
+  var _fichaShowName=_sessShowName(s);
+  document.getElementById('fichaWrap').innerHTML=_fichaNavBtn+'<div class="ficha"><div class="ficha-header"><div class="ficha-header-main"><div class="ficha-session-wrap"><div class="ficha-session-name" title="'+esc(nome)+'">'+esc(stripEvPrefix(nome,s.evento))+(_fichaShowName?' <span style="opacity:.7;font-weight:400;">('+esc(_fichaShowName)+')</span>':'')+'</div>'+(s.name?'<div class="prog-sess-display-name-ficha">'+esc(s.name)+'</div>':'')+eventoBadge+(fichaRatingBadge?fichaRatingBadge:'')+'</div><div class="ficha-meta"><div class="meta-item"><div class="meta-label">Cinema</div><div class="meta-value">'+esc(s.cinema||'—')+_fpUtcTag+'</div></div><div class="meta-item"><div class="meta-label">Data</div><div class="meta-value">'+s.dia+'</div></div><div class="meta-item"><div class="meta-label">Hora</div><div class="meta-value">'+s.hora+'</div></div><div class="meta-item"><div class="meta-label">Filmes</div><div class="meta-value highlight">'+films.length+'</div></div></div></div>'+extraHtml+'</div>'+vinhetasHtml+'<div class="film-table-wrap"><table><thead><tr><th>#</th><th>Filme</th><th class="center">Lente</th><th class="center">Som</th><th>Legenda</th><th class="center">Idioma</th><th class="center">KDM</th><th>CPL</th><th>Duração</th><th>OBS</th><th class="center">FPS · GB</th><th class="center" title="Acessibilidade"><svg width="13" height="13" viewBox="0 0 24 24" style="stroke:currentColor;stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round;vertical-align:middle;"><circle cx="11" cy="4" r="1"/><path d="m11 9 2 7h5l-1.5 3"/><path d="M9 9H7l1 7"/><path d="M13.5 19a4.5 4.5 0 1 1-9 0 4.5 4.5 0 0 1 9 0z"/></svg></th></tr></thead><tbody>'+(rows||'<tr><td colspan="12" style="text-align:center;color:var(--text-muted);padding:24px">Nenhum filme encontrado para esta sessão.</td></tr>')+'</tbody></table></div>'+legFootnote+'<div class="ficha-footer"><div class="footer-total">Duração total dos filmes: <strong>'+totalDur+'</strong>'+(totalVinSecs>0?' &nbsp;·&nbsp; Vinhetas: <strong>'+_secsToHMS(totalVinSecs)+'</strong>':'')+' &nbsp;·&nbsp; Tamanho: <strong>'+totalGBStr+'</strong></div><div class="footer-stamp">OLGA · '+new Date().toLocaleString('pt-BR')+'</div></div></div>';
 }
 
 function _goToFichaFromProg(nome){
@@ -9189,6 +9191,7 @@ function _gradeProgName(s){
 }
 
 function renderGrade2(){
+  if(_showsCache===null){_ensureShowsLoaded().then(function(){if(currentMode==='grade2')renderGrade2();});return;}
   buildGradeDays();
   renderGrade2DayTabs();
   var ge=document.getElementById('grade2Empty'),gw=document.getElementById('grade2Wrap');
@@ -9235,10 +9238,11 @@ function renderGrade2(){
       if(s.convidados&&s.convidados.trim())_blkIcons+='<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" title="Convidados"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>';
       if(s.leg_eletronica&&s.leg_eletronica.toUpperCase()==='SIM')_blkIcons+='<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" title="Leg. eletrônica"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>';
       var _blkProgName=_gradeProgName(s);
+      var _blkShowName=_sessShowName(s);
       var _blkCodeDisp=stripEvPrefix(s.nome,s.evento);
       var _blkNameDisp=(s.name&&s.name!==s.nome&&s.name!==_blkCodeDisp)?s.name:'';
       var _blkHead='<div class="block-head"><span class="block-time">'+esc(s.time.str)+'</span><span class="block-name" title="'+esc(s.nome)+(s.evento?' · '+esc(s.evento):'')+'">'+esc(_blkCodeDisp)+'</span></div>';
-      var _blkNameRow=_blkNameDisp?'<div class="block-display-name">'+esc(_blkNameDisp)+'</div>':'';
+      var _blkNameRow=(_blkNameDisp||_blkShowName)?'<div class="block-display-name">'+esc([_blkNameDisp,_blkShowName].filter(Boolean).join(' · '))+'</div>':'';
       var _metaRaw=[];
       if(s.filmes.length)_metaRaw.push(s.filmes.length+' filme'+(s.filmes.length!==1?'s':''));
       if(_blkProgName)_metaRaw.push(_blkProgName);
@@ -15849,6 +15853,7 @@ function printVinhetas(){
 }
 
 function renderGrade(){
+  if(_showsCache===null){_ensureShowsLoaded().then(function(){if(currentMode==='grade')renderGrade();});return;}
   buildGradeDays();
   renderDayTabs();
   var ge=document.getElementById('gradeEmpty'),gw=document.getElementById('gradeWrap');
@@ -15895,10 +15900,11 @@ function renderGrade(){
       if(s.convidados&&s.convidados.trim())_blkIcons+='<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" title="Convidados"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>';
       if(s.leg_eletronica&&s.leg_eletronica.toUpperCase()==='SIM')_blkIcons+='<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" title="Leg. eletrônica"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>';
       var _blkProgName=_gradeProgName(s);
+      var _blkShowName=_sessShowName(s);
       var _blkCodeDisp=stripEvPrefix(s.nome,s.evento);
       var _blkNameDisp=(s.name&&s.name!==s.nome&&s.name!==_blkCodeDisp)?s.name:'';
       var _blkHead='<div class="block-head"><span class="block-time">'+esc(s.time.str)+'</span><span class="block-name" title="'+esc(s.nome)+(s.evento?' · '+esc(s.evento):'')+'">'+esc(_blkCodeDisp)+'</span></div>';
-      var _blkNameRow=_blkNameDisp?'<div class="block-display-name">'+esc(_blkNameDisp)+'</div>':'';
+      var _blkNameRow=(_blkNameDisp||_blkShowName)?'<div class="block-display-name">'+esc([_blkNameDisp,_blkShowName].filter(Boolean).join(' · '))+'</div>':'';
       var _metaRaw=[];
       if(s.filmes.length)_metaRaw.push(s.filmes.length+' filme'+(s.filmes.length!==1?'s':''));
       if(_blkProgName)_metaRaw.push(_blkProgName);
@@ -18359,7 +18365,7 @@ function renderDash(){
   html+=colBlock('legendagem','Legendagem',legBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 07/08/2026 às 21:26';
+  var sysUpdate='última atualização do sistema · 09/08/2026 às 18:49';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -20093,6 +20099,7 @@ function _progSessRowHtml(s,programId,canEdit,vinOnly){
 /* ── Session detail ── */
 function _progRenderSessao(sessaoNome){
   if(!_langCache){_langEnsure().then(function(){_progRenderSessao(sessaoNome);});return;}
+  if(_showsCache===null){_ensureShowsLoaded().then(function(){_progRenderSessao(sessaoNome);});return;}
   var c=document.getElementById('programacao-container');
   var s=sessoesMap[sessaoNome];
   if(!s){c.innerHTML='<div style="padding:40px;color:var(--warn);font-family:var(--mono);font-size:11px;">Sessão não encontrada.</div>';return;}
@@ -20193,7 +20200,8 @@ function _progRenderSessao(sessaoNome){
   var html='<div class="prog-module-wrap">';
   html+='<div class="ficha"><div class="ficha-header"><div class="ficha-header-main">';
   html+='<div class="ficha-session-wrap">';
-  html+='<div class="ficha-session-name" title="'+esc(sessaoNome)+'">'+esc(stripEvPrefix(sessaoNome,s.evento))+'</div>';
+  var _progFichaShowName=_sessShowName(s);
+  html+='<div class="ficha-session-name" title="'+esc(sessaoNome)+'">'+esc(stripEvPrefix(sessaoNome,s.evento))+(_progFichaShowName?' <span style="opacity:.7;font-weight:400;">('+esc(_progFichaShowName)+')</span>':'')+'</div>';
   if(s.name&&s.name!==sessaoNome)html+='<div class="prog-sess-display-name">'+esc(s.name)+'</div>';
   html+=eventoBadge;
   if(ratingBadge)html+=ratingBadge;
@@ -27835,7 +27843,7 @@ function _sxcPrint(){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 07/08/2026 às 21:26</span></div>
+<div id="page-footer"><span>última atualização · 09/08/2026 às 18:49</span></div>
 
 </div>
 

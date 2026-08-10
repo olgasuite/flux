@@ -18365,7 +18365,7 @@ function renderDash(){
   html+=colBlock('legendagem','Legendagem',legBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 09/08/2026 às 18:49';
+  var sysUpdate='última atualização do sistema · 10/08/2026 às 10:10';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -27843,7 +27843,7 @@ function _sxcPrint(){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 09/08/2026 às 18:49</span></div>
+<div id="page-footer"><span>última atualização · 10/08/2026 às 10:10</span></div>
 
 </div>
 
@@ -29371,7 +29371,43 @@ function olgaMobileDash(){
   _mobRenderDash({});
 }
 
+/* setores com detalhamento por status, mesma lógica/permissões do Dashboard desktop */
+var _MOB_DASH_SETORES=[
+  {key:'copias',label:'Controle de cópias'},
+  {key:'kdm',label:'KDM'},
+  {key:'legendagem',label:'Legendagem'}
+];
+function _mobDashSetorGroups(setor){
+  if(setor==='kdm'){
+    var dk=dashGetKDMData();
+    return{order:dk.statusOrder,byStatus:dk.byStatus,getCode:function(it){return it.f.codigo;}};
+  }
+  if(setor==='legendagem'){
+    var dl=dashGetLegData();
+    return{order:dl.statusOrder,byStatus:dl.byStatus,getCode:function(it){return it.codigo;}};
+  }
+  var items=dashGetFilmes();
+  var byStatus={},order=[];
+  items.forEach(function(item){
+    var st=(item.f.status||'').toString().trim();if(!st||st==='-')st='sem status';
+    if(!byStatus[st]){byStatus[st]=[];order.push(st);}
+    byStatus[st].push(item);
+  });
+  return{order:order,byStatus:byStatus,getCode:function(it){return it.f.codigo;}};
+}
+window._mobDashSelSetor=function(v){
+  var cur=_mobStack[_mobStack.length-1];var p=cur?cur.params:{};
+  p.setor=v;p.status=null;
+  _mobRenderDash(p);
+};
+window._mobDashSelStatus=function(st){
+  var cur=_mobStack[_mobStack.length-1];var p=cur?cur.params:{};
+  p.status=(p.status===st?null:st);
+  _mobRenderDash(p);
+};
+
 function _mobRenderDash(params){
+  params=params||{};
   if(!dataLoaded){_mobSetContent('<div class="mob-empty">Dados não carregados.</div>');return;}
   var filtroEvs=_userEvSel;
   var u=window._olgaUser;
@@ -29405,6 +29441,34 @@ function _mobRenderDash(params){
     html+='<div class="mob-section-title">Filmes com erro</div><div class="mob-ficha-results">';
     html+=filmesComErro.map(function(c){return'<div class="mob-ficha-result-item" onclick="_mobAbrirAcervoDetail(\''+_mobEsc(c)+'\')"><span style="color:var(--warn);font-size:9px;margin-right:8px;">'+_mobEsc(c)+'</span>'+_mobEsc(filmDisplayTitle(c))+'</div>';}).join('');
     html+='</div>';
+  }
+  html+='<div class="mob-section-title" style="margin-top:18px;">Mais dados do dashboard</div>';
+  html+='<select onchange="_mobDashSelSetor(this.value)" style="font-family:var(--mono);font-size:10px;background:var(--surface);color:var(--text);border:1px solid var(--border2);padding:5px 8px;margin:0 14px 10px;border-radius:2px;width:calc(100% - 28px);">'+
+    '<option value="">Escolher setor…</option>'+
+    _MOB_DASH_SETORES.map(function(st){return'<option value="'+st.key+'"'+(params.setor===st.key?' selected':'')+'>'+st.label+'</option>';}).join('')+
+  '</select>';
+  if(params.setor){
+    var g=_mobDashSetorGroups(params.setor);
+    if(!g.order.length){
+      html+='<div class="mob-empty" style="padding:16px 14px;">Nada encontrado neste setor.</div>';
+    }else{
+      html+='<div style="display:flex;flex-wrap:wrap;gap:6px;padding:0 14px 10px;">';
+      g.order.forEach(function(st){
+        var n=g.byStatus[st].length;
+        var active=params.status===st;
+        var safeSt=String(st).replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+        html+='<button onclick="_mobDashSelStatus(\''+safeSt+'\')" style="font-family:var(--mono);font-size:10px;padding:5px 10px;border-radius:2px;border:1px solid '+(active?'var(--accent)':'var(--border2)')+';cursor:pointer;background:'+(active?'var(--accent-dim)':'var(--surface2)')+';color:'+(active?'var(--accent)':'var(--text-dim)')+';">'+_mobEsc(st)+' <span style="opacity:.6;">'+n+'</span></button>';
+      });
+      html+='</div>';
+      if(params.status&&g.byStatus[params.status]){
+        html+='<div class="mob-ficha-results">';
+        html+=g.byStatus[params.status].map(function(it){
+          var cod=g.getCode(it);
+          return'<div class="mob-ficha-result-item" onclick="_mobAbrirAcervoDetail(\''+_mobEsc(cod)+'\')"><span style="font-size:9px;color:var(--text-muted);margin-right:8px;">'+_mobEsc(cod)+'</span>'+_mobEsc(filmDisplayTitle(cod))+'</div>';
+        }).join('');
+        html+='</div>';
+      }
+    }
   }
   _mobSetContent(html);
 }

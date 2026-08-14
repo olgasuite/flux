@@ -6901,7 +6901,7 @@ var buscaFilters={
   lente_ex:new Set(),som_ex:new Set(),kdm_ex:new Set(),status_ex:new Set(),col_k_ex:new Set(),
   resolucao_ex:new Set(),fps_ex:new Set(),exhibition_format_ex:new Set(),col_n_ex:new Set(),responsavel_ex:new Set(),
   titulo_bin:null,obs_bin:null,cpl_bin:null,cplOV_bin:null,dcp_link_bin:null,legenda_bin:null,
-  duracao_min:null,duracao_max:null,gb_min:null,gb_max:null,
+  duracao_min:null,duracao_max:null,gb_min:null,gb_max:null,bitrate_min:null,bitrate_max:null,
   sessao:new Set(),
   mostra:new Set(),submostra:new Set()
 };
@@ -16084,7 +16084,7 @@ function rebuildPillsForMode(m){
 
 /* BUSCA ADITIVA */
 function snapshotCurrentSearch(){
-  var snap={query:buscaQuery,eventos:new Set(activeEventsBusca),sessao:new Set(buscaFilters.sessao),mostra:new Set(buscaFilters.mostra),submostra:new Set(buscaFilters.submostra),duracao_min:buscaFilters.duracao_min,duracao_max:buscaFilters.duracao_max,gb_min:buscaFilters.gb_min,gb_max:buscaFilters.gb_max,norm:{},bin:{}};
+  var snap={query:buscaQuery,eventos:new Set(activeEventsBusca),sessao:new Set(buscaFilters.sessao),mostra:new Set(buscaFilters.mostra),submostra:new Set(buscaFilters.submostra),duracao_min:buscaFilters.duracao_min,duracao_max:buscaFilters.duracao_max,gb_min:buscaFilters.gb_min,gb_max:buscaFilters.gb_max,bitrate_min:buscaFilters.bitrate_min,bitrate_max:buscaFilters.bitrate_max,norm:{},bin:{}};
   var nk=['evento','hd','idioma','legenda','vf','lente','som','kdm','status','col_k','resolucao','fps','exhibition_format','col_n','responsavel'];
   nk.forEach(function(k){snap.norm[k]=new Set(buscaFilters[k]);snap.norm[k+'_ex']=new Set(buscaFilters[k+'_ex']);});
   ['titulo_bin','obs_bin','cpl_bin','cplOV_bin','dcp_link_bin','legenda_bin'].forEach(function(k){snap.bin[k]=buscaFilters[k];});
@@ -16095,7 +16095,7 @@ function slotDescription(snap,idx){
   var kl=['lente','som','hd','idioma','kdm','status','fps','resolucao','evento','responsavel'];
   kl.forEach(function(k){if(snap.norm[k]&&snap.norm[k].size>0)parts.push(Array.from(snap.norm[k]).join('/'));});
   if(snap.bin.cpl_bin==='sim')parts.push('CPL✓');if(snap.bin.titulo_bin==='sim')parts.push('Título✓');
-  if(snap.duracao_min!==null||snap.duracao_max!==null)parts.push('Dur');if(snap.gb_min!==null||snap.gb_max!==null)parts.push('GB');
+  if(snap.duracao_min!==null||snap.duracao_max!==null)parts.push('Dur');if(snap.gb_min!==null||snap.gb_max!==null)parts.push('GB');if(snap.bitrate_min!==null||snap.bitrate_max!==null)parts.push('Bitrate');
   if(snap.sessao.size>0)parts.push(snap.sessao.size+' sessão(ões)');
   return'Conj.'+(idx+1)+(parts.length?': '+parts.slice(0,4).join(' · '):'');
 }
@@ -16114,6 +16114,7 @@ function filmMatchesSnapshot(f,snap){
   for(var bk in binMap){var state=snap.bin[bk];if(state===null)continue;var bval=clean(f[binMap[bk]]);if(state==='sim'&&!bval)return false;if(state==='nao'&&bval)return false;}
   if(snap.duracao_min!==null||snap.duracao_max!==null){var dm=parseDurMinutes(f.duracao);if(dm===null)return false;if(snap.duracao_min!==null&&dm<snap.duracao_min)return false;if(snap.duracao_max!==null&&dm>snap.duracao_max)return false;}
   if(snap.gb_min!==null||snap.gb_max!==null){var gv=parseGB(f.gb);if(gv===null)return false;if(snap.gb_min!==null&&gv<snap.gb_min)return false;if(snap.gb_max!==null&&gv>snap.gb_max)return false;}
+  if(snap.bitrate_min!==null||snap.bitrate_max!==null){var bv=parseBitrate(f.bitrate);if(bv===null)return false;if(snap.bitrate_min!==null&&bv<snap.bitrate_min)return false;if(snap.bitrate_max!==null&&bv>snap.bitrate_max)return false;}
   if(snap.sessao.size>0){var fs=buscaReverseSessoes[f.codigo]||[];if(!fs.some(function(s){return snap.sessao.has(s);}))return false;}
   if(snap.query){var q2=snap.query.toLowerCase();var _t=function(v){return String(v||'').toLowerCase();};var _cm2=catalogoFilmesMap&&catalogoFilmesMap[f.codigo]||{};var _sn=_cm2.system_name||'';var _tp=_cm2.title_pt||'';var _to=_cm2.original_title||'';var _te=_cm2.english_title||'';if(!_t(f.titulo).includes(q2)&&!_t(f.codigo).includes(q2)&&!_t(f.cpl).includes(q2)&&!_t(f.idioma).includes(q2)&&!_t(f.obs).includes(q2)&&!_t(f.status).includes(q2)&&!_t(f.cplOV).includes(q2)&&!_t(f.hd).includes(q2)&&!_t(_sn).includes(q2)&&!_t(_tp).includes(q2)&&!_t(_to).includes(q2)&&!_t(_te).includes(q2))return false;}
   return true;
@@ -16151,14 +16152,14 @@ function _ssetStore(mod,arr){localStorage.setItem(_ssetKey(mod),JSON.stringify(a
 
 function _serSnap(snap){
   var nk=['evento','hd','idioma','legenda','vf','lente','som','kdm','status','col_k','resolucao','fps','exhibition_format','col_n','responsavel'];
-  var out={query:snap.query||'',duracao_min:snap.duracao_min,duracao_max:snap.duracao_max,gb_min:snap.gb_min,gb_max:snap.gb_max,eventos:Array.from(snap.eventos||[]),sessao:Array.from(snap.sessao||[]),mostra:Array.from(snap.mostra||[]),submostra:Array.from(snap.submostra||[]),norm:{},bin:{}};
+  var out={query:snap.query||'',duracao_min:snap.duracao_min,duracao_max:snap.duracao_max,gb_min:snap.gb_min,gb_max:snap.gb_max,bitrate_min:snap.bitrate_min,bitrate_max:snap.bitrate_max,eventos:Array.from(snap.eventos||[]),sessao:Array.from(snap.sessao||[]),mostra:Array.from(snap.mostra||[]),submostra:Array.from(snap.submostra||[]),norm:{},bin:{}};
   nk.forEach(function(k){out.norm[k]=Array.from((snap.norm||{})[k]||[]);out.norm[k+'_ex']=Array.from((snap.norm||{})[k+'_ex']||[]);});
   Object.keys(snap.bin||{}).forEach(function(k){out.bin[k]=(snap.bin||{})[k];});
   return out;
 }
 function _deserSnap(raw){
   var nk=['evento','hd','idioma','legenda','vf','lente','som','kdm','status','col_k','resolucao','fps','exhibition_format','col_n','responsavel'];
-  var out={query:raw.query||'',duracao_min:raw.duracao_min,duracao_max:raw.duracao_max,gb_min:raw.gb_min,gb_max:raw.gb_max,eventos:new Set(raw.eventos||[]),sessao:new Set(raw.sessao||[]),mostra:new Set(raw.mostra||[]),submostra:new Set(raw.submostra||[]),norm:{},bin:{}};
+  var out={query:raw.query||'',duracao_min:raw.duracao_min,duracao_max:raw.duracao_max,gb_min:raw.gb_min,gb_max:raw.gb_max,bitrate_min:(raw.bitrate_min===undefined?null:raw.bitrate_min),bitrate_max:(raw.bitrate_max===undefined?null:raw.bitrate_max),eventos:new Set(raw.eventos||[]),sessao:new Set(raw.sessao||[]),mostra:new Set(raw.mostra||[]),submostra:new Set(raw.submostra||[]),norm:{},bin:{}};
   nk.forEach(function(k){out.norm[k]=new Set((raw.norm||{})[k]||[]);out.norm[k+'_ex']=new Set((raw.norm||{})[k+'_ex']||[]);});
   Object.keys(raw.bin||{}).forEach(function(k){out.bin[k]=(raw.bin||{})[k];});
   return out;
@@ -16188,6 +16189,7 @@ function loadBuscaSet(id){
   ['titulo_bin','obs_bin','cpl_bin','cplOV_bin','dcp_link_bin','legenda_bin'].forEach(function(k){buscaFilters[k]=(cur.bin&&cur.bin[k]!==undefined)?cur.bin[k]:null;});
   buscaFilters.duracao_min=cur.duracao_min;buscaFilters.duracao_max=cur.duracao_max;
   buscaFilters.gb_min=cur.gb_min;buscaFilters.gb_max=cur.gb_max;
+  buscaFilters.bitrate_min=cur.bitrate_min;buscaFilters.bitrate_max=cur.bitrate_max;
   buscaFilters.sessao=cur.sessao||new Set();
   buscaFilters.mostra=cur.mostra||new Set();buscaFilters.submostra=cur.submostra||new Set();
   buildBuscaFilters();buildBuscaFilterPanel();renderBuscaResults();
@@ -16268,6 +16270,7 @@ function countActiveFilters(){
   binKeys.forEach(function(k){if(buscaFilters[k]!==null)n++;});
   if(buscaFilters.duracao_min!==null||buscaFilters.duracao_max!==null)n++;
   if(buscaFilters.gb_min!==null||buscaFilters.gb_max!==null)n++;
+  if(buscaFilters.bitrate_min!==null||buscaFilters.bitrate_max!==null)n++;
   if(buscaFilters.sessao.size>0)n++;
   if(buscaFilters.mostra.size>0)n++;
   if(buscaFilters.submostra.size>0)n++;
@@ -16289,6 +16292,7 @@ function clearAllBuscaFilters(){
   ['titulo_bin','obs_bin','cpl_bin','cplOV_bin','dcp_link_bin','legenda_bin'].forEach(function(k){buscaFilters[k]=null;});
   buscaFilters.duracao_min=null;buscaFilters.duracao_max=null;
   buscaFilters.gb_min=null;buscaFilters.gb_max=null;
+  buscaFilters.bitrate_min=null;buscaFilters.bitrate_max=null;
   buscaFilters.sessao.clear();buscaFilters.mostra.clear();buscaFilters.submostra.clear();
   document.querySelectorAll('#fpSessaoGroup input[type=checkbox],#fpMostraGroup input[type=checkbox],#fpSubmostraGroup input[type=checkbox]').forEach(function(cb){cb.checked=false;});
   document.querySelectorAll('#fpNormalGroups .fpill').forEach(function(p){p.classList.remove('active','excluded');});
@@ -16314,6 +16318,7 @@ function parseDurMinutes(v){
   var n=parseFloat(v.replace(',','.'));return isNaN(n)?null:n;
 }
 function parseGB(v){if(!v)return null;var n=parseFloat(v.toString().replace(',','.'));return isNaN(n)?null:n;}
+function parseBitrate(v){if(!v)return null;var n=parseFloat(v.toString().replace(',','.'));return isNaN(n)?null:n;}
 
 function applyBuscaFilters(f){
   var normMap={evento:'evento',idioma:'idioma',legenda:'legenda',vf:'vf',lente:'lente',som:'som',kdm:'kdm',status:'status',col_k:'col_k',resolucao:'resolucao',fps:'fps',exhibition_format:'exhibition_format',col_n:'col_n'};
@@ -16355,6 +16360,13 @@ function applyBuscaFilters(f){
     if(gv===null)return false;
     if(buscaFilters.gb_min!==null&&gv<buscaFilters.gb_min)return false;
     if(buscaFilters.gb_max!==null&&gv>buscaFilters.gb_max)return false;
+  }
+  // range: bitrate (Mbps)
+  if(buscaFilters.bitrate_min!==null||buscaFilters.bitrate_max!==null){
+    var bv=parseBitrate(f.bitrate);
+    if(bv===null)return false;
+    if(buscaFilters.bitrate_min!==null&&bv<buscaFilters.bitrate_min)return false;
+    if(buscaFilters.bitrate_max!==null&&bv>buscaFilters.bitrate_max)return false;
   }
   if(buscaFilters.sessao.size>0){
     var filmSessoes=buscaReverseSessoes[f.codigo]||[];
@@ -16530,6 +16542,13 @@ function buildRangeFilters(){
         {label:'> 100 GB',min:100,max:null},
         {label:'> 200 GB',min:200,max:null},
       ]
+    },
+    {
+      label:'Bitrate',unit:'Mbps',
+      minKey:'bitrate_min',maxKey:'bitrate_max',
+      parse:parseBitrate,
+      minPh:'mín',maxPh:'máx',
+      presets:[]
     }
   ];
 
@@ -18365,7 +18384,7 @@ function renderDash(){
   html+=colBlock('legendagem','Legendagem',legBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 10/08/2026 às 10:19';
+  var sysUpdate='última atualização do sistema · 13/08/2026 às 21:40';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -20109,7 +20128,7 @@ function _progRenderSessao(sessaoNome){
   var films=s.filmes.map(function(cd){
     var cm=(catalogoFilmesMap&&catalogoFilmesMap[cd])||{};
     var f=Object.assign({codigo:cd},filmesMap[cd]||{});
-    return{codigo:cd,titulo_pt:filmDisplayTitle(cd),titulo:f.titulo||cd,duracao:f.duracao||'',idioma:cm.original_language||f.idioma||'',legenda:f.legenda||'',vf:f.vf||'',acessibilidade:f.acessibilidade||'',countries:cm.countries||[],exhibition_format:f.exhibition_format||''};
+    return{codigo:cd,titulo_pt:filmDisplayTitle(cd),titulo:f.titulo||cd,duracao:f.duracao||'',idioma:cm.original_language||f.idioma||'',legenda:f.legenda||'',vf:f.vf||'',acessibilidade:f.acessibilidade||'',countries:cm.countries||[],exhibition_format:f.exhibition_format||'',lente:f.lente||'',som:f.som||''};
   }).filter(function(f){return f.titulo_pt||f.codigo;});
   var totalMins=0;
   films.forEach(function(f){var d=f.duracao||'';if(/^\d{1,2}:\d{2}/.test(d)){var p=d.split(':').map(Number);totalMins+=p[0]*60+p[1];}});
@@ -20183,6 +20202,8 @@ function _progRenderSessao(sessaoNome){
     return'<tr><td class="film-num">'+(idx+1)+'</td>'
       +'<td><div class="film-title">'+esc(f.titulo_pt)+(f.exhibition_format?'<span class="exh-format-badge">'+esc(f.exhibition_format)+'</span>':'')+'</div>'+(f.titulo_pt!==f.titulo&&f.titulo?'<div class="film-sub" style="font-size:9px;color:var(--text-muted);">'+esc(f.titulo)+'</div>':'')+'</td>'
       +'<td><div class="dur-text">'+fmtDur(f.duracao)+'</div></td>'
+      +'<td class="center">'+lenteBadge(f.lente)+'</td>'
+      +'<td class="center">'+somBadge(f.som)+'</td>'
       +'<td class="center">'+idiomaCell+'</td>'
       +'<td>'+legCell+'</td>'
       +'<td class="center">'+kdmCell+'</td>'
@@ -20225,7 +20246,7 @@ function _progRenderSessao(sessaoNome){
   html+='</div>'+extraHtml+'</div>';
   html+=vinhetasHtml;
   if(s.session_description)html+='<div class="prog-sess-desc-block">'+esc(s.session_description)+'</div>';
-  html+='<div class="film-table-wrap"><table><thead><tr><th>#</th><th>Título PT</th><th>Duração</th><th class="center">Idioma</th><th>Legendas</th><th class="center">KDM</th><th class="center" title="Acessibilidade"><svg width="13" height="13" viewBox="0 0 24 24" style="stroke:currentColor;stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round;vertical-align:middle;"><circle cx="11" cy="4" r="1"/><path d="m11 9 2 7h5l-1.5 3"/><path d="M9 9H7l1 7"/><path d="M13.5 19a4.5 4.5 0 1 1-9 0 4.5 4.5 0 0 1 9 0z"/></svg></th><th>País</th></tr></thead><tbody>'+(rows||'<tr><td colspan="8" style="text-align:center;color:var(--text-muted);padding:24px">Nenhum filme encontrado para esta sessão.</td></tr>')+'</tbody></table></div>';
+  html+='<div class="film-table-wrap"><table><thead><tr><th>#</th><th>Título PT</th><th>Duração</th><th class="center">Lente</th><th class="center">Som</th><th class="center">Idioma</th><th>Legendas</th><th class="center">KDM</th><th class="center" title="Acessibilidade"><svg width="13" height="13" viewBox="0 0 24 24" style="stroke:currentColor;stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round;vertical-align:middle;"><circle cx="11" cy="4" r="1"/><path d="m11 9 2 7h5l-1.5 3"/><path d="M9 9H7l1 7"/><path d="M13.5 19a4.5 4.5 0 1 1-9 0 4.5 4.5 0 0 1 9 0z"/></svg></th><th>País</th></tr></thead><tbody>'+(rows||'<tr><td colspan="10" style="text-align:center;color:var(--text-muted);padding:24px">Nenhum filme encontrado para esta sessão.</td></tr>')+'</tbody></table></div>';
   if(_legStar)html+='<div class="ficha-leg-note">*não existe um operador de legendagem eletrônica associado a esta sessão, consulte a equipe de programação para confirmar se esta sessão contará com este recurso</div>';
   html+='<div class="ficha-footer"><div class="footer-total">Duração total dos filmes: <strong>'+totalDur+'</strong>'+(totalVinSecs>0?' &nbsp;·&nbsp; Vinhetas: <strong>'+Math.floor(totalVinSecs/3600)+'h'+String(Math.floor((totalVinSecs%3600)/60)).padStart(2,'0')+'</strong>':'')+'</div><div class="footer-stamp">OLGA · '+new Date().toLocaleString('pt-BR')+'</div></div></div>';
   c.innerHTML=html+'</div>';
@@ -27843,7 +27864,7 @@ function _sxcPrint(){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 10/08/2026 às 10:19</span></div>
+<div id="page-footer"><span>última atualização · 13/08/2026 às 21:40</span></div>
 
 </div>
 

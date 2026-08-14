@@ -16097,6 +16097,8 @@ function slotDescription(snap,idx){
   if(snap.bin.cpl_bin==='sim')parts.push('CPL✓');if(snap.bin.titulo_bin==='sim')parts.push('Título✓');
   if(snap.duracao_min!==null||snap.duracao_max!==null)parts.push('Dur');if(snap.gb_min!==null||snap.gb_max!==null)parts.push('GB');if(snap.bitrate_min!==null||snap.bitrate_max!==null)parts.push('Bitrate');
   if(snap.sessao.size>0)parts.push(snap.sessao.size+' sessão(ões)');
+  if(snap.mostra&&snap.mostra.size>0)parts.push(snap.mostra.size+' mostra(s)');
+  if(snap.submostra&&snap.submostra.size>0)parts.push(snap.submostra.size+' submostra(s)');
   return'Conj.'+(idx+1)+(parts.length?': '+parts.slice(0,4).join(' · '):'');
 }
 function filmMatchesSnapshot(f,snap){
@@ -16116,6 +16118,8 @@ function filmMatchesSnapshot(f,snap){
   if(snap.gb_min!==null||snap.gb_max!==null){var gv=parseGB(f.gb);if(gv===null)return false;if(snap.gb_min!==null&&gv<snap.gb_min)return false;if(snap.gb_max!==null&&gv>snap.gb_max)return false;}
   if(snap.bitrate_min!==null||snap.bitrate_max!==null){var bv=parseBitrate(f.bitrate);if(bv===null)return false;if(snap.bitrate_min!==null&&bv<snap.bitrate_min)return false;if(snap.bitrate_max!==null&&bv>snap.bitrate_max)return false;}
   if(snap.sessao.size>0){var fs=buscaReverseSessoes[f.codigo]||[];if(!fs.some(function(s){return snap.sessao.has(s);}))return false;}
+  if(snap.mostra&&snap.mostra.size>0){var fsM=buscaReverseSessoes[f.codigo]||[];if(!fsM.some(function(s){var ss=sessoesMap[s];return ss&&snap.mostra.has(ss.program_id);}))return false;}
+  if(snap.submostra&&snap.submostra.size>0){var fsS=buscaReverseSessoes[f.codigo]||[];if(!fsS.some(function(s){var ss=sessoesMap[s];return ss&&snap.submostra.has(ss.subprogram_id);}))return false;}
   if(snap.query){var q2=snap.query.toLowerCase();var _t=function(v){return String(v||'').toLowerCase();};var _cm2=catalogoFilmesMap&&catalogoFilmesMap[f.codigo]||{};var _sn=_cm2.system_name||'';var _tp=_cm2.title_pt||'';var _to=_cm2.original_title||'';var _te=_cm2.english_title||'';if(!_t(f.titulo).includes(q2)&&!_t(f.codigo).includes(q2)&&!_t(f.cpl).includes(q2)&&!_t(f.idioma).includes(q2)&&!_t(f.obs).includes(q2)&&!_t(f.status).includes(q2)&&!_t(f.cplOV).includes(q2)&&!_t(f.hd).includes(q2)&&!_t(_sn).includes(q2)&&!_t(_tp).includes(q2)&&!_t(_to).includes(q2)&&!_t(_te).includes(q2))return false;}
   return true;
 }
@@ -18384,7 +18388,7 @@ function renderDash(){
   html+=colBlock('legendagem','Legendagem',legBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 13/08/2026 às 21:40';
+  var sysUpdate='última atualização do sistema · 14/08/2026 às 00:23';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -27864,7 +27868,7 @@ function _sxcPrint(){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 13/08/2026 às 21:40</span></div>
+<div id="page-footer"><span>última atualização · 14/08/2026 às 00:23</span></div>
 
 </div>
 

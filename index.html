@@ -16103,8 +16103,14 @@ function slotDescription(snap,idx){
 }
 function filmMatchesSnapshot(f,snap){
   if(f.evento&&!snap.eventos.has(f.evento))return false;
-  var normMap={evento:'evento',hd:'hd',idioma:'idioma',legenda:'legenda',vf:'vf',lente:'lente',som:'som',kdm:'kdm',status:'status',col_k:'col_k',resolucao:'resolucao',fps:'fps',exhibition_format:'exhibition_format',col_n:'col_n'};
+  var normMap={evento:'evento',idioma:'idioma',legenda:'legenda',vf:'vf',lente:'lente',som:'som',kdm:'kdm',status:'status',col_k:'col_k',resolucao:'resolucao',fps:'fps',exhibition_format:'exhibition_format',col_n:'col_n'};
   for(var key in normMap){var val=(f[normMap[key]]||'').toString().trim();if(snap.norm[key]&&snap.norm[key].size>0&&!snap.norm[key].has(val))return false;if(snap.norm[key+'_ex']&&snap.norm[key+'_ex'].has(val))return false;}
+  // hd é multivalor ("HD A; HD B") — basta um dos valores bater, igual à busca ao vivo
+  if((snap.norm.hd&&snap.norm.hd.size>0)||(snap.norm.hd_ex&&snap.norm.hd_ex.size>0)){
+    var _hds=(f.hd||'').split(/[;]+/).map(function(x){return x.trim();}).filter(Boolean);
+    if(snap.norm.hd&&snap.norm.hd.size>0&&!_hds.some(function(h){return snap.norm.hd.has(h);}))return false;
+    if(snap.norm.hd_ex&&_hds.some(function(h){return snap.norm.hd_ex.has(h);}))return false;
+  }
   var _snR=snap.norm.responsavel,_snRx=snap.norm.responsavel_ex;
   if((_snR&&_snR.size>0)||(_snRx&&_snRx.size>0)){
     var _fmS=catalogoFilmesMap&&catalogoFilmesMap[f.codigo];
@@ -16390,7 +16396,7 @@ function applyBuscaFilters(f){
 function buildBuscaFilterPanel(){
   // reset filter state
   var normKeys=['evento','hd','idioma','legenda','vf','lente','som','kdm','status','col_k','resolucao','fps','exhibition_format','col_n','responsavel'];
-  normKeys.forEach(function(k){buscaFilters[k].clear();});
+  normKeys.forEach(function(k){buscaFilters[k].clear();buscaFilters[k+'_ex'].clear();});
   ['titulo_bin','obs_bin','cpl_bin','cplOV_bin','dcp_link_bin','legenda_bin'].forEach(function(k){buscaFilters[k]=null;});
 
   var fieldMap=[
@@ -18388,7 +18394,7 @@ function renderDash(){
   html+=colBlock('legendagem','Legendagem',legBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 14/08/2026 às 00:23';
+  var sysUpdate='última atualização do sistema · 14/08/2026 às 00:28';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -27868,7 +27874,7 @@ function _sxcPrint(){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 14/08/2026 às 00:23</span></div>
+<div id="page-footer"><span>última atualização · 14/08/2026 às 00:28</span></div>
 
 </div>
 

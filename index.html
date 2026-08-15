@@ -6316,6 +6316,7 @@ window.addEventListener('DOMContentLoaded',function(){
     <div class="day-tabs" id="ingestDayTabs"></div>
   </div>
   <div style="display:flex;align-items:center;gap:4px;flex-wrap:wrap;">
+    <select id="ingestComplexoSelect" style="min-width:160px;" onchange="ingestCinemaComplexoFilter=this.value;ingestCinemaFilter='';ingestHdFilter='';rebuildIngestCinemaSelect();renderIngest();"><option value="">Todos os complexos</option></select>
     <select id="ingestCinemaSelect" style="min-width:180px;" onchange="ingestCinemaFilter=this.value;ingestHdFilter='';renderIngest();"><option value="">Todos os cinemas</option></select>
     <select id="ingestHdSelect" style="min-width:120px;" onchange="ingestHdFilter=this.value;renderIngest();"><option value="">Todos os HDs</option></select>
     <div class="event-filters" id="ingestEventFilters"></div>
@@ -6583,7 +6584,7 @@ window.addEventListener('DOMContentLoaded',function(){
     <div id="busca-results" style="display:none"></div>
   </div>
   <div class="mode-panel" id="ingest-panel">
-    <div style="font-family:var(--sans);font-size:12px;line-height:1.6;color:var(--text-dim);background:var(--accent-glow);border:1px solid rgba(255,186,32,0.35);border-left:3px solid var(--accent);border-radius:var(--r);padding:12px 16px;margin:0 0 16px;"><strong style="color:var(--accent);">Sobre o ingest:</strong> este módulo sugere que cada filme seja ingestado no servidor com <strong>2 dias de antecedência</strong> da sua exibição, permitindo administrar o espaço no servidor e mantendo tempo hábil para testagem e substituição das cópias enviadas. Os operadores, no entanto, devem operar da maneira mais adequada à realidade das suas salas — considerando as possibilidades de ingest durante a madrugada e durante as sessões, observando a capacidade do servidor, bem como a presença de TMS no complexo.</div>
+    <div style="font-family:var(--sans);font-size:12px;line-height:1.6;color:var(--text-dim);background:var(--accent-glow);border:1px solid rgba(255,186,32,0.35);border-left:3px solid var(--accent);border-radius:var(--r);padding:12px 16px;margin:0 0 16px;"><strong style="color:var(--accent);">Sobre o ingest:</strong> este módulo sugere que cada filme seja ingestado no servidor com <strong>2 dias de antecedência</strong> da sua exibição, permitindo administrar o espaço no servidor e mantendo tempo hábil para testagem e substituição das cópias enviadas. Os operadores, no entanto, devem operar da maneira mais adequada à realidade das suas salas — considerando as possibilidades de ingest durante a madrugada e durante as sessões, observando a capacidade do servidor, bem como a presença de TMS no complexo. Selecione um dia acima para ver quais filmes precisam ser ingestados naquele dia, seguindo essa regra de antecedência.</div>
     <div class="empty-state" id="ingestEmpty">
       <div class="icon"><i data-lucide="hard-drive-download"></i></div>
       <p>Nenhuma sessão encontrada.</p>
@@ -6837,7 +6838,7 @@ var cinemasComplexoFilter='',cinemasEstadoFilter='',cinemasEventoFilter='',curre
 var bilheteriaCinemaFilter='',bilheteriaDistribuidoraFilter='',bilheteriaFilmeFilter='',bilheteriaComplexoFilter='';
 var bilheteriaProgFilter='',bilheteriaSubFilter='',bilheteriaDiaFilter='';
 var kdmComplexoFilter='',kdmSalaFilter='';
-var ingestDays=[],currentIngestDay=null,ingestCinemaFilter='',ingestHdFilter='',gradeCinemaFilter='',gradeCinemaComplexoFilter='';
+var ingestDays=[],currentIngestDay=null,ingestCinemaFilter='',ingestCinemaComplexoFilter='',ingestHdFilter='',gradeCinemaFilter='',gradeCinemaComplexoFilter='';
 var grade2Days=[],grade2CurrentDay=null,grade2CinemaFilter='',grade2CinemaComplexoFilter='';
 var sessoesCinemaFilter='',_sessoesHidePast=true,_sessoesComplexo='',_sessoesFiltroTitulo='',_sessoesFiltroData='';
 var fichaCinemaFilter='',_fichaComplexo='',_fichaFiltroData='';
@@ -7989,7 +7990,6 @@ function buildIngestDays(){
   ingestDays.sort(function(a,b){return a.date-b.date;});
   // Preserva currentIngestDay se ainda existe; senão recalcula
   if(!currentIngestDay||!seen.has(currentIngestDay))currentIngestDay=pickBestDay(ingestDays);
-  ingestCinemaFilter='';
   window._ingestYearsOpen=null;
 }
 
@@ -8004,6 +8004,7 @@ function renderIngestDayTabs(){
       return id.toISOString().slice(0,10)===d.key&&
              (!s.evento||activeEventsIngest.has(s.evento))&&
              (!ingestCinemaFilter||s.cinema===ingestCinemaFilter)&&
+             (!ingestCinemaComplexoFilter||_getSalaComplexo(s.cinema)===ingestCinemaComplexoFilter)&&
              (!_asdt||!s.cinema||_asdt.has(s.cinema));
     });
   });
@@ -8056,11 +8057,13 @@ function renderIngest(){
     var id=new Date(s.date.getTime());id.setDate(id.getDate()-2);
     if(id.toISOString().slice(0,10)!==currentIngestDay)return false;
     if(ingestCinemaFilter&&s.cinema!==ingestCinemaFilter)return false;
+    if(ingestCinemaComplexoFilter&&_getSalaComplexo(s.cinema)!==ingestCinemaComplexoFilter)return false;
     if(s.evento&&!activeEventsIngest.has(s.evento))return false;
     if(_as&&s.cinema&&!_as.has(s.cinema))return false;
     return true;
   });
   rebuildIngestHdSelect();
+  rebuildIngestComplexoSelect();
   rebuildIngestCinemaSelect();
   if(!sessions.length){iw.style.display='none';ie.style.display='flex';ie.querySelector('p').textContent='Nenhuma sessão para ingest neste dia.';return;}
   if(ingestHdFilter){
@@ -8091,7 +8094,7 @@ function renderIngest(){
     byCinema[c].sort(function(a,b){return(a.time?a.time.h*60+a.time.m:0)-(b.time?b.time.h*60+b.time.m:0);});
   });
 
-  var html='<div class="ingest-total-bar">Total do dia'+(ingestCinemaFilter?' (todos os cinemas)':'')+': <strong>'+(totalGB>0?totalGB.toFixed(0)+' GB':'—')+'</strong></div>';
+  var html='<div class="ingest-total-bar">Total do dia'+((ingestCinemaFilter||ingestCinemaComplexoFilter)?' (todos os cinemas)':'')+': <strong>'+(totalGB>0?totalGB.toFixed(0)+' GB':'—')+'</strong></div>';
 
   cinemaOrder.forEach(function(cinema){
     function getFilmList(s){var fest=s.filmes.filter(function(c){return _isFest(c);});return ingestHdFilter?fest.filter(function(c){var f=filmesMap[c];return f&&(f.hd||'').toString().trim()===ingestHdFilter;}):fest;}
@@ -9283,12 +9286,29 @@ function buildBuscaFilters(){
   if(_btnExpB)_btnExpB.style.display=(window._olgaHasRestricao&&window._olgaHasRestricao('busca.exportar_especial'))?'none':'';
 }
 
+function rebuildIngestComplexoSelect(){
+  var _asc=allowedSalas();
+  var cxs=new Set();
+  sessoesArr.forEach(function(s){
+    if(s.evento&&!activeEventsIngest.has(s.evento))return;
+    if(_asc&&s.cinema&&!_asc.has(s.cinema))return;
+    if(s.cinema)cxs.add(_getSalaComplexo(s.cinema));
+  });
+  var sel=document.getElementById('ingestComplexoSelect');
+  if(!sel)return;
+  var prev=sel.value;
+  sel.innerHTML='<option value="">Todos os complexos</option>';
+  Array.from(cxs).sort().forEach(function(c){var o=document.createElement('option');o.value=c;o.textContent=c;sel.appendChild(o);});
+  if(prev&&cxs.has(prev))sel.value=prev;
+  else{sel.value='';ingestCinemaComplexoFilter='';}
+}
 function rebuildIngestCinemaSelect(){
   var _asc=allowedSalas();
   var cs=new Set();
   sessoesArr.forEach(function(s){
     if(s.evento&&!activeEventsIngest.has(s.evento))return;
     if(_asc&&s.cinema&&!_asc.has(s.cinema))return;
+    if(ingestCinemaComplexoFilter&&_getSalaComplexo(s.cinema)!==ingestCinemaComplexoFilter)return;
     if(ingestHdFilter){
       var hasHd=s.filmes.some(function(c){var f=filmesMap[c];return f&&(f.hd||'').toString().trim()===ingestHdFilter;});
       if(!hasHd)return;
@@ -9297,7 +9317,7 @@ function rebuildIngestCinemaSelect(){
   });
   var sel=document.getElementById('ingestCinemaSelect');
   var prev=sel.value;
-  sel.innerHTML='<option value="">Todos os cinemas</option>';
+  sel.innerHTML='<option value="">Todos os cinemas'+(ingestCinemaComplexoFilter?' do complexo':'')+'</option>';
   Array.from(cs).sort().forEach(function(c){var o=document.createElement('option');o.value=c;o.textContent=c;sel.appendChild(o);});
   if(prev&&cs.has(prev))sel.value=prev;
   else{sel.value='';ingestCinemaFilter='';}
@@ -9311,6 +9331,7 @@ function rebuildIngestHdSelect(){
     var id=new Date(s.date.getTime());id.setDate(id.getDate()-2);
     if(id.toISOString().slice(0,10)!==currentIngestDay)return;
     if(ingestCinemaFilter&&s.cinema!==ingestCinemaFilter)return;
+    if(ingestCinemaComplexoFilter&&_getSalaComplexo(s.cinema)!==ingestCinemaComplexoFilter)return;
     if(s.evento&&!activeEventsIngest.has(s.evento))return;
     if(_ash&&s.cinema&&!_ash.has(s.cinema))return;
     s.filmes.forEach(function(c){
@@ -9328,11 +9349,13 @@ function rebuildIngestHdSelect(){
 
 function buildIngestFilters(){
   buildPills(document.getElementById('headerEventFilters'),eventColors,activeEventsIngest,function(){
+    rebuildIngestComplexoSelect();
     rebuildIngestCinemaSelect();
     ingestHdFilter='';
     window._ingestYearsOpen=null;
     renderIngest();
   });
+  rebuildIngestComplexoSelect();
   rebuildIngestCinemaSelect();
 }
 
@@ -18395,7 +18418,7 @@ function renderDash(){
   html+=colBlock('legendagem','Legendagem',legBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 14/08/2026 às 16:45';
+  var sysUpdate='última atualização do sistema · 15/08/2026 às 11:43';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -27878,7 +27901,7 @@ function _sxcPrint(){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 14/08/2026 às 16:45</span></div>
+<div id="page-footer"><span>última atualização · 15/08/2026 às 11:43</span></div>
 
 </div>
 

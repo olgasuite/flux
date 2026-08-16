@@ -6248,6 +6248,9 @@ window.addEventListener('DOMContentLoaded',function(){
   </select>
   <input type="text" id="sessoesTituloInput" placeholder="título, diretor, idioma…" style="height:28px;padding:0 8px;border:1px solid var(--border);border-radius:4px;background:var(--surface);color:var(--text);font-family:var(--mono);font-size:10px;min-width:220px;margin-left:4px;" oninput="_sessoesFiltroTitulo=this.value;var _s=this.selectionStart,_e=this.selectionEnd;renderSessoes();this.focus();this.setSelectionRange(_s,_e);">
   <input type="date" id="sessoesDataInput" style="height:28px;padding:0 6px;border:1px solid var(--border);border-radius:4px;background:var(--surface);color:var(--text);font-family:var(--mono);font-size:10px;margin-left:4px;" onchange="_sessoesFiltroData=this.value;renderSessoes();">
+  <select id="sessoesProgramaSelect" style="min-width:160px;margin-left:4px;" onchange="_sessoesFiltroPrograma=this.value;renderSessoes();">
+    <option value="">Todos os programas</option>
+  </select>
   <button class="print-btn" id="btnSessoesBatch" onclick="_sessoesBatchToggleMode()" style="margin-left:8px;display:none;">☑ Selecionar sessões</button>
   <button class="print-btn" id="btnSessoesProgramas" onclick="openShowsPanel()" style="margin-left:6px;">⧉ Programas</button>
   <button class="print-btn" id="btnSessoesExportCinemas" onclick="openSessoesExportCinemas()" style="margin-left:6px;">⤓ Exportar para cinemas</button>
@@ -6840,7 +6843,7 @@ var bilheteriaProgFilter='',bilheteriaSubFilter='',bilheteriaDiaFilter='';
 var kdmComplexoFilter='',kdmSalaFilter='';
 var ingestDays=[],currentIngestDay=null,ingestCinemaFilter='',ingestCinemaComplexoFilter='',ingestHdFilter='',gradeCinemaFilter='',gradeCinemaComplexoFilter='';
 var grade2Days=[],grade2CurrentDay=null,grade2CinemaFilter='',grade2CinemaComplexoFilter='';
-var sessoesCinemaFilter='',_sessoesHidePast=true,_sessoesComplexo='',_sessoesFiltroTitulo='',_sessoesFiltroData='';
+var sessoesCinemaFilter='',_sessoesHidePast=true,_sessoesComplexo='',_sessoesFiltroTitulo='',_sessoesFiltroData='',_sessoesFiltroPrograma='';
 var fichaCinemaFilter='',_fichaComplexo='',_fichaFiltroData='';
 var vinhetasCinemaFilter='',vinhetasDayFilter='';
 var dashCinemaFilter='__todos__',dashRespFilter='',dashDayFilter=new Set(),dashStatusSelected=null,dashStatSelected=null;
@@ -7407,11 +7410,12 @@ function switchMode(mode,noPush){
     // Cada módulo preserva sua própria seleção de eventos.
     // A inicialização com eventos prioritários acontece somente após o login (applyParsedData, primeira carga).
     if(currentMode==='sessoes'){
-      sessoesCinemaFilter='';_sessoesComplexo='';_sessoesFiltroTitulo='';_sessoesFiltroData='';
+      sessoesCinemaFilter='';_sessoesComplexo='';_sessoesFiltroTitulo='';_sessoesFiltroData='';_sessoesFiltroPrograma='';
       var _selCx=document.getElementById('sessoesComplexoSelect');if(_selCx)_selCx.value='';
       var _selCin=document.getElementById('sessoesCinemaSelect');if(_selCin)_selCin.value='';
       var _inpTit=document.getElementById('sessoesTituloInput');if(_inpTit)_inpTit.value='';
       var _inpDt=document.getElementById('sessoesDataInput');if(_inpDt)_inpDt.value='';
+      var _selProg=document.getElementById('sessoesProgramaSelect');if(_selProg)_selProg.value='';
       if(_sessoesBatchMode&&mode!=='sessoes'){_sessoesBatchMode=false;_sessoesBatchSelected.clear();}
     }
     if(currentMode==='ficha'){
@@ -8668,14 +8672,32 @@ function rebuildSessoesCinemaSelect(){
   else{sel.value='';sessoesCinemaFilter='';}
 }
 
+function rebuildSessoesProgramaSelect(){
+  var as=allowedSalas();
+  var progs={};
+  sessoesSessoes().forEach(function(s){
+    if(!s.show_id)return;
+    if(as&&s.cinema&&!as.has(s.cinema))return;
+    if(!progs[s.show_id])progs[s.show_id]=_sessShowName(s)||s.show_id;
+  });
+  var sel=document.getElementById('sessoesProgramaSelect');
+  if(!sel)return;
+  var prev=sel.value;
+  sel.innerHTML='<option value="">Todos os programas</option>';
+  Object.keys(progs).sort(function(a,b){return progs[a].localeCompare(progs[b],'pt-BR',{sensitivity:'base'});}).forEach(function(id){var o=document.createElement('option');o.value=id;o.textContent=progs[id];sel.appendChild(o);});
+  if(prev&&progs[prev])sel.value=prev;
+  else{sel.value='';_sessoesFiltroPrograma='';}
+}
 function buildSessoesFilters(){
   buildPills(document.getElementById('headerEventFilters'),eventColors,activeEventsSessoes,function(){
     rebuildSessoesComplexoSelect();
     rebuildSessoesCinemaSelect();
+    rebuildSessoesProgramaSelect();
     renderSessoes();
   });
   rebuildSessoesComplexoSelect();
   rebuildSessoesCinemaSelect();
+  rebuildSessoesProgramaSelect();
   var canBatch=window._olgaUser&&window._olgaCanEdit&&window._olgaCanEdit('programacao')&&!(window._olgaHasRestricao&&window._olgaHasRestricao('sessoes.somente_vinhetas'));
   var btnB=document.getElementById('btnSessoesBatch');if(btnB)btnB.style.display=canBatch?'':'none';
   var btnExpC=document.getElementById('btnSessoesExportCinemas');
@@ -8696,6 +8718,7 @@ function _sessoesGetFiltered(){
       if(!s.filmes.some(function(c){var f=filmesMap[c],cm=catalogoFilmesMap&&catalogoFilmesMap[c]||{};return _ss(f&&f.titulo).includes(t)||_ss(cm.title_pt).includes(t)||_ss(cm.original_title).includes(t)||_ss(cm.english_title).includes(t)||_ss(cm.system_name).includes(t)||_ss(f&&f.idioma).includes(t)||(cm.director&&cm.director.some(function(d){return _ss(d).includes(t);}));}))return false;
     }
     if(_sessoesFiltroData){var dk=s.date?s.date.toISOString().slice(0,10):'';if(dk!==_sessoesFiltroData)return false;}
+    if(_sessoesFiltroPrograma&&s.show_id!==_sessoesFiltroPrograma)return false;
     return true;
   });
 }
@@ -8847,12 +8870,23 @@ function _sessoesRenderTemplateList(evs,evCounts){
 function closeSessoesAplicarTemplate(){document.getElementById('sessoesAplicarTemplateModal').style.display='none';}
 
 /* ── Batch edit de sessões ── */
-function openSessoesBatchEdit(){
+async function openSessoesBatchEdit(){
   if(!_sessoesBatchSelected.size)return;
   var sel=Array.from(_sessoesBatchSelected).map(function(n){return sessoesMap[n];}).filter(Boolean);
   if(!sel.length)return;
   // Eventos das sessões selecionadas (pra montar dropdowns contextuais)
   var evs=Array.from(new Set(sel.map(function(s){return s.evento;}).filter(Boolean)));
+  // templates de vinheta disponíveis nos eventos das sessões selecionadas
+  try{
+    var _tmplLoads=evs.filter(function(e){return _vinTemplatesCache[e]===undefined;}).map(function(e){return _loadVinTemplates(e);});
+    if(_tmplLoads.length)await Promise.all(_tmplLoads);
+  }catch(e){}
+  var tmplOpts='<option value="">— não alterar —</option>';
+  evs.forEach(function(ev){
+    (_vinTemplatesCache[ev]||[]).forEach(function(t,i){
+      tmplOpts+='<option value="'+esc(ev)+'::'+i+'">'+esc(ev)+' — '+esc(t.name||'Template '+(i+1))+'</option>';
+    });
+  });
   // Mostras e submostras disponíveis (filtradas pelos eventos das sessões)
   var allProgs=(_progData&&_progData.programs||[]).filter(function(p){return!p.data.auto&&(!evs.length||evs.indexOf(p.data.event_id)>=0);});
   var progOpts='<option value="">— não alterar —</option><option value="__none__">— remover (sem mostra) —</option>'+allProgs.map(function(p){return'<option value="'+esc(p.id)+'">'+esc(p.data.name||p.id)+'</option>';}).join('');
@@ -8891,7 +8925,9 @@ function openSessoesBatchEdit(){
     +fld('Leg. eletrônica','<select id="sbeLegElet" class="cat-input">'+simNaoOpts+'</select>')
     +fld('Acessibilidade','<select id="sbeAcess" class="cat-input">'+simNaoOpts+'</select>')
     +fld('Ingressos reservados','<input id="sbeReserved" class="cat-input" type="number" min="0" placeholder="ex: 30">')
+    +fld('Template de vinhetas','<select id="sbeTemplate" class="cat-input">'+tmplOpts+'</select>')
     +'</div>'
+    +'<div style="font-family:var(--mono);font-size:9px;color:var(--text-muted);">Template de vinhetas substitui as vinhetas atuais das sessões do evento correspondente.</div>'
     +'<div id="sbeErr" style="font-family:var(--mono);font-size:10px;color:var(--warn);display:none;"></div>'
     +'<div id="sbeProg" style="font-family:var(--mono);font-size:10px;color:var(--text-muted);"></div>'
     +'</div>'
@@ -8919,7 +8955,14 @@ async function executeSessoesBatchEdit(){
   var le=v('sbeLegElet');
   var ac=v('sbeAcess');
   var rt=v('sbeReserved').trim();
-  if(!venue&&!program&&!subprogram&&!nameNew&&!apr&&!deb&&!fg&&!le&&!ac&&!rt){
+  var tmplSel=v('sbeTemplate');
+  var tmplEventId='',tmplBumpers=null;
+  if(tmplSel){
+    var tp=tmplSel.split('::');tmplEventId=tp[0];var tmplIdx=+tp[1];
+    var tmpl=(_vinTemplatesCache[tmplEventId]||[])[tmplIdx];
+    if(tmpl)tmplBumpers=(tmpl.bumpers||[]).slice();
+  }
+  if(!venue&&!program&&!subprogram&&!nameNew&&!apr&&!deb&&!fg&&!le&&!ac&&!rt&&!tmplBumpers){
     var err=document.getElementById('sbeErr');err.textContent='Nenhum campo foi alterado.';err.style.display='block';return;
   }
   var btn=document.getElementById('sbeSaveBtn');if(btn){btn.disabled=true;btn.textContent='Aplicando…';}
@@ -8941,8 +8984,8 @@ async function executeSessoesBatchEdit(){
       if(le)data.has_electronic_subtitles=le;
       if(ac)data.available_accessibility=ac;
       if(rt)data.reserved_tickets=rt;
-      await window._olgaSessoes.saveField(s._docId||s.nome,data);
-      ok++;
+      if(tmplBumpers&&s.evento===tmplEventId)data.bumpers=tmplBumpers.slice();
+      if(Object.keys(data).length){await window._olgaSessoes.saveField(s._docId||s.nome,data);ok++;}
     }catch(e){errs.push(s.nome+': '+e.message);}
     if(prog)prog.textContent='Processando '+(i+1)+'/'+sel.length+' · ✓ '+ok+(errs.length?' · ⚠ '+errs.length:'');
   }
@@ -8979,8 +9022,10 @@ async function applySessoesTemplate(eventId,tmplIdx){
 }
 
 function renderSessoes(){
+  if(_showsCache===null){_ensureShowsLoaded().then(function(){if(currentMode==='sessoes')renderSessoes();});return;}
   rebuildSessoesComplexoSelect();
   rebuildSessoesCinemaSelect();
+  rebuildSessoesProgramaSelect();
   _sessoesRenderBatchBar();
   var se=document.getElementById('sessoesEmpty'),sc=document.getElementById('sessoes-container');
   var filtered=_sessoesGetFiltered();
@@ -18418,7 +18463,7 @@ function renderDash(){
   html+=colBlock('legendagem','Legendagem',legBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 15/08/2026 às 11:43';
+  var sysUpdate='última atualização do sistema · 15/08/2026 às 23:46';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -27901,7 +27946,7 @@ function _sxcPrint(){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 15/08/2026 às 11:43</span></div>
+<div id="page-footer"><span>última atualização · 15/08/2026 às 23:46</span></div>
 
 </div>
 

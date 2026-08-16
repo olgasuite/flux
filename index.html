@@ -8123,7 +8123,7 @@ function renderIngest(){
         var lente=clean(f.lente),som=clean(f.som),hd=esc(clean(f.hd)),res=esc(clean(f.resolucao));
         html+='<div class="ingest-film-row"><span class="ingest-film-num">'+(idx+1)+'</span><div class="ingest-film-body">';
         // top row: title + code + badges + GB
-        html+='<div class="ingest-film-top"><span class="ingest-film-title">'+titulo+'</span><span class="ingest-film-code">'+esc(c)+'</span>'+(gb?'<span class="ingest-film-gb">'+gb+' GB</span>':'')+'</div>';
+        html+='<div class="ingest-film-top"><span class="ingest-film-title">'+titulo+'</span><span class="ingest-film-code">'+esc(c)+'</span>'+statusBadge(f.status)+(gb?'<span class="ingest-film-gb">'+gb+' GB</span>':'')+'</div>';
         // specs row: HD · lente · som · res
         var specs=[];
         if(hd)specs.push('<span class="film-hd">'+hd+'</span>');
@@ -18463,7 +18463,7 @@ function renderDash(){
   html+=colBlock('legendagem','Legendagem',legBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 15/08/2026 às 23:46';
+  var sysUpdate='última atualização do sistema · 16/08/2026 às 13:31';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -27946,7 +27946,7 @@ function _sxcPrint(){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 15/08/2026 às 23:46</span></div>
+<div id="page-footer"><span>última atualização · 16/08/2026 às 13:31</span></div>
 
 </div>
 

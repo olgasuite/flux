@@ -6231,6 +6231,7 @@ window.addEventListener('DOMContentLoaded',function(){
     <button class="print-btn" onclick="openGradePrintModal()" style="margin-left:2px;">⎙ Tabela</button>
     <button class="print-btn" id="btnGradeCriaSessao" style="display:none;" onclick="openCriaSessaoGrade()">+ Criar sessão</button>
     <button class="print-btn" id="btnGradeSelMode" onclick="_gradeToggleSelMode('grade')" style="margin-left:2px;">☑ Selecionar sessões</button>
+    <button class="print-btn" id="btnGradeClearSel" style="display:none;" onclick="_gradeClearSel('grade')">Desmarcar todas</button>
     <button class="print-btn" id="btnGradePrintSel" style="display:none;" onclick="_gradePrintSelected('grade')">⎙ Imprimir fichas selecionadas</button>
   </div>
 </div>
@@ -6250,6 +6251,7 @@ window.addEventListener('DOMContentLoaded',function(){
     <button class="print-btn" id="btnGrade2Paralelas" style="display:none;" onclick="_toggleOcultarParalelas()">ocultar atividades paralelas</button>
     <button class="print-btn" onclick="openGradePrintModal('grade2')" style="margin-left:2px;">⎙ Tabela</button>
     <button class="print-btn" id="btnGrade2SelMode" onclick="_gradeToggleSelMode('grade2')" style="margin-left:2px;">☑ Selecionar sessões</button>
+    <button class="print-btn" id="btnGrade2ClearSel" style="display:none;" onclick="_gradeClearSel('grade2')">Desmarcar todas</button>
     <button class="print-btn" id="btnGrade2PrintSel" style="display:none;" onclick="_gradePrintSelected('grade2')">⎙ Imprimir fichas selecionadas</button>
   </div>
 </div>
@@ -8434,10 +8436,16 @@ function _gradeToggleSelMode(ctx){
 }
 function _gradeUpdateSelBar(ctx){
   var modeBtn=document.getElementById(ctx==='grade2'?'btnGrade2SelMode':'btnGradeSelMode');
+  var clearBtn=document.getElementById(ctx==='grade2'?'btnGrade2ClearSel':'btnGradeClearSel');
   var printBtn=document.getElementById(ctx==='grade2'?'btnGrade2PrintSel':'btnGradePrintSel');
   var n=_gradeSelSessions[ctx].size;
   if(modeBtn){modeBtn.textContent=_gradeSelMode[ctx]?'✕ Cancelar seleção':'☑ Selecionar sessões';modeBtn.style.cssText=_gradeSelMode[ctx]?'margin-left:2px;border-color:var(--accent);color:var(--accent);':'margin-left:2px;';}
+  if(clearBtn)clearBtn.style.display=_gradeSelMode[ctx]&&n>0?'':'none';
   if(printBtn){printBtn.style.display=_gradeSelMode[ctx]&&n>0?'':'none';printBtn.textContent='⎙ Imprimir fichas selecionadas ('+n+')';}
+}
+function _gradeClearSel(ctx){
+  _gradeSelSessions[ctx].clear();
+  if(ctx==='grade2')renderGrade2();else renderGrade();
 }
 function _gradeToggleBlockSel(ctx,nome,blk){
   var sel=_gradeSelSessions[ctx];
@@ -18542,7 +18550,7 @@ function renderDash(){
   html+=colBlock('legendagem','Legendagem',legBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 20/08/2026 às 16:29';
+  var sysUpdate='última atualização do sistema · 20/08/2026 às 16:45';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -28039,7 +28047,7 @@ function _sxcPrint(){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 20/08/2026 às 16:29</span></div>
+<div id="page-footer"><span>última atualização · 20/08/2026 às 16:45</span></div>
 
 </div>
 

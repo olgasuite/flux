@@ -1312,6 +1312,8 @@ td.cpl-cell{background:var(--cpl-bg);border-left:3px solid var(--cpl-border);pad
 .session-block{position:absolute;left:4px;right:4px;border-radius:3px;padding:4px 7px;cursor:pointer;overflow:hidden;transition:filter 0.15s,transform 0.1s;border-left:3px solid rgba(0,0,0,0.3);}
 .session-block:hover{filter:brightness(1.14);transform:translateX(1px);z-index:10;}
 .session-block.dimmed{opacity:0.15;}
+.session-block-sel{outline:3px solid #fff;outline-offset:-3px;box-shadow:0 0 0 5px var(--accent);z-index:5;}
+.session-block-sel::after{content:'✓';position:absolute;top:2px;right:4px;width:15px;height:15px;line-height:15px;text-align:center;background:var(--accent);color:var(--on-accent);border-radius:50%;font-size:10px;font-weight:700;}
 .block-head{display:flex;align-items:baseline;gap:6px;line-height:1.1;}
 .block-time{font-family:var(--mono);font-size:9px;font-weight:600;letter-spacing:0.06em;color:rgba(0,0,0,0.65);flex-shrink:0;}
 .block-name{font-family:var(--mono);font-size:8px;font-weight:600;color:rgba(0,0,0,0.45);letter-spacing:0.05em;text-transform:uppercase;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
@@ -1366,6 +1368,15 @@ td.cpl-cell{background:var(--cpl-bg);border-left:3px solid var(--cpl-border);pad
   body.print-prog-ficha #programacao-container{display:block!important;position:static!important;background:white!important;}
   body.print-prog-ficha .prog-module-wrap{padding:8mm!important;}
 }
+/* Fichas múltiplas (grade de projeção/programação, sessões selecionadas) */
+@media print{
+  body.print-fichas>*:not(#olga-app){display:none!important;}
+  body.print-fichas #olga-app>*:not(#fichasPrintArea){display:none!important;}
+  body.print-fichas #fichasPrintArea{display:block!important;position:static!important;background:white!important;padding:10mm!important;}
+}
+#fichasPrintArea{padding:0;display:none;}
+#fichasPrintArea .ficha{page-break-after:always;margin-bottom:0;}
+#fichasPrintArea .ficha:last-child{page-break-after:auto;}
 #gradePrintArea{padding:0;display:none;}
 #gradePrintArea .gpt-table{border-collapse:collapse;width:100%;table-layout:fixed;}
 #gradePrintArea .gpt-table th{font-family:monospace;font-size:7px;font-weight:700;background:#e8e8e8;color:#000;padding:4px 6px;border:1px solid #aaa;word-break:break-word;}
@@ -6219,6 +6230,8 @@ window.addEventListener('DOMContentLoaded',function(){
     <button class="print-btn" id="btnGradeParalelas" style="display:none;" onclick="_toggleOcultarParalelas()">ocultar atividades paralelas</button>
     <button class="print-btn" onclick="openGradePrintModal()" style="margin-left:2px;">⎙ Tabela</button>
     <button class="print-btn" id="btnGradeCriaSessao" style="display:none;" onclick="openCriaSessaoGrade()">+ Criar sessão</button>
+    <button class="print-btn" id="btnGradeSelMode" onclick="_gradeToggleSelMode('grade')" style="margin-left:2px;">☑ Selecionar sessões</button>
+    <button class="print-btn" id="btnGradePrintSel" style="display:none;" onclick="_gradePrintSelected('grade')">⎙ Imprimir fichas selecionadas</button>
   </div>
 </div>
 <div class="mode-bar hidden" id="barGrade2" style="flex-direction:column;align-items:stretch;gap:4px;padding-bottom:6px;">
@@ -6236,6 +6249,8 @@ window.addEventListener('DOMContentLoaded',function(){
     </select>
     <button class="print-btn" id="btnGrade2Paralelas" style="display:none;" onclick="_toggleOcultarParalelas()">ocultar atividades paralelas</button>
     <button class="print-btn" onclick="openGradePrintModal('grade2')" style="margin-left:2px;">⎙ Tabela</button>
+    <button class="print-btn" id="btnGrade2SelMode" onclick="_gradeToggleSelMode('grade2')" style="margin-left:2px;">☑ Selecionar sessões</button>
+    <button class="print-btn" id="btnGrade2PrintSel" style="display:none;" onclick="_gradePrintSelected('grade2')">⎙ Imprimir fichas selecionadas</button>
   </div>
 </div>
 <div class="mode-bar hidden" id="barSessoes">
@@ -6719,6 +6734,7 @@ window.addEventListener('DOMContentLoaded',function(){
 </div>
 <!-- Hidden area used during grade table print — MUST be direct child of body -->
 <div id="gradePrintArea" style="display:none;"></div>
+<div id="fichasPrintArea" style="display:none;"></div>
 <!-- Hidden area used during vinhetas print — MUST be direct child of body -->
 <div id="vinhetasPrintArea" style="display:none;"></div>
 <div id="tooltip"></div>
@@ -6842,6 +6858,7 @@ var bilheteriaCinemaFilter='',bilheteriaDistribuidoraFilter='',bilheteriaFilmeFi
 var bilheteriaProgFilter='',bilheteriaSubFilter='',bilheteriaDiaFilter='';
 var kdmComplexoFilter='',kdmSalaFilter='';
 var ingestDays=[],currentIngestDay=null,ingestCinemaFilter='',ingestCinemaComplexoFilter='',ingestHdFilter='',gradeCinemaFilter='',gradeCinemaComplexoFilter='';
+var _gradeSelMode={grade:false,grade2:false},_gradeSelSessions={grade:new Set(),grade2:new Set()};
 var grade2Days=[],grade2CurrentDay=null,grade2CinemaFilter='',grade2CinemaComplexoFilter='';
 var sessoesCinemaFilter='',_sessoesHidePast=true,_sessoesComplexo='',_sessoesFiltroTitulo='',_sessoesFiltroData='',_sessoesFiltroPrograma='';
 var fichaCinemaFilter='',_fichaComplexo='',_fichaFiltroData='';
@@ -7424,6 +7441,9 @@ function switchMode(mode,noPush){
       var _selFCin=document.getElementById('fichaCinemaSelect');if(_selFCin)_selFCin.value='';
       var _inpFDt=document.getElementById('fichaDataInput');if(_inpFDt)_inpFDt.value='';
     }
+    if((currentMode==='grade'||currentMode==='grade2')&&mode!==currentMode){
+      _gradeSelMode[currentMode]=false;_gradeSelSessions[currentMode].clear();
+    }
   }
   currentMode=mode;
   if(!noPush&&!_browserNav)history.pushState({olga:mode},'');
@@ -7837,6 +7857,11 @@ function _langTagInit(wid,mode,initial){
 
 function renderFicha(nome,s){
   if(_showsCache===null){_ensureShowsLoaded().then(function(){if(currentMode==='ficha')renderFicha(nome,s);});return;}
+  var _fichaNavSafe0=nome.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+  var _fichaNavBtn0=window._olgaHasRestricao('projecao.btn_programacao')?'':'<div class="ficha-nav-bar"><button class="prog-btn-sm" onclick="_goToProgFromFicha(\''+_fichaNavSafe0+'\')">← ficha de programação</button></div>';
+  document.getElementById('fichaWrap').innerHTML=_fichaNavBtn0+_fichaContentHTML(nome,s);
+}
+function _fichaContentHTML(nome,s){
   var films=s.filmes.filter(function(c){return _isFest(c);}).map(function(c){return Object.assign({codigo:c},filmesMap[c]||{});}).filter(function(f){return f.titulo||f.codigo;});
   var totalSecs=0,totalGB=0;
   films.forEach(function(f){totalSecs+=_parseDurSecs(f.duracao);var g=parseFloat((f.gb||'').toString().replace(',','.'));if(!isNaN(g))totalGB+=g;});
@@ -7936,11 +7961,9 @@ function renderFicha(nome,s){
 
   var _fpAllC=getAllCinemas();var _fpCi=_fpAllC.map[s.cinema]||{};
   var _fpUtcTag=_fpCi.utc_offset?'<span style="font-family:var(--mono);font-size:9px;color:var(--text-muted);margin-left:5px;opacity:0.75;">('+_fpCi.utc_offset+')</span>':'';
-  var _fichaNavSafe=nome.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
-  var _fichaNavBtn=window._olgaHasRestricao('projecao.btn_programacao')?'':'<div class="ficha-nav-bar"><button class="prog-btn-sm" onclick="_goToProgFromFicha(\''+_fichaNavSafe+'\')">← ficha de programação</button></div>';
   var legFootnote=_legStar?'<div class="ficha-leg-note">*não existe um operador de legendagem eletrônica associado a esta sessão, consulte a equipe de programação para confirmar se esta sessão contará com este recurso</div>':'';
   var _fichaShowName=_sessShowName(s);
-  document.getElementById('fichaWrap').innerHTML=_fichaNavBtn+'<div class="ficha"><div class="ficha-header"><div class="ficha-header-main"><div class="ficha-session-wrap"><div class="ficha-session-name" title="'+esc(nome)+'">'+esc(stripEvPrefix(nome,s.evento))+(_fichaShowName?' <span style="opacity:.7;font-weight:400;">('+esc(_fichaShowName)+')</span>':'')+'</div>'+(s.name?'<div class="prog-sess-display-name-ficha">'+esc(s.name)+'</div>':'')+eventoBadge+(fichaRatingBadge?fichaRatingBadge:'')+'</div><div class="ficha-meta"><div class="meta-item"><div class="meta-label">Cinema</div><div class="meta-value">'+esc(s.cinema||'—')+_fpUtcTag+'</div></div><div class="meta-item"><div class="meta-label">Data</div><div class="meta-value">'+s.dia+'</div></div><div class="meta-item"><div class="meta-label">Hora</div><div class="meta-value">'+s.hora+'</div></div><div class="meta-item"><div class="meta-label">Filmes</div><div class="meta-value highlight">'+films.length+'</div></div></div></div>'+extraHtml+'</div>'+vinhetasHtml+'<div class="film-table-wrap"><table><thead><tr><th>#</th><th>Filme</th><th class="center">Lente</th><th class="center">Som</th><th>Legenda</th><th class="center">Idioma</th><th class="center">KDM</th><th>CPL</th><th>Duração</th><th>OBS</th><th class="center">FPS · GB</th><th class="center" title="Acessibilidade"><svg width="13" height="13" viewBox="0 0 24 24" style="stroke:currentColor;stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round;vertical-align:middle;"><circle cx="11" cy="4" r="1"/><path d="m11 9 2 7h5l-1.5 3"/><path d="M9 9H7l1 7"/><path d="M13.5 19a4.5 4.5 0 1 1-9 0 4.5 4.5 0 0 1 9 0z"/></svg></th></tr></thead><tbody>'+(rows||'<tr><td colspan="12" style="text-align:center;color:var(--text-muted);padding:24px">Nenhum filme encontrado para esta sessão.</td></tr>')+'</tbody></table></div>'+legFootnote+'<div class="ficha-footer"><div class="footer-total">Duração total dos filmes: <strong>'+totalDur+'</strong>'+(totalVinSecs>0?' &nbsp;·&nbsp; Vinhetas: <strong>'+_secsToHMS(totalVinSecs)+'</strong>':'')+' &nbsp;·&nbsp; Tamanho: <strong>'+totalGBStr+'</strong></div><div class="footer-stamp">OLGA · '+new Date().toLocaleString('pt-BR')+'</div></div></div>';
+  return'<div class="ficha"><div class="ficha-header"><div class="ficha-header-main"><div class="ficha-session-wrap"><div class="ficha-session-name" title="'+esc(nome)+'">'+esc(stripEvPrefix(nome,s.evento))+(_fichaShowName?' <span style="opacity:.7;font-weight:400;">('+esc(_fichaShowName)+')</span>':'')+'</div>'+(s.name?'<div class="prog-sess-display-name-ficha">'+esc(s.name)+'</div>':'')+eventoBadge+(fichaRatingBadge?fichaRatingBadge:'')+'</div><div class="ficha-meta"><div class="meta-item"><div class="meta-label">Cinema</div><div class="meta-value">'+esc(s.cinema||'—')+_fpUtcTag+'</div></div><div class="meta-item"><div class="meta-label">Data</div><div class="meta-value">'+s.dia+'</div></div><div class="meta-item"><div class="meta-label">Hora</div><div class="meta-value">'+s.hora+'</div></div><div class="meta-item"><div class="meta-label">Filmes</div><div class="meta-value highlight">'+films.length+'</div></div></div></div>'+extraHtml+'</div>'+vinhetasHtml+'<div class="film-table-wrap"><table><thead><tr><th>#</th><th>Filme</th><th class="center">Lente</th><th class="center">Som</th><th>Legenda</th><th class="center">Idioma</th><th class="center">KDM</th><th>CPL</th><th>Duração</th><th>OBS</th><th class="center">FPS · GB</th><th class="center" title="Acessibilidade"><svg width="13" height="13" viewBox="0 0 24 24" style="stroke:currentColor;stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round;vertical-align:middle;"><circle cx="11" cy="4" r="1"/><path d="m11 9 2 7h5l-1.5 3"/><path d="M9 9H7l1 7"/><path d="M13.5 19a4.5 4.5 0 1 1-9 0 4.5 4.5 0 0 1 9 0z"/></svg></th></tr></thead><tbody>'+(rows||'<tr><td colspan="12" style="text-align:center;color:var(--text-muted);padding:24px">Nenhum filme encontrado para esta sessão.</td></tr>')+'</tbody></table></div>'+legFootnote+'<div class="ficha-footer"><div class="footer-total">Duração total dos filmes: <strong>'+totalDur+'</strong>'+(totalVinSecs>0?' &nbsp;·&nbsp; Vinhetas: <strong>'+_secsToHMS(totalVinSecs)+'</strong>':'')+' &nbsp;·&nbsp; Tamanho: <strong>'+totalGBStr+'</strong></div><div class="footer-stamp">OLGA · '+new Date().toLocaleString('pt-BR')+'</div></div></div>';
 }
 
 function _goToFichaFromProg(nome){
@@ -8398,6 +8421,51 @@ function printGradeTable(){
     document.body.classList.remove('print-grade-table');
     pa.style.display='none';
     pa.innerHTML='';
+    window.removeEventListener('afterprint',_h);
+  });
+  window.print();
+}
+
+/* ── Seleção de sessões pra impressão de fichas em lote (grade e grade2) ── */
+function _gradeToggleSelMode(ctx){
+  _gradeSelMode[ctx]=!_gradeSelMode[ctx];
+  if(!_gradeSelMode[ctx])_gradeSelSessions[ctx].clear();
+  if(ctx==='grade2')renderGrade2();else renderGrade();
+}
+function _gradeUpdateSelBar(ctx){
+  var modeBtn=document.getElementById(ctx==='grade2'?'btnGrade2SelMode':'btnGradeSelMode');
+  var printBtn=document.getElementById(ctx==='grade2'?'btnGrade2PrintSel':'btnGradePrintSel');
+  var n=_gradeSelSessions[ctx].size;
+  if(modeBtn){modeBtn.textContent=_gradeSelMode[ctx]?'✕ Cancelar seleção':'☑ Selecionar sessões';modeBtn.style.cssText=_gradeSelMode[ctx]?'margin-left:2px;border-color:var(--accent);color:var(--accent);':'margin-left:2px;';}
+  if(printBtn){printBtn.style.display=_gradeSelMode[ctx]&&n>0?'':'none';printBtn.textContent='⎙ Imprimir fichas selecionadas ('+n+')';}
+}
+function _gradeToggleBlockSel(ctx,nome,blk){
+  var sel=_gradeSelSessions[ctx];
+  if(sel.has(nome)){sel.delete(nome);blk.classList.remove('session-block-sel');}
+  else{sel.add(nome);blk.classList.add('session-block-sel');}
+  _gradeUpdateSelBar(ctx);
+}
+function _gradePrintSelected(ctx){
+  var sel=_gradeSelSessions[ctx];
+  if(!sel.size)return;
+  var sessoes=Array.from(sel).map(function(n){return sessoesMap[n];}).filter(Boolean).sort(function(a,b){
+    var da=a.date?a.date.getTime():0,db=b.date?b.date.getTime():0;
+    if(da!==db)return da-db;
+    return(a.time?a.time.h*60+a.time.m:0)-(b.time?b.time.h*60+b.time.m:0);
+  });
+  var parts=sessoes.map(function(s){
+    if(ctx==='grade2')return _fichaContentHTML(s.nome,s);
+    var prog=_progData.programs.find(function(p){return p.id===s.program_id;});
+    return _progFichaContentHTML(s.nome,s,prog);
+  }).filter(Boolean);
+  if(!parts.length)return;
+  var pa=document.getElementById('fichasPrintArea');
+  pa.innerHTML=parts.join('');
+  pa.style.display='block';
+  document.body.classList.add('print-fichas');
+  window.addEventListener('afterprint',function _h(){
+    document.body.classList.remove('print-fichas');
+    pa.style.display='none';pa.innerHTML='';
     window.removeEventListener('afterprint',_h);
   });
   window.print();
@@ -9241,6 +9309,7 @@ function _gradeProgName(s){
 
 function renderGrade2(){
   if(_showsCache===null){_ensureShowsLoaded().then(function(){if(currentMode==='grade2')renderGrade2();});return;}
+  _gradeUpdateSelBar('grade2');
   buildGradeDays();
   renderGrade2DayTabs();
   var ge=document.getElementById('grade2Empty'),gw=document.getElementById('grade2Wrap');
@@ -9297,11 +9366,15 @@ function renderGrade2(){
       if(_blkProgName)_metaRaw.push(_blkProgName);
       var _metaStr=_metaRaw.map(esc).join(' · ');
       var _blkMeta=(_metaStr||_blkIcons)?'<div class="block-row3"><span>'+_metaStr+'</span>'+(_blkIcons?'<span class="block-icons">'+_blkIcons+'</span>':'')+'</div>':'';
+      if(_gradeSelSessions.grade2.has(s.nome))blk.classList.add('session-block-sel');
       blk.innerHTML=_blkHead+_blkNameRow+_blkMeta+'<div class="block-hint">↗ ficha</div>';
       blk.addEventListener('mouseenter',function(ev){showTooltip(ev,s);});
       blk.addEventListener('mousemove',function(ev){moveTooltip(ev);});
       blk.addEventListener('mouseleave',function(){tip.style.display='none';});
-      blk.addEventListener('click',function(){tip.style.display='none';goToFicha(s.nome);});
+      blk.addEventListener('click',function(){
+        if(_gradeSelMode.grade2){_gradeToggleBlockSel('grade2',s.nome,blk);return;}
+        tip.style.display='none';goToFicha(s.nome);
+      });
       col.appendChild(blk);
     });
     gb2.appendChild(col);
@@ -15923,6 +15996,7 @@ function printVinhetas(){
 
 function renderGrade(){
   if(_showsCache===null){_ensureShowsLoaded().then(function(){if(currentMode==='grade')renderGrade();});return;}
+  _gradeUpdateSelBar('grade');
   buildGradeDays();
   renderDayTabs();
   var ge=document.getElementById('gradeEmpty'),gw=document.getElementById('gradeWrap');
@@ -15979,11 +16053,15 @@ function renderGrade(){
       if(_blkProgName)_metaRaw.push(_blkProgName);
       var _metaStr=_metaRaw.map(esc).join(' · ');
       var _blkMeta=(_metaStr||_blkIcons)?'<div class="block-row3"><span>'+_metaStr+'</span>'+(_blkIcons?'<span class="block-icons">'+_blkIcons+'</span>':'')+'</div>':'';
+      if(_gradeSelSessions.grade.has(s.nome))blk.classList.add('session-block-sel');
       blk.innerHTML=_blkHead+_blkNameRow+_blkMeta+'<div class="block-hint">↗ programação</div>';
       blk.addEventListener('mouseenter',function(ev){showTooltip(ev,s);});
       blk.addEventListener('mousemove',function(ev){moveTooltip(ev);});
       blk.addEventListener('mouseleave',function(){tip.style.display='none';});
-      blk.addEventListener('click',function(){tip.style.display='none';goToProgFichaFromGrade(s.nome);});
+      blk.addEventListener('click',function(){
+        if(_gradeSelMode.grade){_gradeToggleBlockSel('grade',s.nome,blk);return;}
+        tip.style.display='none';goToProgFichaFromGrade(s.nome);
+      });
       col.appendChild(blk);
     });
     gb2.appendChild(col);
@@ -18464,7 +18542,7 @@ function renderDash(){
   html+=colBlock('legendagem','Legendagem',legBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 19/08/2026 às 11:09';
+  var sysUpdate='última atualização do sistema · 20/08/2026 às 16:29';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -20205,6 +20283,17 @@ function _progRenderSessao(sessaoNome){
   var canEdit=window._olgaCanEdit('programacao');
   var vinOnly=canEdit&&window._olgaHasRestricao('sessoes.somente_vinhetas');
   var prog=_progData.programs.find(function(p){return p.id===_progView.programId;});
+  var safeNome=sessaoNome.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+  var safePid=(_progView.programId||'').replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+  var bHtml='<button class="prog-back-btn" onclick="_progBack()">← Mostra</button>';
+  if(prog)bHtml+='<span class="prog-breadcrumb">'+esc(prog.data.name||prog.id)+'</span>';
+  if(canEdit||vinOnly)bHtml+='<button class="prog-btn-sm" style="margin-left:auto;" onclick="openProgSessaoModal(\''+safeNome+'\',\''+safePid+'\',null)">'+(vinOnly?'✎ editar vinhetas':'✎ editar sessão')+'</button>';
+  bHtml+='<button class="prog-btn-sm"'+((canEdit||vinOnly)?'':' style="margin-left:auto;"')+' onclick="printProgFicha()">⎙ imprimir</button>';
+  if(!window._olgaHasRestricao('sessoes.btn_projecao'))bHtml+='<button class="prog-btn-sm" onclick="_goToFichaFromProg(\''+safeNome+'\')">ficha de projeção →</button>';
+  c.innerHTML='<div class="prog-module-wrap">'+_progFichaContentHTML(sessaoNome,s,prog)+'</div>';
+  document.getElementById('progBarDynamic').innerHTML=bHtml+'<button class="print-btn" style="margin-left:auto;" onclick="openShowsPanel()">⧉ Programas</button>';
+}
+function _progFichaContentHTML(sessaoNome,s,prog){
   var films=s.filmes.map(function(cd){
     var cm=(catalogoFilmesMap&&catalogoFilmesMap[cd])||{};
     var f=Object.assign({codigo:cd},filmesMap[cd]||{});
@@ -20291,15 +20380,7 @@ function _progRenderSessao(sessaoNome){
       +'<td class="prog-country-cell">'+paisCell+'</td>'
       +'</tr>';
   }).join('');
-  var safeNome=sessaoNome.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
-  var safePid=(_progView.programId||'').replace(/\\/g,'\\\\').replace(/'/g,"\\'");
-  var bHtml='<button class="prog-back-btn" onclick="_progBack()">← Mostra</button>';
-  if(prog)bHtml+='<span class="prog-breadcrumb">'+esc(prog.data.name||prog.id)+'</span>';
-  if(canEdit||vinOnly)bHtml+='<button class="prog-btn-sm" style="margin-left:auto;" onclick="openProgSessaoModal(\''+safeNome+'\',\''+safePid+'\',null)">'+(vinOnly?'✎ editar vinhetas':'✎ editar sessão')+'</button>';
-  bHtml+='<button class="prog-btn-sm"'+((canEdit||vinOnly)?'':' style="margin-left:auto;"')+' onclick="printProgFicha()">⎙ imprimir</button>';
-  if(!window._olgaHasRestricao('sessoes.btn_projecao'))bHtml+='<button class="prog-btn-sm" onclick="_goToFichaFromProg(\''+safeNome+'\')">ficha de projeção →</button>';
-  var html='<div class="prog-module-wrap">';
-  html+='<div class="ficha"><div class="ficha-header"><div class="ficha-header-main">';
+  var html='<div class="ficha"><div class="ficha-header"><div class="ficha-header-main">';
   html+='<div class="ficha-session-wrap">';
   var _progFichaShowName=_sessShowName(s);
   html+='<div class="ficha-session-name" title="'+esc(sessaoNome)+'">'+esc(stripEvPrefix(sessaoNome,s.evento))+(_progFichaShowName?' <span style="opacity:.7;font-weight:400;">('+esc(_progFichaShowName)+')</span>':'')+'</div>';
@@ -20329,8 +20410,7 @@ function _progRenderSessao(sessaoNome){
   html+='<div class="film-table-wrap"><table><thead><tr><th>#</th><th>Título PT</th><th>Duração</th><th class="center">Lente</th><th class="center">Som</th><th class="center">Idioma</th><th>Legendas</th><th class="center">KDM</th><th class="center" title="Acessibilidade"><svg width="13" height="13" viewBox="0 0 24 24" style="stroke:currentColor;stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round;vertical-align:middle;"><circle cx="11" cy="4" r="1"/><path d="m11 9 2 7h5l-1.5 3"/><path d="M9 9H7l1 7"/><path d="M13.5 19a4.5 4.5 0 1 1-9 0 4.5 4.5 0 0 1 9 0z"/></svg></th><th>País</th></tr></thead><tbody>'+(rows||'<tr><td colspan="10" style="text-align:center;color:var(--text-muted);padding:24px">Nenhum filme encontrado para esta sessão.</td></tr>')+'</tbody></table></div>';
   if(_legStar)html+='<div class="ficha-leg-note">*não existe um operador de legendagem eletrônica associado a esta sessão, consulte a equipe de programação para confirmar se esta sessão contará com este recurso</div>';
   html+='<div class="ficha-footer"><div class="footer-total">Duração total dos filmes: <strong>'+totalDur+'</strong>'+(totalVinSecs>0?' &nbsp;·&nbsp; Vinhetas: <strong>'+Math.floor(totalVinSecs/3600)+'h'+String(Math.floor((totalVinSecs%3600)/60)).padStart(2,'0')+'</strong>':'')+'</div><div class="footer-stamp">OLGA · '+new Date().toLocaleString('pt-BR')+'</div></div></div>';
-  c.innerHTML=html+'</div>';
-  document.getElementById('progBarDynamic').innerHTML=bHtml+'<button class="print-btn" style="margin-left:auto;" onclick="openShowsPanel()">⧉ Programas</button>';
+  return html+'</div>';
 }
 
 function printProgFicha(){
@@ -27959,7 +28039,7 @@ function _sxcPrint(){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 19/08/2026 às 11:09</span></div>
+<div id="page-footer"><span>última atualização · 20/08/2026 às 16:29</span></div>
 
 </div>
 

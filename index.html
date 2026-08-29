@@ -6214,6 +6214,7 @@ window.addEventListener('DOMContentLoaded',function(){
   <select id="sessionSelect" style="margin-left:4px;" disabled><option value="">— selecionar sessão —</option></select>
   <div class="event-filters" id="fichaEventFilters"></div>
   <button class="print-btn" id="printBtn" disabled onclick="window.print()">⎙ Imprimir</button>
+  <button class="print-btn" id="pdfBtn" disabled onclick="_desktopGerarFichaPDF(this,document.getElementById('sessionSelect').value,'grade2')">⬇ Gerar PDF</button>
 </div>
 <div class="mode-bar hidden" id="barGrade" style="flex-direction:column;align-items:stretch;gap:4px;padding-bottom:6px;">
   <div style="display:flex;align-items:center;flex-wrap:wrap;gap:4px;">
@@ -7701,9 +7702,9 @@ function kdmFichaBadge(v){if((v||'').toLowerCase()==='sim')return'<span class="b
 /* FICHA */
 document.getElementById('sessionSelect').addEventListener('change',function(){
   var nome=this.value;
-  var fe=document.getElementById('fichaEmpty'),fw=document.getElementById('fichaWrap'),pb=document.getElementById('printBtn');
-  if(!nome||!sessoesMap[nome]){fw.style.display='none';fe.style.display='flex';pb.disabled=true;return;}
-  renderFicha(nome,sessoesMap[nome]);fe.style.display='none';fw.style.display='block';pb.disabled=false;
+  var fe=document.getElementById('fichaEmpty'),fw=document.getElementById('fichaWrap'),pb=document.getElementById('printBtn'),pdfb=document.getElementById('pdfBtn');
+  if(!nome||!sessoesMap[nome]){fw.style.display='none';fe.style.display='flex';pb.disabled=true;if(pdfb)pdfb.disabled=true;return;}
+  renderFicha(nome,sessoesMap[nome]);fe.style.display='none';fw.style.display='block';pb.disabled=false;if(pdfb)pdfb.disabled=false;
 });
 
 /* ── LANGUAGE SYSTEM ── */
@@ -8616,8 +8617,8 @@ function rebuildSessionSelect(){
     sel.value=prev;
   }else if(prev){
     sel.value='';
-    var fe=document.getElementById('fichaEmpty'),fw=document.getElementById('fichaWrap'),pb=document.getElementById('printBtn');
-    if(fw)fw.style.display='none';if(fe)fe.style.display='flex';if(pb)pb.disabled=true;
+    var fe=document.getElementById('fichaEmpty'),fw=document.getElementById('fichaWrap'),pb=document.getElementById('printBtn'),pdfb=document.getElementById('pdfBtn');
+    if(fw)fw.style.display='none';if(fe)fe.style.display='flex';if(pb)pb.disabled=true;if(pdfb)pdfb.disabled=true;
   }
 }
 
@@ -18550,7 +18551,7 @@ function renderDash(){
   html+=colBlock('legendagem','Legendagem',legBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 29/08/2026 às 18:49';
+  var sysUpdate='última atualização do sistema · 29/08/2026 às 19:08';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -20297,6 +20298,7 @@ function _progRenderSessao(sessaoNome){
   if(prog)bHtml+='<span class="prog-breadcrumb">'+esc(prog.data.name||prog.id)+'</span>';
   if(canEdit||vinOnly)bHtml+='<button class="prog-btn-sm" style="margin-left:auto;" onclick="openProgSessaoModal(\''+safeNome+'\',\''+safePid+'\',null)">'+(vinOnly?'✎ editar vinhetas':'✎ editar sessão')+'</button>';
   bHtml+='<button class="prog-btn-sm"'+((canEdit||vinOnly)?'':' style="margin-left:auto;"')+' onclick="printProgFicha()">⎙ imprimir</button>';
+  bHtml+='<button class="prog-btn-sm" onclick="_desktopGerarFichaPDF(this,\''+safeNome+'\',\'programacao\')">⬇ gerar PDF</button>';
   if(!window._olgaHasRestricao('sessoes.btn_projecao'))bHtml+='<button class="prog-btn-sm" onclick="_goToFichaFromProg(\''+safeNome+'\')">ficha de projeção →</button>';
   c.innerHTML='<div class="prog-module-wrap">'+_progFichaContentHTML(sessaoNome,s,prog)+'</div>';
   document.getElementById('progBarDynamic').innerHTML=bHtml+'<button class="print-btn" style="margin-left:auto;" onclick="openShowsPanel()">⧉ Programas</button>';
@@ -28047,7 +28049,7 @@ function _sxcPrint(){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 29/08/2026 às 18:49</span></div>
+<div id="page-footer"><span>última atualização · 29/08/2026 às 19:08</span></div>
 
 </div>
 
@@ -30177,6 +30179,13 @@ async function _fichaToPdfBlob(nome,ctx){
   }
 }
 function _pdfSafeName(nome){return String(nome||'ficha').replace(/[^a-zA-Z0-9\-_]+/g,'_').slice(0,60);}
+function _pdfFileName(s){
+  s=s||{};
+  var hora=(s.hora||'').replace(':','h');
+  var raw=[s.cinema,hora,s.evento].filter(function(x){return x;});
+  var parts=raw.map(_pdfSafeName);
+  return parts.length?parts.join('_'):_pdfSafeName(s.nome);
+}
 function _mobPdfOverlay(show,text){
   var el=document.getElementById('mobPdfOverlay');
   if(show){
@@ -30194,7 +30203,7 @@ async function _mobShareFichaPDF(nomes,ctx,label){
     for(var i=0;i<nomes.length;i++){
       if(nomes.length>1)_mobPdfOverlay(true,'Gerando PDF '+(i+1)+'/'+nomes.length+'…');
       var blob=await _fichaToPdfBlob(nomes[i],ctx);
-      if(blob)files.push(new File([blob],(label||'ficha')+'_'+_pdfSafeName(nomes[i])+'.pdf',{type:'application/pdf'}));
+      if(blob)files.push(new File([blob],_pdfFileName(sessoesMap[nomes[i]])+'.pdf',{type:'application/pdf'}));
     }
     _mobPdfOverlay(false);
     if(!files.length){alert('Não foi possível gerar o PDF.');return;}
@@ -30211,6 +30220,24 @@ async function _mobShareFichaPDF(nomes,ctx,label){
     _mobPdfOverlay(false);
     if(e&&e.name==='AbortError')return;
     alert('Erro ao gerar/compartilhar PDF: '+(e&&e.message?e.message:e));
+  }
+}
+async function _desktopGerarFichaPDF(btn,nome,ctx){
+  var s=sessoesMap[nome];
+  if(!s){alert('Selecione uma sessão.');return;}
+  var orig=btn.textContent;
+  btn.disabled=true;btn.textContent='Gerando PDF…';
+  try{
+    await _ensurePdfLibs();
+    var blob=await _fichaToPdfBlob(nome,ctx);
+    if(!blob){alert('Não foi possível gerar o PDF.');return;}
+    var url=URL.createObjectURL(blob);
+    var a=document.createElement('a');a.href=url;a.download=_pdfFileName(s)+'.pdf';document.body.appendChild(a);a.click();a.remove();
+    setTimeout(function(){URL.revokeObjectURL(url);},4000);
+  }catch(e){
+    alert('Erro ao gerar PDF: '+(e&&e.message?e.message:e));
+  }finally{
+    btn.disabled=false;btn.textContent=orig;
   }
 }
 

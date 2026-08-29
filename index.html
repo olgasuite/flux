@@ -18550,7 +18550,7 @@ function renderDash(){
   html+=colBlock('legendagem','Legendagem',legBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 29/08/2026 às 18:32';
+  var sysUpdate='última atualização do sistema · 29/08/2026 às 18:40';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -28047,7 +28047,7 @@ function _sxcPrint(){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 29/08/2026 às 18:32</span></div>
+<div id="page-footer"><span>última atualização · 29/08/2026 às 18:40</span></div>
 
 </div>
 
@@ -28701,8 +28701,13 @@ window._mobProjToggleCard=function(nome){
   var cur=_mobStack[_mobStack.length-1];
   _mobRenderProjecao(cur&&cur.view==='projecao'?cur.params:{},true);
 };
-window._mobProjShareSelected=function(){
+window._mobProjShareProjecao=function(){
+  if(!_mobProjSel.size){alert('Selecione ao menos uma sessão.');return;}
   _mobShareFichaPDF(Array.from(_mobProjSel),'grade2','Ficha de Projeção');
+};
+window._mobProjSharePrograma=function(){
+  if(!_mobProjSel.size){alert('Selecione ao menos uma sessão.');return;}
+  _mobShareFichaPDF(Array.from(_mobProjSel),'programacao','Ficha de Programação');
 };
 
 function _mobRenderProjecao(params,noScroll){
@@ -28750,28 +28755,26 @@ function _mobRenderProjecao(params,noScroll){
     '</div>';
   }).join('');
 
-  var selBtnRow='<div style="padding:0 14px 10px;">'+
-    '<button class="mob-share-btn" style="width:100%;" onclick="_mobProjToggleSelMode()">'+(_mobProjSelMode?'✕ Cancelar seleção':'☑ Selecionar sessões pra compartilhar')+'</button>'+
-  '</div>';
+  var selBtnRow;
+  if(_mobProjSelMode){
+    selBtnRow='<div style="padding:0 14px 10px;display:flex;flex-wrap:wrap;gap:8px;align-items:center;">'+
+      '<button class="mob-share-btn" onclick="_mobProjToggleSelMode()">✕ Cancelar seleção'+(_mobProjSel.size?' ('+_mobProjSel.size+')':'')+'</button>'+
+      '<button class="mob-share-btn" style="flex:1;min-width:150px;" onclick="_mobProjSharePrograma()">⤴ Ficha de Programação</button>'+
+      '<button class="mob-share-btn" style="flex:1;min-width:150px;" onclick="_mobProjShareProjecao()">⤴ Ficha de Projeção</button>'+
+    '</div>';
+  }else{
+    selBtnRow='<div style="padding:0 14px 10px;">'+
+      '<button class="mob-share-btn" style="width:100%;" onclick="_mobProjToggleSelMode()">☑ Selecionar sessões pra compartilhar</button>'+
+    '</div>';
+  }
 
   _mobSetContent(
     _mobEventFilterHtml(filtroEvs)+
     _mobSalaSelectHtml(filtroSala,'_mobProjecaoSelSala',filtroEvs)+
     r.html+
     selBtnRow+
-    (sessoes.length?cards:'<div class="mob-empty">Sem sessões neste dia.</div>')+
-    (_mobProjSelMode?'<div style="height:70px;"></div>':'')
+    (sessoes.length?cards:'<div class="mob-empty">Sem sessões neste dia.</div>')
   );
-
-  var selBar=document.getElementById('mobProjSelBar');
-  if(_mobProjSelMode&&_mobProjSel.size>0){
-    if(!selBar){selBar=document.createElement('div');selBar.id='mobProjSelBar';selBar.className='mob-sel-bar';document.body.appendChild(selBar);}
-    selBar.innerHTML='<span style="font-family:var(--mono);font-size:11px;color:var(--text-dim);flex:1;">'+_mobProjSel.size+' selecionada'+(_mobProjSel.size===1?'':'s')+'</span>'+
-      '<button class="mob-share-btn" onclick="_mobProjShareSelected()">⤴ Compartilhar (PDF)</button>';
-    selBar.style.display='flex';
-  }else if(selBar){
-    selBar.style.display='none';
-  }
 }
 
 window._mobProjecaoSelDia=function(t){
@@ -29940,8 +29943,13 @@ window._mobProgToggleCard=function(nome){
   var cur=_mobStack[_mobStack.length-1];
   _mobRenderProgPrograma(cur&&cur.view==='programacao-programa'?cur.params:{},true);
 };
-window._mobProgShareSelected=function(){
+window._mobProgSharePrograma=function(){
+  if(!_mobProgSel.size){alert('Selecione ao menos uma sessão.');return;}
   _mobShareFichaPDF(Array.from(_mobProgSel),'programacao','Ficha de Programação');
+};
+window._mobProgShareProjecao=function(){
+  if(!_mobProgSel.size){alert('Selecione ao menos uma sessão.');return;}
+  _mobShareFichaPDF(Array.from(_mobProgSel),'grade2','Ficha de Projeção');
 };
 
 function _mobRenderProgPrograma(params,noScroll){
@@ -30004,20 +30012,18 @@ function _mobRenderProgPrograma(params,noScroll){
       });
     });
   });
-  html+='<div style="padding:10px 14px;">'+
-    '<button class="mob-share-btn" style="width:100%;" onclick="_mobProgToggleSelMode()">'+(_mobProgSelMode?'✕ Cancelar seleção':'☑ Selecionar sessões pra compartilhar')+'</button>'+
-  '</div>';
-  if(_mobProgSelMode)html+='<div style="height:70px;"></div>';
-  _mobSetContent(html);
-  var selBar=document.getElementById('mobProgSelBar');
-  if(_mobProgSelMode&&_mobProgSel.size>0){
-    if(!selBar){selBar=document.createElement('div');selBar.id='mobProgSelBar';selBar.className='mob-sel-bar';document.body.appendChild(selBar);}
-    selBar.innerHTML='<span style="font-family:var(--mono);font-size:11px;color:var(--text-dim);flex:1;">'+_mobProgSel.size+' selecionada'+(_mobProgSel.size===1?'':'s')+'</span>'+
-      '<button class="mob-share-btn" onclick="_mobProgShareSelected()">⤴ Compartilhar (PDF)</button>';
-    selBar.style.display='flex';
-  }else if(selBar){
-    selBar.style.display='none';
+  if(_mobProgSelMode){
+    html+='<div style="padding:10px 14px;display:flex;flex-wrap:wrap;gap:8px;align-items:center;">'+
+      '<button class="mob-share-btn" onclick="_mobProgToggleSelMode()">✕ Cancelar seleção'+(_mobProgSel.size?' ('+_mobProgSel.size+')':'')+'</button>'+
+      '<button class="mob-share-btn" style="flex:1;min-width:150px;" onclick="_mobProgSharePrograma()">⤴ Ficha de Programação</button>'+
+      '<button class="mob-share-btn" style="flex:1;min-width:150px;" onclick="_mobProgShareProjecao()">⤴ Ficha de Projeção</button>'+
+    '</div>';
+  }else{
+    html+='<div style="padding:10px 14px;">'+
+      '<button class="mob-share-btn" style="width:100%;" onclick="_mobProgToggleSelMode()">☑ Selecionar sessões pra compartilhar</button>'+
+    '</div>';
   }
+  _mobSetContent(html);
 }
 
 window._mobIrProgSessao=function(nome){

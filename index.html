@@ -18550,7 +18550,7 @@ function renderDash(){
   html+=colBlock('legendagem','Legendagem',legBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 29/08/2026 às 18:17';
+  var sysUpdate='última atualização do sistema · 29/08/2026 às 18:23';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -28047,7 +28047,7 @@ function _sxcPrint(){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 29/08/2026 às 18:17</span></div>
+<div id="page-footer"><span>última atualização · 29/08/2026 às 18:23</span></div>
 
 </div>
 
@@ -30088,6 +30088,16 @@ function _ensurePdfLibs(){
   return _pdfLibsPromise;
 }
 var _PDF_LIGHT_VARS='--bg:#F8FAFC;--surface:#FFFFFF;--surface2:#FFFFFF;--surface3:#F1F5F9;--surface4:#E2E8F0;--border:#E2E8F0;--border2:#CBD5E1;--accent:#2563EB;--accent-text:#1D4ED8;--accent-dim:rgba(37,99,235,0.12);--accent-glow:rgba(37,99,235,0.06);--on-accent:#FFFFFF;--text:#1E293B;--text-dim:#334155;--text-muted:#64748B;--ok:#2563EB;--warn:#B91C1C;--cpl-bg:rgba(37,99,235,0.08);--cpl-color:#1D4ED8;--cpl-border:rgba(37,99,235,0.28);';
+function _grayscaleCanvas(canvas){
+  var ctx2d=canvas.getContext('2d');
+  var img=ctx2d.getImageData(0,0,canvas.width,canvas.height);
+  var d=img.data;
+  for(var i=0;i<d.length;i+=4){
+    var gray=0.2126*d[i]+0.7152*d[i+1]+0.0722*d[i+2];
+    d[i]=d[i+1]=d[i+2]=gray;
+  }
+  ctx2d.putImageData(img,0,0);
+}
 async function _fichaToPdfBlob(nome,ctx){
   var s=sessoesMap[nome];if(!s)return null;
   var contentHtml;
@@ -30103,6 +30113,7 @@ async function _fichaToPdfBlob(nome,ctx){
   document.body.appendChild(host);
   try{
     var canvas=await html2canvas(host,{scale:2,backgroundColor:'#ffffff',useCORS:true});
+    _grayscaleCanvas(canvas);
     var imgData=canvas.toDataURL('image/jpeg',0.92);
     var jsPDFCtor=(window.jspdf&&window.jspdf.jsPDF)||window.jsPDF;
     var doc=new jsPDFCtor({orientation:'landscape',unit:'mm',format:'a4'});

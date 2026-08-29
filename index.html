@@ -6234,6 +6234,7 @@ window.addEventListener('DOMContentLoaded',function(){
     <button class="print-btn" id="btnGradeSelMode" onclick="_gradeToggleSelMode('grade')" style="margin-left:2px;">☑ Selecionar sessões</button>
     <button class="print-btn" id="btnGradeClearSel" style="display:none;" onclick="_gradeClearSel('grade')">Desmarcar todas</button>
     <button class="print-btn" id="btnGradePrintSel" style="display:none;" onclick="_gradePrintSelected('grade')">⎙ Imprimir fichas selecionadas</button>
+    <button class="print-btn" id="btnGradePdfSel" style="display:none;" onclick="_gradeGerarPdfsSelecionadas(this,'grade')">⬇ Gerar PDFs</button>
   </div>
 </div>
 <div class="mode-bar hidden" id="barGrade2" style="flex-direction:column;align-items:stretch;gap:4px;padding-bottom:6px;">
@@ -6254,6 +6255,7 @@ window.addEventListener('DOMContentLoaded',function(){
     <button class="print-btn" id="btnGrade2SelMode" onclick="_gradeToggleSelMode('grade2')" style="margin-left:2px;">☑ Selecionar sessões</button>
     <button class="print-btn" id="btnGrade2ClearSel" style="display:none;" onclick="_gradeClearSel('grade2')">Desmarcar todas</button>
     <button class="print-btn" id="btnGrade2PrintSel" style="display:none;" onclick="_gradePrintSelected('grade2')">⎙ Imprimir fichas selecionadas</button>
+    <button class="print-btn" id="btnGrade2PdfSel" style="display:none;" onclick="_gradeGerarPdfsSelecionadas(this,'grade2')">⬇ Gerar PDFs</button>
   </div>
 </div>
 <div class="mode-bar hidden" id="barSessoes">
@@ -8439,10 +8441,12 @@ function _gradeUpdateSelBar(ctx){
   var modeBtn=document.getElementById(ctx==='grade2'?'btnGrade2SelMode':'btnGradeSelMode');
   var clearBtn=document.getElementById(ctx==='grade2'?'btnGrade2ClearSel':'btnGradeClearSel');
   var printBtn=document.getElementById(ctx==='grade2'?'btnGrade2PrintSel':'btnGradePrintSel');
+  var pdfBtn=document.getElementById(ctx==='grade2'?'btnGrade2PdfSel':'btnGradePdfSel');
   var n=_gradeSelSessions[ctx].size;
   if(modeBtn){modeBtn.textContent=_gradeSelMode[ctx]?'✕ Cancelar seleção':'☑ Selecionar sessões';modeBtn.style.cssText=_gradeSelMode[ctx]?'margin-left:2px;border-color:var(--accent);color:var(--accent);':'margin-left:2px;';}
   if(clearBtn)clearBtn.style.display=_gradeSelMode[ctx]&&n>0?'':'none';
   if(printBtn){printBtn.style.display=_gradeSelMode[ctx]&&n>0?'':'none';printBtn.textContent='⎙ Imprimir fichas selecionadas ('+n+')';}
+  if(pdfBtn){pdfBtn.style.display=_gradeSelMode[ctx]&&n>0?'':'none';pdfBtn.textContent='⬇ Gerar PDFs ('+n+')';}
 }
 function _gradeClearSel(ctx){
   _gradeSelSessions[ctx].clear();
@@ -8478,6 +8482,35 @@ function _gradePrintSelected(ctx){
     window.removeEventListener('afterprint',_h);
   });
   window.print();
+}
+
+async function _gradeGerarPdfsSelecionadas(btn,ctx){
+  var sel=_gradeSelSessions[ctx];
+  if(!sel.size)return;
+  var sessoes=Array.from(sel).map(function(n){return sessoesMap[n];}).filter(Boolean).sort(function(a,b){
+    var da=a.date?a.date.getTime():0,db=b.date?b.date.getTime():0;
+    if(da!==db)return da-db;
+    return(a.time?a.time.h*60+a.time.m:0)-(b.time?b.time.h*60+b.time.m:0);
+  });
+  var orig=btn.textContent;
+  btn.disabled=true;
+  try{
+    await _ensurePdfLibs();
+    for(var i=0;i<sessoes.length;i++){
+      btn.textContent='Gerando PDF '+(i+1)+'/'+sessoes.length+'…';
+      var s=sessoes[i];
+      var blob=await _fichaToPdfBlob(s.nome,ctx);
+      if(blob){
+        var url=URL.createObjectURL(blob);
+        var a=document.createElement('a');a.href=url;a.download=_pdfFileName(s)+'.pdf';document.body.appendChild(a);a.click();a.remove();
+        (function(u){setTimeout(function(){URL.revokeObjectURL(u);},4000);})(url);
+      }
+    }
+  }catch(e){
+    alert('Erro ao gerar PDFs: '+(e&&e.message?e.message:e));
+  }finally{
+    btn.disabled=false;btn.textContent=orig;
+  }
 }
 
 function buildPills(container,evColors,activeSet,onToggle){
@@ -18551,7 +18584,7 @@ function renderDash(){
   html+=colBlock('legendagem','Legendagem',legBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 29/08/2026 às 20:29';
+  var sysUpdate='última atualização do sistema · 29/08/2026 às 20:32';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -28049,7 +28082,7 @@ function _sxcPrint(){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 29/08/2026 às 20:29</span></div>
+<div id="page-footer"><span>última atualização · 29/08/2026 às 20:32</span></div>
 
 </div>
 

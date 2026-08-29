@@ -18551,7 +18551,7 @@ function renderDash(){
   html+=colBlock('legendagem','Legendagem',legBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 29/08/2026 às 19:35';
+  var sysUpdate='última atualização do sistema · 29/08/2026 às 19:42';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -28049,7 +28049,7 @@ function _sxcPrint(){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 29/08/2026 às 19:35</span></div>
+<div id="page-footer"><span>última atualização · 29/08/2026 às 19:42</span></div>
 
 </div>
 
@@ -30200,9 +30200,9 @@ function _mobPdfReadyOverlay(files,title){
   var el=document.getElementById('mobPdfOverlay');
   if(!el){el=document.createElement('div');el.id='mobPdfOverlay';el.className='mob-pdf-overlay';document.body.appendChild(el);}
   el.innerHTML='<div>'+files.length+' PDF'+(files.length>1?'s':'')+' pronto'+(files.length>1?'s':'')+'.</div>'+
-    '<button class="mob-share-btn" style="width:220px;" onclick="_mobPdfDoShare()">⤴ Compartilhar</button>'+
-    '<button class="mob-share-btn" style="width:220px;" onclick="_mobPdfDoDownload()">⬇ Baixar</button>'+
-    '<button class="mob-share-btn" style="width:220px;" onclick="_mobPdfOverlay(false)">✕ Fechar</button>';
+    '<button class="mob-share-btn" style="width:220px;flex:none;" onclick="_mobPdfDoShare()">⤴ Compartilhar</button>'+
+    '<button class="mob-share-btn" style="width:220px;flex:none;" onclick="_mobPdfDoDownload()">⬇ Baixar</button>'+
+    '<button class="mob-share-btn" style="width:220px;flex:none;" onclick="_mobPdfOverlay(false)">✕ Fechar</button>';
   el.style.display='flex';
 }
 function _mobPdfDownloadFiles(files){
@@ -30214,20 +30214,18 @@ function _mobPdfDownloadFiles(files){
 }
 window._mobPdfDoShare=async function(){
   var files=_mobPendingPdfFiles,title=_mobPendingPdfTitle;
-  _mobPdfOverlay(false);
-  if(!files||!files.length)return;
-  if(navigator.canShare&&navigator.canShare({files:files})){
-    try{
+  if(!files||!files.length){_mobPdfOverlay(false);return;}
+  var didShare=false;
+  try{
+    if(navigator.canShare&&navigator.canShare({files:files})){
       await navigator.share({files:files,title:title});
-      return;
-    }catch(e){
-      if(e&&e.name==='AbortError')return;
-      alert('Não foi possível abrir o menu de compartilhar. Baixando os PDFs…');
+      didShare=true;
     }
-  }else{
-    alert('Este navegador não suporta compartilhar arquivos. Baixando os PDFs…');
+  }catch(e){
+    if(e&&e.name==='AbortError')didShare=true;
   }
-  _mobPdfDownloadFiles(files);
+  _mobPdfOverlay(false);
+  if(!didShare)_mobPdfDownloadFiles(files);
 };
 window._mobPdfDoDownload=function(){
   _mobPdfOverlay(false);

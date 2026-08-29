@@ -18550,7 +18550,7 @@ function renderDash(){
   html+=colBlock('legendagem','Legendagem',legBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 29/08/2026 às 18:23';
+  var sysUpdate='última atualização do sistema · 29/08/2026 às 18:32';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -28047,7 +28047,7 @@ function _sxcPrint(){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 29/08/2026 às 18:23</span></div>
+<div id="page-footer"><span>última atualização · 29/08/2026 às 18:32</span></div>
 
 </div>
 
@@ -28242,6 +28242,7 @@ function _mobSetContent(html){
 function _mobHideProjSelBar(){var b=document.getElementById('mobProjSelBar');if(b)b.style.display='none';}
 function _mobPush(frame){
   if(!frame||frame.view!=='projecao'){_mobProjSelMode=false;_mobProjSel.clear();_mobHideProjSelBar();}
+  if(!frame||frame.view!=='programacao-programa'){_mobProgSelMode=false;_mobProgSel.clear();_mobHideProgSelBar();}
   _mobStack.push(frame);
   history.pushState({olgaMobile:true,depth:_mobStack.length},'');
   var backBtn=document.getElementById('mobBackBtn');
@@ -28253,6 +28254,7 @@ function _mobPush(frame){
 
 function olgaMobileBack(){
   _mobProjSelMode=false;_mobProjSel.clear();_mobHideProjSelBar();
+  _mobProgSelMode=false;_mobProgSel.clear();_mobHideProgSelBar();
   if(_mobStack.length<=1){_mobStack=[];olgaMobileHome();return;}
   _mobStack.pop();
   var prev=_mobStack[_mobStack.length-1];
@@ -29921,7 +29923,25 @@ function _mobRenderProgramacao(params,noScroll){
 
 window._mobIrProgPrograma=function(programId,ev){
   _mobPush({view:'programacao-programa',params:{programId:programId,ev:ev}});
+  _mobProgSelMode=false;_mobProgSel.clear();
   _mobRenderProgPrograma({programId:programId,ev:ev});
+};
+
+var _mobProgSelMode=false,_mobProgSel=new Set();
+function _mobHideProgSelBar(){var b=document.getElementById('mobProgSelBar');if(b)b.style.display='none';}
+window._mobProgToggleSelMode=function(){
+  _mobProgSelMode=!_mobProgSelMode;
+  if(!_mobProgSelMode)_mobProgSel.clear();
+  var cur=_mobStack[_mobStack.length-1];
+  _mobRenderProgPrograma(cur&&cur.view==='programacao-programa'?cur.params:{},true);
+};
+window._mobProgToggleCard=function(nome){
+  if(_mobProgSel.has(nome))_mobProgSel.delete(nome);else _mobProgSel.add(nome);
+  var cur=_mobStack[_mobStack.length-1];
+  _mobRenderProgPrograma(cur&&cur.view==='programacao-programa'?cur.params:{},true);
+};
+window._mobProgShareSelected=function(){
+  _mobShareFichaPDF(Array.from(_mobProgSel),'programacao','Ficha de Programação');
 };
 
 function _mobRenderProgPrograma(params,noScroll){
@@ -29970,18 +29990,34 @@ function _mobRenderProgPrograma(params,noScroll){
       html+='<div style="font-family:var(--mono);font-size:9px;color:var(--text-muted);padding:6px 14px 0;border-top:1px solid var(--border);margin-top:6px;">'+_mobEsc(dLabel)+'</div>';
       byDay[dk].forEach(function(s){
         var filmes=s.filmes.map(filmDisplayTitle).filter(Boolean);
-        html+='<div class="mob-sessao-card" onclick="_mobIrProgSessao(\''+_mobEsc(s.nome)+'\')" style="margin:4px 12px;">';
+        var selected=_mobProgSel.has(s.nome);
+        var cardClick=_mobProgSelMode?"_mobProgToggleCard('"+_mobJsq(s.nome)+"')":"_mobIrProgSessao('"+_mobJsq(s.nome)+"')";
+        html+='<div class="mob-sessao-card'+(selected?' mob-sel-active':'')+'" onclick="'+cardClick+'" style="margin:4px 12px;">';
+        html+=(_mobProgSelMode?'<span class="mob-sel-checkbox">'+(selected?'✓':'')+'</span>':'');
         html+='<div class="mob-sessao-header">';
         html+='<span class="mob-sessao-hora">'+(s.hora||'?')+'</span>';
         html+='<div style="flex:1;min-width:0;"><div style="font-family:var(--mono);font-size:11px;color:var(--text-dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+_mobEsc(s.cinema)+'</div></div>';
-        html+='<svg style="width:14px;height:14px;stroke:var(--text-muted);stroke-width:2;fill:none;flex-shrink:0;" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>';
+        html+=(_mobProgSelMode?'':'<svg style="width:14px;height:14px;stroke:var(--text-muted);stroke-width:2;fill:none;flex-shrink:0;" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>');
         html+='</div>';
         html+='<div class="mob-sessao-body">'+filmes.map(function(t){return'<div class="mob-sessao-filme">'+_mobEsc(t)+'</div>';}).join('')+'</div>';
         html+='</div>';
       });
     });
   });
+  html+='<div style="padding:10px 14px;">'+
+    '<button class="mob-share-btn" style="width:100%;" onclick="_mobProgToggleSelMode()">'+(_mobProgSelMode?'✕ Cancelar seleção':'☑ Selecionar sessões pra compartilhar')+'</button>'+
+  '</div>';
+  if(_mobProgSelMode)html+='<div style="height:70px;"></div>';
   _mobSetContent(html);
+  var selBar=document.getElementById('mobProgSelBar');
+  if(_mobProgSelMode&&_mobProgSel.size>0){
+    if(!selBar){selBar=document.createElement('div');selBar.id='mobProgSelBar';selBar.className='mob-sel-bar';document.body.appendChild(selBar);}
+    selBar.innerHTML='<span style="font-family:var(--mono);font-size:11px;color:var(--text-dim);flex:1;">'+_mobProgSel.size+' selecionada'+(_mobProgSel.size===1?'':'s')+'</span>'+
+      '<button class="mob-share-btn" onclick="_mobProgShareSelected()">⤴ Compartilhar (PDF)</button>';
+    selBar.style.display='flex';
+  }else if(selBar){
+    selBar.style.display='none';
+  }
 }
 
 window._mobIrProgSessao=function(nome){

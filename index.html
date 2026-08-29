@@ -18550,7 +18550,7 @@ function renderDash(){
   html+=colBlock('legendagem','Legendagem',legBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 20/08/2026 às 16:45';
+  var sysUpdate='última atualização do sistema · 29/08/2026 às 18:17';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -28047,7 +28047,7 @@ function _sxcPrint(){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 20/08/2026 às 16:45</span></div>
+<div id="page-footer"><span>última atualização · 29/08/2026 às 18:17</span></div>
 
 </div>
 
@@ -28072,7 +28072,15 @@ function _sxcPrint(){
 .mob-card-icon{width:22px;height:22px;stroke:var(--accent);stroke-width:1.8;fill:none;}
 .mob-card-label{font-family:var(--sans);font-size:14px;font-weight:600;letter-spacing:0;text-transform:none;color:var(--text);}
 .mob-card-sub{font-family:var(--sans);font-size:11px;color:var(--text-muted);line-height:1.35;}
-.mob-sessao-card{margin:0 12px 10px;background:var(--surface);border:1px solid var(--border);border-radius:4px;overflow:hidden;}
+.mob-sessao-card{margin:0 12px 10px;background:var(--surface);border:1px solid var(--border);border-radius:4px;overflow:hidden;position:relative;}
+.mob-sessao-card.mob-sel-active{border-color:var(--accent);}
+.mob-sel-checkbox{position:absolute;top:8px;right:8px;width:20px;height:20px;border-radius:50%;border:2px solid var(--border2);background:var(--surface);display:flex;align-items:center;justify-content:center;font-size:12px;color:var(--on-accent);z-index:2;}
+.mob-sessao-card.mob-sel-active .mob-sel-checkbox{background:var(--accent);border-color:var(--accent);}
+.mob-share-actions{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;}
+.mob-share-btn{flex:1;min-width:130px;display:flex;align-items:center;justify-content:center;gap:6px;padding:10px 12px;background:var(--surface2);border:1px solid var(--border2);border-radius:6px;color:var(--text);font-family:var(--sans);font-size:12px;font-weight:600;cursor:pointer;}
+.mob-sel-bar{position:fixed;left:0;right:0;bottom:0;background:var(--surface);border-top:1px solid var(--border);padding:10px 14px;display:none;align-items:center;gap:10px;z-index:400;box-shadow:0 -4px 12px rgba(0,0,0,0.15);}
+.mob-pdf-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.78);z-index:5000;display:none;flex-direction:column;align-items:center;justify-content:center;gap:14px;color:#fff;font-family:var(--mono);font-size:12px;text-align:center;padding:0 30px;}
+.mob-pdf-overlay svg{width:32px;height:32px;stroke:#fff;animation:spin 1s linear infinite;}
 .mob-sessao-header{display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid var(--border);}
 .mob-sessao-hora{font-family:var(--mono);font-size:18px;font-weight:700;color:var(--accent);min-width:48px;}
 .mob-sessao-body{padding:10px 14px;display:flex;flex-direction:column;gap:6px;}
@@ -28231,7 +28239,9 @@ function _mobSetContent(html){
   if(el)el.innerHTML=html;
 }
 
+function _mobHideProjSelBar(){var b=document.getElementById('mobProjSelBar');if(b)b.style.display='none';}
 function _mobPush(frame){
+  if(!frame||frame.view!=='projecao'){_mobProjSelMode=false;_mobProjSel.clear();_mobHideProjSelBar();}
   _mobStack.push(frame);
   history.pushState({olgaMobile:true,depth:_mobStack.length},'');
   var backBtn=document.getElementById('mobBackBtn');
@@ -28242,6 +28252,7 @@ function _mobPush(frame){
 }
 
 function olgaMobileBack(){
+  _mobProjSelMode=false;_mobProjSel.clear();_mobHideProjSelBar();
   if(_mobStack.length<=1){_mobStack=[];olgaMobileHome();return;}
   _mobStack.pop();
   var prev=_mobStack[_mobStack.length-1];
@@ -28672,8 +28683,25 @@ function olgaMobileModulos(noStack){
 /* ── PROJEÇÃO (sessões + ficha de sessão) ────────────────────────── */
 function olgaMobileProjecao(){
   _mobPush({view:'projecao',params:{},title:'Projeção'});
+  _mobProjSelMode=false;_mobProjSel.clear();
   _mobRenderProjecao({});
 }
+
+var _mobProjSelMode=false,_mobProjSel=new Set();
+window._mobProjToggleSelMode=function(){
+  _mobProjSelMode=!_mobProjSelMode;
+  if(!_mobProjSelMode)_mobProjSel.clear();
+  var cur=_mobStack[_mobStack.length-1];
+  _mobRenderProjecao(cur&&cur.view==='projecao'?cur.params:{},true);
+};
+window._mobProjToggleCard=function(nome){
+  if(_mobProjSel.has(nome))_mobProjSel.delete(nome);else _mobProjSel.add(nome);
+  var cur=_mobStack[_mobStack.length-1];
+  _mobRenderProjecao(cur&&cur.view==='projecao'?cur.params:{},true);
+};
+window._mobProjShareSelected=function(){
+  _mobShareFichaPDF(Array.from(_mobProjSel),'grade2','Ficha de Projeção');
+};
 
 function _mobRenderProjecao(params,noScroll){
   params=params||{};
@@ -28700,7 +28728,10 @@ function _mobRenderProjecao(params,noScroll){
     var ev=eventColors[s.evento]||{bg:'var(--border2)',text:'var(--text)'};
     var filmes=s.filmes.map(filmDisplayTitle).filter(Boolean);
     var temErro=_mobSessaoTemErro(s);
-    return'<div class="mob-sessao-card" onclick="_mobAbrirSessaoFicha(\''+_mobEsc(s.nome)+'\')">'+
+    var selected=_mobProjSel.has(s.nome);
+    var cardClick=_mobProjSelMode?"_mobProjToggleCard('"+_mobJsq(s.nome)+"')":"_mobAbrirSessaoFicha('"+_mobJsq(s.nome)+"')";
+    return'<div class="mob-sessao-card'+(selected?' mob-sel-active':'')+'" onclick="'+cardClick+'">'+
+      (_mobProjSelMode?'<span class="mob-sel-checkbox">'+(selected?'✓':'')+'</span>':'')+
       '<div class="mob-sessao-header">'+
         '<span class="mob-sessao-hora">'+(s.hora||'?')+'</span>'+
         '<div style="flex:1;min-width:0;">'+
@@ -28708,7 +28739,7 @@ function _mobRenderProjecao(params,noScroll){
           '<span class="mob-sessao-pill" style="background:'+ev.bg+';color:'+ev.text+';">'+_mobEsc(s.evento||'')+'</span>'+
           (temErro?'<span style="font-family:var(--mono);font-size:9px;color:var(--warn);margin-left:6px;">⚠ erro</span>':'')+
         '</div>'+
-        '<svg style="width:14px;height:14px;stroke:var(--text-muted);stroke-width:2;fill:none;flex-shrink:0;" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>'+
+        (_mobProjSelMode?'':'<svg style="width:14px;height:14px;stroke:var(--text-muted);stroke-width:2;fill:none;flex-shrink:0;" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>')+
       '</div>'+
       '<div class="mob-sessao-body">'+
         filmes.map(function(t){return'<div class="mob-sessao-filme">'+_mobEsc(t)+'</div>';}).join('')+
@@ -28717,13 +28748,28 @@ function _mobRenderProjecao(params,noScroll){
     '</div>';
   }).join('');
 
+  var selBtnRow='<div style="padding:0 14px 10px;">'+
+    '<button class="mob-share-btn" style="width:100%;" onclick="_mobProjToggleSelMode()">'+(_mobProjSelMode?'✕ Cancelar seleção':'☑ Selecionar sessões pra compartilhar')+'</button>'+
+  '</div>';
+
   _mobSetContent(
     _mobEventFilterHtml(filtroEvs)+
     _mobSalaSelectHtml(filtroSala,'_mobProjecaoSelSala',filtroEvs)+
     r.html+
-    '<div style="height:12px;"></div>'+
-    (sessoes.length?cards:'<div class="mob-empty">Sem sessões neste dia.</div>')
+    selBtnRow+
+    (sessoes.length?cards:'<div class="mob-empty">Sem sessões neste dia.</div>')+
+    (_mobProjSelMode?'<div style="height:70px;"></div>':'')
   );
+
+  var selBar=document.getElementById('mobProjSelBar');
+  if(_mobProjSelMode&&_mobProjSel.size>0){
+    if(!selBar){selBar=document.createElement('div');selBar.id='mobProjSelBar';selBar.className='mob-sel-bar';document.body.appendChild(selBar);}
+    selBar.innerHTML='<span style="font-family:var(--mono);font-size:11px;color:var(--text-dim);flex:1;">'+_mobProjSel.size+' selecionada'+(_mobProjSel.size===1?'':'s')+'</span>'+
+      '<button class="mob-share-btn" onclick="_mobProjShareSelected()">⤴ Compartilhar (PDF)</button>';
+    selBar.style.display='flex';
+  }else if(selBar){
+    selBar.style.display='none';
+  }
 }
 
 window._mobProjecaoSelDia=function(t){
@@ -28752,6 +28798,12 @@ function _mobRenderSessaoFicha(params){
   html+='<div style="margin-bottom:12px;">'+evPill+'</div>';
   html+='<div class="mob-ficha-titulo">'+_mobEsc(params.nome)+'</div>';
   html+='<div class="mob-ficha-subtitulo">'+_mobEsc(s.cinema)+' · '+_mobEsc(s.dia||'')+(s.hora?' · '+_mobEsc(s.hora):'')+'</div>';
+
+  var _pdfNomeSafe=_mobJsq(params.nome);
+  html+='<div class="mob-share-actions">'+
+    '<button class="mob-share-btn" onclick="_mobShareFichaPDF([\''+_pdfNomeSafe+'\'],\'grade2\',\'Ficha de Projeção\')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg> PDF · Projeção</button>'+
+    '<button class="mob-share-btn" onclick="_mobShareFichaPDF([\''+_pdfNomeSafe+'\'],\'grade\',\'Ficha de Programação\')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg> PDF · Programação</button>'+
+  '</div>';
 
   // extra info
   var extraParts=[];
@@ -30009,6 +30061,105 @@ function _mobRenderProgSessao(params,noScroll){
 }
 
 function _mobEsc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
+function _mobJsq(s){return String(s||'').replace(/\\/g,'\\\\').replace(/'/g,"\\'");}
+
+/* ── COMPARTILHAR FICHA COMO PDF (mobile) ──────────────────────────
+   Carrega html2canvas + jsPDF sob demanda (só quando o usuário pede um
+   PDF), rasteriza o mesmo HTML da ficha de projeção/programação do
+   desktop (_fichaContentHTML/_progFichaContentHTML) num container fora
+   da tela, forçando as cores do tema claro (independente do tema ativo,
+   pro PDF ficar legível), e monta o PDF com jsPDF. */
+var _pdfLibsReady=false,_pdfLibsPromise=null;
+function _ensurePdfLibs(){
+  if(_pdfLibsReady)return Promise.resolve();
+  if(_pdfLibsPromise)return _pdfLibsPromise;
+  function loadScript(src,integrity){
+    return new Promise(function(res,rej){
+      var el=document.createElement('script');
+      el.src=src;el.integrity=integrity;el.crossOrigin='anonymous';el.referrerPolicy='no-referrer';
+      el.onload=function(){res();};
+      el.onerror=function(){rej(new Error('Falha ao carregar biblioteca de PDF.'));};
+      document.head.appendChild(el);
+    });
+  }
+  _pdfLibsPromise=loadScript('https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js','sha512-BNaRQnYJYiPSqHHDb58B0yaPfCu+Wgds8Gp/gU33kqBtgNS4tSPHuGibyoeqMV/TJlSKda6FXzoEyYGjTe+vXA==')
+    .then(function(){return loadScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf/4.2.1/jspdf.umd.min.js','sha512-plOdviVmws4Y3JAvbnpfKb2hVxKM1lCwsi3vmElYRj+tiDLffZ4FVUj5a8vyKJ9pIgl8JCAHEJ4D1iUKBecswg==');})
+    .then(function(){_pdfLibsReady=true;});
+  return _pdfLibsPromise;
+}
+var _PDF_LIGHT_VARS='--bg:#F8FAFC;--surface:#FFFFFF;--surface2:#FFFFFF;--surface3:#F1F5F9;--surface4:#E2E8F0;--border:#E2E8F0;--border2:#CBD5E1;--accent:#2563EB;--accent-text:#1D4ED8;--accent-dim:rgba(37,99,235,0.12);--accent-glow:rgba(37,99,235,0.06);--on-accent:#FFFFFF;--text:#1E293B;--text-dim:#334155;--text-muted:#64748B;--ok:#2563EB;--warn:#B91C1C;--cpl-bg:rgba(37,99,235,0.08);--cpl-color:#1D4ED8;--cpl-border:rgba(37,99,235,0.28);';
+async function _fichaToPdfBlob(nome,ctx){
+  var s=sessoesMap[nome];if(!s)return null;
+  var contentHtml;
+  if(ctx==='grade2'){
+    contentHtml=_fichaContentHTML(nome,s);
+  }else{
+    var prog=(_progData&&_progData.programs||[]).find(function(p){return p.id===s.program_id;});
+    contentHtml=_progFichaContentHTML(nome,s,prog);
+  }
+  var host=document.createElement('div');
+  host.style.cssText='position:fixed;left:-99999px;top:0;width:1100px;background:#fff;padding:24px;font-family:Arial,Helvetica,sans-serif;'+_PDF_LIGHT_VARS;
+  host.innerHTML=contentHtml;
+  document.body.appendChild(host);
+  try{
+    var canvas=await html2canvas(host,{scale:2,backgroundColor:'#ffffff',useCORS:true});
+    var imgData=canvas.toDataURL('image/jpeg',0.92);
+    var jsPDFCtor=(window.jspdf&&window.jspdf.jsPDF)||window.jsPDF;
+    var doc=new jsPDFCtor({orientation:'landscape',unit:'mm',format:'a4'});
+    var pw=doc.internal.pageSize.getWidth(),ph=doc.internal.pageSize.getHeight();
+    var imgW=pw,imgH=canvas.height*imgW/canvas.width;
+    if(imgH<=ph){
+      doc.addImage(imgData,'JPEG',0,0,imgW,imgH);
+    }else{
+      var offset=0;
+      while(offset<imgH){
+        doc.addImage(imgData,'JPEG',0,-offset,imgW,imgH);
+        offset+=ph;
+        if(offset<imgH)doc.addPage();
+      }
+    }
+    return doc.output('blob');
+  }finally{
+    document.body.removeChild(host);
+  }
+}
+function _pdfSafeName(nome){return String(nome||'ficha').replace(/[^a-zA-Z0-9\-_]+/g,'_').slice(0,60);}
+function _mobPdfOverlay(show,text){
+  var el=document.getElementById('mobPdfOverlay');
+  if(show){
+    if(!el){el=document.createElement('div');el.id='mobPdfOverlay';el.className='mob-pdf-overlay';document.body.appendChild(el);}
+    el.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg><div>'+_mobEsc(text||'Gerando PDF…')+'</div>';
+    el.style.display='flex';
+  }else if(el){el.style.display='none';}
+}
+async function _mobShareFichaPDF(nomes,ctx,label){
+  if(!nomes||!nomes.length)return;
+  try{
+    _mobPdfOverlay(true,'Gerando '+nomes.length+' PDF'+(nomes.length>1?'s':'')+'…');
+    await _ensurePdfLibs();
+    var files=[];
+    for(var i=0;i<nomes.length;i++){
+      if(nomes.length>1)_mobPdfOverlay(true,'Gerando PDF '+(i+1)+'/'+nomes.length+'…');
+      var blob=await _fichaToPdfBlob(nomes[i],ctx);
+      if(blob)files.push(new File([blob],(label||'ficha')+'_'+_pdfSafeName(nomes[i])+'.pdf',{type:'application/pdf'}));
+    }
+    _mobPdfOverlay(false);
+    if(!files.length){alert('Não foi possível gerar o PDF.');return;}
+    if(navigator.canShare&&navigator.canShare({files:files})){
+      await navigator.share({files:files,title:(label||'Ficha')+(files.length>1?'s':'')});
+    }else{
+      files.forEach(function(f){
+        var url=URL.createObjectURL(f);
+        var a=document.createElement('a');a.href=url;a.download=f.name;document.body.appendChild(a);a.click();a.remove();
+        setTimeout(function(){URL.revokeObjectURL(url);},4000);
+      });
+    }
+  }catch(e){
+    _mobPdfOverlay(false);
+    if(e&&e.name==='AbortError')return;
+    alert('Erro ao gerar/compartilhar PDF: '+(e&&e.message?e.message:e));
+  }
+}
 
 window._mobPrevTheme=null;
 function _mobGetTheme(){

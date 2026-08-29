@@ -8496,15 +8496,29 @@ async function _gradeGerarPdfsSelecionadas(btn,ctx){
   btn.disabled=true;
   try{
     await _ensurePdfLibs();
+    var multi=sessoes.length>1;
+    if(multi)await _ensureZipLib();
+    var zip=multi?new JSZip():null;
+    var singleBlob=null,singleName='';
     for(var i=0;i<sessoes.length;i++){
       btn.textContent='Gerando PDF '+(i+1)+'/'+sessoes.length+'…';
       var s=sessoes[i];
       var blob=await _fichaToPdfBlob(s.nome,ctx);
-      if(blob){
-        var url=URL.createObjectURL(blob);
-        var a=document.createElement('a');a.href=url;a.download=_pdfFileName(s)+'.pdf';document.body.appendChild(a);a.click();a.remove();
-        (function(u){setTimeout(function(){URL.revokeObjectURL(u);},4000);})(url);
-      }
+      if(!blob)continue;
+      var name=_pdfFileName(s)+'.pdf';
+      if(zip)zip.file(name,blob);else{singleBlob=blob;singleName=name;}
+    }
+    var url,a;
+    if(zip){
+      btn.textContent='Compactando…';
+      var zipBlob=await zip.generateAsync({type:'blob'});
+      url=URL.createObjectURL(zipBlob);
+      a=document.createElement('a');a.href=url;a.download='fichas_'+(ctx==='grade2'?'projecao':'programacao')+'_'+sessoes.length+'.zip';document.body.appendChild(a);a.click();a.remove();
+      setTimeout(function(){URL.revokeObjectURL(url);},4000);
+    }else if(singleBlob){
+      url=URL.createObjectURL(singleBlob);
+      a=document.createElement('a');a.href=url;a.download=singleName;document.body.appendChild(a);a.click();a.remove();
+      setTimeout(function(){URL.revokeObjectURL(url);},4000);
     }
   }catch(e){
     alert('Erro ao gerar PDFs: '+(e&&e.message?e.message:e));
@@ -18584,7 +18598,7 @@ function renderDash(){
   html+=colBlock('legendagem','Legendagem',legBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 29/08/2026 às 20:32';
+  var sysUpdate='última atualização do sistema · 29/08/2026 às 20:40';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -28082,7 +28096,7 @@ function _sxcPrint(){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 29/08/2026 às 20:32</span></div>
+<div id="page-footer"><span>última atualização · 29/08/2026 às 20:40</span></div>
 
 </div>
 
@@ -30164,6 +30178,21 @@ function _ensurePdfLibs(){
     .then(function(){_pdfLibsReady=true;});
   return _pdfLibsPromise;
 }
+var _zipLibReady=false,_zipLibPromise=null;
+function _ensureZipLib(){
+  if(_zipLibReady)return Promise.resolve();
+  if(_zipLibPromise)return _zipLibPromise;
+  _zipLibPromise=new Promise(function(res,rej){
+    var el=document.createElement('script');
+    el.src='https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js';
+    el.integrity='sha512-XMVd28F1oH/O71fzwBnV7HucLxVwtxf26XV8P4wPk26EDxuGZ91N8bsOttmnomcCD3CS5ZMRL50H0GgOHvegtg==';
+    el.crossOrigin='anonymous';el.referrerPolicy='no-referrer';
+    el.onload=function(){_zipLibReady=true;res();};
+    el.onerror=function(){rej(new Error('Falha ao carregar biblioteca de zip.'));};
+    document.head.appendChild(el);
+  });
+  return _zipLibPromise;
+}
 var _PDF_LIGHT_VARS='--bg:#F8FAFC;--surface:#FFFFFF;--surface2:#FFFFFF;--surface3:#F1F5F9;--surface4:#E2E8F0;--border:#E2E8F0;--border2:#CBD5E1;--accent:#2563EB;--accent-text:#1D4ED8;--accent-dim:rgba(37,99,235,0.12);--accent-glow:rgba(37,99,235,0.06);--on-accent:#FFFFFF;--text:#1E293B;--text-dim:#334155;--text-muted:#64748B;--ok:#2563EB;--warn:#B91C1C;--cpl-bg:rgba(37,99,235,0.08);--cpl-color:#1D4ED8;--cpl-border:rgba(37,99,235,0.28);';
 function _grayscaleCanvas(canvas){
   var ctx2d=canvas.getContext('2d');
@@ -30193,19 +30222,12 @@ async function _fichaToPdfBlob(nome,ctx){
     _grayscaleCanvas(canvas);
     var imgData=canvas.toDataURL('image/jpeg',0.92);
     var jsPDFCtor=(window.jspdf&&window.jspdf.jsPDF)||window.jsPDF;
-    var doc=new jsPDFCtor({orientation:'landscape',unit:'mm',format:'a4'});
-    var pw=doc.internal.pageSize.getWidth(),ph=doc.internal.pageSize.getHeight();
+    var pw=297;
     var imgW=pw,imgH=canvas.height*imgW/canvas.width;
-    if(imgH<=ph){
-      doc.addImage(imgData,'JPEG',0,0,imgW,imgH);
-    }else{
-      var offset=0;
-      while(offset<imgH){
-        doc.addImage(imgData,'JPEG',0,-offset,imgW,imgH);
-        offset+=ph;
-        if(offset<imgH)doc.addPage();
-      }
-    }
+    // página única com altura ajustada ao conteúdo: evita cortar texto/linhas
+    // no meio entre páginas (sem paginação de imagem por offset negativo)
+    var doc=new jsPDFCtor({unit:'mm',format:[pw,imgH]});
+    doc.addImage(imgData,'JPEG',0,0,imgW,imgH);
     return doc.output('blob');
   }finally{
     document.body.removeChild(host);

@@ -18584,7 +18584,7 @@ function renderDash(){
   html+=colBlock('legendagem','Legendagem',legBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 29/08/2026 às 20:48';
+  var sysUpdate='última atualização do sistema · 30/08/2026 às 13:03';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -24269,7 +24269,7 @@ function _catBulkAllocCode(){
   if(_catBulkLastN===null)_catBulkInitLastN(_catBulkEvent);
   // varre códigos já alocados nas linhas atuais
   var used=new Set();
-  document.querySelectorAll('.cbulk-code').forEach(function(c){var v=(c.textContent||'').trim();if(v)used.add(v);});
+  document.querySelectorAll('.cbulk-code').forEach(function(c){var v=(c.value||'').trim();if(v)used.add(v);});
   var ev=_catBulkEvent;
   do{_catBulkLastN++;}while(used.has(String(_catBulkLastN).padStart(5,'0'))||filmesMap[ev+String(_catBulkLastN).padStart(5,'0')]||catalogoFilmesMap[ev+String(_catBulkLastN).padStart(5,'0')]||(_usedIds.films&&_usedIds.films[ev+String(_catBulkLastN).padStart(5,'0')]));
   return String(_catBulkLastN).padStart(5,'0');
@@ -24282,15 +24282,15 @@ function _catBulkOnNameInput(rowIdx){
   var codeCell=row.querySelector('.cbulk-code');
   if(!nameInp||!codeCell)return;
   var hasName=!!(nameInp.value||'').trim();
-  var hasCode=!!(codeCell.textContent||'').trim();
-  if(hasName&&!hasCode){codeCell.textContent=_catBulkAllocCode();}
+  var hasCode=!!(codeCell.value||'').trim();
+  if(hasName&&!hasCode){codeCell.value=_catBulkAllocCode();}
 }
 
 function _catBulkSetEvent(ev){
   _catBulkEvent=ev;
   _catBulkLastN=null;
   // limpa códigos já alocados (eles eram do evento anterior)
-  document.querySelectorAll('.cbulk-code').forEach(function(c){c.textContent='';});
+  document.querySelectorAll('.cbulk-code').forEach(function(c){c.value='';});
   document.getElementById('cbulkPrefix').textContent=ev||'—';
   // re-aloca códigos para linhas que já tem nome preenchido
   document.querySelectorAll('.cbulk-row').forEach(function(row){
@@ -24312,7 +24312,7 @@ function _catBulkRowHtml(idx){
   var cols=_catBulkCols();
   var html='<div class="cbulk-row" data-row="'+idx+'">';
   html+='<div class="cbulk-cell cbulk-num">'+(idx+1)+'</div>';
-  html+='<div class="cbulk-cell cbulk-code"></div>';
+  html+='<div class="cbulk-cell" style="width:100px;"><input class="cbulk-inp cbulk-code" type="text" placeholder="auto"></div>';
   cols.forEach(function(c){
     var oninput=c.k==='system_name'?' oninput="_catBulkOnNameInput('+idx+')"':'';
     html+='<div class="cbulk-cell" style="width:'+c.w+';"><input class="cbulk-inp" data-col="'+c.k+'" type="'+c.type+'" placeholder="'+c.placeholder+'"'+oninput+'></div>';
@@ -24339,9 +24339,9 @@ function renderCatCreateBulk(){
     +'.cbulk-cell{padding:5px 7px;border-right:1px solid var(--border);display:flex;align-items:center;min-height:30px;box-sizing:border-box;}'
     +'.cbulk-cell:last-child{border-right:none;}'
     +'.cbulk-num{width:38px;justify-content:center;font-family:var(--mono);font-size:10px;color:var(--text-muted);background:var(--surface2);}'
-    +'.cbulk-code{width:100px;font-family:var(--mono);font-size:11px;color:var(--accent);background:var(--bg);}'
     +'.cbulk-inp{flex:1;width:100%;min-width:0;background:transparent;border:none;outline:none;font-family:var(--sans);font-size:12px;color:var(--text);padding:2px 4px;}'
     +'.cbulk-inp:focus{background:var(--accent-dim);}'
+    +'.cbulk-inp.cbulk-code{font-family:var(--mono);font-size:11px;color:var(--accent);}'
     +'.cbulk-row:nth-child(even){background:rgba(127,127,127,0.025);}'
     +'.cbulk-row:hover{background:var(--accent-dim);}'
     +'</style>'
@@ -24375,7 +24375,7 @@ function renderCatCreateBulk(){
     +'<div class="cbulk-table">'
       +'<div class="cbulk-thead">'
         +'<div class="cbulk-cell cbulk-num">#</div>'
-        +'<div class="cbulk-cell cbulk-code">Código</div>'
+        +'<div class="cbulk-cell" style="width:100px;">Código</div>'
         +cols.map(function(c){return'<div class="cbulk-cell" style="width:'+c.w+';">'+esc(c.label)+'</div>';}).join('')
       +'</div>'
       +'<div id="cbulkTbody">'
@@ -24401,13 +24401,16 @@ async function _catBulkSaveAll(){
   var msg=document.getElementById('cbulkMsg');
   if(!_catBulkEvent){if(msg){msg.className='cat-msg err';msg.textContent='Selecione um evento.';}return;}
   if(!window._olgaCatalogo){if(msg){msg.className='cat-msg err';msg.textContent='API do catálogo não disponível.';}return;}
+  // garante código pras linhas com nome preenchido e código em branco
+  // (geração automática só entra pras que não foram preenchidas manualmente)
+  document.querySelectorAll('.cbulk-row').forEach(function(row){_catBulkOnNameInput(row.dataset.row);});
   // coleta linhas com nome preenchido
   var ev=_catBulkEvent;
   var rows=[];
   document.querySelectorAll('.cbulk-row').forEach(function(row){
     var data={};
     row.querySelectorAll('input[data-col]').forEach(function(inp){data[inp.dataset.col]=(inp.value||'').trim();});
-    var code=(row.querySelector('.cbulk-code').textContent||'').trim();
+    var code=(row.querySelector('.cbulk-code').value||'').trim();
     if(!data.system_name)return;
     if(!code)return;
     rows.push({code:code,full:ev+code,data:data,rowEl:row});
@@ -28082,7 +28085,7 @@ function _sxcPrint(){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 29/08/2026 às 20:48</span></div>
+<div id="page-footer"><span>última atualização · 30/08/2026 às 13:03</span></div>
 
 </div>
 

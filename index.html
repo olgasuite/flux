@@ -6970,7 +6970,11 @@ async function _persistEventColors(map){
     for(var i=0;i<keys.length;i++){
       var ev=keys[i],col=map[ev];
       var rec=byId[ev];
-      if(rec&&rec.data&&rec.data.cor&&rec.data.cor.bg===col.bg)continue;
+      // já existe QUALQUER cor salva pro evento — não sobrescreve. O cálculo inicial pode
+      // ter marcado este evento como "sem cor" por causa de uma primeira leitura do
+      // Firestore ainda desatualizada (a cor tinha acabado de ser escolhida/salva); sem
+      // essa checagem essa cor auto-atribuída sobrescreveria a cor certa permanentemente.
+      if(rec&&rec.data&&rec.data.cor&&rec.data.cor.bg)continue;
       var cor={bg:col.bg,text:col.text};
       try{
         // merge: grava apenas o campo `cor` — não sobrescreve o resto do evento
@@ -18589,7 +18593,7 @@ function renderDash(){
   html+=colBlock('legendagem','Legendagem',legBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 08/09/2026 às 17:05';
+  var sysUpdate='última atualização do sistema · 12/09/2026 às 11:36';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -28109,7 +28113,7 @@ function _sxcPrint(){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 08/09/2026 às 17:05</span></div>
+<div id="page-footer"><span>última atualização · 12/09/2026 às 11:36</span></div>
 
 </div>
 

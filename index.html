@@ -13815,6 +13815,9 @@ function importCinemasCert(sala){
           pem=e.target.result;
         }
         var certData=await _olgaCallFn(_PARSECERT_FN,{pem:pem});
+        var _cnM=/(?:^|,)\s*CN=([^,]+)/i.exec(certData.subject||'');
+        var _roles=_cnM&&_cnM[1].indexOf('.')>0?_cnM[1].slice(0,_cnM[1].indexOf('.')).trim().toUpperCase().split(/\s+/):[];
+        if(_roles.indexOf('SM')<0){alert('Certificado recusado: não é do IMB (papel no CN: '+(_roles.join(' ')||'?')+').\n\nImporte o certificado do Security Manager do IMB (papel SM). Certificados de SMS, link encryption ou de cadeia/CA não servem para validar KDM.\n\nSubject: '+certData.subject);return;}
         var confirmMsg='Confirmar importação?\n\nArquivo: '+file.name+'\nSerial: '+certData.serialHex+'\nSubject: '+certData.subject.substring(0,80)+(certData.subject.length>80?'...':'');
         if(!confirm(confirmMsg))return;
         var fields={cert_subject:certData.subject,cert_issuer:certData.issuer,cert_serial_hex:certData.serialHex,cert_serial_dec:certData.serialDec,cert_thumbprint:certData.thumbprint,cert_filename:file.name,cert_imported_at:new Date()};
@@ -18593,7 +18596,7 @@ function renderDash(){
   html+=colBlock('legendagem','Legendagem',legBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 12/09/2026 às 11:36';
+  var sysUpdate='última atualização do sistema · 14/10/2026 às 20:01';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -28113,7 +28116,7 @@ function _sxcPrint(){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 12/09/2026 às 11:36</span></div>
+<div id="page-footer"><span>última atualização · 14/10/2026 às 20:01</span></div>
 
 </div>
 

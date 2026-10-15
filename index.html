@@ -5758,6 +5758,7 @@ html[data-theme="indexof"]:not([data-theme="win98"]) .module-icon{display:flex!i
         var arr = []; snap.forEach(function(d){ arr.push({id:d.id, data:d.data()}); });
         _trafHds = arr;
         if (initialApplied && ['trafego','ficha','ingest','kdm'].indexOf(currentMode) >= 0 && typeof _olgaRerenderActive === 'function') _olgaRerenderActive();
+        if (window._mobileActive && typeof _trafRerender === 'function') _trafRerender();
       }, function(e){ console.warn('snapshot trafego_hds:', e); }));
       window._olgaSnapshotUnsubs = unsubs;
       window._olgaSnapshotsActive = true;
@@ -18948,7 +18949,7 @@ function renderDash(){
   html+=colBlock('legendagem','Legendagem',legBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 15/10/2026 às 15:12';
+  var sysUpdate='última atualização do sistema · 15/10/2026 às 15:16';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -28577,7 +28578,7 @@ function _sxcPrint(){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 15/10/2026 às 15:12</span></div>
+<div id="page-footer"><span>última atualização · 15/10/2026 às 15:16</span></div>
 
 </div>
 
@@ -28742,6 +28743,7 @@ var _mobIconPaths = {
   'library':'<path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>',
   'bar-chart-2':'<line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/>',
   'download':'<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>',
+  'hard-drive':'<line x1="22" y1="12" x2="2" y2="12"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/><line x1="6" y1="16" x2="6.01" y2="16"/><line x1="10" y1="16" x2="10.01" y2="16"/>',
   'layout-dashboard':'<rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>',
   'monitor':'<rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/>',
   'layout-list':'<line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/>',
@@ -28820,6 +28822,8 @@ function _mobDispatch(frame){
   else if(v&&v.indexOf('receptivo-')===0)window._mobReceptivoSection(p&&p.sec||v.slice(10),true);
   else if(v==='revista')_mobRenderRevista(p);
   else if(v==='cinemas')_mobRenderCinemas(p);
+  else if(v==='trafego')_mobRenderTrafego(p);
+  else if(v==='trafego-hd')_mobRenderTrafHd(p);
 }
 
 function olgaMobileInit(){
@@ -29194,6 +29198,7 @@ function olgaMobileModulos(noStack){
     {mod:'programacao',icon:'layout-list',   label:'Programação', sub:'Mostras e sessões',    fn:'olgaMobileProgramacao()'},
     {mod:'cinemas',    icon:'clapperboard',  label:'Cinemas',     sub:'Salas e complexos',    fn:'olgaMobileCinemas()'},
     {mod:'catalogo',   icon:'book-open',     label:'Revista',     sub:'Leitura digital',      fn:'olgaMobileRevista()'},
+    {mod:'trafego',    icon:'hard-drive',    label:'Tráfego',     sub:'HDs e operação',       fn:'olgaMobileTrafego()'},
   ];
 
   // dedup por fn
@@ -32109,6 +32114,38 @@ function _trafGbStr(g){return g>0?(g>=1000?(g/1000).toFixed(2)+' TB':g.toFixed(0
 // só campos de digitação seguram o redesenho; select e checkbox atualizam na hora
 function _trafBusy(){var a=document.activeElement,c=document.getElementById('trafego-container');return !!(a&&c&&c.contains(a)&&/^(INPUT|TEXTAREA)$/.test(a.tagName)&&a.type!=='checkbox');}
 
+// redesenha a tela de Tráfego ativa: desktop (modo trafego) ou mobile (views trafego/trafego-hd);
+// no mobile, espera o campo de texto em edição perder o foco
+function _trafMobTop(){var t=(typeof _mobStack!=='undefined')&&_mobStack[_mobStack.length-1];return t&&(t.view==='trafego'||t.view==='trafego-hd')?t:null;}
+function _trafRerender(){
+  if(window._mobileActive){
+    var t=_trafMobTop();if(!t)return;
+    var a=document.activeElement,c=document.getElementById('mobContent');
+    if(a&&c&&c.contains(a)&&/^(INPUT|TEXTAREA)$/.test(a.tagName)&&a.type!=='checkbox'){
+      _trafDirty=true;
+      if(!c._trafHook){c._trafHook=true;c.addEventListener('focusout',function(){if(_trafDirty){_trafDirty=false;setTimeout(_trafRerender,0);}});}
+      return;
+    }
+    _mobDispatch(t);return;
+  }
+  if(currentMode==='trafego')renderTrafego();
+}
+function _trafAbrirHd(id){
+  _trafHdSel=id;
+  if(window._mobileActive){
+    var t=_trafMobTop();
+    if(id){if(t&&t.view==='trafego-hd'){t.params.id=id;_mobDispatch(t);}else _mobTrafAbrirHd(id);}
+    else if(t&&t.view==='trafego-hd')olgaMobileBack();
+    return;
+  }
+  renderTrafego();
+}
+function _trafOpEnsure(ev){
+  if(_trafOpEv===ev||!window._olgaTrafego)return;
+  if(_trafOpUnsub){try{_trafOpUnsub();}catch(e){}}
+  _trafOpMap={};_trafOpEv=ev;
+  _trafOpUnsub=window._olgaTrafego.listenOperacao(ev,function(m){_trafOpMap=m;if(window._mobileActive||_trafView==='operacao')_trafRerender();});
+}
 function _trafGo(v){
   _trafView=v;if(v!=='interno')_trafHdSel=null;
   if(currentMode!=='trafego')switchMode('trafego');else renderTrafego();
@@ -32275,7 +32312,7 @@ async function _trafReutilizar(id){
     await window._olgaTrafego.saveHd(id,{devolvido:true,devolvido_em:now,updated_at:now});
     var nid=await window._olgaTrafego.createHd({event_id:h.data.event_id||_trafEv,nome:h.data.nome||'',notas:'',destinos:[],filmes:{},devolvido:false,reutiliza:id,created_by:(u.email||'').toLowerCase(),created_at:now,updated_at:now});
     window._logFirestoreEdit&&window._logFirestoreEdit('individual',nid,{reutiliza:id,nome:h.data.nome||''},'trafego','trafego_hds');
-    _trafHdSel=nid;renderTrafego();
+    _trafAbrirHd(nid);
   }catch(e){alert('Erro ao reutilizar: '+e.message);}
 }
 async function _trafNovoHd(){
@@ -32284,13 +32321,13 @@ async function _trafNovoHd(){
   try{
     var id=await window._olgaTrafego.createHd({event_id:_trafEv,nome:n.trim(),notas:'',destinos:[],filmes:{},created_by:(u.email||'').toLowerCase(),created_at:now,updated_at:now});
     window._logFirestoreEdit&&window._logFirestoreEdit('individual',id,{nome:n.trim(),event_id:_trafEv},'trafego','trafego_hds');
-    _trafHdSel=id;renderTrafego();
+    _trafAbrirHd(id);
   }catch(e){alert('Erro ao criar HD: '+e.message);}
 }
 async function _trafExcluirHd(id){
   var h=_trafHdById(id);if(!h)return;
   if(!confirm('Excluir o HD "'+(h.data.nome||id)+'"?\nOs filmes deixam de ter este HD de envio. Esta ação não pode ser desfeita.'))return;
-  try{await window._olgaTrafego.removeHd(id);window._logFirestoreEdit&&window._logFirestoreEdit('delete',id,{nome:h.data.nome||''},'trafego','trafego_hds');_trafHdSel=null;renderTrafego();}
+  try{await window._olgaTrafego.removeHd(id);window._logFirestoreEdit&&window._logFirestoreEdit('delete',id,{nome:h.data.nome||''},'trafego','trafego_hds');_trafAbrirHd(null);}
   catch(e){alert('Erro ao excluir: '+e.message);}
 }
 function _trafSaveHd(id,partial){
@@ -32298,13 +32335,13 @@ function _trafSaveHd(id,partial){
   partial.updated_at=new Date().toISOString();
   Object.assign(h.data,partial);
   window._olgaTrafego.saveHd(id,partial).then(function(){window._logFirestoreEdit&&window._logFirestoreEdit('individual',id,partial,'trafego','trafego_hds');}).catch(function(e){alert('Erro ao salvar: '+e.message);});
-  renderTrafego();
+  _trafRerender();
 }
 function _trafSetFilme(id,c,partial){
   var h=_trafHdById(id);if(!h)return;
   h.data.filmes=h.data.filmes||{};h.data.filmes[c]=Object.assign({},h.data.filmes[c]||{},partial);
   window._olgaTrafego.setFilme(id,c,partial).then(function(){window._logFirestoreEdit&&window._logFirestoreEdit('individual',id,{filme:c,campos:partial},'trafego','trafego_hds');}).catch(function(e){alert('Erro ao salvar: '+e.message);});
-  renderTrafego();
+  _trafRerender();
 }
 function _trafToggleDia(id,i,dia,on){
   var h=_trafHdById(id);if(!h)return;
@@ -32428,7 +32465,7 @@ async function _trafRecebi(id,cx,on){
   var u=window._olgaUser||{};
   var val=on?{em:new Date().toISOString(),por:(u.email||'').toLowerCase(),por_nome:u.name||u.email||''}:null;
   h.data.recebimentos=h.data.recebimentos||{};h.data.recebimentos[cx]=val;
-  renderTrafego();
+  _trafRerender();
   try{
     await window._olgaTrafego.setRecebimento(id,cx,val);
     window._logFirestoreEdit&&window._logFirestoreEdit('individual',id,{recebimento:cx,recebido:!!on},'trafego','trafego_hds');
@@ -32474,11 +32511,7 @@ function _trafOpDiasHtml(list,canOp,hdSel){
 }
 function _trafRenderOperacao(cont){
   var ev=_trafEv,F=_trafOpFiltro,canOp=_trafCanOperar();
-  if(_trafOpEv!==ev&&window._olgaTrafego){
-    if(_trafOpUnsub){try{_trafOpUnsub();}catch(e){}}
-    _trafOpMap={};_trafOpEv=ev;
-    _trafOpUnsub=window._olgaTrafego.listenOperacao(ev,function(m){_trafOpMap=m;if(currentMode==='trafego'&&_trafView==='operacao')renderTrafego();});
-  }
+  _trafOpEnsure(ev);
   var as=allowedSalas(),hoje=_trafIso(new Date());
   var hds=_trafOpHdsAtivos(ev,as);
   if(F.hd&&!hds.some(function(h){return h.id===F.hd;}))F.hd='';
@@ -32530,5 +32563,236 @@ function _trafRenderOperacao(cont){
     if(ph)html+='<details style="margin-top:18px;"'+(_trafOpPastOpen?' open':'')+' ontoggle="_trafOpPastOpen=this.open"><summary class="traf-muted" style="cursor:pointer;">Dias anteriores · '+passadas.length+' sess'+(passadas.length!==1?'ões':'ão')+'</summary>'+ph+'</details>';
   }
   cont.innerHTML=html;
+}
+
+/* ─── Mobile (views 'trafego' e 'trafego-hd') ─── */
+var _TRAF_MOB_IN='font-size:16px;width:100%;padding:7px 9px;';  // 16px evita zoom automático no iOS
+function olgaMobileTrafego(){
+  _mobPush({view:'trafego',params:{tab:'operacao'},title:'Tráfego'});
+  _mobRenderTrafego(_mobStack[_mobStack.length-1].params);
+}
+function _mobTrafAbrirHd(id){
+  _mobPush({view:'trafego-hd',params:{id:id},title:'HD'});
+  _mobRenderTrafHd({id:id});
+}
+window._mobTrafSet=function(k,v){
+  var t=_trafMobTop();if(!t)return;
+  t.params[k]=v;
+  if(k==='complexo')t.params.sala='';
+  _mobDispatch(t);
+};
+window._mobTrafEv=function(v){
+  _trafEv=v;var t=_trafMobTop();if(!t)return;
+  t.params.hd='';t.params.complexo='';t.params.sala='';
+  _mobDispatch(t);
+};
+function _mobTrafSel(onchange,opts,cur){
+  return'<select class="traf-input" style="'+_TRAF_MOB_IN+'" onchange="'+onchange+'">'+opts.map(function(o){return'<option value="'+esc(o[0])+'"'+(o[0]===cur?' selected':'')+'>'+esc(o[1])+'</option>';}).join('')+'</select>';
+}
+function _mobRenderTrafego(params){
+  params=params||{};
+  if(!dataLoaded){_mobSetContent('<div class="mob-empty">Dados não carregados.</div>');return;}
+  var evs=Object.keys(eventColors||{}).sort();
+  if(!_trafEv||evs.indexOf(_trafEv)<0){
+    var pref=(_userEvSel&&_userEvSel.size)?Array.from(_userEvSel).filter(function(e){return evs.indexOf(e)>=0;}):[];
+    _trafEv=pref[0]||evs[0]||'';
+  }
+  if(!_trafEv){_mobSetContent('<div class="mob-empty">Nenhum evento disponível.</div>');return;}
+  var tab=params.tab||'operacao';
+  var html='<div style="padding:12px 12px 0;display:flex;flex-direction:column;gap:8px;">';
+  if(evs.length>1)html+=_mobTrafSel('_mobTrafEv(this.value)',evs.map(function(e){return[e,_trafEvNome(e)];}),_trafEv);
+  html+='<div style="display:flex;gap:6px;">'+[['operacao','Operação'],['interno','Tráfego interno']].map(function(o){
+    var on=tab===o[0];
+    return'<button class="print-btn" style="flex:1;padding:9px 0;font-size:11px;'+(on?'color:var(--accent);border-color:var(--accent);':'')+'" onclick="_mobTrafSet(\'tab\',\''+o[0]+'\')">'+o[1]+'</button>';
+  }).join('')+'</div></div>';
+  html+=tab==='interno'?_mobTrafInternoHtml():_mobTrafOperacaoHtml(params);
+  _mobSetContent(html);
+}
+
+/* Operação no mobile */
+function _mobTrafOperacaoHtml(p){
+  var ev=_trafEv;_trafOpEnsure(ev);
+  var canOp=_trafCanOperar(),as=allowedSalas(),hoje=_trafIso(new Date());
+  var hds=_trafOpHdsAtivos(ev,as);
+  if(p.hd&&!hds.some(function(h){return h.id===p.hd;}))p.hd='';
+  var hdSel=p.hd?_trafHdById(p.hd):null;
+  var base=sessoesArr.filter(function(s){return s.evento===ev&&s.date&&s.cinema&&(!as||as.has(s.cinema));});
+  var cxs={},salas={};
+  base.forEach(function(s){var cx=_getSalaComplexo(s.cinema);cxs[cx]=1;if(!p.complexo||cx===p.complexo)salas[s.cinema]=1;});
+
+  var html='<div class="mob-h">HDs no cinema · '+hds.length+'</div>';
+  if(!hds.length)html+='<div class="mob-empty" style="padding:4px 20px 8px;">Nenhum HD ativo para '+(as?'os seus complexos':'este evento')+'.</div>';
+  hds.forEach(function(h){
+    var pares=_trafOpPares(h,as),ok=pares.filter(function(x){return(_trafOpMap[_trafOpId(x.s,x.c)]||{}).ingestado;}).length;
+    var dias={},salasH={};pares.forEach(function(x){dias[_trafIso(x.s.date)]=1;salasH[x.s.cinema]=1;});
+    var on=p.hd===h.id,pct=pares.length?Math.round(ok/pares.length*100):0,ch=_trafChegada(h);
+    html+='<div class="mob-sessao-card" style="padding:12px 14px;'+(on?'border-color:var(--accent);':'')+'" onclick="_mobTrafSet(\'hd\',\''+(on?'':_trafSafe(h.id))+'\')">'+
+      '<div style="display:flex;align-items:baseline;gap:8px;"><span class="traf-card-name">'+esc(h.data.nome||'HD')+'</span>'+(ch?'<span class="traf-muted">chega ~'+_trafBr(ch)+'</span>':'')+(on?'<span class="traf-badge traf-ovvf" style="margin-left:auto;">filtrando</span>':'')+'</div>'+
+      '<div class="traf-meta">'+esc(Object.keys(salasH).sort().join(' · '))+'<br>exibição: '+esc(Object.keys(dias).sort().map(_trafBr).join(', ')||'—')+'</div>'+
+      _trafRecebHtml(h,as,canOp)+
+      '<div class="traf-meta">'+ok+'/'+pares.length+' ingestados'+(pares.length&&ok===pares.length?'<span class="traf-badge traf-ok">completo</span>':'')+'</div>'+
+      '<div style="height:4px;background:var(--border);margin-top:6px;"><div style="height:4px;width:'+pct+'%;background:var(--ok);"></div></div>'+
+    '</div>';
+  });
+
+  html+='<div style="padding:4px 12px 0;display:flex;flex-direction:column;gap:6px;">'+
+    _mobTrafSel("_mobTrafSet('complexo',this.value)",[['','Todos os complexos']].concat(Object.keys(cxs).sort().map(function(c){return[c,c];})),p.complexo||'')+
+    _mobTrafSel("_mobTrafSet('sala',this.value)",[['','Todas as salas']].concat(Object.keys(salas).sort().map(function(c){return[c,c];})),p.sala||'')+
+    (canOp?'':'<span class="traf-muted">somente leitura</span>')+
+  '</div>';
+
+  var list=base.filter(function(s){
+    if(p.complexo&&_getSalaComplexo(s.cinema)!==p.complexo)return false;
+    if(p.sala&&s.cinema!==p.sala)return false;
+    if(hdSel&&!_trafHdMatch(hdSel,s))return false;
+    return s.filmes.some(_isFest);
+  }).sort(function(a,b){return _trafSort(a,b)||a.cinema.localeCompare(b.cinema,'pt-BR');});
+  function dias(arr){
+    var out='',last=null;
+    arr.forEach(function(s){
+      var sh=_mobTrafSessHtml(s,canOp,hdSel);if(!sh)return;
+      var d=_trafIso(s.date);
+      if(d!==last){last=d;out+='<div class="mob-h">'+esc(s.dia)+(d===hoje?' · hoje':'')+'</div>';}
+      out+=sh;
+    });
+    return out;
+  }
+  var fut=dias(list.filter(function(s){return _trafIso(s.date)>=hoje;}));
+  html+=fut||'<div class="mob-empty">Nenhuma sessão de hoje em diante.</div>';
+  var pas=list.filter(function(s){return _trafIso(s.date)<hoje;});
+  if(pas.length){
+    var ph=dias(pas);
+    if(ph)html+='<details style="margin:10px 0 20px;"'+(_trafOpPastOpen?' open':'')+' ontoggle="_trafOpPastOpen=this.open"><summary class="mob-h" style="cursor:pointer;">Dias anteriores · '+pas.length+' sess'+(pas.length!==1?'ões':'ão')+'</summary>'+ph+'</details>';
+  }
+  return html+'<div style="height:24px;"></div>';
+}
+function _mobTrafSessHtml(s,canOp,hdSel){
+  var dis=canOp?'':' disabled',sn=_trafSafe(s.nome),kr=(typeof _kdmResults!=='undefined'&&_kdmResults[s.nome])||null;
+  var films=s.filmes.filter(_isFest);
+  if(hdSel)films=films.filter(function(c){return _trafEnvio(s,c).some(function(h){return h.id===hdSel.id;});});
+  if(!films.length)return'';
+  var kdmBtn=kr&&kr.files&&kr.files.length?'<button class="print-btn" style="padding:7px 10px;" onclick="_trafKdmDownload(\''+sn+'\')">⤓ KDM ('+kr.files.length+')</button>':'';
+  var html='<div class="mob-sessao-card"><div class="mob-sessao-header"><span class="mob-sessao-hora">'+esc(s.hora)+'</span>'+
+    '<div style="flex:1;min-width:0;"><div style="font-family:var(--mono);font-size:11px;color:var(--text-dim);">'+esc(s.cinema)+'</div>'+
+    '<div style="font-family:var(--mono);font-size:11px;color:var(--accent);">'+esc(stripEvPrefix(s.nome,s.evento))+(s.name&&s.name!==s.nome?' <span class="traf-muted">'+esc(s.name)+'</span>':'')+'</div></div>'+kdmBtn+'</div>'+
+    '<div class="mob-sessao-body">';
+  films.forEach(function(c){
+    var f=filmesMap[c]||{},op=_trafOpMap[_trafOpId(s,c)]||{},sc=_trafSafe(c);
+    var precisaKdm=(f.kdm||'').toString().toUpperCase()==='SIM';
+    var outras=sessoesArr.filter(function(o){return o.evento===s.evento&&o.cinema===s.cinema&&o.nome!==s.nome&&o.filmes.indexOf(c)>=0;}).sort(_trafSort).map(function(o){
+      var oop=_trafOpMap[_trafOpId(o,c)]||{};
+      return'<span class="traf-chip">'+esc(_trafBr(_trafIso(o.date))+' '+o.hora)+(oop.ingestado?' ✓':'')+'</span>';
+    }).join('');
+    var save=function(campo,expr){return' onchange="_trafOpSave(\''+sn+'\',\''+sc+'\',\''+campo+'\','+expr+')"';};
+    html+='<div style="padding:10px 0 12px;border-bottom:1px solid var(--border);">'+
+      '<div style="font-size:14px;font-weight:600;color:var(--text);">'+esc(filmDisplayTitle(c))+_trafOvVfBadge(c)+'</div>'+
+      '<div class="traf-muted">'+esc(c)+'</div>'+
+      (clean(f.cpl)?'<div class="traf-muted" style="word-break:break-all;color:var(--cpl-color);margin-top:2px;">CPL '+esc(clean(f.cpl))+'</div>':'')+
+      (clean(f.cplOV)?'<div class="traf-muted" style="word-break:break-all;">CPL da OV '+esc(clean(f.cplOV))+'</div>':'')+
+      (_trafEnvioHtml(s,c)?'<div style="margin-top:4px;">'+_trafEnvioHtml(s,c)+'</div>':'')+
+      '<label style="display:flex;align-items:center;gap:10px;margin:10px 0 8px;font-family:var(--mono);font-size:13px;color:var(--text);">'+
+        '<input type="checkbox" style="width:22px;height:22px;accent-color:var(--ok);"'+(op.ingestado?' checked':'')+dis+save('ingestado','this.checked')+'>'+
+        (op.ingestado?'<span style="color:var(--ok);font-weight:700;">ingestado</span>':'ingestado?')+'</label>'+
+      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">'+
+        '<input class="traf-input" style="'+_TRAF_MOB_IN+'" placeholder="volume" inputmode="decimal" value="'+esc(op.volume||'')+'"'+dis+' onchange="_trafOpSave(\''+sn+'\',\''+sc+'\',\'volume\',this.value.trim())">'+
+        '<select class="traf-input" style="'+_TRAF_MOB_IN+'"'+dis+save('lente','this.value')+'>'+['','FLAT','SCOPE','FULL'].map(function(l){return'<option value="'+l+'"'+((op.lente||'')===l?' selected':'')+'>'+(l||('lente'+(clean(f.lente)?' ('+esc(clean(f.lente))+')':'')))+'</option>';}).join('')+'</select>'+
+      '</div>'+
+      (precisaKdm?'<select class="traf-input" style="'+_TRAF_MOB_IN+'margin-top:6px;"'+dis+save('kdm_recebido','this.value')+'>'+
+        [['','KDM: —'],['sim','KDM recebido'],['nao','KDM não recebido']].map(function(o){return'<option value="'+o[0]+'"'+((op.kdm_recebido||'')===o[0]?' selected':'')+'>'+o[1]+'</option>';}).join('')+'</select>':'')+
+      '<textarea class="traf-input" style="'+_TRAF_MOB_IN+'margin-top:6px;min-height:44px;font-family:var(--sans);" placeholder="observações"'+dis+save('obs','this.value')+'>'+esc(op.obs||'')+'</textarea>'+
+      (outras?'<div style="margin-top:6px;"><span class="traf-muted">outras sessões nesta sala: </span>'+outras+'</div>':'')+
+    '</div>';
+  });
+  return html+'</div></div>';
+}
+
+/* Tráfego interno no mobile */
+function _mobTrafInternoHtml(){
+  var ev=_trafEv,canEdit=_trafCanEdit(),todos=_trafHdsEv(ev);
+  var ativos=todos.filter(function(h){return !h.data.devolvido;}),devolvidos=todos.filter(function(h){return h.data.devolvido;});
+  var html='<div class="mob-h" style="display:flex;align-items:center;gap:10px;">HDs de envio · '+ativos.length+(canEdit?'<button class="print-btn" style="margin-left:auto;padding:7px 12px;" onclick="_trafNovoHd()">+ Novo HD</button>':'')+'</div>';
+  if(!ativos.length)html+='<div class="mob-empty" style="padding:4px 20px 8px;">Nenhum HD ativo.</div>';
+  ativos.forEach(function(h){
+    var r=_trafResumo(h),x=h.data,ch=_trafChegada(h);
+    html+='<div class="mob-sessao-card" style="padding:12px 14px;" onclick="_mobTrafAbrirHd(\''+_trafSafe(h.id)+'\')">'+
+      '<div style="display:flex;align-items:baseline;gap:8px;"><span class="traf-card-name">'+esc(x.nome||'HD')+'</span>'+(ch?'<span class="traf-muted">chega ~'+_trafBr(ch)+'</span>':'')+'</div>'+
+      '<div class="traf-meta">'+((x.destinos||[]).map(function(de){return esc(de.sala)+': '+((de.dias||[]).map(_trafBr).join(', ')||'sem dias');}).join('<br>')||'<span style="color:var(--warn);">sem destino</span>')+'</div>'+
+      ((x.destinos||[]).length?_trafRecebHtml(h,null,false):'')+
+      '<div class="traf-meta">'+r.presentes.length+' filme'+(r.presentes.length!==1?'s':'')+' · '+_trafGbStr(r.gb)+' · '+r.sessoes.length+' sess'+(r.sessoes.length!==1?'ões':'ão')+
+        (r.ovvf?'<span class="traf-badge traf-ovvf">'+r.ovvf+' OV + VF</span>':'')+
+        (r.aus?'<span class="traf-badge traf-aus">'+r.aus+' ausente'+(r.aus!==1?'s':'')+'</span>':'')+
+        (r.semOrigem?'<span class="traf-badge traf-aus">'+r.semOrigem+' sem origem</span>':'')+'</div>'+
+    '</div>';
+  });
+  if(devolvidos.length){
+    html+='<details style="margin:6px 0;"><summary class="mob-h" style="cursor:pointer;">HDs devolvidos · '+devolvidos.length+'</summary>';
+    devolvidos.forEach(function(h){
+      html+='<div class="mob-sessao-card" style="padding:10px 14px;opacity:.75;" onclick="_mobTrafAbrirHd(\''+_trafSafe(h.id)+'\')"><span class="traf-card-name" style="font-size:12px;">'+esc(h.data.nome||'HD')+'</span> <span class="traf-muted">'+esc((h.data.destinos||[]).map(function(de){return de.sala;}).join(' · '))+'</span></div>';
+    });
+    html+='</details>';
+  }
+  var hoje=_trafIso(new Date()),pend=sessoesArr.filter(function(s){return s.evento===ev&&s.date&&_trafIso(s.date)>=hoje&&s.filmes.some(function(c){return _isFest(c)&&!_trafEnvio(s,c).length;});}).sort(_trafSort);
+  html+='<details style="margin:6px 0 24px;"><summary class="mob-h" style="cursor:pointer;">Sessões com filmes sem HD de envio · '+pend.length+'</summary>';
+  pend.forEach(function(s){
+    var falt=s.filmes.filter(function(c){return _isFest(c)&&!_trafEnvio(s,c).length;});
+    html+='<div class="mob-sessao-card" style="padding:8px 12px;"><div class="traf-meta" style="margin:0;"><b>'+esc(_trafBr(_trafIso(s.date))+' '+s.hora)+'</b> · '+esc(s.cinema)+' · '+esc(stripEvPrefix(s.nome,s.evento))+'</div><div style="font-size:12px;">'+esc(falt.map(filmDisplayTitle).join(' · '))+'</div></div>';
+  });
+  return html+'</details>';
+}
+
+/* Detalhe do HD no mobile */
+function _mobRenderTrafHd(p){
+  p=p||{};
+  var h=_trafHdById(p.id);
+  if(!h){_mobSetContent('<div class="mob-empty">Carregando HD…</div>');return;}
+  var canEdit=_trafCanEdit(),x=h.data,sid=_trafSafe(h.id),ev=x.event_id||_trafEv,r=_trafResumo(h),dis=canEdit?'':' disabled',ch=_trafChegada(h);
+  var html='<div style="padding:14px 14px 0;">'+
+    (canEdit?'<input class="traf-input" style="'+_TRAF_MOB_IN+'font-weight:700;" value="'+esc(x.nome||'')+'" onchange="_trafSaveHd(\''+sid+'\',{nome:this.value.trim()})">':'<div class="traf-card-name" style="font-size:18px;">'+esc(x.nome||'HD')+'</div>')+
+    '<div class="traf-meta">'+(ch?'chega ~'+_trafBr(ch)+' · ':'')+r.presentes.length+' filmes · '+_trafGbStr(r.gb)+(r.ovvf?'<span class="traf-badge traf-ovvf">'+r.ovvf+' OV + VF</span>':'')+(r.aus?'<span class="traf-badge traf-aus">'+r.aus+' ausente'+(r.aus!==1?'s':'')+'</span>':'')+
+      (x.devolvido?'<span class="traf-badge traf-aus">devolvido</span>':'')+'</div>'+
+    ((x.destinos||[]).length?_trafRecebHtml(h,null,false):'')+
+    (canEdit?'<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;">'+
+      (x.devolvido?'<button class="print-btn" style="padding:8px 12px;" onclick="_trafDevolvido(\''+sid+'\',false)">reativar</button>':
+        '<button class="print-btn" style="padding:8px 12px;" onclick="_trafDevolvido(\''+sid+'\',true)">marcar devolvido</button>'+
+        '<button class="print-btn" style="padding:8px 12px;" onclick="_trafReutilizar(\''+sid+'\')">reutilizar HD</button>')+
+      '<button class="print-btn" style="padding:8px 12px;color:var(--warn);" onclick="_trafExcluirHd(\''+sid+'\')">excluir</button></div>':'')+
+    '<textarea class="traf-input" style="'+_TRAF_MOB_IN+'margin-top:10px;min-height:44px;font-family:var(--sans);" placeholder="Observações do HD"'+dis+' onchange="_trafSaveHd(\''+sid+'\',{notas:this.value})">'+esc(x.notas||'')+'</textarea>'+
+  '</div>';
+
+  html+='<div class="mob-h">Destinos</div>';
+  (x.destinos||[]).forEach(function(de,i){
+    var dias=_trafDiasSala(ev,de.sala);(de.dias||[]).forEach(function(d){if(dias.indexOf(d)<0)dias.push(d);});dias.sort();
+    html+='<div class="mob-sessao-card" style="padding:10px 14px;"><div style="display:flex;align-items:center;"><b style="font-family:var(--mono);font-size:12px;">'+esc(de.sala)+'</b>'+
+      (canEdit?'<button class="print-btn" style="margin-left:auto;padding:6px 10px;" onclick="_trafRemoveDestino(\''+sid+'\','+i+')">remover</button>':'')+'</div>'+
+      '<div style="display:flex;flex-wrap:wrap;gap:4px 14px;margin-top:6px;">'+
+      (dias.length?dias.map(function(d){var on=(de.dias||[]).indexOf(d)>=0;return'<label class="traf-day" style="font-size:13px;"><input type="checkbox" style="width:20px;height:20px;"'+(on?' checked':'')+dis+' onchange="_trafToggleDia(\''+sid+'\','+i+',\''+d+'\',this.checked)">'+_trafBr(d)+'</label>';}).join(''):'<span class="traf-muted">sala sem sessões no evento</span>')+
+    '</div></div>';
+  });
+  if(!(x.destinos||[]).length)html+='<div class="mob-empty" style="padding:4px 20px 8px;">Nenhum destino.</div>';
+  if(canEdit){
+    var usadas=(x.destinos||[]).map(function(de){return de.sala;});
+    html+='<div style="display:flex;gap:6px;padding:0 12px;"><select id="trafAddSala" class="traf-input" style="'+_TRAF_MOB_IN+'"><option value="">+ adicionar sala…</option>'+
+      _trafSalasEv(ev).filter(function(s){return usadas.indexOf(s)<0;}).map(function(s){return'<option value="'+esc(s)+'">'+esc(s)+'</option>';}).join('')+
+      '</select><button class="print-btn" style="padding:8px 12px;" onclick="_trafAddDestino(\''+sid+'\')">ok</button></div>';
+  }
+
+  html+='<div class="mob-h">Filmes · '+r.presentes.length+'</div>';
+  if(!r.filmes.length)html+='<div class="mob-empty" style="padding:4px 20px 8px;">Marque salas e dias com sessões.</div>';
+  r.filmes.forEach(function(it){
+    var c=it.c,sc=_trafSafe(c),st=_trafStorage(c),orig=_trafOrigem(h,c),aus=!!it.fo.ausente;
+    html+='<div class="mob-sessao-card" style="padding:10px 14px;'+(aus?'opacity:.6;':'')+'">'+
+      '<div style="font-size:14px;font-weight:600;'+(aus?'text-decoration:line-through;':'')+'">'+esc(filmDisplayTitle(c))+_trafOvVfBadge(c)+'</div>'+
+      '<div class="traf-muted">'+esc(c)+(_trafGB(c)?' · '+_trafGB(c).toFixed(0)+' GB':'')+'</div>'+
+      '<div style="display:flex;gap:8px;align-items:center;margin-top:8px;">'+
+        (canEdit?'<select class="traf-input" style="'+_TRAF_MOB_IN+'flex:1;"'+(aus?' disabled':'')+' onchange="_trafSetFilme(\''+sid+'\',\''+sc+'\',{origem:this.value})"><option value="">HD de origem…</option>'+
+          st.concat(orig&&st.indexOf(orig)<0?[orig]:[]).map(function(o){return'<option value="'+esc(o)+'"'+(o===orig?' selected':'')+'>'+esc(o)+'</option>';}).join('')+'</select>':
+          '<span class="traf-meta" style="flex:1;margin:0;">origem: '+esc(orig||'—')+'</span>')+
+        '<label class="traf-day" style="font-size:13px;margin:0;"><input type="checkbox" style="width:20px;height:20px;"'+(aus?' checked':'')+dis+' onchange="_trafSetFilme(\''+sid+'\',\''+sc+'\',{ausente:this.checked})">ausente</label>'+
+      '</div>'+
+      (!aus&&!orig?'<span class="traf-badge traf-aus" style="margin:6px 0 0;">definir origem</span>':'')+
+      '<div style="margin-top:6px;">'+it.sessoes.map(function(s){return'<span class="traf-chip">'+esc(_trafBr(_trafIso(s.date))+' '+s.hora+' · '+s.cinema)+'</span>';}).join('')+'</div>'+
+    '</div>';
+  });
+  _mobSetContent(html+'<div style="height:24px;"></div>');
 }
 </script>

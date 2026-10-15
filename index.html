@@ -18963,7 +18963,7 @@ function renderDash(){
   html+=colBlock('legendagem','Legendagem',legBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 15/10/2026 às 15:49';
+  var sysUpdate='última atualização do sistema · 15/10/2026 às 15:52';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -28592,7 +28592,7 @@ function _sxcPrint(){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 15/10/2026 às 15:49</span></div>
+<div id="page-footer"><span>última atualização · 15/10/2026 às 15:52</span></div>
 
 </div>
 
@@ -32570,6 +32570,47 @@ function _trafOpFilmes(s,hdSel){
 function _trafGbLista(cs){return cs.reduce(function(t,c){return t+_trafGB(c);},0);}
 function _trafGbDias(list,hdSel){var t={};list.forEach(function(s){var d=_trafIso(s.date);t[d]=(t[d]||0)+_trafGbLista(_trafOpFilmes(s,hdSel));});return t;}
 function _trafGbHd(pares){var u={};pares.forEach(function(x){u[x.c]=1;});return _trafGbLista(Object.keys(u));}
+// Impressão da Operação: `dia` = só aquele dia; vazio = de hoje em diante. Usa os filtros
+// da tela atual (desktop: _trafOpFiltro; mobile: params da view).
+function _trafOpImprimir(dia){
+  var F=window._mobileActive?((_trafMobTop()||{}).params||{}):_trafOpFiltro;
+  var ev=_trafEv,as=allowedSalas(),hoje=_trafIso(new Date());
+  var hdSel=F.hd?_trafHdById(F.hd):null;
+  var list=sessoesArr.filter(function(s){
+    if(s.evento!==ev||!s.date||!s.cinema||(as&&!as.has(s.cinema)))return false;
+    var d=_trafIso(s.date);
+    if(dia?d!==dia:d<hoje)return false;
+    if(F.complexo&&_getSalaComplexo(s.cinema)!==F.complexo)return false;
+    if(F.sala&&s.cinema!==F.sala)return false;
+    if(hdSel&&!_trafHdMatch(hdSel,s))return false;
+    return _trafOpFilmes(s,hdSel).length>0;
+  }).sort(function(a,b){return _trafSort(a,b)||a.cinema.localeCompare(b.cinema,'pt-BR');});
+  if(!list.length){alert('Nada para imprimir nos filtros atuais.');return;}
+  var w=window.open('','_blank');if(!w){alert('Permita pop-ups para imprimir.');return;}
+  var e=esc,gbDia=_trafGbDias(list,hdSel),last=null,body='';
+  list.forEach(function(s){
+    var d=_trafIso(s.date),films=_trafOpFilmes(s,hdSel),gb=_trafGbLista(films);
+    if(d!==last){last=d;body+='<h2>'+e(s.dia)+(gbDia[d]?' · '+_trafGbStr(gbDia[d]):'')+'</h2>';}
+    body+='<div class="s"><div class="sh"><b>'+e(s.hora)+'</b> · '+e(s.cinema)+' · <b>'+e(stripEvPrefix(s.nome,s.evento))+'</b>'+(s.name&&s.name!==s.nome?' · '+e(s.name):'')+(gb?' · '+_trafGbStr(gb):'')+'</div>'+
+      '<table><thead><tr><th>Filme</th><th>Cópia</th><th>CPL</th><th>HD de envio</th><th>Ingest</th><th>Volume</th><th>Lente</th><th>KDM</th><th>Obs.</th></tr></thead><tbody>';
+    films.forEach(function(c){
+      var f=filmesMap[c]||{},op=_trafOpMap[_trafOpId(s,c)]||{};
+      var spec=[clean(f.lente),clean(f.som),clean(f.resolucao),_trafGB(c)?_trafGB(c).toFixed(0)+' GB':'',clean(f.status)].filter(Boolean).join(' · ');
+      var env=_trafEnvio(s,c).map(function(h){var o=_trafOrigem(h,c);return(h.data.nome||'HD')+(o?' ← '+o:'');}).join(', ');
+      var kdm=(f.kdm||'').toString().toUpperCase()==='SIM'?({sim:'recebido',nao:'NÃO recebido'}[op.kdm_recebido]||'exige — ?'):'—';
+      body+='<tr><td><b>'+e(filmDisplayTitle(c))+'</b>'+(_trafOvVf(c)?' <span class="ov">OV + VF</span>':'')+'<br><span class="m">'+e(c)+'</span></td>'+
+        '<td>'+e(spec||'—')+'</td>'+
+        '<td class="m">'+e(clean(f.cpl)||'—')+(clean(f.cplOV)?'<br><b>OV:</b> '+e(clean(f.cplOV)):'')+'</td>'+
+        '<td>'+e(env||'—')+'</td><td class="c">'+(op.ingestado?'✓':'☐')+'</td><td>'+e(op.volume||'')+'</td><td>'+e(op.lente||'')+'</td><td>'+e(kdm)+'</td><td>'+e(op.obs||'')+'</td></tr>';
+    });
+    body+='</tbody></table></div>';
+  });
+  var filtros=[F.complexo,F.sala,hdSel?('HD '+(hdSel.data.nome||'')):''].filter(Boolean).join(' · ');
+  var titulo='Operação · '+_trafEvNome(ev)+' · '+(dia?_trafBr(dia):'de '+_trafBr(hoje)+' em diante')+(filtros?' · '+filtros:'');
+  w.document.write('<!doctype html><html><head><meta charset="utf-8"><title>'+e(titulo)+'</title><style>@page{size:A4 landscape;margin:9mm;}body{font-family:sans-serif;font-size:11px;margin:0;}h1{font-size:18px;margin:0 0 6px;}h2{font-size:14px;margin:14px 0 6px;border-bottom:2px solid #000;padding-bottom:2px;}.s{margin-bottom:10px;page-break-inside:avoid;}.sh{font-size:12px;margin-bottom:3px;}.m{color:#555;font-family:monospace;font-size:10px;word-break:break-all;}.ov{background:#ffe7a8;border:1px solid #d9a400;font-size:9px;font-weight:bold;padding:0 4px;white-space:nowrap;}table{border-collapse:collapse;width:100%;font-size:11px;}th,td{border:1px solid #999;padding:4px 6px;text-align:left;vertical-align:top;}th{background:#222;color:#fff;font-size:9.5px;text-transform:uppercase;}td.c{text-align:center;font-size:14px;}.rod{margin-top:10px;color:#555;font-size:10px;}</style></head><body><h1>'+e(titulo)+'</h1>'+body+'<div class="rod">OLGA Flux · '+e(new Date().toLocaleString('pt-BR'))+'</div></body></html>');
+  w.document.close();
+  setTimeout(function(){try{w.focus();w.print();}catch(_e){}},300);
+}
 function _trafOpSessHtml(s,canOp,hdSel){
   var dis=canOp?'':' disabled',sn=_trafSafe(s.nome),kr=(typeof _kdmResults!=='undefined'&&_kdmResults[s.nome])||null;
   var films=_trafOpFilmes(s,hdSel);
@@ -32603,7 +32644,7 @@ function _trafOpDiasHtml(list,canOp,hdSel){
   list.forEach(function(s){
     var sh=_trafOpSessHtml(s,canOp,hdSel);if(!sh)return;
     var d=_trafIso(s.date);
-    if(d!==lastDay){lastDay=d;html+='<div class="traf-h">'+esc(s.dia)+(gbDia[d]?' <span class="traf-muted" style="letter-spacing:0;text-transform:none;">· '+_trafGbStr(gbDia[d])+'</span>':'')+'</div>';}
+    if(d!==lastDay){lastDay=d;html+='<div class="traf-h">'+esc(s.dia)+(gbDia[d]?' <span class="traf-muted" style="letter-spacing:0;text-transform:none;">· '+_trafGbStr(gbDia[d])+'</span>':'')+' <a href="#" class="traf-muted" style="text-decoration:none;" title="Imprimir este dia" onclick="event.preventDefault();_trafOpImprimir(\''+d+'\')">⎙</a></div>';}
     html+=sh;
   });
   return html;
@@ -32646,6 +32687,7 @@ function _trafRenderOperacao(cont){
     '<select class="traf-input" onchange="_trafOpFiltroSet(\'sala\',this.value)">'+opt('','Todas as salas',F.sala)+Object.keys(salas).sort().map(function(c){return opt(c,c,F.sala);}).join('')+'</select>'+
     (hdSel?'<span class="traf-chip" style="cursor:pointer;color:var(--accent);border-color:var(--accent);" onclick="_trafOpFiltroSet(\'hd\',\'\')">só '+esc(hdSel.data.nome||'HD')+' ✕</span>':'')+
     (canOp?'':'<span class="traf-muted">somente leitura</span>')+
+    '<button class="print-btn" style="margin-left:auto;" onclick="_trafOpImprimir(\'\')" title="Imprime de hoje em diante, com os filtros atuais">⎙ imprimir</button>'+
   '</div>';
 
   var list=base.filter(function(s){
@@ -32738,6 +32780,7 @@ function _mobTrafOperacaoHtml(p){
     _mobTrafSel("_mobTrafSet('complexo',this.value)",[['','Todos os complexos']].concat(Object.keys(cxs).sort().map(function(c){return[c,c];})),p.complexo||'')+
     _mobTrafSel("_mobTrafSet('sala',this.value)",[['','Todas as salas']].concat(Object.keys(salas).sort().map(function(c){return[c,c];})),p.sala||'')+
     (canOp?'':'<span class="traf-muted">somente leitura</span>')+
+    '<button class="print-btn" style="padding:8px 0;" onclick="_trafOpImprimir(\'\')">⎙ imprimir de hoje em diante</button>'+
   '</div>';
 
   var list=base.filter(function(s){
@@ -32751,7 +32794,7 @@ function _mobTrafOperacaoHtml(p){
     arr.forEach(function(s){
       var sh=_mobTrafSessHtml(s,canOp,hdSel);if(!sh)return;
       var d=_trafIso(s.date);
-      if(d!==last){last=d;out+='<div class="mob-h">'+esc(s.dia)+(d===hoje?' · hoje':'')+(gbDia[d]?' · '+_trafGbStr(gbDia[d]):'')+'</div>';}
+      if(d!==last){last=d;out+='<div class="mob-h" style="display:flex;align-items:center;"><span>'+esc(s.dia)+(d===hoje?' · hoje':'')+(gbDia[d]?' · '+_trafGbStr(gbDia[d]):'')+'</span><a href="#" style="margin-left:auto;text-decoration:none;color:var(--text-muted);font-size:16px;" onclick="event.preventDefault();_trafOpImprimir(\''+d+'\')">⎙</a></div>';}
       out+=sh;
     });
     return out;

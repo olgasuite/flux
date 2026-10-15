@@ -6387,7 +6387,7 @@ window.addEventListener('DOMContentLoaded',function(){
     </div>
     <div class="nav-group-items">
       <button class="nav-sub-tab" id="navSubFicha" data-mode="ficha" disabled onclick="switchMode('ficha')">Ficha</button>
-      <button class="nav-sub-tab" id="navSubIngest" data-mode="ingest" disabled onclick="switchMode('ingest')">Ingest</button>
+      <button class="nav-sub-tab" id="navSubIngest" data-mode="ingest" disabled onclick="switchMode('ingest')" style="display:none">Ingest</button>
       <button class="nav-sub-tab" id="navSubGrade2" data-mode="grade2" disabled onclick="switchMode('grade2')">Grade de Projeção</button>
       <button class="nav-sub-tab" id="navSubAcervo" data-mode="busca" disabled onclick="switchMode('busca')">Acervo Técnico</button>
       <button class="nav-sub-tab" id="navSubProjOperacao" disabled onclick="_trafGo('operacao')">Operação</button>
@@ -18963,7 +18963,7 @@ function renderDash(){
   html+=colBlock('legendagem','Legendagem',legBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 15/10/2026 às 15:44';
+  var sysUpdate='última atualização do sistema · 15/10/2026 às 15:49';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -28592,7 +28592,7 @@ function _sxcPrint(){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 15/10/2026 às 15:44</span></div>
+<div id="page-footer"><span>última atualização · 15/10/2026 às 15:49</span></div>
 
 </div>
 
@@ -29207,7 +29207,6 @@ function olgaMobileModulos(noStack){
     {mod:'vinhetas', icon:'film',             label:'vinhetas',    sub:'Por sessão',          fn:'olgaMobileVinhetas()'},
     {mod:'busca',    icon:'file-text',        label:'Acervo',      sub:'Busca por título',    fn:'olgaMobileAcervo()'},
     {mod:'catalogo', icon:'library',          label:'Catálogo',    sub:'Ficha curatorial',    fn:'olgaMobileCatalogo()'},
-    {mod:'projecao', icon:'download',         label:'Ingest',      sub:'Checklist de DCP',    fn:'olgaMobileIngest()'},
     {mod:'grade',    icon:'layout-dashboard', label:'Grade',       sub:'Programação do dia',  fn:'olgaMobileGrade()'},
     {mod:'programacao',icon:'layout-list',   label:'Programação', sub:'Mostras e sessões',    fn:'olgaMobileProgramacao()'},
     {mod:'cinemas',    icon:'clapperboard',  label:'Cinemas',     sub:'Salas e complexos',    fn:'olgaMobileCinemas()'},
@@ -32554,13 +32553,30 @@ async function _trafRecebi(id,cx,on){
     window._logFirestoreEdit&&window._logFirestoreEdit('individual',id,{recebimento:cx,recebido:!!on},'trafego','trafego_hds');
   }catch(e){alert('Erro ao registrar recebimento: '+e.message);}
 }
+// especificações técnicas da cópia e tamanhos (o que antes só aparecia no Ingest)
+function _trafSpecsHtml(c){
+  var f=filmesMap[c]||{},sp=[];
+  if(clean(f.lente))sp.push(lenteBadge(clean(f.lente)));
+  if(clean(f.som))sp.push(somBadge(clean(f.som)));
+  if(clean(f.resolucao))sp.push('<span class="traf-chip">'+esc(clean(f.resolucao))+'</span>');
+  if(_trafGB(c))sp.push('<span class="traf-chip">'+_trafGB(c).toFixed(0)+' GB</span>');
+  if(f.status)sp.push(statusBadge(f.status));
+  return sp.length?'<div style="display:flex;flex-wrap:wrap;gap:4px;align-items:center;margin-top:3px;">'+sp.join('')+'</div>':'';
+}
+function _trafOpFilmes(s,hdSel){
+  var films=s.filmes.filter(_isFest);
+  return hdSel?films.filter(function(c){return _trafEnvio(s,c).some(function(h){return h.id===hdSel.id;});}):films;
+}
+function _trafGbLista(cs){return cs.reduce(function(t,c){return t+_trafGB(c);},0);}
+function _trafGbDias(list,hdSel){var t={};list.forEach(function(s){var d=_trafIso(s.date);t[d]=(t[d]||0)+_trafGbLista(_trafOpFilmes(s,hdSel));});return t;}
+function _trafGbHd(pares){var u={};pares.forEach(function(x){u[x.c]=1;});return _trafGbLista(Object.keys(u));}
 function _trafOpSessHtml(s,canOp,hdSel){
   var dis=canOp?'':' disabled',sn=_trafSafe(s.nome),kr=(typeof _kdmResults!=='undefined'&&_kdmResults[s.nome])||null;
-  var films=s.filmes.filter(_isFest);
-  if(hdSel)films=films.filter(function(c){return _trafEnvio(s,c).some(function(h){return h.id===hdSel.id;});});
+  var films=_trafOpFilmes(s,hdSel);
   if(!films.length)return'';
+  var gb=_trafGbLista(films);
   var kdmBtn=kr&&kr.files&&kr.files.length?'<button class="print-btn" style="margin-left:auto;" onclick="_trafKdmDownload(\''+sn+'\')">⤓ KDM ('+kr.files.length+')</button>':'';
-  var html='<div class="traf-sess"><div class="traf-sess-h"><b>'+esc(s.hora)+'</b><span>'+esc(s.cinema)+'</span><span style="color:var(--accent);">'+esc(stripEvPrefix(s.nome,s.evento))+'</span>'+(s.name&&s.name!==s.nome?'<span class="traf-muted">'+esc(s.name)+'</span>':'')+kdmBtn+'</div>';
+  var html='<div class="traf-sess"><div class="traf-sess-h"><b>'+esc(s.hora)+'</b><span>'+esc(s.cinema)+'</span><span style="color:var(--accent);">'+esc(stripEvPrefix(s.nome,s.evento))+'</span>'+(s.name&&s.name!==s.nome?'<span class="traf-muted">'+esc(s.name)+'</span>':'')+(gb?'<span class="traf-muted">'+_trafGbStr(gb)+'</span>':'')+kdmBtn+'</div>';
   html+='<table class="traf-table"><thead><tr><th>Filme</th><th>HD de envio</th><th>Ingest</th><th>Volume</th><th>Lente</th><th>KDM</th><th>Obs.</th><th>Outras sessões nesta sala</th></tr></thead><tbody>';
   films.forEach(function(c){
     var f=filmesMap[c]||{},op=_trafOpMap[_trafOpId(s,c)]||{},sc=_trafSafe(c);
@@ -32570,7 +32586,7 @@ function _trafOpSessHtml(s,canOp,hdSel){
       var oop=_trafOpMap[_trafOpId(o,c)]||{};
       return'<span class="traf-chip" title="'+esc(o.nome)+'">'+esc(_trafBr(_trafIso(o.date))+' '+o.hora)+(oop.ingestado?' ✓':'')+'</span>';
     }).join('');
-    html+='<tr><td><b>'+esc(filmDisplayTitle(c))+'</b>'+_trafOvVfBadge(c)+'<div class="traf-muted">'+esc(c)+'</div>'+(clean(f.cpl)?'<div class="traf-muted" style="word-break:break-all;color:var(--cpl-color);">CPL '+esc(clean(f.cpl))+'</div>':'')+(clean(f.cplOV)?'<div class="traf-muted" style="word-break:break-all;">CPL da OV '+esc(clean(f.cplOV))+'</div>':'')+'</td>'+
+    html+='<tr><td><b>'+esc(filmDisplayTitle(c))+'</b>'+_trafOvVfBadge(c)+'<div class="traf-muted">'+esc(c)+'</div>'+_trafSpecsHtml(c)+(clean(f.cpl)?'<div class="traf-muted" style="word-break:break-all;color:var(--cpl-color);">CPL '+esc(clean(f.cpl))+'</div>':'')+(clean(f.cplOV)?'<div class="traf-muted" style="word-break:break-all;">CPL da OV '+esc(clean(f.cplOV))+'</div>':'')+'</td>'+
       '<td>'+(_trafEnvioHtml(s,c)||'<span class="traf-muted">—</span>')+'</td>'+
       '<td><label class="traf-day" style="margin:0;"><input type="checkbox"'+(op.ingestado?' checked':'')+dis+' onchange="_trafOpSave(\''+sn+'\',\''+sc+'\',\'ingestado\',this.checked)">'+(op.ingestado?'<span class="traf-badge traf-ok" style="margin:0;">OK</span>':'')+'</label></td>'+
       '<td><input class="traf-input" style="width:60px;" value="'+esc(op.volume||'')+'"'+dis+' onchange="_trafOpSave(\''+sn+'\',\''+sc+'\',\'volume\',this.value.trim())"></td>'+
@@ -32583,11 +32599,11 @@ function _trafOpSessHtml(s,canOp,hdSel){
   return html+'</tbody></table></div>';
 }
 function _trafOpDiasHtml(list,canOp,hdSel){
-  var html='',lastDay=null;
+  var html='',lastDay=null,gbDia=_trafGbDias(list,hdSel);
   list.forEach(function(s){
     var sh=_trafOpSessHtml(s,canOp,hdSel);if(!sh)return;
     var d=_trafIso(s.date);
-    if(d!==lastDay){lastDay=d;html+='<div class="traf-h">'+esc(s.dia)+'</div>';}
+    if(d!==lastDay){lastDay=d;html+='<div class="traf-h">'+esc(s.dia)+(gbDia[d]?' <span class="traf-muted" style="letter-spacing:0;text-transform:none;">· '+_trafGbStr(gbDia[d])+'</span>':'')+'</div>';}
     html+=sh;
   });
   return html;
@@ -32618,7 +32634,7 @@ function _trafRenderOperacao(cont){
         '<div class="traf-card-name">'+esc(h.data.nome||'HD')+(ch?'<span class="traf-muted" style="font-weight:400;margin-left:8px;">chega ~'+_trafBr(ch)+'</span>':'')+'</div>'+
         '<div class="traf-meta">'+esc(Object.keys(salasH).sort().join(' · '))+'<br>exibição: '+esc(Object.keys(dias).sort().map(_trafBr).join(', ')||'—')+'</div>'+
         _trafRecebHtml(h,as,canOp)+
-        '<div class="traf-meta">'+ok+'/'+pares.length+' ingestados'+(pares.length&&ok===pares.length?'<span class="traf-badge traf-ok">completo</span>':'')+'</div>'+
+        '<div class="traf-meta">'+ok+'/'+pares.length+' ingestados · '+_trafGbStr(_trafGbHd(pares))+(pares.length&&ok===pares.length?'<span class="traf-badge traf-ok">completo</span>':'')+'</div>'+
         '<div style="height:3px;background:var(--border);margin-top:6px;"><div style="height:3px;width:'+pct+'%;background:var(--ok);"></div></div>'+
       '</div>';
     });
@@ -32713,7 +32729,7 @@ function _mobTrafOperacaoHtml(p){
       '<div style="display:flex;align-items:baseline;gap:8px;"><span class="traf-card-name">'+esc(h.data.nome||'HD')+'</span>'+(ch?'<span class="traf-muted">chega ~'+_trafBr(ch)+'</span>':'')+(on?'<span class="traf-badge traf-ovvf" style="margin-left:auto;">filtrando</span>':'')+'</div>'+
       '<div class="traf-meta">'+esc(Object.keys(salasH).sort().join(' · '))+'<br>exibição: '+esc(Object.keys(dias).sort().map(_trafBr).join(', ')||'—')+'</div>'+
       _trafRecebHtml(h,as,canOp)+
-      '<div class="traf-meta">'+ok+'/'+pares.length+' ingestados'+(pares.length&&ok===pares.length?'<span class="traf-badge traf-ok">completo</span>':'')+'</div>'+
+      '<div class="traf-meta">'+ok+'/'+pares.length+' ingestados · '+_trafGbStr(_trafGbHd(pares))+(pares.length&&ok===pares.length?'<span class="traf-badge traf-ok">completo</span>':'')+'</div>'+
       '<div style="height:4px;background:var(--border);margin-top:6px;"><div style="height:4px;width:'+pct+'%;background:var(--ok);"></div></div>'+
     '</div>';
   });
@@ -32731,11 +32747,11 @@ function _mobTrafOperacaoHtml(p){
     return s.filmes.some(_isFest);
   }).sort(function(a,b){return _trafSort(a,b)||a.cinema.localeCompare(b.cinema,'pt-BR');});
   function dias(arr){
-    var out='',last=null;
+    var out='',last=null,gbDia=_trafGbDias(arr,hdSel);
     arr.forEach(function(s){
       var sh=_mobTrafSessHtml(s,canOp,hdSel);if(!sh)return;
       var d=_trafIso(s.date);
-      if(d!==last){last=d;out+='<div class="mob-h">'+esc(s.dia)+(d===hoje?' · hoje':'')+'</div>';}
+      if(d!==last){last=d;out+='<div class="mob-h">'+esc(s.dia)+(d===hoje?' · hoje':'')+(gbDia[d]?' · '+_trafGbStr(gbDia[d]):'')+'</div>';}
       out+=sh;
     });
     return out;
@@ -32751,13 +32767,13 @@ function _mobTrafOperacaoHtml(p){
 }
 function _mobTrafSessHtml(s,canOp,hdSel){
   var dis=canOp?'':' disabled',sn=_trafSafe(s.nome),kr=(typeof _kdmResults!=='undefined'&&_kdmResults[s.nome])||null;
-  var films=s.filmes.filter(_isFest);
-  if(hdSel)films=films.filter(function(c){return _trafEnvio(s,c).some(function(h){return h.id===hdSel.id;});});
+  var films=_trafOpFilmes(s,hdSel);
   if(!films.length)return'';
+  var gb=_trafGbLista(films);
   var kdmBtn=kr&&kr.files&&kr.files.length?'<button class="print-btn" style="padding:7px 10px;" onclick="_trafKdmDownload(\''+sn+'\')">⤓ KDM ('+kr.files.length+')</button>':'';
   var html='<div class="mob-sessao-card"><div class="mob-sessao-header"><span class="mob-sessao-hora">'+esc(s.hora)+'</span>'+
     '<div style="flex:1;min-width:0;"><div style="font-family:var(--mono);font-size:11px;color:var(--text-dim);">'+esc(s.cinema)+'</div>'+
-    '<div style="font-family:var(--mono);font-size:11px;color:var(--accent);">'+esc(stripEvPrefix(s.nome,s.evento))+(s.name&&s.name!==s.nome?' <span class="traf-muted">'+esc(s.name)+'</span>':'')+'</div></div>'+kdmBtn+'</div>'+
+    '<div style="font-family:var(--mono);font-size:11px;color:var(--accent);">'+esc(stripEvPrefix(s.nome,s.evento))+(s.name&&s.name!==s.nome?' <span class="traf-muted">'+esc(s.name)+'</span>':'')+'</div>'+(gb?'<div class="traf-muted">'+_trafGbStr(gb)+'</div>':'')+'</div>'+kdmBtn+'</div>'+
     '<div class="mob-sessao-body">';
   films.forEach(function(c){
     var f=filmesMap[c]||{},op=_trafOpMap[_trafOpId(s,c)]||{},sc=_trafSafe(c);
@@ -32769,7 +32785,7 @@ function _mobTrafSessHtml(s,canOp,hdSel){
     var save=function(campo,expr){return' onchange="_trafOpSave(\''+sn+'\',\''+sc+'\',\''+campo+'\','+expr+')"';};
     html+='<div style="padding:10px 0 12px;border-bottom:1px solid var(--border);">'+
       '<div style="font-size:14px;font-weight:600;color:var(--text);">'+esc(filmDisplayTitle(c))+_trafOvVfBadge(c)+'</div>'+
-      '<div class="traf-muted">'+esc(c)+'</div>'+
+      '<div class="traf-muted">'+esc(c)+'</div>'+_trafSpecsHtml(c)+
       (clean(f.cpl)?'<div class="traf-muted" style="word-break:break-all;color:var(--cpl-color);margin-top:2px;">CPL '+esc(clean(f.cpl))+'</div>':'')+
       (clean(f.cplOV)?'<div class="traf-muted" style="word-break:break-all;">CPL da OV '+esc(clean(f.cplOV))+'</div>':'')+
       (_trafEnvioHtml(s,c)?'<div style="margin-top:4px;">'+_trafEnvioHtml(s,c)+'</div>':'')+

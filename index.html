@@ -19003,7 +19003,7 @@ function renderDash(){
   html+=colBlock('legendagem','Legendagem',legBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 15/10/2026 às 20:18';
+  var sysUpdate='última atualização do sistema · 15/10/2026 às 20:23';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -28632,7 +28632,7 @@ function _sxcPrint(){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 15/10/2026 às 20:18</span></div>
+<div id="page-footer"><span>última atualização · 15/10/2026 às 20:23</span></div>
 
 </div>
 
@@ -32768,7 +32768,7 @@ function _trafOpImprimir(dia){
         var spec=[clean(f.lente),clean(f.som),clean(f.resolucao),_trafFps(f),_trafGB(c)?_trafGB(c).toFixed(0)+' GB':'',clean(f.status)].filter(Boolean).map(function(x){return'<span style="white-space:nowrap">'+e(x)+'</span>';}).join(' · ');
         var legCel=(_trafLegCopia(f)?'<b class="lg">'+e(_trafLegCopia(f))+'</b>'+(_trafLegNome(f)?' <span class="ln">'+e(_trafLegNome(f))+'</span>':''):'—')+(_trafLegExib(f)?'<br><span class="lx">'+e(_trafLegExib(f))+'</span>':'');
         var env=_trafEnvio(s,c).map(function(hd){var o=_trafOrigem(hd,c);return(hd.data.nome||'HD')+(o?' ← '+o:'');}).join(', ');
-        var kdm=(f.kdm||'').toString().toUpperCase()==='SIM'?'<b class="kd">DCP + KDM</b><br>'+e({sim:'recebido',nao:'NÃO recebido',erro:'COM ERRO'}[op.kdm_recebido]||'—'):'<span class="ab">aberto</span>';
+        var kdm=(f.kdm||'').toString().toUpperCase()==='SIM'?e({sim:'recebido',nao:'NÃO recebido',erro:'COM ERRO'}[op.kdm_recebido]||'—'):'<span class="ab">aberto</span>';
         h+='<tr><td><b class="tf">'+e(filmDisplayTitle(c))+'</b>'+(_trafOvVf(c)?' <span class="ov">OV + VF</span>':'')+'<br><span class="m">'+e(c)+'</span></td>'+
           '<td>'+(_trafMin(f)?'<b class="du">'+e(_trafMin(f))+'</b><br>':'')+(spec||'—')+'</td>'+
           '<td>'+legCel+'</td>'+

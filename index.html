@@ -19003,7 +19003,7 @@ function renderDash(){
   html+=colBlock('legendagem','Legendagem',legBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 15/10/2026 às 19:43';
+  var sysUpdate='última atualização do sistema · 15/10/2026 às 20:10';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -28632,7 +28632,7 @@ function _sxcPrint(){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 15/10/2026 às 19:43</span></div>
+<div id="page-footer"><span>última atualização · 15/10/2026 às 20:10</span></div>
 
 </div>
 
@@ -32683,6 +32683,7 @@ function _trafSessInfo(s,films){
 // legenda da cópia (VF tem prioridade, como na ficha) e taxa de quadros
 function _trafLegCopia(f){return clean(f.vf)?'VF '+clean(f.vf):clean(f.legenda);}
 function _trafFps(f){return clean(f.fps)?clean(f.fps)+' fps':'';}
+function _trafMin(f){var sec=typeof _parseDurSecs==='function'?_parseDurSecs(f.duracao):0;return sec>0?Math.round(sec/60)+' min':'';}
 function _trafLegNome(f){
   var code=clean(f.vf)||clean(f.legenda);if(!code)return'';
   var nome=typeof dcncToCldr==='function'?dcncToCldr(code):code;
@@ -32703,6 +32704,7 @@ function _trafLenteOpts(op,f,vazio){
 // especificações técnicas da cópia e tamanhos (o que antes só aparecia no Ingest)
 function _trafSpecsHtml(c){
   var f=filmesMap[c]||{},sp=[];
+  if(_trafMin(f))sp.push('<span class="traf-chip" style="font-weight:700;color:var(--text);">'+esc(_trafMin(f))+'</span>');
   if(clean(f.lente))sp.push(lenteBadge(clean(f.lente)));
   if(clean(f.som))sp.push(somBadge(clean(f.som)));
   if(clean(f.resolucao))sp.push('<span class="traf-chip">'+esc(clean(f.resolucao))+'</span>');
@@ -32766,12 +32768,12 @@ function _trafOpImprimir(dia){
         var spec=[clean(f.lente),clean(f.som),clean(f.resolucao),_trafFps(f),_trafGB(c)?_trafGB(c).toFixed(0)+' GB':'',clean(f.status)].filter(Boolean).map(function(x){return'<span style="white-space:nowrap">'+e(x)+'</span>';}).join(' · ');
         var legCel=(_trafLegCopia(f)?'<b class="lg">'+e(_trafLegCopia(f))+'</b>'+(_trafLegNome(f)?' <span class="ln">'+e(_trafLegNome(f))+'</span>':''):'—')+(_trafLegExib(f)?'<br><span class="lx">'+e(_trafLegExib(f))+'</span>':'');
         var env=_trafEnvio(s,c).map(function(hd){var o=_trafOrigem(hd,c);return(hd.data.nome||'HD')+(o?' ← '+o:'');}).join(', ');
-        var kdm=(f.kdm||'').toString().toUpperCase()==='SIM'?({sim:'recebido',nao:'NÃO recebido',erro:'COM ERRO'}[op.kdm_recebido]||'exige — ?'):'—';
-        h+='<tr><td><b>'+e(filmDisplayTitle(c))+'</b>'+(_trafOvVf(c)?' <span class="ov">OV + VF</span>':'')+'<br><span class="m">'+e(c)+'</span></td>'+
-          '<td>'+(spec||'—')+'</td>'+
+        var kdm=(f.kdm||'').toString().toUpperCase()==='SIM'?'<b class="kd">DCP + KDM</b><br>'+e({sim:'recebido',nao:'NÃO recebido',erro:'COM ERRO'}[op.kdm_recebido]||'—'):'<span class="ab">aberto</span>';
+        h+='<tr><td><b class="tf">'+e(filmDisplayTitle(c))+'</b>'+(_trafOvVf(c)?' <span class="ov">OV + VF</span>':'')+'<br><span class="m">'+e(c)+'</span></td>'+
+          '<td>'+(_trafMin(f)?'<b class="du">'+e(_trafMin(f))+'</b><br>':'')+(spec||'—')+'</td>'+
           '<td>'+legCel+'</td>'+
           '<td class="m cpl">'+e(clean(f.cpl)||'—')+(clean(f.cplOV)?'<br>OV: '+e(clean(f.cplOV)):'')+'</td>'+
-          '<td>'+e(env||'—')+'</td><td class="c">'+(op.ingestado?'✓':'☐')+'</td><td>'+e(op.volume||'')+'</td><td>'+(_trafLenteOp(op,f)?'<span class="lt">'+e(_trafLenteOp(op,f))+'</span>':'')+'</td><td>'+e(kdm)+'</td><td>'+e(op.obs||'')+'</td></tr>';
+          '<td>'+e(env||'—')+'</td><td class="c">'+(op.ingestado?'✓':'☐')+'</td><td>'+e(op.volume||'')+'</td><td>'+(_trafLenteOp(op,f)?'<span class="lt">'+e(_trafLenteOp(op,f))+'</span>':'')+'</td><td>'+kdm+'</td><td>'+e(op.obs||'')+'</td></tr>';
       });
     });
     return h+'</tbody></table><div class="rod">OLGA Flux · '+e(new Date().toLocaleString('pt-BR'))+'</div></section>';
@@ -32780,7 +32782,7 @@ function _trafOpImprimir(dia){
   var titulo='Operação · '+_trafEvNome(ev)+' · '+periodo+(filtros?' · '+filtros:'');
   w.document.write('<!doctype html><html><head><meta charset="utf-8"><title>'+e(titulo)+'</title><style>@page{size:A4 landscape;margin:9mm;}body{font-family:sans-serif;font-size:11px;margin:0;}section+section{page-break-before:always;}'+
     '.top{display:flex;align-items:center;gap:12px;flex-wrap:wrap;border-bottom:3px solid #000;padding-bottom:6px;margin-bottom:4px;}.top .sala{font-size:22px;border-width:3px;padding:2px 10px;margin:0;}.tt{font-size:13px;font-weight:bold;}.tt2{font-size:12px;margin-left:auto;}'+
-    'h2{font-size:14px;margin:12px 0 4px;}.hr{font-size:15px;}.sala{display:inline-block;border:2px solid #000;font-weight:bold;text-transform:uppercase;letter-spacing:.02em;}.sx{font-size:11px;margin:2px 0 0;font-weight:normal;}.av2{border:1.5px solid #000;font-weight:bold;font-size:10px;padding:0 5px;margin-left:6px;}'+
+    'h2{font-size:14px;margin:12px 0 4px;}.hr{font-size:21px;vertical-align:-2px;margin-right:4px;}.tf{font-size:12px;}.du{font-size:13px;}.kd{font-size:11px;white-space:nowrap;}.ab{color:#555;}.sala{display:inline-block;border:2px solid #000;font-weight:bold;text-transform:uppercase;letter-spacing:.02em;}.sx{font-size:11px;margin:2px 0 0;font-weight:normal;}.av2{border:1.5px solid #000;font-weight:bold;font-size:10px;padding:0 5px;margin-left:6px;}'+
     '.m{color:#555;font-family:monospace;font-size:10px;word-break:break-all;}.ov{background:#ffe7a8;border:1px solid #d9a400;font-size:9px;font-weight:bold;padding:0 4px;white-space:nowrap;}'+
     'table{border-collapse:collapse;width:100%;font-size:11px;table-layout:fixed;}th,td{border:1px solid #999;padding:4px 6px;text-align:left;vertical-align:top;overflow-wrap:anywhere;}'+
     'th{background:#222;color:#fff;font-size:8px;letter-spacing:0;text-transform:uppercase;white-space:nowrap;overflow:hidden;text-overflow:clip;padding:4px 3px;}thead{display:table-header-group;}tr{page-break-inside:avoid;}'+
@@ -32815,6 +32817,7 @@ function _trafOpSessHtml(s,canOp,hdSel){
     var f=filmesMap[c]||{},op=_trafOpMap[_trafOpId(s,c)]||{},sc=_trafSafe(c);
     var precisaKdm=(f.kdm||'').toString().toUpperCase()==='SIM';
     var sub=['<span class="film-code">'+esc(c)+'</span>'];
+    if(_trafMin(f))sub.push('<span class="film-hd" style="font-weight:700;color:var(--text);">'+esc(_trafMin(f))+'</span>');
     if(clean(f.resolucao))sub.push('<span class="film-hd">'+esc(clean(f.resolucao))+'</span>');
     if(_trafFps(f))sub.push('<span class="film-hd">'+esc(_trafFps(f))+'</span>');
     if(_trafGB(c))sub.push('<span class="film-hd">'+_trafGB(c).toFixed(0)+' GB</span>');

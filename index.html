@@ -8157,6 +8157,8 @@ function renderFicha(nome,s){
   document.getElementById('fichaWrap').innerHTML=_fichaNavBtn0+_fichaContentHTML(nome,s);
 }
 function _fichaContentHTML(nome,s){
+  if(s.evento&&typeof _trafOpEnsure==='function')_trafOpEnsure(s.evento);
+  var _ingOp=typeof _trafCanOperar==='function'&&_trafCanOperar(),_ingSn=String(nome).replace(/\\/g,'\\\\').replace(/'/g,"\\'");
   var films=s.filmes.filter(function(c){return _isFest(c);}).map(function(c){return Object.assign({codigo:c},filmesMap[c]||{});}).filter(function(f){return f.titulo||f.codigo;});
   var totalSecs=0,totalGB=0;
   films.forEach(function(f){totalSecs+=_parseDurSecs(f.duracao);var g=parseFloat((f.gb||'').toString().replace(',','.'));if(!isNaN(g))totalGB+=g;});
@@ -8181,7 +8183,9 @@ function _fichaContentHTML(nome,s){
     var fpsgb='<div class="fps-gb"><span class="fps-val">'+(fps||'—')+'</span>'+(gb?'<span class="gb-val">'+gb+' GB</span>':'')+'</div>';
     var acessCell=acessF?'<div style="font-family:var(--mono);font-size:9px;color:#5ddc8a;line-height:1.4;max-width:140px;">'+acessF+'</div>':'<span style="color:var(--text-muted)">—</span>';
     var acessCell=acessF?'<div title="'+acessF+'" style="font-size:9px;line-height:1.4;color:var(--text-dim);max-width:90px;overflow:hidden;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;cursor:default;">'+acessF+'</div>':'<span style="color:var(--text-muted)">—</span>';
-    return '<tr><td class="film-num">'+(idx+1)+'</td><td><div class="film-title">'+titulo+(exh?'<span class="exh-format-badge">'+esc(exh)+'</span>':'')+'</div><div class="film-sub"><span class="film-code">'+esc(f.codigo)+'</span>'+hdTag+resTag+'</div></td><td class="center">'+lenteBadge(lente)+'</td><td class="center">'+somBadge(som)+'</td><td>'+legCell+'</td><td class="center">'+idiomaCell+'</td><td class="center">'+kdmFichaBadge(kdm)+'</td><td class="cpl-cell">'+(cpl?'<div class="cpl-text">'+cpl+'</div>'+(clean(f.cplOV)?'<div class="cpl-ov-ficha"><span class="cpl-ov-ficha-label">CPL DA OV:</span>'+esc(clean(f.cplOV))+'</div>':''):'<span style="color:var(--text-muted)">—</span>')+'</td><td><div class="dur-text">'+fmtDur(dur)+'</div></td><td>'+(obs?'<div class="obs-text">'+obs+'</div>':'<span style="color:var(--text-muted)">—</span>')+'</td><td class="num">'+fpsgb+'</td><td class="center">'+acessCell+'</td></tr>';
+    var _ingDoc=(typeof _trafOpMap!=='undefined'&&_trafOpMap[_trafOpId(s,f.codigo)])||{};
+    var _ingCell='<td class="center"><label style="display:inline-flex;align-items:center;gap:5px;cursor:'+(_ingOp?'pointer':'default')+';" title="Ingest (registrado também na Operação do Tráfego)"><input type="checkbox" style="width:16px;height:16px;accent-color:var(--ok);"'+(_ingDoc.ingestado?' checked':'')+(_ingOp?'':' disabled')+' onchange="_trafOpSave(\''+_ingSn+'\',\''+String(f.codigo).replace(/'/g,"\\'")+'\',\'ingestado\',this.checked,this)"><span class="traf-badge traf-ok traf-ing" style="margin:0;'+(_ingDoc.ingestado?'':'display:none;')+'">OK</span></label></td>';
+    return '<tr><td class="film-num">'+(idx+1)+'</td><td><div class="film-title">'+titulo+(exh?'<span class="exh-format-badge">'+esc(exh)+'</span>':'')+'</div><div class="film-sub"><span class="film-code">'+esc(f.codigo)+'</span>'+hdTag+resTag+'</div></td><td class="center">'+lenteBadge(lente)+'</td><td class="center">'+somBadge(som)+'</td><td>'+legCell+'</td><td class="center">'+idiomaCell+'</td><td class="center">'+kdmFichaBadge(kdm)+'</td><td class="cpl-cell">'+(cpl?'<div class="cpl-text">'+cpl+'</div>'+(clean(f.cplOV)?'<div class="cpl-ov-ficha"><span class="cpl-ov-ficha-label">CPL DA OV:</span>'+esc(clean(f.cplOV))+'</div>':''):'<span style="color:var(--text-muted)">—</span>')+'</td><td><div class="dur-text">'+fmtDur(dur)+'</div></td><td>'+(obs?'<div class="obs-text">'+obs+'</div>':'<span style="color:var(--text-muted)">—</span>')+'</td><td class="num">'+fpsgb+'</td><td class="center">'+acessCell+'</td>'+_ingCell+'</tr>';
   }).join('');
   var eventoCol=s.evento&&eventColors[s.evento]?eventColors[s.evento]:null;
   var eventoBadge=eventoCol?'<span class="ficha-evento-badge" style="background:'+eventoCol.bg+';color:'+eventoCol.text+'">'+esc(s.evento)+'</span>':(s.evento?'<span class="ficha-evento-badge" style="background:var(--surface2);color:var(--text-dim);border:1px solid var(--border)">'+esc(s.evento)+'</span>':'');
@@ -8261,7 +8265,7 @@ function _fichaContentHTML(nome,s){
   var _fpUtcTag=_fpCi.utc_offset?'<span style="font-family:var(--mono);font-size:9px;color:var(--text-muted);margin-left:5px;opacity:0.75;">('+_fpCi.utc_offset+')</span>':'';
   var legFootnote=_legStar?'<div class="ficha-leg-note">*não existe um operador de legendagem eletrônica associado a esta sessão, consulte a equipe de programação para confirmar se esta sessão contará com este recurso</div>':'';
   var _fichaShowName=_sessShowName(s);
-  return'<div class="ficha"><div class="ficha-header"><div class="ficha-header-main"><div class="ficha-session-wrap"><div class="ficha-session-name" title="'+esc(nome)+'">'+esc(stripEvPrefix(nome,s.evento))+(_fichaShowName?' <span style="opacity:.7;font-weight:400;">('+esc(_fichaShowName)+')</span>':'')+'</div>'+(s.name?'<div class="prog-sess-display-name-ficha">'+esc(s.name)+'</div>':'')+eventoBadge+(fichaRatingBadge?fichaRatingBadge:'')+'</div><div class="ficha-meta"><div class="meta-item"><div class="meta-label">Cinema</div><div class="meta-value">'+esc(s.cinema||'—')+_fpUtcTag+'</div></div><div class="meta-item"><div class="meta-label">Data</div><div class="meta-value">'+s.dia+'</div></div><div class="meta-item"><div class="meta-label">Hora</div><div class="meta-value">'+s.hora+'</div></div><div class="meta-item"><div class="meta-label">Filmes</div><div class="meta-value highlight">'+films.length+'</div></div></div></div>'+extraHtml+'</div>'+vinhetasHtml+'<div class="film-table-wrap"><table><thead><tr><th>#</th><th>Filme</th><th class="center">Lente</th><th class="center">Som</th><th>Legenda</th><th class="center">Idioma</th><th class="center">KDM</th><th>CPL</th><th>Duração</th><th>OBS</th><th class="center">FPS · GB</th><th class="center" title="Acessibilidade"><svg width="13" height="13" viewBox="0 0 24 24" style="stroke:currentColor;stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round;vertical-align:middle;"><circle cx="11" cy="4" r="1"/><path d="m11 9 2 7h5l-1.5 3"/><path d="M9 9H7l1 7"/><path d="M13.5 19a4.5 4.5 0 1 1-9 0 4.5 4.5 0 0 1 9 0z"/></svg></th></tr></thead><tbody>'+(rows||'<tr><td colspan="12" style="text-align:center;color:var(--text-muted);padding:24px">Nenhum filme encontrado para esta sessão.</td></tr>')+'</tbody></table></div>'+legFootnote+'<div class="ficha-footer"><div class="footer-total">Duração total dos filmes: <strong>'+totalDur+'</strong>'+(totalVinSecs>0?' &nbsp;·&nbsp; Vinhetas: <strong>'+_secsToHMS(totalVinSecs)+'</strong>':'')+' &nbsp;·&nbsp; Tamanho: <strong>'+totalGBStr+'</strong></div><div class="footer-stamp">OLGA · '+new Date().toLocaleString('pt-BR')+'</div></div></div>';
+  return'<div class="ficha"><div class="ficha-header"><div class="ficha-header-main"><div class="ficha-session-wrap"><div class="ficha-session-name" title="'+esc(nome)+'">'+esc(stripEvPrefix(nome,s.evento))+(_fichaShowName?' <span style="opacity:.7;font-weight:400;">('+esc(_fichaShowName)+')</span>':'')+'</div>'+(s.name?'<div class="prog-sess-display-name-ficha">'+esc(s.name)+'</div>':'')+eventoBadge+(fichaRatingBadge?fichaRatingBadge:'')+'</div><div class="ficha-meta"><div class="meta-item"><div class="meta-label">Cinema</div><div class="meta-value">'+esc(s.cinema||'—')+_fpUtcTag+'</div></div><div class="meta-item"><div class="meta-label">Data</div><div class="meta-value">'+s.dia+'</div></div><div class="meta-item"><div class="meta-label">Hora</div><div class="meta-value">'+s.hora+'</div></div><div class="meta-item"><div class="meta-label">Filmes</div><div class="meta-value highlight">'+films.length+'</div></div></div></div>'+extraHtml+'</div>'+vinhetasHtml+'<div class="film-table-wrap"><table><thead><tr><th>#</th><th>Filme</th><th class="center">Lente</th><th class="center">Som</th><th>Legenda</th><th class="center">Idioma</th><th class="center">KDM</th><th>CPL</th><th>Duração</th><th>OBS</th><th class="center">FPS · GB</th><th class="center" title="Acessibilidade"><svg width="13" height="13" viewBox="0 0 24 24" style="stroke:currentColor;stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round;vertical-align:middle;"><circle cx="11" cy="4" r="1"/><path d="m11 9 2 7h5l-1.5 3"/><path d="M9 9H7l1 7"/><path d="M13.5 19a4.5 4.5 0 1 1-9 0 4.5 4.5 0 0 1 9 0z"/></svg></th><th class="center">Ingest</th></tr></thead><tbody>'+(rows||'<tr><td colspan="13" style="text-align:center;color:var(--text-muted);padding:24px">Nenhum filme encontrado para esta sessão.</td></tr>')+'</tbody></table></div>'+legFootnote+'<div class="ficha-footer"><div class="footer-total">Duração total dos filmes: <strong>'+totalDur+'</strong>'+(totalVinSecs>0?' &nbsp;·&nbsp; Vinhetas: <strong>'+_secsToHMS(totalVinSecs)+'</strong>':'')+' &nbsp;·&nbsp; Tamanho: <strong>'+totalGBStr+'</strong></div><div class="footer-stamp">OLGA · '+new Date().toLocaleString('pt-BR')+'</div></div></div>';
 }
 
 function _goToFichaFromProg(nome){
@@ -18999,7 +19003,7 @@ function renderDash(){
   html+=colBlock('legendagem','Legendagem',legBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 15/10/2026 às 16:41';
+  var sysUpdate='última atualização do sistema · 15/10/2026 às 17:21';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -28628,7 +28632,7 @@ function _sxcPrint(){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 15/10/2026 às 16:41</span></div>
+<div id="page-footer"><span>última atualização · 15/10/2026 às 17:21</span></div>
 
 </div>
 
@@ -32216,6 +32220,7 @@ function _trafOpEnsure(ev){
     var agora=Date.now(),alheias=(ids||[]).filter(function(id){return !(_trafOpLocal[id]&&agora-_trafOpLocal[id]<20000);});
     if(ids&&ids.length&&!alheias.length)return;
     if(window._mobileActive||_trafView==='operacao')_trafRerender();
+    if(currentMode==='ficha'){var fsel=document.getElementById('sessionSelect');if(fsel&&fsel.value&&sessoesMap[fsel.value])renderFicha(fsel.value,sessoesMap[fsel.value]);}
   });
 }
 var _trafOpLocal={},_trafOpIdx={};
@@ -32721,28 +32726,44 @@ function _trafOpSessHtml(s,canOp,hdSel){
   var films=_trafOpFilmes(s,hdSel);
   if(!films.length)return'';
   var gb=_trafGbLista(films);
-  var kdmBtn=kr&&kr.files&&kr.files.length?'<button class="print-btn" style="margin-left:auto;" onclick="_trafKdmDownload(\''+sn+'\')">⤓ KDM ('+kr.files.length+')</button>':'';
-  var html='<div class="traf-sess"><div class="traf-sess-h"><b>'+esc(s.hora)+'</b><span>'+esc(s.cinema)+'</span><span style="color:var(--accent);">'+esc(stripEvPrefix(s.nome,s.evento))+'</span>'+(s.name&&s.name!==s.nome?'<span class="traf-muted">'+esc(s.name)+'</span>':'')+(gb?'<span class="traf-muted">'+_trafGbStr(gb)+'</span>':'')+kdmBtn+'</div>';
-  html+='<table class="traf-table"><thead><tr><th>Filme</th><th>HD de envio</th><th>Ingest</th><th>Volume</th><th>Lente</th><th>KDM</th><th>Obs.</th><th>Outras sessões nesta sala</th></tr></thead><tbody>';
-  films.forEach(function(c){
+  var kdmBtn=kr&&kr.files&&kr.files.length?'<button class="print-btn" onclick="_trafKdmDownload(\''+sn+'\')">⤓ KDM ('+kr.files.length+')</button>':'';
+  function meta(l,v,hl){return'<div class="meta-item"><div class="meta-label">'+l+'</div><div class="meta-value'+(hl?' highlight':'')+'">'+v+'</div></div>';}
+  var html='<div class="ficha" style="margin:0 0 14px;max-width:none;">'+
+    '<div class="ficha-header" style="padding:12px 18px 10px;align-items:center;"><div class="ficha-header-main">'+
+      '<div class="ficha-session-wrap" style="margin-bottom:6px;"><div class="ficha-session-name" title="'+esc(s.nome)+'">'+esc(stripEvPrefix(s.nome,s.evento))+'</div>'+(s.name&&s.name!==s.nome?'<div class="prog-sess-display-name-ficha">'+esc(s.name)+'</div>':'')+'</div>'+
+      '<div class="ficha-meta">'+meta('Data',esc(s.dia))+meta('Hora',esc(s.hora))+meta('Cinema',esc(s.cinema||'—'))+meta('Filmes',films.length,true)+(gb?meta('Tamanho',_trafGbStr(gb)):'')+'</div>'+
+    '</div>'+kdmBtn+'</div>';
+  html+='<div class="film-table-wrap"><table><thead><tr><th>#</th><th>Filme</th><th class="center">Lente</th><th class="center">Som</th><th>CPL</th><th>HD de envio</th>'+
+    '<th class="center">Ingest</th><th>Volume</th><th>Lente cabine</th><th>KDM</th><th>Obs.</th></tr></thead><tbody>';
+  films.forEach(function(c,idx){
     var f=filmesMap[c]||{},op=_trafOpMap[_trafOpId(s,c)]||{},sc=_trafSafe(c);
     var precisaKdm=(f.kdm||'').toString().toUpperCase()==='SIM';
-    var lenteOpts=['','FLAT','SCOPE','FULL'].map(function(l){return'<option value="'+l+'"'+((op.lente||'')===l?' selected':'')+'>'+(l||('— '+esc(clean(f.lente)||'')))+'</option>';}).join('');
+    var sub=['<span class="film-code">'+esc(c)+'</span>'];
+    if(clean(f.resolucao))sub.push('<span class="film-hd">'+esc(clean(f.resolucao))+'</span>');
+    if(_trafGB(c))sub.push('<span class="film-hd">'+_trafGB(c).toFixed(0)+' GB</span>');
+    if(f.status)sub.push(statusBadge(f.status));
     var outras=_trafOpOutras(s,c).map(function(o){
       var oop=_trafOpMap[_trafOpId(o,c)]||{};
       return'<span class="traf-chip" title="'+esc(o.nome)+'">'+esc(_trafBr(_trafIso(o.date))+' '+o.hora)+(oop.ingestado?' ✓':'')+'</span>';
     }).join('');
-    html+='<tr><td><b>'+esc(filmDisplayTitle(c))+'</b>'+_trafOvVfBadge(c)+'<div class="traf-muted">'+esc(c)+'</div>'+_trafSpecsHtml(c)+(clean(f.cpl)?'<div class="traf-muted" style="word-break:break-all;color:var(--cpl-color);">CPL '+esc(clean(f.cpl))+'</div>':'')+(clean(f.cplOV)?'<div class="traf-muted" style="word-break:break-all;">CPL da OV '+esc(clean(f.cplOV))+'</div>':'')+'</td>'+
-      '<td>'+(_trafEnvioHtml(s,c)||'<span class="traf-muted">—</span>')+'</td>'+
-      '<td><label class="traf-day" style="margin:0;"><input type="checkbox"'+(op.ingestado?' checked':'')+dis+' onchange="_trafOpSave(\''+sn+'\',\''+sc+'\',\'ingestado\',this.checked,this)"><span class="traf-badge traf-ok traf-ing" style="margin:0;'+(op.ingestado?'':'display:none;')+'">OK</span></label></td>'+
-      '<td><input class="traf-input" style="width:60px;" value="'+esc(op.volume||'')+'"'+dis+' onchange="_trafOpSave(\''+sn+'\',\''+sc+'\',\'volume\',this.value.trim())"></td>'+
+    var lenteOpts=['','FLAT','SCOPE','FULL'].map(function(l){return'<option value="'+l+'"'+((op.lente||'')===l?' selected':'')+'>'+(l||'—')+'</option>';}).join('');
+    html+='<tr>'+
+      '<td class="film-num">'+(idx+1)+'</td>'+
+      '<td><div class="film-title">'+esc(filmDisplayTitle(c))+_trafOvVfBadge(c)+'</div><div class="film-sub">'+sub.join('')+'</div>'+
+        (outras?'<div class="film-sub" style="margin-top:4px;"><span class="traf-muted">nesta sala também:</span>'+outras+'</div>':'')+'</td>'+
+      '<td class="center">'+(lenteBadge(clean(f.lente))||'<span style="color:var(--text-muted)">—</span>')+'</td>'+
+      '<td class="center">'+(somBadge(clean(f.som))||'<span style="color:var(--text-muted)">—</span>')+'</td>'+
+      '<td class="cpl-cell">'+(clean(f.cpl)?'<div class="cpl-text" style="min-width:160px;">'+esc(clean(f.cpl))+'</div>':'<span style="color:var(--text-muted)">—</span>')+(clean(f.cplOV)?'<div class="cpl-ov-ficha"><span class="cpl-ov-ficha-label">CPL da OV:</span>'+esc(clean(f.cplOV))+'</div>':'')+'</td>'+
+      '<td>'+(_trafEnvioHtml(s,c)||'<span style="color:var(--text-muted)">—</span>')+'</td>'+
+      '<td class="center"><label style="display:inline-flex;align-items:center;gap:6px;cursor:pointer;"><input type="checkbox" style="width:18px;height:18px;accent-color:var(--ok);"'+(op.ingestado?' checked':'')+dis+' onchange="_trafOpSave(\''+sn+'\',\''+sc+'\',\'ingestado\',this.checked,this)"><span class="traf-badge traf-ok traf-ing" style="margin:0;'+(op.ingestado?'':'display:none;')+'">OK</span></label></td>'+
+      '<td><input class="traf-input" style="width:64px;" value="'+esc(op.volume||'')+'"'+dis+' onchange="_trafOpSave(\''+sn+'\',\''+sc+'\',\'volume\',this.value.trim())"></td>'+
       '<td><select class="traf-input"'+dis+' onchange="_trafOpSave(\''+sn+'\',\''+sc+'\',\'lente\',this.value)">'+lenteOpts+'</select></td>'+
       '<td>'+(precisaKdm?'<select class="traf-input"'+dis+' onchange="_trafOpSave(\''+sn+'\',\''+sc+'\',\'kdm_recebido\',this.value,this)">'+
-        [['','—'],['sim','recebido'],['nao','não recebido'],['erro','com erro']].map(function(o){return'<option value="'+o[0]+'"'+((op.kdm_recebido||'')===o[0]?' selected':'')+'>'+o[1]+'</option>';}).join('')+'</select><span class="traf-badge traf-aus traf-kdmerro" style="'+(op.kdm_recebido==='erro'?'':'display:none;')+'">KDM com erro</span>':'<span class="traf-muted">não exige</span>')+'</td>'+
-      '<td><input class="traf-input" style="width:100%;min-width:140px;" value="'+esc(op.obs||'')+'"'+dis+' onchange="_trafOpSave(\''+sn+'\',\''+sc+'\',\'obs\',this.value)"></td>'+
-      '<td>'+(outras||'<span class="traf-muted">—</span>')+'</td></tr>';
+        [['','—'],['sim','recebido'],['nao','não recebido'],['erro','com erro']].map(function(o){return'<option value="'+o[0]+'"'+((op.kdm_recebido||'')===o[0]?' selected':'')+'>'+o[1]+'</option>';}).join('')+'</select><span class="traf-badge traf-aus traf-kdmerro" style="'+(op.kdm_recebido==='erro'?'':'display:none;')+'">KDM com erro</span>':'<span style="color:var(--text-muted)">não exige</span>')+'</td>'+
+      '<td><input class="traf-input" style="width:100%;min-width:150px;" value="'+esc(op.obs||'')+'"'+dis+' onchange="_trafOpSave(\''+sn+'\',\''+sc+'\',\'obs\',this.value)"></td>'+
+    '</tr>';
   });
-  return html+'</tbody></table></div>';
+  return html+'</tbody></table></div></div>';
 }
 // Montagem sob demanda: cada dia é um <details>; só o corpo dos dias abertos é montado.
 // _trafOpCtx guarda a lista filtrada da última renderização para preencher dias abertos depois.
@@ -32937,7 +32958,8 @@ function _mobTrafSessHtml(s,canOp,hdSel){
   var gb=_trafGbLista(films);
   var kdmBtn=kr&&kr.files&&kr.files.length?'<button class="print-btn" style="padding:7px 10px;" onclick="_trafKdmDownload(\''+sn+'\')">⤓ KDM ('+kr.files.length+')</button>':'';
   var html='<div class="mob-sessao-card"><div class="mob-sessao-header"><span class="mob-sessao-hora">'+esc(s.hora)+'</span>'+
-    '<div style="flex:1;min-width:0;"><div style="font-family:var(--mono);font-size:11px;color:var(--text-dim);">'+esc(s.cinema)+'</div>'+
+    '<div style="flex:1;min-width:0;"><div style="font-family:var(--mono);font-size:12px;font-weight:700;color:var(--text);">'+esc(s.dia)+'</div>'+
+    '<div style="font-family:var(--mono);font-size:11px;color:var(--text-dim);">'+esc(s.cinema)+'</div>'+
     '<div style="font-family:var(--mono);font-size:11px;color:var(--accent);">'+esc(stripEvPrefix(s.nome,s.evento))+(s.name&&s.name!==s.nome?' <span class="traf-muted">'+esc(s.name)+'</span>':'')+'</div>'+(gb?'<div class="traf-muted">'+_trafGbStr(gb)+'</div>':'')+'</div>'+kdmBtn+'</div>'+
     '<div class="mob-sessao-body">';
   films.forEach(function(c){

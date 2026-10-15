@@ -5756,6 +5756,11 @@ html[data-theme="indexof"]:not([data-theme="win98"]) .module-icon{display:flex!i
       // fallback pro próprio id, e where('nome','in',...) nunca bate se o campo não existe.
       unsubs.push(onSnapshot(_evFilter ? query(collection(db,'eventos'),  where(documentId(),'in',_evFilter)) : collection(db,'eventos'),   _onSnap('eventos',     parseEventosSnap),     _onSnapErr('eventos')));
       unsubs.push(window._olgaAvisosListen(_evFilter));
+      unsubs.push(onSnapshot(_evFilter ? query(collection(db,'operacao'), where('event_id','in',_evFilter), where('kdm_recebido','==','erro')) : query(collection(db,'operacao'), where('kdm_recebido','==','erro')), function(snap){
+        var m = {}; snap.forEach(function(d){ var r = d.data(); if (r.sessao) (m[r.sessao] = m[r.sessao] || []).push(r.codigo); });
+        window._kdmErros = m;
+        if (initialApplied && ['dash','kdm'].indexOf(currentMode) >= 0 && typeof _olgaRerenderActive === 'function') _olgaRerenderActive();
+      }, function(e){ console.warn('snapshot operacao/kdm erro:', e); }));
       unsubs.push(onSnapshot(_evFilter ? query(collection(db,'trafego_hds'), where('event_id','in',_evFilter)) : collection(db,'trafego_hds'), function(snap){
         var arr = []; snap.forEach(function(d){ arr.push({id:d.id, data:d.data()}); });
         _trafHds = arr;
@@ -14280,7 +14285,8 @@ function renderKDM(){
       +'<span class="kdm-row-time">'+(s.time?s.time.str:'—')+'</span>'
       +'<span class="kdm-row-cinema">'+s.cinema+'</span>'
       +'<div class="kdm-row-body"><div class="kdm-row-name" title="'+esc(s.nome)+'">'+esc(stripEvPrefix(s.nome,s.evento))+'</div>'+(filmTitles?'<div class="kdm-row-films">'+filmTitles+'</div>':'')+'</div>'
-      +'<div class="kdm-row-right">'+(evTag||'')+'<span class="kdm-status '+st.cls+'">'+st.label+'</span>'+'<button class="kdm-test-btn" onclick="testKDM(\''+safe+'\')">Testar KDM</button>'+'</div>'
+      +'<div class="kdm-row-right">'+(evTag||'')+'<span class="kdm-status '+st.cls+'">'+st.label+'</span>'+
+        (((window._kdmErros||{})[s.nome]||[]).length?'<span class="traf-badge traf-aus" title="Marcado pelo projecionista na Operação (Tráfego)">erro na cabine</span>':'')+'<button class="kdm-test-btn" onclick="testKDM(\''+safe+'\')">Testar KDM</button>'+'</div>'
       +'</div>'+prevResult;
   }
 
@@ -17860,7 +17866,8 @@ function dashGetKDMSessoes(){
     else if(r.status==='window')st={cls:'kdm-status-window',label:'Fora da janela'};
     else st={cls:'kdm-status-fail',label:'Inválido'};
     var ms=s.date?new Date(s.date.getFullYear(),s.date.getMonth(),s.date.getDate(),s.time?s.time.h:0,s.time?s.time.m:0).getTime():Infinity;
-    rows.push({s:s,st:st,kdmFilms:kdmFilms,ms:ms,urg:st.label!=='Válido'&&ms>=agora&&ms<=lim48});
+    var erros=((window._kdmErros||{})[s.nome]||[]).filter(function(c){return kdmFilms.indexOf(c)>=0;});
+    rows.push({s:s,st:st,kdmFilms:kdmFilms,ms:ms,erros:erros,urg:(st.label!=='Válido'||erros.length>0)&&ms>=agora&&ms<=lim48});
   });
   rows.sort(function(a,b){return a.ms-b.ms;});
   var byStatus={},statusOrder=[];
@@ -17871,7 +17878,8 @@ function dashGetKDMSessoes(){
   });
   var priMap={'Inválido':5,'Fora da janela':4,'Aguardando KDM':3,'Cert ausente':2,'Válido':1};
   statusOrder.sort(function(a,b){return(priMap[b]||0)-(priMap[a]||0);});
-  return{rows:rows,byStatus:byStatus,statusOrder:statusOrder,urgentes:rows.filter(function(r){return r.urg;}),passadas:passadas};
+  return{rows:rows,byStatus:byStatus,statusOrder:statusOrder,urgentes:rows.filter(function(r){return r.urg;}),
+    comErro:rows.filter(function(r){return r.erros.length&&r.ms>=hoje.getTime();}),passadas:passadas};
 }
 function dashKdmSessRowsHtml(rows){
   var html='',lastDay=null;
@@ -17887,6 +17895,7 @@ function dashKdmSessRowsHtml(rows){
       _dashSessNome(s,_dashSessFilmes(s))+
       '<span class="dsd-cinema">'+esc(s.cinema)+'</span>'+
       '<span class="kdm-status '+row.st.cls+'" style="font-size:8px;padding:1px 5px;">'+row.st.label+'</span>'+
+      (row.erros&&row.erros.length?'<span class="traf-badge traf-aus" title="'+esc(row.erros.map(filmDisplayTitle).join(' · '))+'">KDM com erro na cabine'+(row.erros.length<row.kdmFilms.length?' ('+row.erros.length+')':'')+'</span>':'')+
     '</div>';
   });
   return html;
@@ -18870,12 +18879,19 @@ function renderDash(){
     kdmBody+='<div class="dash-total-bar" style="margin-bottom:0;">Nenhuma sessão com KDM nos filtros selecionados.</div>';
   }else{
     kdmBody+='<div class="dash-total-bar" style="margin-bottom:16px;">Sessões com KDM: <strong>'+kdmData.rows.length+'</strong>'
-      +(kdmData.urgentes.length?' · <span style="color:var(--warn);">pendentes nas próximas 48h: <strong>'+kdmData.urgentes.length+'</strong></span>':'')+'</div>';
+      +(kdmData.urgentes.length?' · <span style="color:var(--warn);">pendentes nas próximas 48h: <strong>'+kdmData.urgentes.length+'</strong></span>':'')
+      +(kdmData.comErro.length?' · <span style="color:var(--warn);">com erro na cabine: <strong>'+kdmData.comErro.length+'</strong></span>':'')+'</div>';
     kdmBody+='<div class="dash-tiles">';
     if(kdmData.urgentes.length){
       kdmBody+='<button class="dash-tile st-error'+(dashKdmStatusSelected==='__48h__'?' active':'')+'" onclick="selectDashKdmStatus(\'__48h__\')">'+
         '<div class="dash-tile-count">'+kdmData.urgentes.length+'</div>'+
         '<div class="dash-tile-status">Próximas 48h</div>'+
+      '</button>';
+    }
+    if(kdmData.comErro.length){
+      kdmBody+='<button class="dash-tile st-error'+(dashKdmStatusSelected==='__erro__'?' active':'')+'" onclick="selectDashKdmStatus(\'__erro__\')" title="Marcado pelo projecionista na Operação (Tráfego)">'+
+        '<div class="dash-tile-count">'+kdmData.comErro.length+'</div>'+
+        '<div class="dash-tile-status">Erro na cabine</div>'+
       '</button>';
     }
     kdmData.statusOrder.forEach(function(lbl){
@@ -18888,10 +18904,10 @@ function renderDash(){
       '</button>';
     });
     kdmBody+='</div>';
-    var kdmDet=dashKdmStatusSelected==='__48h__'?kdmData.urgentes:(dashKdmStatusSelected!==null?kdmData.byStatus[dashKdmStatusSelected]:null);
+    var kdmDet=dashKdmStatusSelected==='__48h__'?kdmData.urgentes:dashKdmStatusSelected==='__erro__'?kdmData.comErro:(dashKdmStatusSelected!==null?kdmData.byStatus[dashKdmStatusSelected]:null);
     if(kdmDet&&kdmDet.length){
-      var kdmLbl=dashKdmStatusSelected==='__48h__'?'Pendentes · próximas 48h':dashKdmStatusSelected;
-      var kdmStCls=dashKdmStatusSelected==='__48h__'?'st-error':dashKdmStatusClass(dashKdmStatusSelected);
+      var kdmLbl=dashKdmStatusSelected==='__48h__'?'Pendentes · próximas 48h':dashKdmStatusSelected==='__erro__'?'KDM com erro na cabine':dashKdmStatusSelected;
+      var kdmStCls=(dashKdmStatusSelected==='__48h__'||dashKdmStatusSelected==='__erro__')?'st-error':dashKdmStatusClass(dashKdmStatusSelected);
       var kdmStColor=kdmStCls==='st-ok'?'var(--ok)':kdmStCls==='st-accent'?'var(--accent)':'var(--warn)';
       kdmBody+='<div class="dash-detail">';
       kdmBody+='<div class="dash-detail-hdr">'+
@@ -18963,7 +18979,7 @@ function renderDash(){
   html+=colBlock('legendagem','Legendagem',legBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 15/10/2026 às 15:53';
+  var sysUpdate='última atualização do sistema · 15/10/2026 às 15:57';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -28592,7 +28608,7 @@ function _sxcPrint(){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 15/10/2026 às 15:53</span></div>
+<div id="page-footer"><span>última atualização · 15/10/2026 às 15:57</span></div>
 
 </div>
 

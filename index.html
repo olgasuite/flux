@@ -18999,7 +18999,7 @@ function renderDash(){
   html+=colBlock('legendagem','Legendagem',legBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 15/10/2026 às 16:34';
+  var sysUpdate='última atualização do sistema · 15/10/2026 às 16:41';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -28628,7 +28628,7 @@ function _sxcPrint(){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 15/10/2026 às 16:34</span></div>
+<div id="page-footer"><span>última atualização · 15/10/2026 às 16:41</span></div>
 
 </div>
 
@@ -32744,15 +32744,51 @@ function _trafOpSessHtml(s,canOp,hdSel){
   });
   return html+'</tbody></table></div>';
 }
-function _trafOpDiasHtml(list,canOp,hdSel){
-  var html='',lastDay=null,gbDia=_trafGbDias(list,hdSel);
-  list.forEach(function(s){
-    var sh=_trafOpSessHtml(s,canOp,hdSel);if(!sh)return;
-    var d=_trafIso(s.date);
-    if(d!==lastDay){lastDay=d;html+='<div class="traf-h">'+esc(s.dia)+(gbDia[d]?' <span class="traf-muted" style="letter-spacing:0;text-transform:none;">· '+_trafGbStr(gbDia[d])+'</span>':'')+' <a href="#" class="traf-muted" style="text-decoration:none;" title="Imprimir este dia" onclick="event.preventDefault();_trafOpImprimir(\''+d+'\')">⎙</a></div>';}
-    html+=sh;
+// Montagem sob demanda: cada dia é um <details>; só o corpo dos dias abertos é montado.
+// _trafOpCtx guarda a lista filtrada da última renderização para preencher dias abertos depois.
+var _trafDiaAberto={},_trafOpCtx=null,_trafOpPastForce=false;
+function _trafOpDiaCorpo(d){
+  var c=_trafOpCtx;if(!c)return'';
+  var f=c.mobile?_mobTrafSessHtml:_trafOpSessHtml;
+  return c.list.filter(function(s){return _trafIso(s.date)===d;}).map(function(s){return f(s,c.canOp,c.hdSel);}).join('')||'<div class="traf-muted">—</div>';
+}
+function _trafDiaToggle(el){
+  var d=el.getAttribute('data-dia'),body=el.querySelector('.traf-dia-body');
+  _trafDiaAberto[d]=el.open;
+  if(el.open&&body&&!body.childElementCount)body.innerHTML=_trafOpDiaCorpo(d);
+}
+function _trafOpDiasLazy(list,abrirPrimeiro,recentesPrimeiro){
+  var c=_trafOpCtx,hoje=_trafIso(new Date()),dias=[],por={},html='',primeiro=true;
+  list.forEach(function(s){var d=_trafIso(s.date);if(!por[d]){por[d]=[];dias.push(d);}por[d].push(s);});
+  if(recentesPrimeiro)dias.reverse();
+  var gb=_trafGbDias(list,c.hdSel);
+  dias.forEach(function(d){
+    var ss=por[d].filter(function(s){return _trafOpFilmes(s,c.hdSel).length;});if(!ss.length)return;
+    var aberto=_trafDiaAberto[d]!==undefined?_trafDiaAberto[d]:(abrirPrimeiro&&primeiro);
+    primeiro=false;
+    var lbl=esc(ss[0].dia)+(d===hoje?' · hoje':'')+' · '+ss.length+' sess'+(ss.length!==1?'ões':'ão')+(gb[d]?' · '+_trafGbStr(gb[d]):'');
+    var pr='<a href="#" style="text-decoration:none;color:var(--text-muted);margin-left:8px;'+(c.mobile?'font-size:16px;':'')+'" title="Imprimir este dia" onclick="event.preventDefault();event.stopPropagation();_trafOpImprimir(\''+d+'\')">⎙</a>';
+    html+='<details class="traf-dia" data-dia="'+d+'"'+(aberto?' open':'')+' ontoggle="_trafDiaToggle(this)">'+
+      '<summary class="'+(c.mobile?'mob-h':'traf-h')+'" style="cursor:pointer;">'+lbl+pr+'</summary>'+
+      '<div class="traf-dia-body">'+(aberto?ss.map(function(s){return(c.mobile?_mobTrafSessHtml:_trafOpSessHtml)(s,c.canOp,c.hdSel);}).join(''):'')+'</div></details>';
   });
   return html;
+}
+// dias anteriores: só montados quando abertos; sem filtro (e sem restrição de complexo) pede filtro antes
+function _trafPastCorpo(){
+  var c=_trafOpCtx;if(!c)return'';
+  if(c.pedeFiltro&&!_trafOpPastForce)return'<div class="traf-muted" style="padding:8px 0;">Escolha um complexo, sala ou HD nos filtros para ver os dias anteriores. <a href="#" onclick="event.preventDefault();_trafOpPastForce=true;var b=this.closest(\'.traf-past\').querySelector(\'.traf-past-body\');b.innerHTML=_trafPastCorpo();">mostrar todos mesmo assim</a></div>';
+  return _trafOpDiasLazy(c.pas,false,true)||'<div class="traf-muted">—</div>';
+}
+function _trafPastToggle(el){
+  _trafOpPastOpen=el.open;
+  var body=el.querySelector('.traf-past-body');
+  if(el.open&&body&&!body.childElementCount)body.innerHTML=_trafPastCorpo();
+}
+function _trafPastHtml(mobile){
+  var c=_trafOpCtx;if(!c||!c.pas.length)return'';
+  return'<details class="traf-past" style="margin:18px 0 20px;"'+(_trafOpPastOpen?' open':'')+' ontoggle="_trafPastToggle(this)"><summary class="'+(mobile?'mob-h':'traf-muted')+'" style="cursor:pointer;">Dias anteriores · '+c.pas.length+' sess'+(c.pas.length!==1?'ões':'ão')+'</summary>'+
+    '<div class="traf-past-body">'+(_trafOpPastOpen?_trafPastCorpo():'')+'</div></details>';
 }
 function _trafRenderOperacao(cont){
   var ev=_trafEv,F=_trafOpFiltro,canOp=_trafCanOperar();
@@ -32803,12 +32839,10 @@ function _trafRenderOperacao(cont){
     return s.filmes.some(_isFest);
   }).sort(function(a,b){return _trafSort(a,b)||a.cinema.localeCompare(b.cinema,'pt-BR');});
   var futuras=list.filter(function(s){return _trafIso(s.date)>=hoje;}),passadas=list.filter(function(s){return _trafIso(s.date)<hoje;});
-  var fh=_trafOpDiasHtml(futuras,canOp,hdSel);
+  _trafOpCtx={list:list,pas:passadas,canOp:canOp,hdSel:hdSel,mobile:false,pedeFiltro:!as&&!F.complexo&&!F.sala&&!hdSel};
+  var fh=_trafOpDiasLazy(futuras,true,false);
   html+=fh||'<div class="traf-muted" style="margin-top:14px;">Nenhuma sessão de hoje em diante nos filtros selecionados.</div>';
-  if(passadas.length){
-    var ph=_trafOpDiasHtml(passadas,canOp,hdSel);
-    if(ph)html+='<details style="margin-top:18px;"'+(_trafOpPastOpen?' open':'')+' ontoggle="_trafOpPastOpen=this.open"><summary class="traf-muted" style="cursor:pointer;">Dias anteriores · '+passadas.length+' sess'+(passadas.length!==1?'ões':'ão')+'</summary>'+ph+'</details>';
-  }
+  html+=_trafPastHtml(false);
   cont.innerHTML=html;
 }
 
@@ -32889,23 +32923,11 @@ function _mobTrafOperacaoHtml(p){
     if(hdSel&&!_trafHdMatch(hdSel,s))return false;
     return s.filmes.some(_isFest);
   }).sort(function(a,b){return _trafSort(a,b)||a.cinema.localeCompare(b.cinema,'pt-BR');});
-  function dias(arr){
-    var out='',last=null,gbDia=_trafGbDias(arr,hdSel);
-    arr.forEach(function(s){
-      var sh=_mobTrafSessHtml(s,canOp,hdSel);if(!sh)return;
-      var d=_trafIso(s.date);
-      if(d!==last){last=d;out+='<div class="mob-h" style="display:flex;align-items:center;"><span>'+esc(s.dia)+(d===hoje?' · hoje':'')+(gbDia[d]?' · '+_trafGbStr(gbDia[d]):'')+'</span><a href="#" style="margin-left:auto;text-decoration:none;color:var(--text-muted);font-size:16px;" onclick="event.preventDefault();_trafOpImprimir(\''+d+'\')">⎙</a></div>';}
-      out+=sh;
-    });
-    return out;
-  }
-  var fut=dias(list.filter(function(s){return _trafIso(s.date)>=hoje;}));
-  html+=fut||'<div class="mob-empty">Nenhuma sessão de hoje em diante.</div>';
   var pas=list.filter(function(s){return _trafIso(s.date)<hoje;});
-  if(pas.length){
-    var ph=dias(pas);
-    if(ph)html+='<details style="margin:10px 0 20px;"'+(_trafOpPastOpen?' open':'')+' ontoggle="_trafOpPastOpen=this.open"><summary class="mob-h" style="cursor:pointer;">Dias anteriores · '+pas.length+' sess'+(pas.length!==1?'ões':'ão')+'</summary>'+ph+'</details>';
-  }
+  _trafOpCtx={list:list,pas:pas,canOp:canOp,hdSel:hdSel,mobile:true,pedeFiltro:!as&&!p.complexo&&!p.sala&&!hdSel};
+  var fut=_trafOpDiasLazy(list.filter(function(s){return _trafIso(s.date)>=hoje;}),true,false);
+  html+=fut||'<div class="mob-empty">Nenhuma sessão de hoje em diante.</div>';
+  html+=_trafPastHtml(true);
   return html+'<div style="height:24px;"></div>';
 }
 function _mobTrafSessHtml(s,canOp,hdSel){

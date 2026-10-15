@@ -6371,6 +6371,12 @@ window.addEventListener('DOMContentLoaded',function(){
   <select id="kdmSalaSelect" style="min-width:160px;margin-left:6px;" onchange="kdmSalaFilter=this.value;renderKDM();">
     <option value="">Todas as salas</option>
   </select>
+  <select id="kdmStatusSelect" style="min-width:150px;margin-left:6px;" onchange="kdmStatusFilter=this.value;renderKDM();">
+    <option value="">Todos os status</option>
+    <option value="ok">Aprovados</option>
+    <option value="none">Não testados</option>
+    <option value="fail">Reprovados</option>
+  </select>
 </div>
 <div class="mode-bar hidden" id="barDash">
   <div class="day-tabs" id="dashDayTabs"></div>
@@ -6863,7 +6869,7 @@ var cinemasArr=[];
 var cinemasComplexoFilter='',cinemasEstadoFilter='',cinemasEventoFilter='',currentCinemaDetail=null;
 var bilheteriaCinemaFilter='',bilheteriaDistribuidoraFilter='',bilheteriaFilmeFilter='',bilheteriaComplexoFilter='';
 var bilheteriaProgFilter='',bilheteriaSubFilter='',bilheteriaDiaFilter='';
-var kdmComplexoFilter='',kdmSalaFilter='';
+var kdmComplexoFilter='',kdmSalaFilter='',kdmStatusFilter='';
 var ingestDays=[],currentIngestDay=null,ingestCinemaFilter='',ingestCinemaComplexoFilter='',ingestHdFilter='',gradeCinemaFilter='',gradeCinemaComplexoFilter='';
 var _gradeSelMode={grade:false,grade2:false},_gradeSelSessions={grade:new Set(),grade2:new Set()};
 var grade2Days=[],grade2CurrentDay=null,grade2CinemaFilter='',grade2CinemaComplexoFilter='';
@@ -13971,6 +13977,17 @@ function renderKDM(){
     }
     return s.filmes.some(function(code){var f=filmesMap[code];return f&&f.kdm&&f.kdm.toString().toUpperCase()==='SIM';});
   });
+  // grupo de status: ok = aprovado; fail = inválido ou fora da janela; none = sem teste
+  function _kdmGrupo(s){var r=_kdmResults[s.nome];if(!r)return'none';return r.status==='ok'?'ok':'fail';}
+  var _kdmCont={ok:0,none:0,fail:0};
+  filtered.forEach(function(s){_kdmCont[_kdmGrupo(s)]++;});
+  var _stSel=document.getElementById('kdmStatusSelect');
+  if(_stSel){
+    var _stLbl={'':'Todos os status',ok:'Aprovados',none:'Não testados',fail:'Reprovados'};
+    Array.prototype.forEach.call(_stSel.options,function(o){o.textContent=_stLbl[o.value]+' ('+(o.value?_kdmCont[o.value]:filtered.length)+')';});
+    _stSel.value=kdmStatusFilter;
+  }
+  if(kdmStatusFilter)filtered=filtered.filter(function(s){return _kdmGrupo(s)===kdmStatusFilter;});
   if(!filtered.length){
     kc.innerHTML='<div class="empty-state"><div class="icon"><i data-lucide="key"></i></div><p>Nenhuma sessão com KDM nos filtros selecionados.</p></div>';
     if(window.lucide)lucide.createIcons();return;
@@ -14061,12 +14078,12 @@ function _kdmResultHtml(sessaoNome){
   var html='<div class="kdm-result-title" style="display:flex;align-items:baseline;gap:0;flex-wrap:wrap;">Último teste · '+r.timestamp+fileInfo+'</div>';
   r.lines.forEach(function(l){
     if(l.diag){
-      html+='<div class="kdm-check-line kdm-check-info" style="font-size:9px;padding:1px 0 1px 16px;word-break:break-all;opacity:0.8;"><span>'+l.text+'</span></div>';
+      html+='<div class="kdm-check-line kdm-check-info" style="font-size:9px;padding:1px 0 1px 16px;word-break:break-all;opacity:0.8;"><span>'+esc(l.text)+'</span></div>';
     }else if(!l.ok&&l.warn&&l.text&&l.text.indexOf('KDM pertence')!==-1){
-      html+='<div class="kdm-check-line kdm-check-alert"><span>⚑</span><span>'+l.text.replace(/^⚑\s*/,'')+'</span></div>';
+      html+='<div class="kdm-check-line kdm-check-alert"><span>⚑</span><span>'+esc(l.text.replace(/^⚑\s*/,''))+'</span></div>';
     }else{
       var cls=l.ok?'kdm-check-ok':l.warn?'kdm-check-warn':'kdm-check-fail';
-      html+='<div class="kdm-check-line '+cls+'"><span>'+(l.ok?'✓':l.warn?'⚠':'✗')+'</span><span>'+l.text+'</span></div>';
+      html+='<div class="kdm-check-line '+cls+'"><span>'+(l.ok?'✓':l.warn?'⚠':'✗')+'</span><span>'+esc(l.text)+'</span></div>';
     }
   });
   return html;
@@ -14097,7 +14114,7 @@ function _processKDMTest(sessaoNome,xml){
   var salaCert=pickCert(cinema);
   if(salaCert&&cinema){salaCert.servidor=cinema.servidor||'';salaCert.serial=cinema.serial||'';}
   var allCerts=all.order.map(function(sala){var ci=all.map[sala];var o=pickCert(ci)||{};o.sala=ci.sala;return o;});
-  var films=[];(s.filmes||[]).forEach(function(code){var f=filmesMap[code];if(f&&f.dcp_uuid)films.push({codigo:f.codigo,titulo:filmDisplayTitle(f.codigo),dcp_uuid:f.dcp_uuid});});
+  var films=[];(s.filmes||[]).forEach(function(code){var f=filmesMap[code];if(f)films.push({codigo:f.codigo,titulo:filmDisplayTitle(f.codigo),dcp_uuid:f.dcp_uuid||'',cpl:f.cpl||''});});
   var session=s.date?{y:s.date.getFullYear(),mo:s.date.getMonth(),d:s.date.getDate(),h:s.time?s.time.h:0,mi:s.time?s.time.m:0}:null;
   var salaOffsetMs=_parseCinemaOffsetMs(cinema||{});
   _olgaCallFn(_CHECKKDM_FN,{kdmXml:xml,cinemaName:s.cinema,salaCert:salaCert,allCerts:allCerts,films:films,session:session,salaOffsetMs:salaOffsetMs})
@@ -14112,6 +14129,7 @@ function _kdmRenderResult(sessaoNome,status,lines){
   _kdmPendingFilename='';
   try{localStorage.setItem('olga-kdm-results',JSON.stringify(_kdmResults));}catch(e){}
   if(window._olgaKDMResults)window._olgaKDMResults.save(_kdmResults);
+  if(kdmStatusFilter&&typeof renderKDM==='function'){renderKDM();return;}
 
   var enc=encodeURIComponent(sessaoNome);
   var rowEl=document.getElementById('kdmrow-'+enc);
@@ -18615,7 +18633,7 @@ function renderDash(){
   html+=colBlock('legendagem','Legendagem',legBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 14/10/2026 às 21:28';
+  var sysUpdate='última atualização do sistema · 15/10/2026 às 13:06';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -28243,7 +28261,7 @@ function _sxcPrint(){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 14/10/2026 às 21:28</span></div>
+<div id="page-footer"><span>última atualização · 15/10/2026 às 13:06</span></div>
 
 </div>
 

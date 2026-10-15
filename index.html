@@ -17707,7 +17707,7 @@ function dashStatusClass(v){
 
 function dashKdmStatusClass(label){
   if(label==='Válido')return'st-ok';
-  if(label==='Fora da janela')return'st-accent';
+  if(label==='Fora da janela'||label==='Parcial')return'st-accent';
   return'st-error';
 }
 
@@ -17732,17 +17732,76 @@ function dashGetKDMData(){
     });
   });
   var items=Object.keys(filmMap).map(function(c){return filmMap[c];});
+  // Parcial: o filme tem sessões aprovadas e outras ainda não
+  items.forEach(function(item){
+    var ok=item.sessions.filter(function(s){return s.st.label==='Válido';}).length;
+    if(ok&&ok<item.sessions.length)item.status={cls:'kdm-status-window',label:'Parcial',pri:1.5};
+  });
   var byStatus={},statusOrder=[];
   items.forEach(function(item){
     var lbl=item.status.label;
     if(!byStatus[lbl]){byStatus[lbl]=[];statusOrder.push(lbl);}
     byStatus[lbl].push(item);
   });
-  var priMap={'Inválido':5,'Fora da janela':4,'Aguardando KDM':3,'Cert ausente':2,'Válido':1};
+  var priMap={'Inválido':5,'Fora da janela':4,'Aguardando KDM':3,'Cert ausente':2,'Parcial':1.5,'Válido':1};
   statusOrder.sort(function(a,b){return(priMap[b]||0)-(priMap[a]||0);});
   return{items:items,byStatus:byStatus,statusOrder:statusOrder};
 }
 
+// Painel KDM do Dashboard: uma linha por sessão (não por filme). Sessões passadas ficam
+// fora por padrão; "Próximas 48h" junta as sessões ainda não validadas que começam logo.
+var dashKdmPast=false;
+function dashGetKDMSessoes(){
+  var allC=getAllCinemas();
+  var hoje=new Date();hoje.setHours(0,0,0,0);
+  var agora=Date.now(),lim48=agora+48*3600000;
+  var rows=[],passadas=0;
+  sessoesArr.forEach(function(s){
+    if(s.evento&&!activeEventsDash.has(s.evento))return;
+    if(dashKdmCinemaFilter&&s.cinema!==dashKdmCinemaFilter)return;
+    var kdmFilms=s.filmes.filter(function(c){var f=filmesMap[c];return f&&f.kdm&&f.kdm.toString().toUpperCase()==='SIM';});
+    if(!kdmFilms.length)return;
+    if(s.date&&s.date<hoje){passadas++;if(!dashKdmPast)return;}
+    var r=_kdmResults[s.nome],st;
+    if(!r){var ci=allC.map[s.cinema];st=(!ci||!ci.cert_serial_hex)?{cls:'kdm-status-nocert',label:'Cert ausente'}:{cls:'kdm-status-none',label:'Aguardando KDM'};}
+    else if(r.status==='ok')st={cls:'kdm-status-ok',label:'Válido'};
+    else if(r.status==='window')st={cls:'kdm-status-window',label:'Fora da janela'};
+    else st={cls:'kdm-status-fail',label:'Inválido'};
+    var ms=s.date?new Date(s.date.getFullYear(),s.date.getMonth(),s.date.getDate(),s.time?s.time.h:0,s.time?s.time.m:0).getTime():Infinity;
+    rows.push({s:s,st:st,kdmFilms:kdmFilms,ms:ms,urg:st.label!=='Válido'&&ms>=agora&&ms<=lim48});
+  });
+  rows.sort(function(a,b){return a.ms-b.ms;});
+  var byStatus={},statusOrder=[];
+  rows.forEach(function(row){
+    var lbl=row.st.label;
+    if(!byStatus[lbl]){byStatus[lbl]=[];statusOrder.push(lbl);}
+    byStatus[lbl].push(row);
+  });
+  var priMap={'Inválido':5,'Fora da janela':4,'Aguardando KDM':3,'Cert ausente':2,'Válido':1};
+  statusOrder.sort(function(a,b){return(priMap[b]||0)-(priMap[a]||0);});
+  return{rows:rows,byStatus:byStatus,statusOrder:statusOrder,urgentes:rows.filter(function(r){return r.urg;}),passadas:passadas};
+}
+function dashKdmSessRowsHtml(rows){
+  var html='',lastDay=null;
+  rows.forEach(function(row){
+    var s=row.s;
+    if(s.dia!==lastDay){
+      lastDay=s.dia;
+      html+='<div style="padding:8px 0 2px;font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text-dim);">'+esc(s.dia)+'</div>';
+    }
+    var safe=s.nome.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+    var outros=s.filmes.filter(function(c){return row.kdmFilms.indexOf(c)<0;}).map(filmDisplayTitle).filter(Boolean);
+    html+='<div class="dsd-sess-row'+(row.urg?' dsd-sess-alert':'')+'" style="cursor:pointer" onclick="goToFicha(\''+safe+'\')">'+
+      '<span class="dsd-time">'+esc(s.hora)+'</span>'+
+      '<span class="dsd-name" title="'+esc(s.nome)+'">'+esc(stripEvPrefix(s.nome,s.evento))+'</span>'+
+      '<span class="dsd-cinema">'+esc(s.cinema)+'</span>'+
+      '<span class="kdm-status '+row.st.cls+'" style="font-size:8px;padding:1px 5px;">'+row.st.label+'</span>'+
+      '<span class="dsd-extra" style="font-family:var(--sans);width:100%;">KDM: '+esc(row.kdmFilms.map(filmDisplayTitle).join(' · '))+
+        (outros.length?'<span style="color:var(--text-dim);"> · com '+esc(outros.join(' · '))+'</span>':'')+'</span>'+
+    '</div>';
+  });
+  return html;
+}
 function rebuildDashKdmCinemaSelect(){
   var cs=new Set();
   sessoesArr.forEach(function(s){
@@ -18715,19 +18774,27 @@ function renderDash(){
   } // end else items.length
 
   // ── BLOCO: KDM ───────────────────────────────────────────────────
-  var kdmData=dashGetKDMData();
+  var kdmData=dashGetKDMSessoes();
   var kdmBody='';
   kdmBody+='<div class="dash-ctrl-filter">'
     +'<span class="dash-ctrl-filter-label">Cinema</span>'
     +'<select id="dashKdmCinemaSelect" onchange="dashKdmCinemaFilter=this.value;dashKdmStatusSelected=null;renderDash();">'
     +'<option value="">Todos os cinemas</option>'
     +'</select>'
+    +(kdmData.passadas?'<button class="print-btn" style="margin-left:8px;" onclick="dashKdmPast=!dashKdmPast;dashKdmStatusSelected=null;renderDash();">'+(dashKdmPast?'ocultar anteriores':'incluir anteriores ('+kdmData.passadas+')')+'</button>':'')
     +'</div>';
-  if(!kdmData.items.length){
-    kdmBody+='<div class="dash-total-bar" style="margin-bottom:0;">Nenhum filme com KDM nos filtros selecionados.</div>';
+  if(!kdmData.rows.length){
+    kdmBody+='<div class="dash-total-bar" style="margin-bottom:0;">Nenhuma sessão com KDM nos filtros selecionados.</div>';
   }else{
-    kdmBody+='<div class="dash-total-bar" style="margin-bottom:16px;">Filmes com KDM: <strong>'+kdmData.items.length+'</strong></div>';
+    kdmBody+='<div class="dash-total-bar" style="margin-bottom:16px;">Sessões com KDM: <strong>'+kdmData.rows.length+'</strong>'
+      +(kdmData.urgentes.length?' · <span style="color:var(--warn);">pendentes nas próximas 48h: <strong>'+kdmData.urgentes.length+'</strong></span>':'')+'</div>';
     kdmBody+='<div class="dash-tiles">';
+    if(kdmData.urgentes.length){
+      kdmBody+='<button class="dash-tile st-error'+(dashKdmStatusSelected==='__48h__'?' active':'')+'" onclick="selectDashKdmStatus(\'__48h__\')">'+
+        '<div class="dash-tile-count">'+kdmData.urgentes.length+'</div>'+
+        '<div class="dash-tile-status">Próximas 48h</div>'+
+      '</button>';
+    }
     kdmData.statusOrder.forEach(function(lbl){
       var count=kdmData.byStatus[lbl].length;
       var cls=dashKdmStatusClass(lbl);
@@ -18738,44 +18805,20 @@ function renderDash(){
       '</button>';
     });
     kdmBody+='</div>';
-    if(dashKdmStatusSelected!==null&&kdmData.byStatus[dashKdmStatusSelected]){
-      var kdmDet=kdmData.byStatus[dashKdmStatusSelected];
-      var kdmStCls=dashKdmStatusClass(dashKdmStatusSelected);
+    var kdmDet=dashKdmStatusSelected==='__48h__'?kdmData.urgentes:(dashKdmStatusSelected!==null?kdmData.byStatus[dashKdmStatusSelected]:null);
+    if(kdmDet&&kdmDet.length){
+      var kdmLbl=dashKdmStatusSelected==='__48h__'?'Pendentes · próximas 48h':dashKdmStatusSelected;
+      var kdmStCls=dashKdmStatusSelected==='__48h__'?'st-error':dashKdmStatusClass(dashKdmStatusSelected);
       var kdmStColor=kdmStCls==='st-ok'?'var(--ok)':kdmStCls==='st-accent'?'var(--accent)':'var(--warn)';
       kdmBody+='<div class="dash-detail">';
       kdmBody+='<div class="dash-detail-hdr">'+
         '<span class="dash-detail-title">KDM</span>'+
-        '<span class="dash-detail-status '+kdmStCls+'" style="color:'+kdmStColor+'">'+dashKdmStatusSelected+'</span>'+
-        '<span class="dash-detail-count">'+kdmDet.length+' filme'+(kdmDet.length!==1?'s':'')+'</span>'+
+        '<span class="dash-detail-status '+kdmStCls+'" style="color:'+kdmStColor+'">'+esc(kdmLbl)+'</span>'+
+        '<span class="dash-detail-count">'+kdmDet.length+' sess'+(kdmDet.length!==1?'ões':'ão')+'</span>'+
         '<button class="dash-detail-close" onclick="selectDashKdmStatus(null)">✕ Fechar</button>'+
       '</div>';
-      kdmBody+='<div class="dash-film-list">';
-      kdmDet.forEach(function(item){
-        var f=item.f;
-        var col=f.evento&&eventColors[f.evento]?eventColors[f.evento]:null;
-        var evBadge=f.evento&&col?'<span class="card-evento" style="background:'+col.bg+';color:'+col.text+'">'+esc(f.evento)+'</span>':'';
-        var titulo=esc(filmDisplayTitle(f.codigo));
-        var sessLinks=item.sessions.map(function(s){
-          var safe=s.nome.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
-          var dt=[s.dia,s.hora].filter(Boolean).join(' ');
-          return'<button class="dash-sess-link" onclick="goToFicha(\''+safe+'\')">'+
-            '<span class="dash-sess-cinema">'+esc(s.cinema)+'</span>'+
-            (dt?'<span class="dash-sess-cinema">'+esc(dt)+'</span>':'')+
-            '<span class="kdm-status '+s.st.cls+'" style="font-size:8px;padding:1px 5px;margin-right:4px;">'+s.st.label+'</span>'+
-            esc(stripEvPrefix(s.nome,f.evento))+
-            (_dashSessFilmes(s,f.codigo)?'<span class="dash-sess-cinema" style="font-family:var(--sans);margin-left:6px;">com '+esc(_dashSessFilmes(s,f.codigo))+'</span>':'')+
-            '</button>';
-        }).join('');
-        kdmBody+='<div class="dash-film-card" style="border-left-color:'+(col?col.bg:'var(--border2)')+'">'+
-          '<div class="dash-film-top">'+
-            '<span class="dash-film-title">'+titulo+'</span>'+
-            '<span class="dash-film-code" title="'+esc(f.codigo)+'">'+esc(stripEvPrefix(f.codigo,f.evento))+'</span>'+
-            evBadge+
-          '</div>'+
-          (sessLinks?'<div class="dash-sess-list"><span class="dash-sess-label">Sessões</span>'+sessLinks+'</div>':'')+
-        '</div>';
-      });
-      kdmBody+='</div></div>';
+      kdmBody+=dashKdmSessRowsHtml(kdmDet);
+      kdmBody+='</div>';
     }
   }
   html+=colBlock('kdm','KDM',kdmBody);
@@ -18826,7 +18869,7 @@ function renderDash(){
   html+=colBlock('legendagem','Legendagem',legBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 15/10/2026 às 13:45';
+  var sysUpdate='última atualização do sistema · 15/10/2026 às 13:57';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -28454,7 +28497,7 @@ function _sxcPrint(){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 15/10/2026 às 13:45</span></div>
+<div id="page-footer"><span>última atualização · 15/10/2026 às 13:57</span></div>
 
 </div>
 
@@ -29028,7 +29071,8 @@ function olgaMobileHome(noStack,params){
         html+='<div class="mob-ficha-results">';
         html+=g.byStatus[params.status].map(function(it){
           var cod=g.getCode(it);
-          return'<div class="mob-ficha-result-item" onclick="_mobAbrirAcervoDetail(\''+_mobEsc(cod)+'\')"><span style="font-size:9px;color:var(--text-muted);margin-right:8px;">'+_mobEsc(cod)+'</span>'+_mobEsc(filmDisplayTitle(cod))+'</div>';
+          return'<div class="mob-ficha-result-item" onclick="_mobAbrirAcervoDetail(\''+_mobEsc(cod)+'\')"><span style="font-size:9px;color:var(--text-muted);margin-right:8px;">'+_mobEsc(cod)+'</span>'+_mobEsc(filmDisplayTitle(cod))+
+            (params.setor==='kdm'&&it.sessions?'<span style="font-size:9px;color:var(--text-muted);margin-left:8px;">'+it.sessions.filter(function(s){return s.st.label==='Válido';}).length+'/'+it.sessions.length+' sessões aprovadas</span>':'')+'</div>';
         }).join('');
         html+='</div>';
       }

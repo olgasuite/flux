@@ -5081,6 +5081,8 @@ html[data-theme="indexof"]:not([data-theme="win98"]) .module-icon{display:flex!i
       else if (tabEl) tabEl.style.display = visible ? '' : 'none';
       if (cardEl) cardEl.style.display = visible ? '' : 'none';
     });
+    var subProjOp = document.getElementById('navSubProjOperacao');
+    if (subProjOp) subProjOp.style.display = (!allowed || allowed.has('trafego')) ? '' : 'none';
     // auto-fill grid handles columns — just ensure background stays correct
     var grid = document.querySelector('.landing-modules');
     if (grid) grid.style.gridTemplateColumns = '';
@@ -6361,6 +6363,17 @@ window.addEventListener('DOMContentLoaded',function(){
 <nav class="nav-tabs" id="navSidebar">
   <button class="nav-tab" id="tabDash" disabled onclick="switchMode('dash')" title="Dashboard"><span class="tab-icon"><i data-lucide="bar-chart-2"></i></span><span class="nav-label"> Dashboard</span></button>
   <button class="nav-tab" id="tabCatalogo" disabled onclick="switchMode('catalogo')" title="Catálogo"><span class="tab-icon"><i data-lucide="library"></i></span><span class="nav-label"> Catálogo</span></button>
+  <div class="nav-group" id="navGroupTrafego">
+    <div class="nav-group-head">
+      <button class="nav-tab nav-group-btn" id="tabTrafego" disabled onclick="_trafGo('interno')" title="Tráfego de cópias"><span class="tab-icon"><i data-lucide="hard-drive"></i></span><span class="nav-label"> Tráfego</span></button>
+      <button class="nav-group-arrow" onclick="_toggleNavGroup('Trafego')" title="Expandir">▸</button>
+    </div>
+    <div class="nav-group-items">
+      <button class="nav-sub-tab" id="navSubTrafInterno" disabled onclick="_trafGo('interno')">Tráfego interno</button>
+      <button class="nav-sub-tab" id="navSubTrafExterno" disabled onclick="_trafGo('externo')">Tráfego externo</button>
+      <button class="nav-sub-tab" id="navSubTrafOperacao" disabled onclick="_trafGo('operacao')">Operação</button>
+    </div>
+  </div>
   <button class="nav-tab" id="tabTriagem" disabled onclick="switchMode('triagem')" title="Curadoria/Seleção"><span class="tab-icon"><i data-lucide="filter"></i></span><span class="nav-label"> Curadoria/Seleção</span></button>
   <button class="nav-tab" id="tabProgramacao" disabled onclick="switchMode('programacao')" title="Programação"><span class="tab-icon"><i data-lucide="layout-list"></i></span><span class="nav-label"> Programação</span></button>
   <button class="nav-tab" id="tabVinhetas" disabled onclick="switchMode('vinhetas')" title="Vinhetas"><span class="tab-icon"><i data-lucide="film"></i></span><span class="nav-label"> Vinhetas</span></button>
@@ -6377,6 +6390,7 @@ window.addEventListener('DOMContentLoaded',function(){
       <button class="nav-sub-tab" id="navSubIngest" data-mode="ingest" disabled onclick="switchMode('ingest')">Ingest</button>
       <button class="nav-sub-tab" id="navSubGrade2" data-mode="grade2" disabled onclick="switchMode('grade2')">Grade de Projeção</button>
       <button class="nav-sub-tab" id="navSubAcervo" data-mode="busca" disabled onclick="switchMode('busca')">Acervo Técnico</button>
+      <button class="nav-sub-tab" id="navSubProjOperacao" disabled onclick="_trafGo('operacao')">Operação</button>
     </div>
   </div>
   <button class="nav-tab" id="tabFicha" disabled onclick="switchMode('ficha')" style="display:none"></button>
@@ -6396,17 +6410,6 @@ window.addEventListener('DOMContentLoaded',function(){
       <button class="nav-sub-tab" id="navSubHoteis" disabled onclick="_navToRecepSection('hoteis')">Hotéis</button>
       <button class="nav-sub-tab" id="navSubVoos" disabled onclick="_navToRecepSection('voos')">Voos</button>
       <button class="nav-sub-tab" id="navSubTransporte" disabled onclick="_navToRecepSection('transporte')">Transporte</button>
-    </div>
-  </div>
-  <div class="nav-group" id="navGroupTrafego">
-    <div class="nav-group-head">
-      <button class="nav-tab nav-group-btn" id="tabTrafego" disabled onclick="_trafGo('interno')" title="Tráfego de cópias"><span class="tab-icon"><i data-lucide="hard-drive"></i></span><span class="nav-label"> Tráfego</span></button>
-      <button class="nav-group-arrow" onclick="_toggleNavGroup('Trafego')" title="Expandir">▸</button>
-    </div>
-    <div class="nav-group-items">
-      <button class="nav-sub-tab" id="navSubTrafInterno" disabled onclick="_trafGo('interno')">Tráfego interno</button>
-      <button class="nav-sub-tab" id="navSubTrafExterno" disabled onclick="_trafGo('externo')">Tráfego externo</button>
-      <button class="nav-sub-tab" id="navSubTrafOperacao" disabled onclick="_trafGo('operacao')">Operação</button>
     </div>
   </div>
   <button class="nav-tab" id="tabLegendagem" disabled onclick="switchMode('legendagem')" title="Legendagem"><span class="tab-icon"><i data-lucide="subtitles"></i></span><span class="nav-label"> Legendagem</span></button>
@@ -7387,7 +7390,7 @@ function applyParsedData(d,filename){
     Array.from(_userEvSel).forEach(function(ev){if(!evSet.has(ev))_userEvSel.delete(ev);});
   }
   dataLoaded=true;
-  ['tabProjecao','tabFicha','tabGrade','tabGrade2','tabSessoes','tabVinhetas','tabIngest','tabCinemas','tabKDM','tabDash','tabReceptivo','tabBilheteria','tabCatalogo','tabTriagem','tabProgramacao','tabRevista','tabLegendagem','tabTrafego','navSubTrafInterno','navSubTrafExterno','navSubTrafOperacao','navSubFicha','navSubIngest','navSubGrade2','navSubAcervo','navSubConvidados','navSubCredenciamento','navSubHoteis','navSubVoos','navSubTransporte'].forEach(function(id){document.getElementById(id).disabled=false;});
+  ['tabProjecao','tabFicha','tabGrade','tabGrade2','tabSessoes','tabVinhetas','tabIngest','tabCinemas','tabKDM','tabDash','tabReceptivo','tabBilheteria','tabCatalogo','tabTriagem','tabProgramacao','tabRevista','tabLegendagem','tabTrafego','navSubTrafInterno','navSubTrafExterno','navSubTrafOperacao','navSubProjOperacao','navSubFicha','navSubIngest','navSubGrade2','navSubAcervo','navSubConvidados','navSubCredenciamento','navSubHoteis','navSubVoos','navSubTransporte'].forEach(function(id){document.getElementById(id).disabled=false;});
   if(window._olgaUser&&window._olgaUser.role==='admin'){document.getElementById('tabEquipe').disabled=false;}
   ['modCardProjecao','modCardGrade','modCardSessoes','modCardVinhetas','modCardCinemas','modCardKDM','modCardDash','modCardReceptivo','modCardBilheteria','modCardCatalogo','modCardTriagem','modCardProgramacao','modCardRevista','modCardLegendagem','modCardTrafego'].forEach(function(id){document.getElementById(id).classList.remove('disabled');});
   var _canImport=window._olgaUser&&(window._olgaUser.role==='admin'||window._olgaUser.role==='editor');
@@ -18949,7 +18952,7 @@ function renderDash(){
   html+=colBlock('legendagem','Legendagem',legBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 15/10/2026 às 15:26';
+  var sysUpdate='última atualização do sistema · 15/10/2026 às 15:30';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -28578,7 +28581,7 @@ function _sxcPrint(){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 15/10/2026 às 15:26</span></div>
+<div id="page-footer"><span>última atualização · 15/10/2026 às 15:30</span></div>
 
 </div>
 

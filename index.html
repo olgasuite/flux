@@ -5732,6 +5732,7 @@ html[data-theme="indexof"]:not([data-theme="win98"]) .module-icon{display:flex!i
           pendingFirst.delete(name);
           _olgaFinalizeInitial();
         } else if (initialApplied) {
+          if (name === 'sessoes' && typeof _olgaEvSelAutoRecheck === 'function') _olgaEvSelAutoRecheck();
           // delta após carga inicial → re-renderiza a view ativa
           if (typeof _olgaRerenderActive === 'function') _olgaRerenderActive();
         }
@@ -7334,6 +7335,22 @@ function currentEventsFromDates(sessoesArr){
   return hasFuture;
 }
 
+// Pré-seleção automática de eventos (login): eventos com sessão de hoje em diante; sem nenhum, todos.
+// O primeiro snapshot pode vir incompleto do cache local (persistentLocalCache) e cair no "todos";
+// por isso a regra é reavaliada a cada snapshot de sessões ENQUANTO o usuário não mexer na seleção.
+var _evSelAuto=null;
+function _evSelKey(){return Array.from(_userEvSel).sort().join('|');}
+function _evSelRegra(sess,events){var c=currentEventsFromDates(sess);return c.size>0?c:new Set(events);}
+function _olgaEvSelAutoRecheck(){
+  if(_evSelAuto===null)return;
+  if(_evSelKey()!==_evSelAuto){_evSelAuto=null;return;}
+  var nova=_evSelRegra(sessoesArr,Object.keys(eventColors||{}));
+  var k=Array.from(nova).sort().join('|');
+  if(k===_evSelAuto)return;
+  _userEvSel.clear();nova.forEach(function(e){_userEvSel.add(e);});_evSelAuto=k;
+  if(currentMode)rebuildPillsForMode(currentMode);else if(typeof buildLandingPills==='function')buildLandingPills();
+  if(window._mobileActive&&typeof olgaMobileRefresh==='function')olgaMobileRefresh();
+}
 function applyParsedData(d,filename){
   filmesMap=d.filmesMap;filmesArr=d.filmesArr;
   sessoesArr=d.sessoesArr;sessoesMap=d.sessoesMap;
@@ -7386,12 +7403,12 @@ function applyParsedData(d,filename){
     _newlyAssignedColors[ev]=pick;
   });
   if(typeof _persistEventColors==='function')_persistEventColors(_newlyAssignedColors);
-  var currentEvs=currentEventsFromDates(d.sessoesArr);
-  var initEvs=currentEvs.size>0?currentEvs:new Set(events);
+  var initEvs=_evSelRegra(d.sessoesArr,events);
   // Estado único: _userEvSel. Primeira carga (login) recebe a regra de prioridade;
   // recargas só removem eventos que sumiram do banco — nada é adicionado automaticamente.
   if(!dataLoaded){
     _userEvSel.clear();initEvs.forEach(function(e){_userEvSel.add(e);});
+    _evSelAuto=_evSelKey();
   } else {
     var evSet=new Set(events);
     Array.from(_userEvSel).forEach(function(ev){if(!evSet.has(ev))_userEvSel.delete(ev);});
@@ -7677,7 +7694,7 @@ window._olgaLoadPlanilha=_olgaLoadPlanilha;
 function goHome(){
   if(currentMode){
     var _src=activeEventsForMode(currentMode);
-    if(_src){activeEventsLanding.clear();_src.forEach(function(e){activeEventsLanding.add(e);});}
+    if(_src&&_src!==activeEventsLanding){activeEventsLanding.clear();_src.forEach(function(e){activeEventsLanding.add(e);});}
     currentMode=null;
     ['projecao','ficha','grade','grade2','sessoes','busca','vinhetas','ingest','cinemas','kdm','dash','receptivo','bilheteria','equipe','catalogo','triagem','programacao','revista','legendagem','trafego'].forEach(function(m){
       var cap=m==='grade2'?'Grade2':m==='projecao'?'Projecao':m==='sessoes'?'Sessoes':m==='vinhetas'?'Vinhetas':m==='programacao'?'Programacao':m==='kdm'?'KDM':m==='triagem'?'Triagem':m.charAt(0).toUpperCase()+m.slice(1);
@@ -16601,7 +16618,7 @@ function rebuildPillsForMode(m){
   else if(m==='bilheteria')buildBilheteriaFilters();
   else if(m==='revista')buildRevistaFilters();
   else if(m==='legendagem')buildLegendagemFilters();
-  else if(m==='trafego'){var _hefT=document.getElementById('headerEventFilters');if(_hefT)_hefT.innerHTML='';}
+  else if(m==='trafego'){var _hefT=document.getElementById('headerEventFilters');if(_hefT)buildPills(_hefT,eventColors,_userEvSel,function(){_trafHdSel=null;renderTrafego();});}
   else if(m==='receptivo')buildReceptivoFilters();
 }
 
@@ -18982,7 +18999,7 @@ function renderDash(){
   html+=colBlock('legendagem','Legendagem',legBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 15/10/2026 às 16:14';
+  var sysUpdate='última atualização do sistema · 15/10/2026 às 16:34';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -28611,7 +28628,7 @@ function _sxcPrint(){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 15/10/2026 às 16:14</span></div>
+<div id="page-footer"><span>última atualização · 15/10/2026 às 16:34</span></div>
 
 </div>
 
@@ -32247,7 +32264,7 @@ function renderTrafego(){
   ['Interno','Externo','Operacao'].forEach(function(k){
     var n=document.getElementById('navSubTraf'+k);if(n)n.classList.toggle('active',_trafView===k.toLowerCase());
   });
-  if(!_trafEv){cont.innerHTML='<div class="traf-muted">Nenhum evento ativo. Ative um evento na barra de eventos (página inicial ou outro módulo).</div>';return;}
+  if(!_trafEv){cont.innerHTML='<div class="traf-muted">Nenhum evento ativo. Ative um evento na barra de eventos acima.</div>';return;}
   if(_trafView==='externo'){cont.innerHTML='<div class="traf-h">Tráfego externo</div><div class="traf-muted">Em desenvolvimento.</div>';return;}
   if(_trafView==='operacao'){_trafRenderOperacao(cont);return;}
   if(_trafHdSel){
@@ -32824,9 +32841,9 @@ function _mobRenderTrafego(params){
   if(!dataLoaded){_mobSetContent('<div class="mob-empty">Dados não carregados.</div>');return;}
   var evs=_trafEventosAtivos();
   if(evs.indexOf(_trafEv)<0)_trafEv=evs[0]||'';
-  if(!_trafEv){_mobSetContent('<div class="mob-empty">Nenhum evento ativo. Ative um evento na barra de eventos do início.</div>');return;}
+  if(!_trafEv){_mobSetContent(_mobEventFilterHtml(_userEvSel)+'<div class="mob-empty">Nenhum evento ativo. Ative um evento acima.</div>');return;}
   var tab=params.tab||'operacao';
-  var html='<div class="mob-h" style="padding-bottom:0;">'+(tab==='interno'?'Tráfego interno':'Operação')+'</div>';
+  var html=_mobEventFilterHtml(_userEvSel)+'<div class="mob-h" style="padding-bottom:0;">'+(tab==='interno'?'Tráfego interno':'Operação')+'</div>';
   if(evs.length>1)html+='<div style="padding:8px 12px 0;">'+_mobTrafSel('_mobTrafEv(this.value)',evs.map(function(e){return[e,_trafEvNome(e)];}),_trafEv)+'</div>';
   html+=tab==='interno'?_mobTrafInternoHtml():_mobTrafOperacaoHtml(params);
   _mobSetContent(html);

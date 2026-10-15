@@ -19003,7 +19003,7 @@ function renderDash(){
   html+=colBlock('legendagem','Legendagem',legBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 15/10/2026 às 18:48';
+  var sysUpdate='última atualização do sistema · 15/10/2026 às 18:56';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -28632,7 +28632,7 @@ function _sxcPrint(){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 15/10/2026 às 18:48</span></div>
+<div id="page-footer"><span>última atualização · 15/10/2026 às 18:56</span></div>
 
 </div>
 
@@ -32683,6 +32683,7 @@ function _trafSessInfo(s,films){
 // legenda da cópia (VF tem prioridade, como na ficha) e taxa de quadros
 function _trafLegCopia(f){return clean(f.vf)?'VF '+clean(f.vf):clean(f.legenda);}
 function _trafFps(f){return clean(f.fps)?clean(f.fps)+' fps':'';}
+function _trafLegExib(f){var x=clean(f.legenda_exibicao);return x&&x.toUpperCase()!=='ORIGINAL'?x:'';}
 // lente da cabine: o que o operador registrou; sem registro, a lente do Acervo Técnico
 function _trafLenteOp(op,f){return op.lente||clean(f.lente)||'';}
 function _trafLenteOpts(op,f,vazio){
@@ -32697,7 +32698,7 @@ function _trafSpecsHtml(c){
   if(clean(f.som))sp.push(somBadge(clean(f.som)));
   if(clean(f.resolucao))sp.push('<span class="traf-chip">'+esc(clean(f.resolucao))+'</span>');
   if(_trafFps(f))sp.push('<span class="traf-chip">'+esc(_trafFps(f))+'</span>');
-  if(_trafLegCopia(f))sp.push('<span class="traf-chip">leg. '+esc(_trafLegCopia(f))+'</span>');
+  if(_trafLegCopia(f)||_trafLegExib(f))sp.push('<span class="traf-chip" style="font-weight:700;color:var(--text);border-color:var(--accent);">legenda '+esc([_trafLegCopia(f),_trafLegExib(f)].filter(Boolean).join(' · '))+'</span>');
   if(_trafGB(c))sp.push('<span class="traf-chip">'+_trafGB(c).toFixed(0)+' GB</span>');
   if(f.status)sp.push(statusBadge(f.status));
   return sp.length?'<div style="display:flex;flex-wrap:wrap;gap:4px;align-items:center;margin-top:3px;">'+sp.join('')+'</div>':'';
@@ -32736,15 +32737,17 @@ function _trafOpImprimir(dia){
       (si.leg?'<div class="sx">'+e(si.leg)+'</div>':'')+
       (si.obs.length?'<div class="sx"><b>Obs. do acervo:</b> '+e(si.obs.join(' · '))+'</div>':'')+
       (si.vin.length?'<div class="sx"><b>Vinhetas:</b> '+e(si.vin.join(' · '))+'</div>':'')+
-      '<table><colgroup><col style="width:16%"><col style="width:13%"><col style="width:20%"><col style="width:8%"><col style="width:4%"><col style="width:5%"><col style="width:6%"><col style="width:7%"><col style="width:21%"></colgroup>'+
-      '<thead><tr><th>Filme</th><th>Cópia</th><th>CPL</th><th>HD de envio</th><th>Ingest</th><th>Volume</th><th>Lente</th><th>KDM</th><th>Obs.</th></tr></thead><tbody>';
+      '<table><colgroup><col style="width:13%"><col style="width:11%"><col style="width:9%"><col style="width:16%"><col style="width:8%"><col style="width:6%"><col style="width:6%"><col style="width:6%"><col style="width:7%"><col style="width:18%"></colgroup>'+
+      '<thead><tr><th>Filme</th><th>Cópia</th><th>Legenda</th><th>CPL</th><th>HD envio</th><th>Ingest</th><th>Volume</th><th>Lente</th><th>KDM</th><th>Obs.</th></tr></thead><tbody>';
     films.forEach(function(c){
       var f=filmesMap[c]||{},op=_trafOpMap[_trafOpId(s,c)]||{};
-      var spec=[clean(f.lente),clean(f.som),clean(f.resolucao),_trafFps(f),_trafLegCopia(f)?'leg. '+_trafLegCopia(f):'',_trafGB(c)?_trafGB(c).toFixed(0)+' GB':'',clean(f.status)].filter(Boolean).join(' · ');
+      var spec=[clean(f.lente),clean(f.som),clean(f.resolucao),_trafFps(f),_trafGB(c)?_trafGB(c).toFixed(0)+' GB':'',clean(f.status)].filter(Boolean).map(function(x){return'<span style="white-space:nowrap">'+e(x)+'</span>';}).join(' · ');
+      var legCel=(_trafLegCopia(f)?'<b class="lg">'+e(_trafLegCopia(f))+'</b>':'—')+(_trafLegExib(f)?'<br><span class="lx">'+e(_trafLegExib(f))+'</span>':'');
       var env=_trafEnvio(s,c).map(function(h){var o=_trafOrigem(h,c);return(h.data.nome||'HD')+(o?' ← '+o:'');}).join(', ');
       var kdm=(f.kdm||'').toString().toUpperCase()==='SIM'?({sim:'recebido',nao:'NÃO recebido',erro:'COM ERRO'}[op.kdm_recebido]||'exige — ?'):'—';
       body+='<tr><td><b>'+e(filmDisplayTitle(c))+'</b>'+(_trafOvVf(c)?' <span class="ov">OV + VF</span>':'')+'<br><span class="m">'+e(c)+'</span></td>'+
-        '<td>'+e(spec||'—')+'</td>'+
+        '<td>'+(spec||'—')+'</td>'+
+        '<td>'+legCel+'</td>'+
         '<td class="m cpl">'+e(clean(f.cpl)||'—')+(clean(f.cplOV)?'<br>OV: '+e(clean(f.cplOV)):'')+'</td>'+
         '<td>'+e(env||'—')+'</td><td class="c">'+(op.ingestado?'✓':'☐')+'</td><td>'+e(op.volume||'')+'</td><td>'+e(_trafLenteOp(op,f))+'</td><td>'+e(kdm)+'</td><td>'+e(op.obs||'')+'</td></tr>';
     });
@@ -32752,7 +32755,7 @@ function _trafOpImprimir(dia){
   });
   var filtros=[F.complexo,F.sala,hdSel?('HD '+(hdSel.data.nome||'')):''].filter(Boolean).join(' · ');
   var titulo='Operação · '+_trafEvNome(ev)+' · '+(dia?_trafBr(dia):'de '+_trafBr(hoje)+' em diante')+(filtros?' · '+filtros:'');
-  w.document.write('<!doctype html><html><head><meta charset="utf-8"><title>'+e(titulo)+'</title><style>@page{size:A4 landscape;margin:9mm;}body{font-family:sans-serif;font-size:11px;margin:0;}h1{font-size:18px;margin:0 0 6px;}h2{font-size:14px;margin:14px 0 6px;border-bottom:2px solid #000;padding-bottom:2px;}.s{margin-bottom:10px;page-break-inside:avoid;}.sh{font-size:12px;margin-bottom:3px;}.sx{font-size:11px;margin:0 0 3px;}.av2{border:1.5px solid #000;font-weight:bold;font-size:10px;padding:0 5px;margin-left:6px;}.m{color:#555;font-family:monospace;font-size:10px;word-break:break-all;}.ov{background:#ffe7a8;border:1px solid #d9a400;font-size:9px;font-weight:bold;padding:0 4px;white-space:nowrap;}table{border-collapse:collapse;width:100%;font-size:11px;table-layout:fixed;}th,td{border:1px solid #999;padding:4px 6px;text-align:left;vertical-align:top;overflow-wrap:anywhere;}th{background:#222;color:#fff;font-size:9.5px;text-transform:uppercase;}td.c{text-align:center;font-size:14px;}td.cpl{font-weight:bold;color:#000;}.rod{margin-top:10px;color:#555;font-size:10px;}</style></head><body><h1>'+e(titulo)+'</h1>'+body+'<div class="rod">OLGA Flux · '+e(new Date().toLocaleString('pt-BR'))+'</div></body></html>');
+  w.document.write('<!doctype html><html><head><meta charset="utf-8"><title>'+e(titulo)+'</title><style>@page{size:A4 landscape;margin:9mm;}body{font-family:sans-serif;font-size:11px;margin:0;}h1{font-size:18px;margin:0 0 6px;}h2{font-size:14px;margin:14px 0 6px;border-bottom:2px solid #000;padding-bottom:2px;}.s{margin-bottom:10px;page-break-inside:avoid;}.sh{font-size:12px;margin-bottom:3px;}.sx{font-size:11px;margin:0 0 3px;}.av2{border:1.5px solid #000;font-weight:bold;font-size:10px;padding:0 5px;margin-left:6px;}.m{color:#555;font-family:monospace;font-size:10px;word-break:break-all;}.ov{background:#ffe7a8;border:1px solid #d9a400;font-size:9px;font-weight:bold;padding:0 4px;white-space:nowrap;}table{border-collapse:collapse;width:100%;font-size:11px;table-layout:fixed;}th,td{border:1px solid #999;padding:4px 6px;text-align:left;vertical-align:top;overflow-wrap:anywhere;}th{background:#222;color:#fff;font-size:8.5px;letter-spacing:.02em;text-transform:uppercase;white-space:nowrap;overflow:hidden;text-overflow:clip;padding:4px 4px;}td.c{text-align:center;font-size:14px;}td.cpl{font-weight:bold;color:#000;}.lg{font-size:13px;}.lx{display:inline-block;margin-top:2px;border:1.5px solid #000;font-weight:bold;font-size:8.5px;padding:0 3px;text-transform:uppercase;}.rod{margin-top:10px;color:#555;font-size:10px;}</style></head><body><h1>'+e(titulo)+'</h1>'+body+'<div class="rod">OLGA Flux · '+e(new Date().toLocaleString('pt-BR'))+'</div></body></html>');
   w.document.close();
   setTimeout(function(){try{w.focus();w.print();}catch(_e){}},300);
 }
@@ -32775,7 +32778,7 @@ function _trafOpSessHtml(s,canOp,hdSel){
       })()+
     '</div>'+kdmBtn+'</div>'+
     (function(){var v=_trafSessInfo(s,films).vin;return v.length?'<div class="ficha-vinhetas"><span class="ficha-vinhetas-label">Vinhetas</span>'+v.map(function(t){return'<span class="ficha-vinheta-tag">'+esc(t)+'</span>';}).join('')+'</div>':'';})();
-  html+='<div class="film-table-wrap"><table><thead><tr><th>#</th><th>Filme</th><th class="center">Lente</th><th class="center">Som</th><th>CPL</th><th>HD de envio</th>'+
+  html+='<div class="film-table-wrap"><table><thead><tr><th>#</th><th>Filme</th><th class="center">Lente</th><th class="center">Som</th><th>Legenda</th><th>CPL</th><th>HD de envio</th>'+
     '<th class="center">Ingest</th><th>Volume</th><th>Lente cabine</th><th>KDM</th><th>Obs.</th></tr></thead><tbody>';
   films.forEach(function(c,idx){
     var f=filmesMap[c]||{},op=_trafOpMap[_trafOpId(s,c)]||{},sc=_trafSafe(c);
@@ -32783,7 +32786,6 @@ function _trafOpSessHtml(s,canOp,hdSel){
     var sub=['<span class="film-code">'+esc(c)+'</span>'];
     if(clean(f.resolucao))sub.push('<span class="film-hd">'+esc(clean(f.resolucao))+'</span>');
     if(_trafFps(f))sub.push('<span class="film-hd">'+esc(_trafFps(f))+'</span>');
-    if(_trafLegCopia(f))sub.push('<span class="film-hd">leg. '+esc(_trafLegCopia(f))+'</span>');
     if(_trafGB(c))sub.push('<span class="film-hd">'+_trafGB(c).toFixed(0)+' GB</span>');
     if(f.status)sub.push(statusBadge(f.status));
     var outras=_trafOpOutras(s,c).map(function(o){
@@ -32797,6 +32799,8 @@ function _trafOpSessHtml(s,canOp,hdSel){
         (outras?'<div class="film-sub" style="margin-top:4px;"><span class="traf-muted">nesta sala também:</span>'+outras+'</div>':'')+'</td>'+
       '<td class="center">'+(lenteBadge(clean(f.lente))||'<span style="color:var(--text-muted)">—</span>')+'</td>'+
       '<td class="center">'+(somBadge(clean(f.som))||'<span style="color:var(--text-muted)">—</span>')+'</td>'+
+      '<td>'+(_trafLegCopia(f)?'<div style="font-family:var(--mono);font-size:13px;font-weight:700;color:var(--text);">'+esc(_trafLegCopia(f))+'</div>':'<span style="color:var(--text-muted)">—</span>')+
+        (_trafLegExib(f)?'<span class="traf-badge traf-ovvf" style="margin:3px 0 0;">'+esc(_trafLegExib(f))+'</span>':'')+'</td>'+
       '<td class="cpl-cell">'+(clean(f.cpl)?'<div class="cpl-text" style="min-width:160px;font-weight:700;">'+esc(clean(f.cpl))+'</div>':'<span style="color:var(--text-muted)">—</span>')+(clean(f.cplOV)?'<div class="cpl-ov-ficha"><span class="cpl-ov-ficha-label">CPL da OV:</span>'+esc(clean(f.cplOV))+'</div>':'')+'</td>'+
       '<td style="max-width:110px;">'+(_trafEnvioHtml(s,c)||'<span style="color:var(--text-muted)">—</span>')+'</td>'+
       '<td class="center"><label style="display:inline-flex;align-items:center;gap:6px;cursor:pointer;"><input type="checkbox" style="width:18px;height:18px;accent-color:var(--ok);"'+(op.ingestado?' checked':'')+dis+' onchange="_trafOpSave(\''+sn+'\',\''+sc+'\',\'ingestado\',this.checked,this)"><span class="traf-badge traf-ok traf-ing" style="margin:0;'+(op.ingestado?'':'display:none;')+'">OK</span></label></td>'+

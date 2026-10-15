@@ -32683,6 +32683,13 @@ function _trafSessInfo(s,films){
 // legenda da cópia (VF tem prioridade, como na ficha) e taxa de quadros
 function _trafLegCopia(f){return clean(f.vf)?'VF '+clean(f.vf):clean(f.legenda);}
 function _trafFps(f){return clean(f.fps)?clean(f.fps)+' fps':'';}
+// lente da cabine: o que o operador registrou; sem registro, a lente do Acervo Técnico
+function _trafLenteOp(op,f){return op.lente||clean(f.lente)||'';}
+function _trafLenteOpts(op,f,vazio){
+  var cur=_trafLenteOp(op,f),lst=['FLAT','SCOPE','FULL'];
+  if(cur&&lst.indexOf(cur)<0)lst.push(cur);
+  return'<option value=""'+(cur?'':' selected')+'>'+vazio+'</option>'+lst.map(function(l){return'<option value="'+esc(l)+'"'+(l===cur?' selected':'')+'>'+esc(l)+'</option>';}).join('');
+}
 // especificações técnicas da cópia e tamanhos (o que antes só aparecia no Ingest)
 function _trafSpecsHtml(c){
   var f=filmesMap[c]||{},sp=[];
@@ -32738,7 +32745,7 @@ function _trafOpImprimir(dia){
       body+='<tr><td><b>'+e(filmDisplayTitle(c))+'</b>'+(_trafOvVf(c)?' <span class="ov">OV + VF</span>':'')+'<br><span class="m">'+e(c)+'</span></td>'+
         '<td>'+e(spec||'—')+'</td>'+
         '<td class="m">'+e(clean(f.cpl)||'—')+(clean(f.cplOV)?'<br><b>OV:</b> '+e(clean(f.cplOV)):'')+'</td>'+
-        '<td>'+e(env||'—')+'</td><td class="c">'+(op.ingestado?'✓':'☐')+'</td><td>'+e(op.volume||'')+'</td><td>'+e(op.lente||'')+'</td><td>'+e(kdm)+'</td><td>'+e(op.obs||'')+'</td></tr>';
+        '<td>'+e(env||'—')+'</td><td class="c">'+(op.ingestado?'✓':'☐')+'</td><td>'+e(op.volume||'')+'</td><td>'+e(_trafLenteOp(op,f))+'</td><td>'+e(kdm)+'</td><td>'+e(op.obs||'')+'</td></tr>';
     });
     body+='</tbody></table></div>';
   });
@@ -32782,7 +32789,7 @@ function _trafOpSessHtml(s,canOp,hdSel){
       var oop=_trafOpMap[_trafOpId(o,c)]||{};
       return'<span class="traf-chip" title="'+esc(o.nome)+'">'+esc(_trafBr(_trafIso(o.date))+' '+o.hora)+(oop.ingestado?' ✓':'')+'</span>';
     }).join('');
-    var lenteOpts=['','FLAT','SCOPE','FULL'].map(function(l){return'<option value="'+l+'"'+((op.lente||'')===l?' selected':'')+'>'+(l||'—')+'</option>';}).join('');
+    var lenteOpts=_trafLenteOpts(op,f,'—');
     html+='<tr>'+
       '<td class="film-num">'+(idx+1)+'</td>'+
       '<td><div class="film-title">'+esc(filmDisplayTitle(c))+_trafOvVfBadge(c)+'</div><div class="film-sub">'+sub.join('')+'</div>'+
@@ -33025,7 +33032,7 @@ function _mobTrafSessHtml(s,canOp,hdSel){
         '<span class="traf-ing" style="'+(op.ingestado?'color:var(--ok);font-weight:700;':'')+'">'+(op.ingestado?'ingestado':'ingestado?')+'</span></label>'+
       '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">'+
         '<input class="traf-input" style="'+_TRAF_MOB_IN+'" placeholder="volume" inputmode="decimal" value="'+esc(op.volume||'')+'"'+dis+' onchange="_trafOpSave(\''+sn+'\',\''+sc+'\',\'volume\',this.value.trim())">'+
-        '<select class="traf-input" style="'+_TRAF_MOB_IN+'"'+dis+save('lente','this.value')+'>'+['','FLAT','SCOPE','FULL'].map(function(l){return'<option value="'+l+'"'+((op.lente||'')===l?' selected':'')+'>'+(l||('lente'+(clean(f.lente)?' ('+esc(clean(f.lente))+')':'')))+'</option>';}).join('')+'</select>'+
+        '<select class="traf-input" style="'+_TRAF_MOB_IN+'"'+dis+save('lente','this.value')+'>'+_trafLenteOpts(op,f,'lente')+'</select>'+
       '</div>'+
       (precisaKdm?'<select class="traf-input" style="'+_TRAF_MOB_IN+'margin-top:6px;"'+dis+save('kdm_recebido','this.value')+'>'+
         [['','KDM: —'],['sim','KDM recebido'],['nao','KDM não recebido'],['erro','KDM com erro']].map(function(o){return'<option value="'+o[0]+'"'+((op.kdm_recebido||'')===o[0]?' selected':'')+'>'+o[1]+'</option>';}).join('')+'</select><span class="traf-badge traf-aus traf-kdmerro" style="margin:4px 0 0;'+(op.kdm_recebido==='erro'?'':'display:none;')+'">KDM com erro</span>':'')+

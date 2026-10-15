@@ -18944,7 +18944,7 @@ function renderDash(){
   html+=colBlock('legendagem','Legendagem',legBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 15/10/2026 às 14:46';
+  var sysUpdate='última atualização do sistema · 15/10/2026 às 14:55';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -28573,7 +28573,7 @@ function _sxcPrint(){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 15/10/2026 às 14:46</span></div>
+<div id="page-footer"><span>última atualização · 15/10/2026 às 14:55</span></div>
 
 </div>
 
@@ -32057,7 +32057,7 @@ async function ressincronizarDuracoes(){
 var _trafHds=[];
 var _trafView='interno',_trafEv='',_trafHdSel=null,_trafDirty=false;
 var _trafOpMap={},_trafOpUnsub=null,_trafOpEv='';
-var _trafOpFiltro={complexo:'',sala:'',hd:'',dia:null};
+var _trafOpFiltro={complexo:'',sala:'',hd:''};
 
 function _trafIso(d){return d?d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'):'';}
 function _trafBr(iso){var m=/^(\d{4})-(\d{2})-(\d{2})$/.exec(iso||'');return m?m[3]+'/'+m[2]:(iso||'');}
@@ -32139,18 +32139,19 @@ function renderTrafego(){
 
 /* ─── Tráfego interno: lista de HDs + pendências ─── */
 function _trafRenderInterno(cont){
-  var ev=_trafEv,canEdit=_trafCanEdit(),hds=_trafHdsEv(ev);
+  var ev=_trafEv,canEdit=_trafCanEdit(),todos=_trafHdsEv(ev);
+  var hds=todos.filter(function(h){return !h.data.devolvido;}),devolvidos=todos.filter(function(h){return h.data.devolvido;});
   var html='<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;"><div class="traf-h" style="margin:0;">HDs de envio · '+hds.length+'</div>'+
     (canEdit?'<button class="print-btn" onclick="_trafNovoHd()">+ Novo HD</button>':'')+
     (hds.length?'<button class="print-btn" onclick="_trafRelatorio(null)">⎙ Relatório de todos os HDs</button>':'')+'</div>';
-  if(!hds.length)html+='<div class="traf-muted" style="margin-top:10px;">Nenhum HD cadastrado para este evento.</div>';
+  if(!hds.length)html+='<div class="traf-muted" style="margin-top:10px;">Nenhum HD ativo para este evento.</div>';
   else{
     html+='<div class="traf-cards">';
     hds.forEach(function(h){
       var r=_trafResumo(h),x=h.data;
       var dest=(x.destinos||[]).map(function(de){return esc(de.sala)+': '+((de.dias||[]).map(_trafBr).join(', ')||'<span style="color:var(--warn);">sem dias</span>');}).join('<br>');
       html+='<div class="traf-card" onclick="_trafHdSel=\''+_trafSafe(h.id)+'\';renderTrafego();">'+
-        '<div class="traf-card-name">'+esc(x.nome||'HD')+'</div>'+
+        '<div class="traf-card-name">'+esc(x.nome||'HD')+(_trafChegada(h)?'<span class="traf-muted" style="font-weight:400;margin-left:8px;">chega ~'+_trafBr(_trafChegada(h))+'</span>':'')+'</div>'+
         '<div class="traf-meta">'+(dest||'<span style="color:var(--warn);">sem destino</span>')+'</div>'+
         '<div class="traf-meta">'+r.presentes.length+' filme'+(r.presentes.length!==1?'s':'')+' · '+_trafGbStr(r.gb)+' · '+r.sessoes.length+' sess'+(r.sessoes.length!==1?'ões':'ão')+
           (r.ovvf?'<span class="traf-badge traf-ovvf">'+r.ovvf+' OV + VF</span>':'')+
@@ -32159,6 +32160,14 @@ function _trafRenderInterno(cont){
       '</div>';
     });
     html+='</div>';
+  }
+  if(devolvidos.length){
+    html+='<details style="margin-top:14px;"><summary class="traf-muted" style="cursor:pointer;">HDs devolvidos · '+devolvidos.length+'</summary><table class="traf-table" style="margin-top:6px;"><thead><tr><th>HD</th><th>Destinos</th><th>Filmes</th><th>Devolvido em</th></tr></thead><tbody>';
+    devolvidos.forEach(function(h){
+      var x=h.data,r=_trafResumo(h);
+      html+='<tr style="cursor:pointer;" onclick="_trafHdSel=\''+_trafSafe(h.id)+'\';renderTrafego();"><td><b>'+esc(x.nome||'HD')+'</b></td><td>'+esc((x.destinos||[]).map(function(de){return de.sala+': '+(de.dias||[]).map(_trafBr).join(', ');}).join(' · '))+'</td><td>'+r.presentes.length+'</td><td>'+esc(x.devolvido_em?new Date(x.devolvido_em).toLocaleDateString('pt-BR'):'—')+'</td></tr>';
+    });
+    html+='</tbody></table></details>';
   }
   // pendências: sessões de hoje em diante com filmes sem HD de envio
   var hoje=_trafIso(new Date()),pend=[];
@@ -32187,7 +32196,12 @@ function _trafRenderHd(cont,h){
     '<button class="print-btn" onclick="_trafHdSel=null;renderTrafego();">← HDs</button>'+
     (canEdit?'<input class="traf-input" style="font-size:15px;font-weight:700;width:200px;" value="'+esc(x.nome||'')+'" onchange="_trafSaveHd(\''+sid+'\',{nome:this.value.trim()})">':'<span style="font-family:var(--mono);font-size:15px;font-weight:700;">'+esc(x.nome||'HD')+'</span>')+
     '<button class="print-btn" onclick="_trafRelatorio(\''+sid+'\')">⎙ Relatório de ingest</button>'+
-    (canEdit?'<button class="print-btn" style="margin-left:auto;color:var(--warn);" onclick="_trafExcluirHd(\''+sid+'\')">Excluir HD</button>':'')+
+    (x.devolvido?'<span class="traf-badge traf-aus">devolvido'+(x.devolvido_em?' em '+esc(new Date(x.devolvido_em).toLocaleDateString('pt-BR')):'')+'</span>':'')+
+    (canEdit?'<span style="margin-left:auto;display:flex;gap:6px;">'+
+      (x.devolvido?'<button class="print-btn" onclick="_trafDevolvido(\''+sid+'\',false)">reativar</button>':
+        '<button class="print-btn" onclick="_trafDevolvido(\''+sid+'\',true)" title="O HD voltou do cinema; some da Operação">marcar devolvido</button>'+
+        '<button class="print-btn" onclick="_trafReutilizar(\''+sid+'\')" title="Marca esta remessa como devolvida e cria uma nova, vazia, com o mesmo nome">reutilizar HD</button>')+
+      '<button class="print-btn" style="color:var(--warn);" onclick="_trafExcluirHd(\''+sid+'\')">Excluir HD</button></span>':'')+
   '</div>';
   html+='<textarea class="traf-input" style="width:100%;margin-top:10px;min-height:40px;font-family:var(--sans);" placeholder="Observações do HD"'+dis+' onchange="_trafSaveHd(\''+sid+'\',{notas:this.value})">'+esc(x.notas||'')+'</textarea>';
 
@@ -32237,6 +32251,27 @@ function _trafRenderHd(cont,h){
   cont.innerHTML=html;
 }
 
+// chegada prevista ao cinema: 2 dias antes do primeiro dia de exibição do HD
+function _trafChegada(h){
+  var ds=[];(h.data.destinos||[]).forEach(function(de){(de.dias||[]).forEach(function(d){ds.push(d);});});
+  if(!ds.length)return'';ds.sort();
+  var p=ds[0].split('-').map(Number),d=new Date(p[0],p[1]-1,p[2]);d.setDate(d.getDate()-2);return _trafIso(d);
+}
+function _trafDevolvido(id,on){
+  if(on&&!confirm('Marcar este HD como devolvido? Ele deixa de aparecer na Operação.'))return;
+  _trafSaveHd(id,{devolvido:!!on,devolvido_em:on?new Date().toISOString():''});
+}
+async function _trafReutilizar(id){
+  var h=_trafHdById(id);if(!h)return;
+  if(!confirm('Reutilizar o HD "'+(h.data.nome||'')+'"?\n\nEsta remessa é marcada como devolvida (some da Operação; as anotações dos projecionistas ficam nas sessões) e é criada uma nova remessa vazia com o mesmo nome.'))return;
+  var now=new Date().toISOString(),u=window._olgaUser||{};
+  try{
+    await window._olgaTrafego.saveHd(id,{devolvido:true,devolvido_em:now,updated_at:now});
+    var nid=await window._olgaTrafego.createHd({event_id:h.data.event_id||_trafEv,nome:h.data.nome||'',notas:'',destinos:[],filmes:{},devolvido:false,reutiliza:id,created_by:(u.email||'').toLowerCase(),created_at:now,updated_at:now});
+    window._logFirestoreEdit&&window._logFirestoreEdit('individual',nid,{reutiliza:id,nome:h.data.nome||''},'trafego','trafego_hds');
+    _trafHdSel=nid;renderTrafego();
+  }catch(e){alert('Erro ao reutilizar: '+e.message);}
+}
 async function _trafNovoHd(){
   var n=prompt('Nome do HD de envio (ex.: TR-01):');if(!n||!n.trim())return;
   var now=new Date().toISOString(),u=window._olgaUser||{};
@@ -32354,65 +32389,112 @@ function _trafOpFiltroSet(k,v){
   if(k==='complexo')_trafOpFiltro.sala='';
   renderTrafego();
 }
+// HDs ativos (não devolvidos) que chegam a alguma sala visível para o usuário
+function _trafOpHdsAtivos(ev,as){return _trafHdsEv(ev).filter(function(h){return !h.data.devolvido&&(h.data.destinos||[]).some(function(de){return !as||as.has(de.sala);});});}
+// pares sessão × filme que o HD leva às salas visíveis
+function _trafOpPares(h,as){
+  var out=[];
+  _trafHdSessoes(h).forEach(function(s){
+    if(as&&!as.has(s.cinema))return;
+    s.filmes.forEach(function(c){if(!_isFest(c))return;var fo=(h.data.filmes||{})[c];if(fo&&fo.ausente)return;out.push({s:s,c:c});});
+  });
+  return out;
+}
+var _trafOpPastOpen=false;
+function _trafOpSessHtml(s,canOp,hdSel){
+  var dis=canOp?'':' disabled',sn=_trafSafe(s.nome),kr=(typeof _kdmResults!=='undefined'&&_kdmResults[s.nome])||null;
+  var films=s.filmes.filter(_isFest);
+  if(hdSel)films=films.filter(function(c){return _trafEnvio(s,c).some(function(h){return h.id===hdSel.id;});});
+  if(!films.length)return'';
+  var kdmBtn=kr&&kr.files&&kr.files.length?'<button class="print-btn" style="margin-left:auto;" onclick="_trafKdmDownload(\''+sn+'\')">⤓ KDM ('+kr.files.length+')</button>':'';
+  var html='<div class="traf-sess"><div class="traf-sess-h"><b>'+esc(s.hora)+'</b><span>'+esc(s.cinema)+'</span><span style="color:var(--accent);">'+esc(stripEvPrefix(s.nome,s.evento))+'</span>'+(s.name&&s.name!==s.nome?'<span class="traf-muted">'+esc(s.name)+'</span>':'')+kdmBtn+'</div>';
+  html+='<table class="traf-table"><thead><tr><th>Filme</th><th>HD de envio</th><th>Ingest</th><th>Volume</th><th>Lente</th><th>KDM</th><th>Obs.</th><th>Outras sessões nesta sala</th></tr></thead><tbody>';
+  films.forEach(function(c){
+    var f=filmesMap[c]||{},op=_trafOpMap[_trafOpId(s,c)]||{},sc=_trafSafe(c);
+    var precisaKdm=(f.kdm||'').toString().toUpperCase()==='SIM';
+    var lenteOpts=['','FLAT','SCOPE','FULL'].map(function(l){return'<option value="'+l+'"'+((op.lente||'')===l?' selected':'')+'>'+(l||('— '+esc(clean(f.lente)||'')))+'</option>';}).join('');
+    var outras=sessoesArr.filter(function(o){return o.evento===s.evento&&o.cinema===s.cinema&&o.nome!==s.nome&&o.filmes.indexOf(c)>=0;}).sort(_trafSort).map(function(o){
+      var oop=_trafOpMap[_trafOpId(o,c)]||{};
+      return'<span class="traf-chip" title="'+esc(o.nome)+'">'+esc(_trafBr(_trafIso(o.date))+' '+o.hora)+(oop.ingestado?' ✓':'')+'</span>';
+    }).join('');
+    html+='<tr><td><b>'+esc(filmDisplayTitle(c))+'</b>'+_trafOvVfBadge(c)+'<div class="traf-muted">'+esc(c)+(clean(f.cpl)?' · CPL '+esc(clean(f.cpl).slice(0,40)):'')+'</div></td>'+
+      '<td>'+(_trafEnvioHtml(s,c)||'<span class="traf-muted">—</span>')+'</td>'+
+      '<td><label class="traf-day" style="margin:0;"><input type="checkbox"'+(op.ingestado?' checked':'')+dis+' onchange="_trafOpSave(\''+sn+'\',\''+sc+'\',\'ingestado\',this.checked)">'+(op.ingestado?'<span class="traf-badge traf-ok" style="margin:0;">OK</span>':'')+'</label></td>'+
+      '<td><input class="traf-input" style="width:60px;" value="'+esc(op.volume||'')+'"'+dis+' onchange="_trafOpSave(\''+sn+'\',\''+sc+'\',\'volume\',this.value.trim())"></td>'+
+      '<td><select class="traf-input"'+dis+' onchange="_trafOpSave(\''+sn+'\',\''+sc+'\',\'lente\',this.value)">'+lenteOpts+'</select></td>'+
+      '<td>'+(precisaKdm?'<select class="traf-input"'+dis+' onchange="_trafOpSave(\''+sn+'\',\''+sc+'\',\'kdm_recebido\',this.value)">'+
+        [['','—'],['sim','recebido'],['nao','não recebido']].map(function(o){return'<option value="'+o[0]+'"'+((op.kdm_recebido||'')===o[0]?' selected':'')+'>'+o[1]+'</option>';}).join('')+'</select>':'<span class="traf-muted">não exige</span>')+'</td>'+
+      '<td><input class="traf-input" style="width:100%;min-width:140px;" value="'+esc(op.obs||'')+'"'+dis+' onchange="_trafOpSave(\''+sn+'\',\''+sc+'\',\'obs\',this.value)"></td>'+
+      '<td>'+(outras||'<span class="traf-muted">—</span>')+'</td></tr>';
+  });
+  return html+'</tbody></table></div>';
+}
+function _trafOpDiasHtml(list,canOp,hdSel){
+  var html='',lastDay=null;
+  list.forEach(function(s){
+    var sh=_trafOpSessHtml(s,canOp,hdSel);if(!sh)return;
+    var d=_trafIso(s.date);
+    if(d!==lastDay){lastDay=d;html+='<div class="traf-h">'+esc(s.dia)+'</div>';}
+    html+=sh;
+  });
+  return html;
+}
 function _trafRenderOperacao(cont){
-  var ev=_trafEv,F=_trafOpFiltro,canOp=_trafCanOperar(),dis=canOp?'':' disabled';
+  var ev=_trafEv,F=_trafOpFiltro,canOp=_trafCanOperar();
   if(_trafOpEv!==ev&&window._olgaTrafego){
     if(_trafOpUnsub){try{_trafOpUnsub();}catch(e){}}
     _trafOpMap={};_trafOpEv=ev;
     _trafOpUnsub=window._olgaTrafego.listenOperacao(ev,function(m){_trafOpMap=m;if(currentMode==='trafego'&&_trafView==='operacao')renderTrafego();});
   }
-  var as=allowedSalas();
+  var as=allowedSalas(),hoje=_trafIso(new Date());
+  var hds=_trafOpHdsAtivos(ev,as);
+  if(F.hd&&!hds.some(function(h){return h.id===F.hd;}))F.hd='';
+  var hdSel=F.hd?_trafHdById(F.hd):null;
   var base=sessoesArr.filter(function(s){return s.evento===ev&&s.date&&s.cinema&&(!as||as.has(s.cinema));});
-  var cxs={},salas={},dias={};
-  base.forEach(function(s){var cx=_getSalaComplexo(s.cinema);cxs[cx]=1;if(!F.complexo||cx===F.complexo)salas[s.cinema]=1;dias[_trafIso(s.date)]=1;});
-  var diasArr=Object.keys(dias).sort(),hoje=_trafIso(new Date());
-  if(F.dia===null)F.dia=diasArr.indexOf(hoje)>=0?hoje:(diasArr.filter(function(d){return d>=hoje;})[0]||'');
-  var hds=_trafHdsEv(ev).filter(function(h){return(h.data.destinos||[]).some(function(de){return !as||as.has(de.sala);});});
+  var cxs={},salas={};
+  base.forEach(function(s){var cx=_getSalaComplexo(s.cinema);cxs[cx]=1;if(!F.complexo||cx===F.complexo)salas[s.cinema]=1;});
   function opt(v,l,cur){return'<option value="'+esc(v)+'"'+(v===cur?' selected':'')+'>'+esc(l)+'</option>';}
-  var html='<div class="traf-filtros">'+
+
+  // HDs no cinema: o que chegou e quanto já foi ingestado
+  var html='<div class="traf-h" style="margin-top:0;">HDs no cinema · '+hds.length+'</div>';
+  if(!hds.length)html+='<div class="traf-muted">Nenhum HD ativo para '+(as?'os seus complexos':'este evento')+'.</div>';
+  else{
+    html+='<div class="traf-cards">';
+    hds.forEach(function(h){
+      var pares=_trafOpPares(h,as),ok=pares.filter(function(p){return(_trafOpMap[_trafOpId(p.s,p.c)]||{}).ingestado;}).length;
+      var dias={};pares.forEach(function(p){dias[_trafIso(p.s.date)]=1;});
+      var salasH={};pares.forEach(function(p){salasH[p.s.cinema]=1;});
+      var on=F.hd===h.id,pct=pares.length?Math.round(ok/pares.length*100):0,ch=_trafChegada(h);
+      html+='<div class="traf-card" style="'+(on?'border-color:var(--accent);background:var(--surface2);':'')+'" onclick="_trafOpFiltroSet(\'hd\',\''+(on?'':_trafSafe(h.id))+'\')">'+
+        '<div class="traf-card-name">'+esc(h.data.nome||'HD')+(ch?'<span class="traf-muted" style="font-weight:400;margin-left:8px;">chega ~'+_trafBr(ch)+'</span>':'')+'</div>'+
+        '<div class="traf-meta">'+esc(Object.keys(salasH).sort().join(' · '))+'<br>exibição: '+esc(Object.keys(dias).sort().map(_trafBr).join(', ')||'—')+'</div>'+
+        '<div class="traf-meta">'+ok+'/'+pares.length+' ingestados'+(pares.length&&ok===pares.length?'<span class="traf-badge traf-ok">completo</span>':'')+'</div>'+
+        '<div style="height:3px;background:var(--border);margin-top:6px;"><div style="height:3px;width:'+pct+'%;background:var(--ok);"></div></div>'+
+      '</div>';
+    });
+    html+='</div>';
+  }
+
+  html+='<div class="traf-filtros" style="margin-top:16px;">'+
     '<select class="traf-input" onchange="_trafOpFiltroSet(\'complexo\',this.value)">'+opt('','Todos os complexos',F.complexo)+Object.keys(cxs).sort().map(function(c){return opt(c,c,F.complexo);}).join('')+'</select>'+
     '<select class="traf-input" onchange="_trafOpFiltroSet(\'sala\',this.value)">'+opt('','Todas as salas',F.sala)+Object.keys(salas).sort().map(function(c){return opt(c,c,F.sala);}).join('')+'</select>'+
-    '<select class="traf-input" onchange="_trafOpFiltroSet(\'hd\',this.value)">'+opt('','Todos os HDs de envio',F.hd)+hds.map(function(h){return opt(h.id,h.data.nome||h.id,F.hd);}).join('')+'</select>'+
-    '<select class="traf-input" onchange="_trafOpFiltroSet(\'dia\',this.value)">'+opt('','Todos os dias',F.dia)+diasArr.map(function(d){return opt(d,_trafBr(d)+(d===hoje?' (hoje)':''),F.dia);}).join('')+'</select>'+
+    (hdSel?'<span class="traf-chip" style="cursor:pointer;color:var(--accent);border-color:var(--accent);" onclick="_trafOpFiltroSet(\'hd\',\'\')">só '+esc(hdSel.data.nome||'HD')+' ✕</span>':'')+
     (canOp?'':'<span class="traf-muted">somente leitura</span>')+
   '</div>';
-  var hdSel=F.hd?_trafHdById(F.hd):null;
+
   var list=base.filter(function(s){
     if(F.complexo&&_getSalaComplexo(s.cinema)!==F.complexo)return false;
     if(F.sala&&s.cinema!==F.sala)return false;
-    if(F.dia&&_trafIso(s.date)!==F.dia)return false;
     if(hdSel&&!_trafHdMatch(hdSel,s))return false;
     return s.filmes.some(_isFest);
   }).sort(function(a,b){return _trafSort(a,b)||a.cinema.localeCompare(b.cinema,'pt-BR');});
-  if(!list.length){cont.innerHTML=html+'<div class="traf-muted" style="margin-top:14px;">Nenhuma sessão nos filtros selecionados.</div>';return;}
-  var lastDay=null;
-  list.forEach(function(s){
-    var d=_trafIso(s.date);
-    if(d!==lastDay){lastDay=d;html+='<div class="traf-h">'+esc(s.dia)+'</div>';}
-    var sn=_trafSafe(s.nome),kr=(typeof _kdmResults!=='undefined'&&_kdmResults[s.nome])||null;
-    var kdmBtn=kr&&kr.files&&kr.files.length?'<button class="print-btn" style="margin-left:auto;" onclick="_trafKdmDownload(\''+sn+'\')">⤓ KDM ('+kr.files.length+')</button>':'';
-    html+='<div class="traf-sess"><div class="traf-sess-h"><b>'+esc(s.hora)+'</b><span>'+esc(s.cinema)+'</span><span style="color:var(--accent);">'+esc(stripEvPrefix(s.nome,s.evento))+'</span>'+(s.name&&s.name!==s.nome?'<span class="traf-muted">'+esc(s.name)+'</span>':'')+kdmBtn+'</div>';
-    html+='<table class="traf-table"><thead><tr><th>Filme</th><th>HD de envio</th><th>Ingest</th><th>Volume</th><th>Lente</th><th>KDM</th><th>Obs.</th><th>Outras sessões nesta sala</th></tr></thead><tbody>';
-    s.filmes.filter(_isFest).forEach(function(c){
-      var f=filmesMap[c]||{},op=_trafOpMap[_trafOpId(s,c)]||{},sc=_trafSafe(c);
-      var precisaKdm=(f.kdm||'').toString().toUpperCase()==='SIM';
-      var lenteOpts=['','FLAT','SCOPE','FULL'].map(function(l){return'<option value="'+l+'"'+((op.lente||'')===l?' selected':'')+'>'+(l||('— '+esc(clean(f.lente)||'')))+'</option>';}).join('');
-      var outras=sessoesArr.filter(function(o){return o.evento===s.evento&&o.cinema===s.cinema&&o.nome!==s.nome&&o.filmes.indexOf(c)>=0;}).sort(_trafSort).map(function(o){
-        var oop=_trafOpMap[_trafOpId(o,c)]||{};
-        return'<span class="traf-chip" title="'+esc(o.nome)+'">'+esc(_trafBr(_trafIso(o.date))+' '+o.hora)+(oop.ingestado?' ✓':'')+'</span>';
-      }).join('');
-      html+='<tr><td><b>'+esc(filmDisplayTitle(c))+'</b>'+_trafOvVfBadge(c)+'<div class="traf-muted">'+esc(c)+(clean(f.cpl)?' · CPL '+esc(clean(f.cpl).slice(0,40)):'')+'</div></td>'+
-        '<td>'+(_trafEnvioHtml(s,c)||'<span class="traf-muted">—</span>')+'</td>'+
-        '<td><label class="traf-day" style="margin:0;"><input type="checkbox"'+(op.ingestado?' checked':'')+dis+' onchange="_trafOpSave(\''+sn+'\',\''+sc+'\',\'ingestado\',this.checked)">'+(op.ingestado?'<span class="traf-badge traf-ok" style="margin:0;">OK</span>':'')+'</label></td>'+
-        '<td><input class="traf-input" style="width:60px;" value="'+esc(op.volume||'')+'"'+dis+' onchange="_trafOpSave(\''+sn+'\',\''+sc+'\',\'volume\',this.value.trim())"></td>'+
-        '<td><select class="traf-input"'+dis+' onchange="_trafOpSave(\''+sn+'\',\''+sc+'\',\'lente\',this.value)">'+lenteOpts+'</select></td>'+
-        '<td>'+(precisaKdm?'<select class="traf-input"'+dis+' onchange="_trafOpSave(\''+sn+'\',\''+sc+'\',\'kdm_recebido\',this.value)">'+
-          [['','—'],['sim','recebido'],['nao','não recebido']].map(function(o){return'<option value="'+o[0]+'"'+((op.kdm_recebido||'')===o[0]?' selected':'')+'>'+o[1]+'</option>';}).join('')+'</select>':'<span class="traf-muted">não exige</span>')+'</td>'+
-        '<td><input class="traf-input" style="width:100%;min-width:140px;" value="'+esc(op.obs||'')+'"'+dis+' onchange="_trafOpSave(\''+sn+'\',\''+sc+'\',\'obs\',this.value)"></td>'+
-        '<td>'+(outras||'<span class="traf-muted">—</span>')+'</td></tr>';
-    });
-    html+='</tbody></table></div>';
-  });
+  var futuras=list.filter(function(s){return _trafIso(s.date)>=hoje;}),passadas=list.filter(function(s){return _trafIso(s.date)<hoje;});
+  var fh=_trafOpDiasHtml(futuras,canOp,hdSel);
+  html+=fh||'<div class="traf-muted" style="margin-top:14px;">Nenhuma sessão de hoje em diante nos filtros selecionados.</div>';
+  if(passadas.length){
+    var ph=_trafOpDiasHtml(passadas,canOp,hdSel);
+    if(ph)html+='<details style="margin-top:18px;"'+(_trafOpPastOpen?' open':'')+' ontoggle="_trafOpPastOpen=this.open"><summary class="traf-muted" style="cursor:pointer;">Dias anteriores · '+passadas.length+' sess'+(passadas.length!==1?'ões':'ão')+'</summary>'+ph+'</details>';
+  }
   cont.innerHTML=html;
 }
 </script>

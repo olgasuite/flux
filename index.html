@@ -19003,7 +19003,7 @@ function renderDash(){
   html+=colBlock('legendagem','Legendagem',legBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 15/10/2026 às 19:12';
+  var sysUpdate='última atualização do sistema · 15/10/2026 às 19:16';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -28632,7 +28632,7 @@ function _sxcPrint(){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 15/10/2026 às 19:12</span></div>
+<div id="page-footer"><span>última atualização · 15/10/2026 às 19:16</span></div>
 
 </div>
 
@@ -32748,8 +32748,11 @@ function _trafOpImprimir(dia){
     '<thead><tr><th>Filme</th><th>Cópia</th><th>Legenda</th><th>CPL</th><th>HD envio</th><th>Ingest</th><th>Volume</th><th>Lente</th><th>KDM</th><th>Obs.</th></tr></thead>';
   var body=salas.map(function(sala){
     var ss=porSala[sala],gbDia=_trafGbDias(ss,hdSel),gbSala=Object.keys(gbDia).reduce(function(t,k){return t+gbDia[k];},0),last=null,h='';
+    var hdsSala={};ss.forEach(function(s){_trafOpFilmes(s,hdSel).forEach(function(c){_trafEnvio(s,c).forEach(function(hd){hdsSala[hd.data.nome||'HD']=1;});});});
+    var hdsTxt=Object.keys(hdsSala).sort(function(x,y){return x.localeCompare(y,'pt-BR',{numeric:true});});
     h+='<section><div class="top"><span class="sala">'+e(sala)+'</span><span class="tt">Operação · '+e(_trafEvNome(ev))+' · '+e(periodo)+'</span>'+
-      '<span class="tt2">'+ss.length+' sess'+(ss.length!==1?'ões':'ão')+(gbSala?' · '+_trafGbStr(gbSala):'')+(hdSel?' · HD '+e(hdSel.data.nome||''):'')+'</span></div>';
+      (hdsTxt.length?'<span class="hds">HD de envio: '+hdsTxt.map(function(n){return'<b>'+e(n)+'</b>';}).join(' · ')+'</span>':'<span class="hds">sem HD de envio</span>')+
+      '<span class="tt2">'+ss.length+' sess'+(ss.length!==1?'ões':'ão')+(gbSala?' · '+_trafGbStr(gbSala):'')+'</span></div>';
     ss.forEach(function(s){
       var d=_trafIso(s.date),films=_trafOpFilmes(s,hdSel),gb=_trafGbLista(films),si=_trafSessInfo(s,films);
       if(d!==last){if(last)h+='</tbody></table>';last=d;h+='<h2>'+e(s.dia)+(gbDia[d]?' · '+_trafGbStr(gbDia[d]):'')+'</h2><table>'+COLS+'<tbody>';}
@@ -32768,7 +32771,7 @@ function _trafOpImprimir(dia){
           '<td>'+(spec||'—')+'</td>'+
           '<td>'+legCel+'</td>'+
           '<td class="m cpl">'+e(clean(f.cpl)||'—')+(clean(f.cplOV)?'<br>OV: '+e(clean(f.cplOV)):'')+'</td>'+
-          '<td>'+e(env||'—')+'</td><td class="c">'+(op.ingestado?'✓':'☐')+'</td><td>'+e(op.volume||'')+'</td><td>'+e(_trafLenteOp(op,f))+'</td><td>'+e(kdm)+'</td><td>'+e(op.obs||'')+'</td></tr>';
+          '<td>'+e(env||'—')+'</td><td class="c">'+(op.ingestado?'✓':'☐')+'</td><td>'+e(op.volume||'')+'</td><td>'+(_trafLenteOp(op,f)?'<span class="lt">'+e(_trafLenteOp(op,f))+'</span>':'')+'</td><td>'+e(kdm)+'</td><td>'+e(op.obs||'')+'</td></tr>';
       });
     });
     return h+'</tbody></table><div class="rod">OLGA Flux · '+e(new Date().toLocaleString('pt-BR'))+'</div></section>';
@@ -32782,7 +32785,7 @@ function _trafOpImprimir(dia){
     'table{border-collapse:collapse;width:100%;font-size:11px;table-layout:fixed;}th,td{border:1px solid #999;padding:4px 6px;text-align:left;vertical-align:top;overflow-wrap:anywhere;}'+
     'th{background:#222;color:#fff;font-size:8.5px;letter-spacing:.02em;text-transform:uppercase;white-space:nowrap;overflow:hidden;text-overflow:clip;padding:4px 4px;}thead{display:table-header-group;}tr{page-break-inside:avoid;}'+
     'tr.sr td{background:#e9e9e9;border-top:2px solid #000;font-size:12px;padding:5px 6px;}td.c{text-align:center;font-size:14px;}td.cpl{font-weight:bold;color:#000;}.lg{font-size:13px;}.ln{font-size:10px;}'+
-    '.lx{display:inline-block;margin-top:2px;border:1.5px solid #000;font-weight:bold;font-size:8.5px;padding:0 3px;text-transform:uppercase;}.rod{margin-top:8px;color:#555;font-size:10px;}'+
+    '.lx{display:inline-block;margin-top:2px;border:1.5px solid #000;font-weight:bold;font-size:8.5px;padding:0 3px;text-transform:uppercase;}.rod{margin-top:8px;color:#555;font-size:10px;}.lt{display:inline-block;border:2px solid #000;font-weight:bold;font-size:13px;padding:0 4px;text-transform:uppercase;white-space:nowrap;}.hds{font-size:13px;border:2px solid #000;padding:1px 8px;}'+
     '</style></head><body>'+body+'</body></html>');
   w.document.close();
   setTimeout(function(){try{w.focus();w.print();}catch(_e){}},300);
@@ -32833,7 +32836,7 @@ function _trafOpSessHtml(s,canOp,hdSel){
       '<td style="max-width:110px;">'+(_trafEnvioHtml(s,c)||'<span style="color:var(--text-muted)">—</span>')+'</td>'+
       '<td class="center"><label style="display:inline-flex;align-items:center;gap:6px;cursor:pointer;"><input type="checkbox" style="width:18px;height:18px;accent-color:var(--ok);"'+(op.ingestado?' checked':'')+dis+' onchange="_trafOpSave(\''+sn+'\',\''+sc+'\',\'ingestado\',this.checked,this)"><span class="traf-badge traf-ok traf-ing" style="margin:0;'+(op.ingestado?'':'display:none;')+'">OK</span></label></td>'+
       '<td><input class="traf-input" style="width:64px;" value="'+esc(op.volume||'')+'"'+dis+' onchange="_trafOpSave(\''+sn+'\',\''+sc+'\',\'volume\',this.value.trim())"></td>'+
-      '<td><select class="traf-input"'+dis+' onchange="_trafOpSave(\''+sn+'\',\''+sc+'\',\'lente\',this.value)">'+lenteOpts+'</select></td>'+
+      '<td><select class="traf-input" style="font-weight:700;font-size:12px;"'+dis+' onchange="_trafOpSave(\''+sn+'\',\''+sc+'\',\'lente\',this.value)">'+lenteOpts+'</select></td>'+
       '<td>'+(precisaKdm?'<select class="traf-input"'+dis+' onchange="_trafOpSave(\''+sn+'\',\''+sc+'\',\'kdm_recebido\',this.value,this)">'+
         [['','—'],['sim','recebido'],['nao','não recebido'],['erro','com erro']].map(function(o){return'<option value="'+o[0]+'"'+((op.kdm_recebido||'')===o[0]?' selected':'')+'>'+o[1]+'</option>';}).join('')+'</select><span class="traf-badge traf-aus traf-kdmerro" style="'+(op.kdm_recebido==='erro'?'':'display:none;')+'">KDM com erro</span>':'<span style="color:var(--text-muted)">não exige</span>')+'</td>'+
       '<td style="min-width:240px;"><input class="traf-input" style="width:100%;min-width:240px;" value="'+esc(op.obs||'')+'"'+dis+' onchange="_trafOpSave(\''+sn+'\',\''+sc+'\',\'obs\',this.value)"></td>'+

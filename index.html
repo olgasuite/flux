@@ -18963,7 +18963,7 @@ function renderDash(){
   html+=colBlock('legendagem','Legendagem',legBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 15/10/2026 às 15:52';
+  var sysUpdate='última atualização do sistema · 15/10/2026 às 15:53';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -28592,7 +28592,7 @@ function _sxcPrint(){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 15/10/2026 às 15:52</span></div>
+<div id="page-footer"><span>última atualização · 15/10/2026 às 15:53</span></div>
 
 </div>
 
@@ -32597,7 +32597,7 @@ function _trafOpImprimir(dia){
       var f=filmesMap[c]||{},op=_trafOpMap[_trafOpId(s,c)]||{};
       var spec=[clean(f.lente),clean(f.som),clean(f.resolucao),_trafGB(c)?_trafGB(c).toFixed(0)+' GB':'',clean(f.status)].filter(Boolean).join(' · ');
       var env=_trafEnvio(s,c).map(function(h){var o=_trafOrigem(h,c);return(h.data.nome||'HD')+(o?' ← '+o:'');}).join(', ');
-      var kdm=(f.kdm||'').toString().toUpperCase()==='SIM'?({sim:'recebido',nao:'NÃO recebido'}[op.kdm_recebido]||'exige — ?'):'—';
+      var kdm=(f.kdm||'').toString().toUpperCase()==='SIM'?({sim:'recebido',nao:'NÃO recebido',erro:'COM ERRO'}[op.kdm_recebido]||'exige — ?'):'—';
       body+='<tr><td><b>'+e(filmDisplayTitle(c))+'</b>'+(_trafOvVf(c)?' <span class="ov">OV + VF</span>':'')+'<br><span class="m">'+e(c)+'</span></td>'+
         '<td>'+e(spec||'—')+'</td>'+
         '<td class="m">'+e(clean(f.cpl)||'—')+(clean(f.cplOV)?'<br><b>OV:</b> '+e(clean(f.cplOV)):'')+'</td>'+
@@ -32633,7 +32633,7 @@ function _trafOpSessHtml(s,canOp,hdSel){
       '<td><input class="traf-input" style="width:60px;" value="'+esc(op.volume||'')+'"'+dis+' onchange="_trafOpSave(\''+sn+'\',\''+sc+'\',\'volume\',this.value.trim())"></td>'+
       '<td><select class="traf-input"'+dis+' onchange="_trafOpSave(\''+sn+'\',\''+sc+'\',\'lente\',this.value)">'+lenteOpts+'</select></td>'+
       '<td>'+(precisaKdm?'<select class="traf-input"'+dis+' onchange="_trafOpSave(\''+sn+'\',\''+sc+'\',\'kdm_recebido\',this.value)">'+
-        [['','—'],['sim','recebido'],['nao','não recebido']].map(function(o){return'<option value="'+o[0]+'"'+((op.kdm_recebido||'')===o[0]?' selected':'')+'>'+o[1]+'</option>';}).join('')+'</select>':'<span class="traf-muted">não exige</span>')+'</td>'+
+        [['','—'],['sim','recebido'],['nao','não recebido'],['erro','com erro']].map(function(o){return'<option value="'+o[0]+'"'+((op.kdm_recebido||'')===o[0]?' selected':'')+'>'+o[1]+'</option>';}).join('')+'</select>'+(op.kdm_recebido==='erro'?'<span class="traf-badge traf-aus">KDM com erro</span>':''):'<span class="traf-muted">não exige</span>')+'</td>'+
       '<td><input class="traf-input" style="width:100%;min-width:140px;" value="'+esc(op.obs||'')+'"'+dis+' onchange="_trafOpSave(\''+sn+'\',\''+sc+'\',\'obs\',this.value)"></td>'+
       '<td>'+(outras||'<span class="traf-muted">—</span>')+'</td></tr>';
   });
@@ -32840,7 +32840,7 @@ function _mobTrafSessHtml(s,canOp,hdSel){
         '<select class="traf-input" style="'+_TRAF_MOB_IN+'"'+dis+save('lente','this.value')+'>'+['','FLAT','SCOPE','FULL'].map(function(l){return'<option value="'+l+'"'+((op.lente||'')===l?' selected':'')+'>'+(l||('lente'+(clean(f.lente)?' ('+esc(clean(f.lente))+')':'')))+'</option>';}).join('')+'</select>'+
       '</div>'+
       (precisaKdm?'<select class="traf-input" style="'+_TRAF_MOB_IN+'margin-top:6px;"'+dis+save('kdm_recebido','this.value')+'>'+
-        [['','KDM: —'],['sim','KDM recebido'],['nao','KDM não recebido']].map(function(o){return'<option value="'+o[0]+'"'+((op.kdm_recebido||'')===o[0]?' selected':'')+'>'+o[1]+'</option>';}).join('')+'</select>':'')+
+        [['','KDM: —'],['sim','KDM recebido'],['nao','KDM não recebido'],['erro','KDM com erro']].map(function(o){return'<option value="'+o[0]+'"'+((op.kdm_recebido||'')===o[0]?' selected':'')+'>'+o[1]+'</option>';}).join('')+'</select>'+(op.kdm_recebido==='erro'?'<span class="traf-badge traf-aus" style="margin:4px 0 0;">KDM com erro</span>':''):'')+
       '<textarea class="traf-input" style="'+_TRAF_MOB_IN+'margin-top:6px;min-height:44px;font-family:var(--sans);" placeholder="observações"'+dis+save('obs','this.value')+'>'+esc(op.obs||'')+'</textarea>'+
       (outras?'<div style="margin-top:6px;"><span class="traf-muted">outras sessões nesta sala: </span>'+outras+'</div>':'')+
     '</div>';

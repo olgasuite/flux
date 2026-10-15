@@ -1307,6 +1307,9 @@ td.cpl-cell{background:var(--cpl-bg);border-left:3px solid var(--cpl-border);pad
 .time-label{position:absolute;left:0;right:0;font-family:var(--mono);font-size:9px;color:var(--text-muted);text-align:center;padding-top:2px;border-top:1px solid var(--border);}
 .grid-col{width:var(--col-w);min-width:var(--col-w);flex-shrink:0;border-right:1px solid var(--border);position:relative;background:var(--surface);}
 .grid-col:last-child{border-right:none;}
+.grade-wrap{overflow:auto;}
+.grade-wrap .col-header-row{top:0;}
+@media print{.grade-wrap{max-height:none!important;overflow:visible!important;}}
 .hour-line{position:absolute;left:0;right:0;border-top:1px solid var(--border);pointer-events:none;}
 .hour-line.half{border-top-color:var(--text-muted);border-top-style:dotted;opacity:0.28;}
 .session-block{position:absolute;left:4px;right:4px;border-radius:3px;padding:4px 7px;cursor:pointer;overflow:hidden;transition:filter 0.15s,transform 0.1s;border-left:3px solid rgba(0,0,0,0.3);}
@@ -9565,7 +9568,7 @@ function renderGrade2(){
   if(btnGP){btnGP.style.display=_temParalela?'':'none';btnGP.textContent=_ocultarParalelas?'mostrar atividades paralelas':'ocultar atividades paralelas';}
   var ds=_ocultarParalelas?dsAll.filter(function(s){return !_sessaoEParalela(s);}):dsAll;
   if(!ds.length){gw.style.display='none';ge.style.display='flex';return;}
-  ge.style.display='none';gw.style.display='block';
+  ge.style.display='none';gw.style.display='block';_gradeFitWrap(gw);
   var co=[],cs=new Set();ds.forEach(function(s){var loc=_sessaoLocal(s);if(!cs.has(loc)){cs.add(loc);co.push(loc);}});co.sort(function(a,b){return a.localeCompare(b,'pt-BR',{sensitivity:'base'});});
   var minH=24,maxH=0;ds.forEach(function(s){if(!s.time)return;minH=Math.min(minH,s.time.h);var totalM=0;s.filmes.forEach(function(c){var f=filmesMap[c];if(!f)return;var d=f.duracao||'';totalM+=Math.floor(_parseDurSecs(d)/60);});var endH=s.time.h+(s.time.m+(totalM||90))/60;maxH=Math.max(maxH,endH);});
   if(minH===24)minH=9;minH=Math.max(0,minH-1);maxH=Math.min(26,maxH+1);
@@ -16254,6 +16257,18 @@ function printVinhetas(){
   window.print();
 }
 
+// A grade rola dentro do próprio wrap (altura limitada à janela): assim a barra de rolagem
+// lateral fica sempre visível, em vez de só no fim da grade.
+function _gradeFitWrap(w){
+  if(!w||w.style.display==='none')return;
+  var mc=document.getElementById('main-content'),z=parseFloat(mc&&mc.style.zoom)||1;
+  var top=Math.max(0,w.getBoundingClientRect().top);
+  w.style.maxHeight=Math.max(240,(window.innerHeight-top-28)/z)+'px';
+}
+window.addEventListener('resize',function(){
+  if(currentMode==='grade')_gradeFitWrap(document.getElementById('gradeWrap'));
+  else if(currentMode==='grade2')_gradeFitWrap(document.getElementById('grade2Wrap'));
+});
 function renderGrade(){
   if(_showsCache===null){_ensureShowsLoaded().then(function(){if(currentMode==='grade')renderGrade();});return;}
   _gradeUpdateSelBar('grade');
@@ -16275,7 +16290,7 @@ function renderGrade(){
   if(btnGP){btnGP.style.display=_temParalela?'':'none';btnGP.textContent=_ocultarParalelas?'mostrar atividades paralelas':'ocultar atividades paralelas';}
   var ds=_ocultarParalelas?dsAll.filter(function(s){return !_sessaoEParalela(s);}):dsAll;
   if(!ds.length){gw.style.display='none';ge.style.display='flex';return;}
-  ge.style.display='none';gw.style.display='block';
+  ge.style.display='none';gw.style.display='block';_gradeFitWrap(gw);
   var co=[],cs=new Set();ds.forEach(function(s){var loc=_sessaoLocal(s);if(!cs.has(loc)){cs.add(loc);co.push(loc);}});co.sort(function(a,b){return a.localeCompare(b,'pt-BR',{sensitivity:'base'});});
   var minH=24,maxH=0;ds.forEach(function(s){if(!s.time)return;minH=Math.min(minH,s.time.h);var totalM=0;s.filmes.forEach(function(c){var f=filmesMap[c];if(!f)return;var d=f.duracao||'';totalM+=Math.floor(_parseDurSecs(d)/60);});var endH=s.time.h+(s.time.m+(totalM||90))/60;maxH=Math.max(maxH,endH);});
   if(minH===24)minH=9;minH=Math.max(0,minH-1);maxH=Math.min(26,maxH+1);
@@ -18811,7 +18826,7 @@ function renderDash(){
   html+=colBlock('legendagem','Legendagem',legBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 15/10/2026 às 13:42';
+  var sysUpdate='última atualização do sistema · 15/10/2026 às 13:45';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -28439,7 +28454,7 @@ function _sxcPrint(){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 15/10/2026 às 13:42</span></div>
+<div id="page-footer"><span>última atualização · 15/10/2026 às 13:45</span></div>
 
 </div>
 

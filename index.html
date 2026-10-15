@@ -4397,12 +4397,16 @@ html[data-theme="indexof"]:not([data-theme="win98"]) .module-icon{display:flex!i
   // API sessoes — escrita com merge (campos ausentes são preservados; sem leitura prévia)
   window._olgaSessoes = {
     save: async function(id, data) {
+      var _av=_avSessaoPrep(id,data);
       await setDoc(doc(db,'sessoes',id),data,{merge:true});
+      if(_av)_av();
     },
     saveField: async function(id, partial) {
+      var _av=_avSessaoPrep(id,partial);
       await setDoc(doc(db,'sessoes',id),partial,{merge:true});
+      if(_av)_av();
     },
-    remove: async function(id) { await deleteDoc(doc(db, 'sessoes', id)); },
+    remove: async function(id) { var _av=_avSessaoPrep(id,null,'remove'); await deleteDoc(doc(db, 'sessoes', id)); if(_av)_av(); },
     reload: async function() {
       // Quando o snapshot de sessoes está ativo, o estado já fica atualizado
       // automaticamente após cada save/remove — não há motivo para reler tudo.
@@ -4688,6 +4692,7 @@ html[data-theme="indexof"]:not([data-theme="win98"]) .module-icon{display:flex!i
       // Com originalData: PATCH com updateMask só dos campos alterados — o servidor
       // preserva campos concorrentes/desconhecidos. Sem originalData: escrita completa (criação/importação).
       var maskKeys = null;
+      var _av = _avFilmePrep(codigo, data, originalData);
       if (originalData) {
         var diff = {};
         Object.keys(data).forEach(function(k) {
@@ -4754,6 +4759,7 @@ html[data-theme="indexof"]:not([data-theme="win98"]) .module-icon{display:flex!i
       if(maskKeys)url+='?'+maskKeys.map(function(k){return 'updateMask.fieldPaths='+encodeURIComponent(k);}).join('&');
       var resp=await fetch(url,{method:'PATCH',headers:{'Authorization':'Bearer '+token,'Content-Type':'application/json'},body:JSON.stringify({fields:fields})});
       if(!resp.ok)throw new Error(await resp.text());
+      if(_av)_av();
     },
     remove: async function(codigo) {
       var token = await auth.currentUser.getIdToken();
@@ -5716,6 +5722,7 @@ html[data-theme="indexof"]:not([data-theme="win98"]) .module-icon{display:flex!i
       // tem esse campo gravado (só nome_exibicao); o "nome" usado no resto do app cai no
       // fallback pro próprio id, e where('nome','in',...) nunca bate se o campo não existe.
       unsubs.push(onSnapshot(_evFilter ? query(collection(db,'eventos'),  where(documentId(),'in',_evFilter)) : collection(db,'eventos'),   _onSnap('eventos',     parseEventosSnap),     _onSnapErr('eventos')));
+      unsubs.push(window._olgaAvisosListen(_evFilter));
       window._olgaSnapshotUnsubs = unsubs;
       window._olgaSnapshotsActive = true;
       // Triagem: subscription lazy — só ativa quando o usuário entra no módulo
@@ -5792,7 +5799,8 @@ html[data-theme="indexof"]:not([data-theme="win98"]) .module-icon{display:flex!i
             complexos:  (d.complexos  && d.complexos.length)  ? d.complexos  : null,
             restricoes: (d.restricoes && d.restricoes.length) ? d.restricoes : [],
             modulos_edicao: (d.modulos_edicao && d.modulos_edicao.length) ? d.modulos_edicao : [],
-            role_template: d.role_template || null
+            role_template: d.role_template || null,
+            avisos_vistos_ate: d.avisos_vistos_ate || 0
           };
         }
       } catch(e) {
@@ -5945,6 +5953,172 @@ html[data-theme="indexof"]:not([data-theme="win98"]) .module-icon{display:flex!i
         campos_alterados: campos || {}
       });
     } catch(e) { /* silencioso */ }
+  };
+
+  // ── Avisos de mudanças graves ─────────────────────────────────────
+  // Sessão nova/cancelada/alterada (data, hora, local) e filme incluído/removido em sessão
+  // nos próximos _AV_DIAS dias; filme novo no catálogo de evento em andamento ou a começar
+  // nesse prazo. Detectado na camada de dados (_olgaSessoes/_olgaCatalogo) contra o cache,
+  // gravado agrupado por evento+tipo em `avisos`; pop-up no Dashboard e na página inicial.
+  var _AV_DIAS = 5, _avFila = {}, _avTimer = null;
+  var _AV_TIT = {sessao_nova:'Sessão nova',sessao_cancelada:'Sessão cancelada',sessao_alterada:'Sessão alterada',filme_incluido:'Filme incluído em sessão',filme_removido:'Filme removido de sessão',filme_catalogo:'Filme novo no catálogo'};
+  function _avHoje(){ var d=new Date(); return new Date(d.getFullYear(),d.getMonth(),d.getDate()); }
+  function _avIso(d){ return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+  function _avLimite(){ var l=_avHoje(); l.setDate(l.getDate()+_AV_DIAS); return _avIso(l); }
+  function _avNaJanela(iso){ return !!iso && iso>=_avIso(_avHoje()) && iso<=_avLimite(); }
+  function _avNormData(v){ v=String(v||'').trim(); var m=/^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{2,4})$/.exec(v); if(m)return (+m[3]<100?2000+(+m[3]):+m[3])+'-'+String(m[2]).padStart(2,'0')+'-'+String(m[1]).padStart(2,'0'); return v.slice(0,10); }
+  function _avBr(iso){ var m=/^(\d{4})-(\d{2})-(\d{2})$/.exec(iso||''); return m?m[3]+'/'+m[2]:(iso||'—'); }
+  function _avFilmeTit(c){ try{ if(typeof filmDisplayTitle==='function'){ var t=filmDisplayTitle(c); if(t)return t; } }catch(e){} var f=catalogoFilmesMap&&catalogoFilmesMap[c]; return (f&&(f.title_pt||f.title))||c; }
+  function _avPush(ev, tipo, item){
+    if(!window._olgaUser||!ev)return;
+    var k=ev+'|'+tipo;
+    (_avFila[k]=_avFila[k]||{event_id:ev,tipo:tipo,itens:[]}).itens.push(item);
+    clearTimeout(_avTimer); _avTimer=setTimeout(_avFlush,1000);
+  }
+  async function _avFlush(){
+    var fila=_avFila, u=window._olgaUser; _avFila={}; _avTimer=null;
+    if(!u)return;
+    for(var k in fila){
+      try{
+        await addDoc(collection(db,'avisos'),{event_id:fila[k].event_id,tipo:fila[k].tipo,itens:fila[k].itens.slice(0,100),total:fila[k].itens.length,user:(u.email||'').toLowerCase(),user_name:u.name||u.email||'',ts:serverTimestamp()});
+      }catch(e){ console.warn('aviso:',e); }
+    }
+  }
+  window.addEventListener('pagehide',function(){ if(_avTimer){ clearTimeout(_avTimer); _avFlush(); } });
+  function _avSessInfo(s){
+    return {nome:s.nome||'',name:s.name||'',ev:s.evento||'',date:s.date?_avIso(s.date):'',
+      time:s.time&&s.time.str&&s.time.str!=='?'?s.time.str:'',cinema:s.cinema||'',livre:s.local_livre||'',films:(s.filmes||[]).slice()};
+  }
+  function _avItem(n, films){
+    return {sessao:n.nome,nome:n.name||'',data:n.date||'',hora:n.time||'',local:n.cinema||n.livre||'',filmes:(films||n.films).slice(0,20).map(_avFilmeTit)};
+  }
+  // Captura o estado ANTES da escrita (o snapshot local atualiza o cache antes do await
+  // resolver) e devolve a função que registra os avisos após a escrita dar certo.
+  function _avSessaoPrep(id, partial, op){
+    try{
+      var old=(sessoesArr||[]).find(function(s){return s._docId===id;})||(sessoesMap&&sessoesMap[id])||null;
+      var o=old?_avSessInfo(old):null;
+      if(op==='remove'){
+        if(!o||!_avNaJanela(o.date))return null;
+        return function(){ _avPush(o.ev,'sessao_cancelada',_avItem(o)); };
+      }
+      var p=partial||{}, has=function(k){return Object.prototype.hasOwnProperty.call(p,k);};
+      var n={nome:p.session_id||(o&&o.nome)||id,name:has('name')?String(p.name||''):(o?o.name:''),
+        ev:p.event_name||(o&&o.ev)||'',
+        date:has('date')?_avNormData(p.date):(o?o.date:''),
+        time:has('time')?String(p.time||'').slice(0,5):(o?o.time:''),
+        cinema:has('venue_name')?String(p.venue_name||''):(o?o.cinema:''),
+        livre:has('venue_custom')?String(p.venue_custom||''):(o?o.livre:''),
+        films:Array.isArray(p.films)?p.films.map(String).filter(function(c){return c&&c!=='-';}):(o?o.films:[])};
+      if(!o){
+        if(!_avNaJanela(n.date))return null;
+        return function(){ _avPush(n.ev,'sessao_nova',_avItem(n)); };
+      }
+      if(!_avNaJanela(n.date)&&!_avNaJanela(o.date))return null;
+      var mud=[], oLoc=o.cinema||o.livre, nLoc=n.cinema||n.livre;
+      if(n.date!==o.date)mud.push('data: '+_avBr(o.date)+' → '+_avBr(n.date));
+      if(n.time!==o.time)mud.push('hora: '+(o.time||'—')+' → '+(n.time||'—'));
+      if(nLoc!==oLoc)mud.push('local: '+(oLoc||'—')+' → '+(nLoc||'—'));
+      var add=n.films.filter(function(c){return o.films.indexOf(c)<0;});
+      var rem=o.films.filter(function(c){return n.films.indexOf(c)<0;});
+      if(!mud.length&&!add.length&&!rem.length)return null;
+      return function(){
+        if(mud.length){ var it=_avItem(n); it.mudancas=mud; _avPush(n.ev,'sessao_alterada',it); }
+        if(add.length)_avPush(n.ev,'filme_incluido',_avItem(n,add));
+        if(rem.length)_avPush(n.ev,'filme_removido',_avItem(n,rem));
+      };
+    }catch(e){ console.warn('aviso prep:',e); return null; }
+  }
+  function _avEventoAtivo(ev){
+    var e=(window._adminEventosFullCache||[]).find(function(x){return x.id===ev||(x.data&&x.data.nome)===ev;});
+    var ini=(e&&e.data&&e.data.data_inicio)||'', fim=(e&&e.data&&(e.data.data_fim||e.data.data_inicio))||'';
+    if(!ini){
+      var ds=(sessoesArr||[]).filter(function(s){return s.evento===ev&&s.date;}).map(function(s){return _avIso(s.date);}).sort();
+      if(!ds.length)return false;
+      ini=ds[0]; fim=ds[ds.length-1];
+    }
+    return ini<=_avLimite() && fim>=_avIso(_avHoje());
+  }
+  function _avFilmePrep(codigo, data, originalData){
+    if(originalData||(catalogoFilmesMap&&catalogoFilmesMap[codigo]))return null;
+    var ev=(data&&data.evento)||'';
+    if(!ev||!_avEventoAtivo(ev))return null;
+    return function(){ _avPush(ev,'filme_catalogo',{codigo:codigo,filmes:[data.title_pt||data.title||codigo]}); };
+  }
+
+  window._olgaAvisos = [];
+  window._olgaAvisosListen = function(evFilter){
+    var desde=new Date(Date.now()-_AV_DIAS*86400000);
+    var q=evFilter?query(collection(db,'avisos'),where('event_id','in',evFilter)):query(collection(db,'avisos'),where('ts','>=',desde));
+    return onSnapshot(q,function(snap){
+      var arr=[], lim=Date.now()-_AV_DIAS*86400000;
+      snap.forEach(function(d){
+        var r=d.data(), ms=r.ts&&r.ts.toMillis?r.ts.toMillis():Date.now();
+        if(ms<lim)return;
+        arr.push(Object.assign({_id:d.id,_ms:ms},r));
+      });
+      arr.sort(function(a,b){return b._ms-a._ms;});
+      window._olgaAvisos=arr;
+      window._olgaAvisosCheck();
+    },function(e){ console.warn('snapshot avisos:',e); });
+  };
+  function _avPendentes(){
+    var u=window._olgaUser; if(!u)return [];
+    var me=(u.email||'').toLowerCase(), visto=u.avisos_vistos_ate||0, hoje=_avIso(_avHoje());
+    return (window._olgaAvisos||[]).filter(function(a){
+      if(a.user===me||a._ms<=visto)return false;
+      if(a.tipo==='filme_catalogo')return true;
+      return (a.itens||[]).some(function(it){return !it.data||it.data>=hoje;});
+    });
+  }
+  function _avContextoOk(){
+    if(window._mobileActive){ var t=_mobStack[_mobStack.length-1]; return !!t&&(t.view==='home'||t.view==='dash'); }
+    if(currentMode==='dash')return true;
+    var l=document.getElementById('landing');
+    return !currentMode&&!!l&&l.style.display!=='none';
+  }
+  window._olgaAvisosCheck = function(){
+    var el=document.getElementById('olga-avisos-pop'), pend=_avPendentes();
+    if(!pend.length){ if(el)el.remove(); return; }
+    if(!el&&!_avContextoOk())return;
+    if(!el){ el=document.createElement('div'); el.id='olga-avisos-pop'; el.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:600;overflow-y:auto;padding:20px;display:flex;'; document.body.appendChild(el); }
+    var evNome=function(ev){ return (window._olgaEventoNomes&&window._olgaEventoNomes[ev])||ev; };
+    var h='<div style="background:var(--surface);border:1px solid var(--border);width:100%;max-width:620px;margin:auto;display:flex;flex-direction:column;">'+
+      '<div style="padding:14px 22px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;">'+
+      '<span style="font-family:var(--mono);font-size:11px;font-weight:600;letter-spacing:0.18em;text-transform:uppercase;color:var(--accent);">Mudanças na programação · próximos '+_AV_DIAS+' dias</span></div>'+
+      '<div style="padding:10px 22px;max-height:60vh;overflow-y:auto;">';
+    pend.forEach(function(a){
+      var dt=new Date(a._ms);
+      h+='<div style="padding:10px 0;border-bottom:1px solid var(--border);">'+
+        '<div style="display:flex;flex-wrap:wrap;gap:6px 10px;align-items:baseline;font-family:var(--mono);font-size:10px;letter-spacing:0.08em;text-transform:uppercase;">'+
+        '<span style="color:var(--accent);font-weight:700;">'+esc(_AV_TIT[a.tipo]||a.tipo)+'</span>'+
+        '<span style="color:var(--text-dim);">'+esc(evNome(a.event_id))+'</span>'+
+        '<span style="color:var(--text-muted);text-transform:none;">por '+esc(a.user_name||a.user)+' · '+dt.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'})+' '+dt.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})+'</span></div>';
+      (a.itens||[]).forEach(function(it){
+        var linha=[];
+        if(it.data)linha.push(_avBr(it.data)+(it.hora?' '+it.hora:''));
+        if(it.local)linha.push(it.local);
+        if(it.nome||it.sessao)linha.push(it.nome||it.sessao);
+        h+='<div style="font-family:var(--sans);font-size:12px;color:var(--text);margin-top:6px;">'+esc(linha.join(' · '))+
+          ((it.filmes&&it.filmes.length)?'<div style="color:var(--text-dim);font-size:11px;margin-top:2px;">'+esc(it.filmes.join(', '))+'</div>':'')+
+          ((it.mudancas&&it.mudancas.length)?'<div style="color:var(--text-dim);font-size:11px;margin-top:2px;">'+esc(it.mudancas.join(' · '))+'</div>':'')+
+          '</div>';
+      });
+      if(a.total&&a.itens&&a.total>a.itens.length)h+='<div style="font-family:var(--mono);font-size:10px;color:var(--text-muted);margin-top:4px;">+'+(a.total-a.itens.length)+' outros</div>';
+      h+='</div>';
+    });
+    h+='</div><div style="padding:12px 22px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:8px;">'+
+      '<button class="print-btn" onclick="var p=document.getElementById(\'olga-avisos-pop\');if(p)p.remove();">lembrar depois</button>'+
+      '<button class="print-btn" style="color:var(--accent);border-color:var(--accent);" onclick="window._olgaAvisosCiente()">ciente</button>'+
+      '</div></div>';
+    el.innerHTML=h;
+  };
+  window._olgaAvisosCiente = async function(){
+    var u=window._olgaUser; if(!u)return;
+    var max=_avPendentes().reduce(function(m,a){return Math.max(m,a._ms);},u.avisos_vistos_ate||0);
+    u.avisos_vistos_ate=max;
+    var el=document.getElementById('olga-avisos-pop'); if(el)el.remove();
+    try{ await setDoc(doc(db,'usuarios',u.email),{avisos_vistos_ate:max},{merge:true}); }catch(e){ console.warn('avisos ciente:',e); }
   };
 
   window._queryLogs = async function(opts) {
@@ -7431,6 +7605,7 @@ function goHome(){
     document.getElementById('app').style.display='none';
     document.getElementById('landing').style.display='flex';
     buildLandingPills();
+    if(window._olgaAvisosCheck)window._olgaAvisosCheck();
   }
 }
 
@@ -7491,7 +7666,7 @@ function switchMode(mode,noPush){
   if(mode==='ingest')renderIngest();
   if(mode==='cinemas')renderCinemas();
   if(mode==='kdm')renderKDM();
-  if(mode==='dash')renderDash();
+  if(mode==='dash'){renderDash();if(window._olgaAvisosCheck)window._olgaAvisosCheck();}
   if(mode==='receptivo')renderReceptivo();
   if(mode==='revista')renderRevista();
   if(mode==='legendagem')renderLegendagem();
@@ -18627,7 +18802,7 @@ function renderDash(){
   html+=colBlock('legendagem','Legendagem',legBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 15/10/2026 às 13:21';
+  var sysUpdate='última atualização do sistema · 15/10/2026 às 13:34';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -28255,7 +28430,7 @@ function _sxcPrint(){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 15/10/2026 às 13:21</span></div>
+<div id="page-footer"><span>última atualização · 15/10/2026 às 13:34</span></div>
 
 </div>
 
@@ -28843,6 +29018,7 @@ function olgaMobileHome(noStack,params){
   }
 
   _mobSetContent(html);
+  if(window._olgaAvisosCheck)window._olgaAvisosCheck();
 }
 
 /* ── MÓDULOS (grade) ─────────────────────────────────────────────── */
@@ -29869,6 +30045,7 @@ function _mobRenderCatalogoDetail(params){
 function olgaMobileDash(){
   _mobPush({view:'dash',params:{},title:'Dashboard'});
   _mobRenderDash({});
+  if(window._olgaAvisosCheck)window._olgaAvisosCheck();
 }
 
 /* setores com detalhamento por status, mesma lógica/permissões do Dashboard desktop */

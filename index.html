@@ -4646,6 +4646,10 @@ html[data-theme="indexof"]:not([data-theme="win98"]) .module-icon{display:flex!i
       var o = {filmes:{}, updated_at:new Date().toISOString()}; o.filmes[cod] = partial;
       await setDoc(doc(db, 'trafego_hds', id), o, {merge:true});
     },
+    setEntrega: async function(id, complexo, val) {
+      var o = {entregas:{}}; o.entregas[complexo] = val;
+      await setDoc(doc(db, 'trafego_hds', id), o, {merge:true});
+    },
     setRecebimento: async function(id, complexo, val) {
       var o = {recebimentos:{}}; o.recebimentos[complexo] = val;
       await setDoc(doc(db, 'trafego_hds', id), o, {merge:true});
@@ -18979,7 +18983,7 @@ function renderDash(){
   html+=colBlock('legendagem','Legendagem',legBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 15/10/2026 às 15:57';
+  var sysUpdate='última atualização do sistema · 15/10/2026 às 16:03';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -28608,7 +28612,7 @@ function _sxcPrint(){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 15/10/2026 às 15:57</span></div>
+<div id="page-footer"><span>última atualização · 15/10/2026 às 16:03</span></div>
 
 </div>
 
@@ -32073,6 +32077,7 @@ async function ressincronizarDuracoes(){
 .traf-ovvf{background:rgba(255,186,32,.18);color:var(--accent);border:1px solid rgba(255,186,32,.55);}
 .traf-aus{background:rgba(220,80,80,.15);color:var(--warn);border:1px solid rgba(220,80,80,.45);}
 .traf-ok{background:rgba(61,186,110,.15);color:var(--ok);border:1px solid rgba(61,186,110,.45);}
+.traf-ent{background:rgba(59,125,255,.14);color:#3b7dff;border:1px solid rgba(59,125,255,.5);}
 .traf-table{width:100%;border-collapse:collapse;font-size:11px;}
 .traf-table th{font-family:var(--mono);font-size:8px;letter-spacing:.1em;text-transform:uppercase;color:var(--text-muted);text-align:left;padding:6px 8px;border-bottom:1px solid var(--border2);white-space:nowrap;}
 .traf-table td{padding:6px 8px;border-bottom:1px solid var(--border);vertical-align:top;color:var(--text);}
@@ -32239,7 +32244,7 @@ function _trafRenderInterno(cont){
       html+='<div class="traf-card" onclick="_trafHdSel=\''+_trafSafe(h.id)+'\';renderTrafego();">'+
         '<div class="traf-card-name">'+esc(x.nome||'HD')+(x.pronto?'<span class="traf-badge traf-ok">pronto</span>':'<span class="traf-badge" style="border:1px dashed var(--border2);color:var(--text-muted);">em gravação</span>')+(_trafChegada(h)?'<span class="traf-muted" style="font-weight:400;margin-left:8px;">chega ~'+_trafBr(_trafChegada(h))+'</span>':'')+'</div>'+
         '<div class="traf-meta">'+(dest||'<span style="color:var(--warn);">sem destino</span>')+'</div>'+
-        ((x.destinos||[]).length?_trafRecebHtml(h,null,canEdit):'')+
+        ((x.destinos||[]).length?_trafEntregaHtml(h,null,canEdit)+_trafRecebHtml(h,null,false):'')+
         '<div class="traf-meta">'+r.presentes.length+' filme'+(r.presentes.length!==1?'s':'')+' · '+_trafGbStr(r.gb)+' · '+r.sessoes.length+' sess'+(r.sessoes.length!==1?'ões':'ão')+
           (r.ovvf?'<span class="traf-badge traf-ovvf">'+r.ovvf+' OV + VF</span>':'')+
           (r.aus?'<span class="traf-badge traf-aus">'+r.aus+' ausente'+(r.aus!==1?'s':'')+'</span>':'')+
@@ -32292,7 +32297,7 @@ function _trafRenderHd(cont,h){
   '</div>';
   html+='<div style="margin-top:8px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;">'+(x.pronto?'<span class="traf-badge traf-ok" style="margin:0;">HD pronto</span>'+(canEdit?'<a href="#" class="traf-muted" onclick="event.preventDefault();_trafSaveHd(\''+sid+'\',{pronto:false,pronto_em:\'\'})">desfazer</a>':''):
     (canEdit?'<button class="print-btn" style="color:var(--ok);border-color:var(--ok);" onclick="_trafSaveHd(\''+sid+'\',{pronto:true,pronto_em:new Date().toISOString()})" title="Gravação concluída: o HD passa a aparecer no quadro">marcar HD pronto</button>':'<span class="traf-badge" style="margin:0;border:1px dashed var(--border2);color:var(--text-muted);">em gravação</span>'))+'</div>';
-  if((x.destinos||[]).length)html+='<div style="margin-top:6px;">'+_trafRecebHtml(h,null,canEdit)+'</div>';
+  if((x.destinos||[]).length)html+='<div style="margin-top:6px;">'+_trafEntregaHtml(h,null,canEdit)+_trafRecebHtml(h,null,false)+'</div>';
   html+='<textarea class="traf-input" style="width:100%;margin-top:10px;min-height:40px;font-family:var(--sans);" placeholder="Observações do HD"'+dis+' onchange="_trafSaveHd(\''+sid+'\',{notas:this.value})">'+esc(x.notas||'')+'</textarea>';
 
   html+='<div class="traf-h">Destinos (salas e dias)</div>';
@@ -32410,8 +32415,8 @@ function _trafRemoveDestino(id,i){
 }
 
 /* ─── Quadro de HDs (dias × salas), como o quadro branco do festival ───
-   Célula = sala num dia: número do(s) HD(s) prontos que a atendem; "/" azul = recebido no
-   complexo, "\" vermelho = devolvido; preta = sala sem sessão no dia. */
+   Célula = sala num dia: número do(s) HD(s) prontos que a atendem; "/" azul = entregue pela
+   equipe de tráfego, "\" vermelho = devolvido; preta = sala sem sessão no dia. */
 function _trafQuadroHtml(ev,as){
   var sess=sessoesArr.filter(function(s){return s.evento===ev&&s.date&&s.cinema&&(!as||as.has(s.cinema));});
   if(!sess.length)return'';
@@ -32434,16 +32439,17 @@ function _trafQuadroHtml(ev,as){
       var hs=cel[sala+'|'+d]||[];
       if(!hs.length){html+='<td class="'+(com[sala+'|'+d]?'':'tq-sem')+'"></td>';return;}
       html+='<td><div class="tq-cel">'+hs.map(function(h){
+        var ent=h.data.entregas&&h.data.entregas[cx]&&h.data.entregas[cx].em;
         var rec=h.data.recebimentos&&h.data.recebimentos[cx]&&h.data.recebimentos[cx].em;
-        var cls='tq-hd'+(rec?' tq-rec':'')+(h.data.devolvido?' tq-dev':'');
-        var tit=(h.data.nome||'HD')+(rec?' · recebido':'')+(h.data.devolvido?' · devolvido':'');
+        var cls='tq-hd'+(ent?' tq-rec':'')+(h.data.devolvido?' tq-dev':'');
+        var tit=(h.data.nome||'HD')+(ent?' · entregue':'')+(rec?' · recebido pelo operador':'')+(h.data.devolvido?' · devolvido':'');
         return'<div class="'+cls+'" title="'+esc(tit)+'" onclick="_trafQuadroAbrir(\''+_trafSafe(ev)+'\',\''+_trafSafe(h.id)+'\')">'+esc(h.data.nome||'HD')+'</div>';
       }).join('')+'</div></td>';
     });
     html+='</tr>';
   });
   html+='</tbody></table></div>'+
-    '<div class="traf-muted" style="margin-top:6px;"><span class="tq-leg tq-rec"></span> recebido &nbsp; <span class="tq-leg tq-dev"></span> devolvido &nbsp; <span class="tq-leg" style="background:#000;"></span> sem sessão &nbsp; · só aparecem HDs marcados como prontos</div>';
+    '<div class="traf-muted" style="margin-top:6px;"><span class="tq-leg tq-rec"></span> entregue &nbsp; <span class="tq-leg tq-dev"></span> devolvido &nbsp; <span class="tq-leg" style="background:#000;"></span> sem sessão &nbsp; · só aparecem HDs marcados como prontos</div>';
   return html;
 }
 function _trafQuadroAbrir(ev,id){
@@ -32556,6 +32562,33 @@ function _trafRecebHtml(h,as,canOp){
     }
     return'<div class="traf-meta">'+lbl+(canOp?'<button class="print-btn" style="color:var(--accent);border-color:var(--accent);" onclick="event.stopPropagation();_trafRecebi(\''+_trafSafe(h.id)+'\',\''+_trafSafe(cx)+'\',true)">recebi o HD</button>':'<span class="traf-badge traf-aus" style="margin-left:0;">não recebido</span>')+'</div>';
   }).join('');
+}
+// Entrega do HD (equipe de tráfego: saiu com o motoqueiro ou foi entregue no cinema). É o que
+// risca de azul o quadro; o "recebi o HD" do operador é só informativo.
+function _trafEntregaHtml(h,as,canEdit){
+  var ent=h.data.entregas||{},cxs=_trafHdComplexos(h,as);
+  return cxs.map(function(cx){
+    var r=ent[cx],lbl=cxs.length>1?esc(cx)+': ':'';
+    if(r&&r.em){
+      var dt=new Date(r.em);
+      return'<div class="traf-meta">'+lbl+'<span class="traf-badge traf-ent" style="margin-left:0;">entregue '+esc(dt.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'})+' '+dt.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}))+'</span>'+
+        (r.por_nome?' <span class="traf-muted">por '+esc(r.por_nome)+'</span>':'')+
+        (canEdit?' <a href="#" class="traf-muted" onclick="event.stopPropagation();event.preventDefault();_trafEntregar(\''+_trafSafe(h.id)+'\',\''+_trafSafe(cx)+'\',false)">desfazer</a>':'')+'</div>';
+    }
+    return'<div class="traf-meta">'+lbl+(canEdit?'<button class="print-btn" style="color:#3b7dff;border-color:#3b7dff;" onclick="event.stopPropagation();_trafEntregar(\''+_trafSafe(h.id)+'\',\''+_trafSafe(cx)+'\',true)" title="HD saiu com o motoqueiro ou foi entregue no cinema">marcar entregue</button>':'<span class="traf-badge" style="margin-left:0;border:1px dashed var(--border2);color:var(--text-muted);">não entregue</span>')+'</div>';
+  }).join('');
+}
+async function _trafEntregar(id,cx,on){
+  var h=_trafHdById(id);if(!h||!window._olgaTrafego)return;
+  if(!on&&!confirm('Desfazer a entrega do HD "'+(h.data.nome||'')+'" em '+cx+'?'))return;
+  var u=window._olgaUser||{};
+  var val=on?{em:new Date().toISOString(),por:(u.email||'').toLowerCase(),por_nome:u.name||u.email||''}:null;
+  h.data.entregas=h.data.entregas||{};h.data.entregas[cx]=val;
+  _trafRerender();
+  try{
+    await window._olgaTrafego.setEntrega(id,cx,val);
+    window._logFirestoreEdit&&window._logFirestoreEdit('individual',id,{entrega:cx,entregue:!!on},'trafego','trafego_hds');
+  }catch(e){alert('Erro ao registrar entrega: '+e.message);}
 }
 async function _trafRecebi(id,cx,on){
   var h=_trafHdById(id);if(!h||!window._olgaTrafego)return;
@@ -32690,7 +32723,7 @@ function _trafRenderOperacao(cont){
       html+='<div class="traf-card" style="'+(on?'border-color:var(--accent);background:var(--surface2);':'')+'" onclick="_trafOpFiltroSet(\'hd\',\''+(on?'':_trafSafe(h.id))+'\')">'+
         '<div class="traf-card-name">'+esc(h.data.nome||'HD')+(ch?'<span class="traf-muted" style="font-weight:400;margin-left:8px;">chega ~'+_trafBr(ch)+'</span>':'')+'</div>'+
         '<div class="traf-meta">'+esc(Object.keys(salasH).sort().join(' · '))+'<br>exibição: '+esc(Object.keys(dias).sort().map(_trafBr).join(', ')||'—')+'</div>'+
-        _trafRecebHtml(h,as,canOp)+
+        _trafEntregaHtml(h,as,false)+_trafRecebHtml(h,as,canOp)+
         '<div class="traf-meta">'+ok+'/'+pares.length+' ingestados · '+_trafGbStr(_trafGbHd(pares))+(pares.length&&ok===pares.length?'<span class="traf-badge traf-ok">completo</span>':'')+'</div>'+
         '<div style="height:3px;background:var(--border);margin-top:6px;"><div style="height:3px;width:'+pct+'%;background:var(--ok);"></div></div>'+
       '</div>';
@@ -32786,7 +32819,7 @@ function _mobTrafOperacaoHtml(p){
     html+='<div class="mob-sessao-card" style="padding:12px 14px;'+(on?'border-color:var(--accent);':'')+'" onclick="_mobTrafSet(\'hd\',\''+(on?'':_trafSafe(h.id))+'\')">'+
       '<div style="display:flex;align-items:baseline;gap:8px;"><span class="traf-card-name">'+esc(h.data.nome||'HD')+'</span>'+(ch?'<span class="traf-muted">chega ~'+_trafBr(ch)+'</span>':'')+(on?'<span class="traf-badge traf-ovvf" style="margin-left:auto;">filtrando</span>':'')+'</div>'+
       '<div class="traf-meta">'+esc(Object.keys(salasH).sort().join(' · '))+'<br>exibição: '+esc(Object.keys(dias).sort().map(_trafBr).join(', ')||'—')+'</div>'+
-      _trafRecebHtml(h,as,canOp)+
+      _trafEntregaHtml(h,as,false)+_trafRecebHtml(h,as,canOp)+
       '<div class="traf-meta">'+ok+'/'+pares.length+' ingestados · '+_trafGbStr(_trafGbHd(pares))+(pares.length&&ok===pares.length?'<span class="traf-badge traf-ok">completo</span>':'')+'</div>'+
       '<div style="height:4px;background:var(--border);margin-top:6px;"><div style="height:4px;width:'+pct+'%;background:var(--ok);"></div></div>'+
     '</div>';
@@ -32875,7 +32908,7 @@ function _mobTrafInternoHtml(){
     html+='<div class="mob-sessao-card" style="padding:12px 14px;" onclick="_mobTrafAbrirHd(\''+_trafSafe(h.id)+'\')">'+
       '<div style="display:flex;align-items:baseline;gap:8px;"><span class="traf-card-name">'+esc(x.nome||'HD')+'</span>'+(x.pronto?'<span class="traf-badge traf-ok">pronto</span>':'<span class="traf-badge" style="border:1px dashed var(--border2);color:var(--text-muted);">em gravação</span>')+(ch?'<span class="traf-muted">chega ~'+_trafBr(ch)+'</span>':'')+'</div>'+
       '<div class="traf-meta">'+((x.destinos||[]).map(function(de){return esc(de.sala)+': '+((de.dias||[]).map(_trafBr).join(', ')||'sem dias');}).join('<br>')||'<span style="color:var(--warn);">sem destino</span>')+'</div>'+
-      ((x.destinos||[]).length?_trafRecebHtml(h,null,canEdit):'')+
+      ((x.destinos||[]).length?_trafEntregaHtml(h,null,canEdit)+_trafRecebHtml(h,null,false):'')+
       '<div class="traf-meta">'+r.presentes.length+' filme'+(r.presentes.length!==1?'s':'')+' · '+_trafGbStr(r.gb)+' · '+r.sessoes.length+' sess'+(r.sessoes.length!==1?'ões':'ão')+
         (r.ovvf?'<span class="traf-badge traf-ovvf">'+r.ovvf+' OV + VF</span>':'')+
         (r.aus?'<span class="traf-badge traf-aus">'+r.aus+' ausente'+(r.aus!==1?'s':'')+'</span>':'')+
@@ -32910,7 +32943,7 @@ function _mobRenderTrafHd(p){
       (x.devolvido?'<span class="traf-badge traf-aus">devolvido</span>':'')+'</div>'+
     '<div style="margin-top:8px;">'+(x.pronto?'<span class="traf-badge traf-ok" style="margin:0;">HD pronto</span>'+(canEdit?' <a href="#" class="traf-muted" onclick="event.preventDefault();_trafSaveHd(\''+sid+'\',{pronto:false,pronto_em:\'\'})">desfazer</a>':''):
       (canEdit?'<button class="print-btn" style="padding:8px 12px;color:var(--ok);border-color:var(--ok);" onclick="_trafSaveHd(\''+sid+'\',{pronto:true,pronto_em:new Date().toISOString()})">marcar HD pronto</button>':'<span class="traf-badge" style="margin:0;border:1px dashed var(--border2);color:var(--text-muted);">em gravação</span>'))+'</div>'+
-    ((x.destinos||[]).length?_trafRecebHtml(h,null,canEdit):'')+
+    ((x.destinos||[]).length?_trafEntregaHtml(h,null,canEdit)+_trafRecebHtml(h,null,false):'')+
     (canEdit?'<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;">'+
       (x.devolvido?'<button class="print-btn" style="padding:8px 12px;" onclick="_trafDevolvido(\''+sid+'\',false)">reativar</button>':
         '<button class="print-btn" style="padding:8px 12px;" onclick="_trafDevolvido(\''+sid+'\',true)">marcar devolvido</button>'+

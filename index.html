@@ -7055,6 +7055,10 @@ var dashCinemaFilter='__todos__',dashRespFilter='',dashDayFilter=new Set(),dashS
 // Dashboard (mostra sessões vinculadas ao clicar) — chave 'mostra_ID'/'sub_ID'/'show_ID'.
 var _dashProgRowExpand={};
 function _dashProgToggleRow(key){_dashProgRowExpand[key]=!_dashProgRowExpand[key];renderDash();}
+// Títulos dos filmes da sessão (exceto `exceto`, quando a linha já está dentro do cartão do filme).
+function _dashSessFilmes(s,exceto){
+  return (s.filmes||[]).filter(function(c){return c!==exceto;}).map(filmDisplayTitle).filter(Boolean).join(' · ');
+}
 function _dashSessListHtml(sess,indent){
   indent=indent||20;
   if(!sess.length)return'<div style="padding:6px 0 6px '+indent+'px;font-family:var(--mono);font-size:10px;color:var(--text-muted);">Nenhuma sessão.</div>';
@@ -7065,6 +7069,7 @@ function _dashSessListHtml(sess,indent){
     html+='<div class="dsd-sess-row" style="cursor:pointer;padding-left:'+indent+'px;" onclick="event.stopPropagation();goToFicha(\''+safe+'\')">'
       +'<span class="dsd-date">'+s.dia+'</span><span class="dsd-time">'+s.hora+'</span>'
       +'<span class="dsd-name" title="'+esc(s.nome)+'">'+esc(stripEvPrefix(s.nome,s.evento))+'</span><span class="dsd-cinema">'+s.cinema+'</span>'
+      +(_dashSessFilmes(s)?'<span class="dsd-extra" style="font-family:var(--sans);width:100%;">'+esc(_dashSessFilmes(s))+'</span>':'')
       +'</div>';
   });
   return html;
@@ -17707,7 +17712,7 @@ function dashGetKDMData(){
     else{st={cls:'kdm-status-fail',label:'Inválido',pri:5};}
     kdmFilms.forEach(function(code){
       if(!filmMap[code]){var f=filmesMap[code];if(!f)return;filmMap[code]={f:f,sessions:[],worstPriority:0,status:null};}
-      filmMap[code].sessions.push({nome:s.nome,cinema:s.cinema,dia:s.dia,hora:s.hora,st:st});
+      filmMap[code].sessions.push({nome:s.nome,cinema:s.cinema,dia:s.dia,hora:s.hora,filmes:s.filmes,st:st});
       if(st.pri>filmMap[code].worstPriority){filmMap[code].worstPriority=st.pri;filmMap[code].status=st;}
     });
   });
@@ -17778,7 +17783,7 @@ function dashGetFilmes(){
       var sessions=[];
       sessoesArr.forEach(function(s){
         if(s.evento&&!activeEventsDash.has(s.evento))return;
-        if(s.filmes.indexOf(f.codigo)!==-1)sessions.push({nome:s.nome,cinema:s.cinema,dia:s.dia,hora:s.hora});
+        if(s.filmes.indexOf(f.codigo)!==-1)sessions.push({nome:s.nome,cinema:s.cinema,dia:s.dia,hora:s.hora,filmes:s.filmes});
       });
       result.push({f:f,sessions:sessions});
     });
@@ -17794,7 +17799,7 @@ function dashGetFilmes(){
     }
     s.filmes.forEach(function(c){
       if(!codeSessions[c])codeSessions[c]=[];
-      codeSessions[c].push({nome:s.nome,cinema:s.cinema,dia:s.dia,hora:s.hora});
+      codeSessions[c].push({nome:s.nome,cinema:s.cinema,dia:s.dia,hora:s.hora,filmes:s.filmes});
     });
   });
   var result=[];
@@ -18380,6 +18385,7 @@ function renderDash(){
           bodyHtml+='<div class="dsd-sess-row" style="cursor:pointer" onclick="goToFicha(\''+safe+'\')">'+
             '<span class="dsd-date">'+s.dia+'</span><span class="dsd-time">'+s.hora+'</span>'+
             '<span class="dsd-name" title="'+esc(s.nome)+'">'+esc(stripEvPrefix(s.nome,s.evento))+'</span><span class="dsd-cinema">'+s.cinema+'</span>'+
+            (_dashSessFilmes(s)?'<span class="dsd-extra" style="font-family:var(--sans);">'+esc(_dashSessFilmes(s))+'</span>':'')+
             '<span class="dsd-extra"><svg width="14" height="14" viewBox="0 0 24 24" style="stroke:currentColor;stroke-width:1.75;fill:none;stroke-linecap:round;stroke-linejoin:round;" xmlns="http://www.w3.org/2000/svg"><circle cx="11" cy="4" r="1"/><path d="m11 9 2 7h5l-1.5 3"/><path d="M9 9H7l1 7"/><path d="M13.5 19a4.5 4.5 0 1 1-9 0 4.5 4.5 0 0 1 9 0z"/></svg> '+acessLabel+'</span>'+
           '</div>';
         });
@@ -18670,6 +18676,7 @@ function renderDash(){
           '<span class="dash-sess-cinema">'+esc(stripEvPrefix(s.nome,f.evento))+'</span>'+
           '<span class="dash-sess-cinema">'+esc(s.cinema)+'</span>'+
           (dt?'<span class="dash-sess-cinema">'+esc(dt)+'</span>':'')+
+          (_dashSessFilmes(s,f.codigo)?'<span class="dash-sess-cinema" style="font-family:var(--sans);">com '+esc(_dashSessFilmes(s,f.codigo))+'</span>':'')+
           '</button>';
       }).join('');
       var safeCodDash=String(f.codigo).replace(/\\/g,'\\\\').replace(/'/g,"\\'");
@@ -18740,7 +18747,9 @@ function renderDash(){
             '<span class="dash-sess-cinema">'+esc(s.cinema)+'</span>'+
             (dt?'<span class="dash-sess-cinema">'+esc(dt)+'</span>':'')+
             '<span class="kdm-status '+s.st.cls+'" style="font-size:8px;padding:1px 5px;margin-right:4px;">'+s.st.label+'</span>'+
-            esc(stripEvPrefix(s.nome,f.evento))+'</button>';
+            esc(stripEvPrefix(s.nome,f.evento))+
+            (_dashSessFilmes(s,f.codigo)?'<span class="dash-sess-cinema" style="font-family:var(--sans);margin-left:6px;">com '+esc(_dashSessFilmes(s,f.codigo))+'</span>':'')+
+            '</button>';
         }).join('');
         kdmBody+='<div class="dash-film-card" style="border-left-color:'+(col?col.bg:'var(--border2)')+'">'+
           '<div class="dash-film-top">'+
@@ -18802,7 +18811,7 @@ function renderDash(){
   html+=colBlock('legendagem','Legendagem',legBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 15/10/2026 às 13:34';
+  var sysUpdate='última atualização do sistema · 15/10/2026 às 13:42';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -28430,7 +28439,7 @@ function _sxcPrint(){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 15/10/2026 às 13:34</span></div>
+<div id="page-footer"><span>última atualização · 15/10/2026 às 13:42</span></div>
 
 </div>
 

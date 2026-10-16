@@ -4243,7 +4243,7 @@ html[data-theme="indexof"]:not([data-theme="win98"]) .module-icon{display:flex!i
 <script type="module">
   import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
   import { getAuth, connectAuthEmulator, GoogleAuthProvider, GithubAuthProvider, signInWithPopup, signInWithEmailAndPassword, createUserWithEmailAndPassword, sendPasswordResetEmail, signOut, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
-  import { initializeFirestore, persistentLocalCache, persistentMultipleTabManager, connectFirestoreEmulator, collection, doc, getDoc, getDocs, setDoc, deleteDoc, addDoc, serverTimestamp, query, where, documentId, orderBy, onSnapshot, writeBatch } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+  import { initializeFirestore, persistentLocalCache, persistentMultipleTabManager, connectFirestoreEmulator, collection, doc, getDoc, getDocs, setDoc, deleteDoc, addDoc, serverTimestamp, query, where, documentId, orderBy, onSnapshot, writeBatch, terminate, clearIndexedDbPersistence } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
 
   const firebaseConfig = {
     apiKey: "AIzaSyDIBhcsqlK3QebTmbWMNqsN_rPPybREj64",
@@ -5050,10 +5050,18 @@ html[data-theme="indexof"]:not([data-theme="win98"]) .module-icon{display:flex!i
     });
   };
 
-  window._olgaSignOut = function() {
-    signOut(auth);
+  // Sair recarrega a página: nada do usuário anterior (listas, cores, seleção de eventos, listeners)
+  // sobrevive em memória para o próximo login no mesmo navegador.
+  window._olgaSignOut = async function() {
     window._olgaUser = null;
+    _olgaAuthUid = null;
+    try { await signOut(auth); } catch(e) {}
+    location.reload();
   };
+  // uid do usuário cujos dados esta página carregou; troca de conta (inclusive login/logout feito
+  // em OUTRA aba, que o Firebase propaga para todas) força recarregar em vez de reaproveitar o estado.
+  var _olgaAuthUid = null;
+  var _OLGA_CACHE_UID_KEY = 'olgaCacheUid';
 
   // ── Aplica visibilidade de abas/cards conforme perfil ───────────
   function applyModulePermissions(modulos) {
@@ -5833,6 +5841,20 @@ html[data-theme="indexof"]:not([data-theme="win98"]) .module-icon{display:flex!i
   // ───────────────────────────────────────────────────────────────
 
   onAuthStateChanged(auth, async function(user) {
+    if (_olgaAuthUid && (!user || user.uid !== _olgaAuthUid)) { _olgaAuthUid = null; location.reload(); return; }
+    if (user && _olgaAuthUid === user.uid) return;
+    // Cache local do Firestore (IndexedDB) é do navegador, não da conta: ao entrar uma conta
+    // diferente da última, apaga o cache antes de carregar qualquer dado e recarrega.
+    if (user) {
+      var _cacheUid = null;
+      try { _cacheUid = localStorage.getItem(_OLGA_CACHE_UID_KEY); } catch(e) {}
+      if (_cacheUid !== user.uid) {
+        // grava a marca antes: depois do reload a conta já bate e não entra aqui de novo
+        try { localStorage.setItem(_OLGA_CACHE_UID_KEY, user.uid); } catch(e) {}
+        try { await terminate(db); await clearIndexedDbPersistence(db); } catch(e) { console.warn('Não foi possível limpar o cache local (outra aba aberta?):', e); }
+        location.reload(); return;
+      }
+    }
     var loginScreen = document.getElementById('olga-login');
     var appWrap     = document.getElementById('olga-app');
     var userBar     = document.getElementById('olga-userbar');
@@ -5900,6 +5922,7 @@ html[data-theme="indexof"]:not([data-theme="win98"]) .module-icon{display:flex!i
       if(_appEl)_appEl.style.display='none';
 
       window._olgaUser = perfil;
+      _olgaAuthUid = user.uid;
       loginScreen.style.display = 'none';
 
       // Detectar mobile
@@ -19063,7 +19086,7 @@ function renderDash(){
   html+=colBlock('legendagem','Legendagem',legBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 16/10/2026 às 16:41';
+  var sysUpdate='última atualização do sistema · 16/10/2026 às 16:55';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -28694,7 +28717,7 @@ function _sxcPrint(){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 16/10/2026 às 16:41</span></div>
+<div id="page-footer"><span>última atualização · 16/10/2026 às 16:55</span></div>
 
 </div>
 

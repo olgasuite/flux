@@ -6205,9 +6205,12 @@ html.nav-collapsed .nav-collapse-bar{width:var(--nav-sidebar-w-col);justify-cont
 html.nav-collapsed .nav-collapse-btn{padding:0;width:100%;}
 .nav-collapse-btn:hover{color:var(--text);}
 .nav-header-spacer{flex:1;}
-:root{--nav-sidebar-w:212px;--nav-sidebar-w-col:44px;}
+:root{--nav-sidebar-w:184px;--nav-sidebar-w-col:44px;}
 .nav-tabs{position:fixed;left:0;top:52px;bottom:20px;width:var(--nav-sidebar-w);z-index:150;flex-direction:column;align-items:stretch;flex:none;background:var(--surface);border-right:1px solid var(--border);overflow-y:auto;overflow-x:hidden;transition:width 0.2s ease;padding-bottom:40px;}
 html.nav-collapsed .nav-tabs{width:var(--nav-sidebar-w-col);}
+/* rolagem do menu com espaço próprio (não cobre a seta dos grupos) e fina */
+.nav-tabs{scrollbar-gutter:stable;scrollbar-width:thin;}
+.nav-tabs::-webkit-scrollbar{width:4px;}
 .nav-tab{height:40px;width:100%;flex-shrink:0;border-right:none;border-bottom:1px solid var(--border);border-top:none;justify-content:flex-start;}
 .nav-tab.active{border-bottom-color:var(--border);}
 #main-content{margin-left:var(--nav-sidebar-w);padding-top:52px;transition:margin-left 0.2s ease;}
@@ -19017,7 +19020,7 @@ function renderDash(){
   html+=colBlock('legendagem','Legendagem',legBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 15/10/2026 às 21:26';
+  var sysUpdate='última atualização do sistema · 15/10/2026 às 21:29';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -28646,7 +28649,7 @@ function _sxcPrint(){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 15/10/2026 às 21:26</span></div>
+<div id="page-footer"><span>última atualização · 15/10/2026 às 21:29</span></div>
 
 </div>
 

@@ -5105,6 +5105,19 @@ html[data-theme="indexof"]:not([data-theme="win98"]) .module-icon{display:flex!i
       var el = document.getElementById(recepSubMap[sec]);
       if (el) el.style.display = (window._olgaHasRestricao && window._olgaHasRestricao('receptivo.'+sec)) ? 'none' : '';
     });
+    // Tráfego: submódulos ocultáveis individualmente (trafego.ocultar_interno/_externo/_operacao)
+    var trafSubMap = { interno:'navSubTrafInterno', externo:'navSubTrafExterno', operacao:'navSubTrafOperacao' }, trafAlgum = false;
+    Object.keys(trafSubMap).forEach(function(v){
+      var vis = !(window._olgaHasRestricao && window._olgaHasRestricao('trafego.ocultar_'+v));
+      if (vis) trafAlgum = true;
+      var el = document.getElementById(trafSubMap[v]); if (el) el.style.display = vis ? '' : 'none';
+    });
+    var opProj = document.getElementById('navSubProjOperacao');
+    if (opProj && window._olgaHasRestricao && window._olgaHasRestricao('trafego.ocultar_operacao')) opProj.style.display = 'none';
+    if (!trafAlgum) {
+      var gT = document.getElementById('navGroupTrafego'); if (gT) gT.style.display = 'none';
+      var cT = document.getElementById('modCardTrafego'); if (cT) cT.style.display = 'none';
+    }
   }
 
   // ── Restrições granulares ───────────────────────────────────────
@@ -18964,7 +18977,7 @@ function renderDash(){
   html+=colBlock('kdm','KDM',kdmBody);
 
   // ── BLOCO: Tráfego (quadro de HDs por evento) ─────────────────────
-  if(typeof _trafQuadroHtml==='function'){
+  if(typeof _trafQuadroHtml==='function'&&_mobHasModuleSafe('trafego')&&_trafVisivel('interno')){
     var _tqEvs=Array.from(activeEventsDash).sort(),_tqAs=allowedSalas(),_tqBody='';
     _tqEvs.forEach(function(ev){
       if(!_trafHdsEv(ev).some(function(h){return h.data.pronto;}))return;
@@ -19020,7 +19033,7 @@ function renderDash(){
   html+=colBlock('legendagem','Legendagem',legBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 15/10/2026 às 21:29';
+  var sysUpdate='última atualização do sistema · 15/10/2026 às 21:35';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -22060,6 +22073,9 @@ var _EQUIPE_RESTRICOES=[
   {k:'sessoes.renda',label:'Sessões · Renda'},
   {k:'bilheteria.editar_bordero',label:'Bilheteria · PERMITIR editar Público, Renda e Ingressos (borderô)'},
   {k:'trafego.operar',label:'Tráfego · PERMITIR editar a Operação (ingest, volume, lente, KDM, obs) nos complexos do usuário'},
+  {k:'trafego.ocultar_interno',label:'Tráfego · Ocultar Tráfego interno (inclui o quadro de HDs do Dashboard)'},
+  {k:'trafego.ocultar_externo',label:'Tráfego · Ocultar Tráfego externo'},
+  {k:'trafego.ocultar_operacao',label:'Tráfego · Ocultar Operação'},
   {k:'convidados.ocultar',label:'Convidados · Ocultar nomes de convidados (fichas, sessões e dashboard)'},
   {k:'dashboard.publico',label:'Dashboard · Público (borderô)'},
   {k:'dashboard.renda',label:'Dashboard · Renda (borderô)'},
@@ -28649,7 +28665,7 @@ function _sxcPrint(){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 15/10/2026 às 21:29</span></div>
+<div id="page-footer"><span>última atualização · 15/10/2026 às 21:35</span></div>
 
 </div>
 
@@ -29268,14 +29284,15 @@ function olgaMobileModulos(noStack){
     {mod:'programacao',icon:'layout-list',   label:'Programação', sub:'Mostras e sessões',    fn:'olgaMobileProgramacao()'},
     {mod:'cinemas',    icon:'clapperboard',  label:'Cinemas',     sub:'Salas e complexos',    fn:'olgaMobileCinemas()'},
     {mod:'catalogo',   icon:'book-open',     label:'Revista',     sub:'Leitura digital',      fn:'olgaMobileRevista()'},
-    {mod:'trafego',    icon:'hard-drive',    label:'Operação',    sub:'Ingest e cabine',      fn:"olgaMobileTrafego('operacao')"},
-    {mod:'trafego',    icon:'hard-drive',    label:'Tráfego interno', sub:'HDs de envio',     fn:"olgaMobileTrafego('interno')"},
+    {mod:'trafego',    icon:'hard-drive',    label:'Operação',    sub:'Ingest e cabine',      fn:"olgaMobileTrafego('operacao')", traf:'operacao'},
+    {mod:'trafego',    icon:'hard-drive',    label:'Tráfego interno', sub:'HDs de envio',     fn:"olgaMobileTrafego('interno')", traf:'interno'},
   ];
 
   // dedup por fn
   var shownFns=new Set();
   var cards=CARDS.filter(function(c){
     if(!_mobHasModule(c.mod))return false;
+    if(c.traf&&typeof _trafVisivel==='function'&&!_trafVisivel(c.traf))return false;
     if(shownFns.has(c.fn))return false;
     shownFns.add(c.fn);
     return true;
@@ -32271,7 +32288,11 @@ function _trafOpAtualizaProgresso(){
 function _trafEventosAtivos(){
   return Object.keys(eventColors||{}).filter(function(e){return _userEvSel.has(e);}).sort();
 }
+function _mobHasModuleSafe(m){var u=window._olgaUser;if(!u)return false;if(u.role==='admin'||!u.modulos||!u.modulos.length)return true;return u.modulos.indexOf(m)!==-1;}
+function _trafVisivel(v){return !(window._olgaHasRestricao&&window._olgaHasRestricao('trafego.ocultar_'+v));}
+function _trafPrimeiroVisivel(pref){var ord=[pref,'interno','operacao','externo'];for(var i=0;i<ord.length;i++)if(ord[i]&&_trafVisivel(ord[i]))return ord[i];return'';}
 function _trafGo(v){
+  v=_trafPrimeiroVisivel(v);if(!v)return;
   _trafView=v;if(v!=='interno')_trafHdSel=null;
   if(currentMode!=='trafego')switchMode('trafego');else renderTrafego();
 }
@@ -32290,6 +32311,7 @@ function renderTrafego(){
   ['Interno','Externo','Operacao'].forEach(function(k){
     var n=document.getElementById('navSubTraf'+k);if(n)n.classList.toggle('active',_trafView===k.toLowerCase());
   });
+  if(!_trafVisivel(_trafView)){_trafView=_trafPrimeiroVisivel('');_trafHdSel=null;if(!_trafView){cont.innerHTML='<div class="traf-muted">Sem acesso aos submódulos do Tráfego.</div>';return;}}
   if(!_trafEv){cont.innerHTML='<div class="traf-muted">Nenhum evento ativo. Ative um evento na barra de eventos acima.</div>';return;}
   if(_trafView==='externo'){cont.innerHTML='<div class="traf-h">Tráfego externo</div><div class="traf-muted">Em desenvolvimento.</div>';return;}
   if(_trafView==='operacao'){_trafRenderOperacao(cont);return;}
@@ -33032,7 +33054,8 @@ function _mobRenderTrafego(params){
   var evs=_trafEventosAtivos();
   if(evs.indexOf(_trafEv)<0)_trafEv=evs[0]||'';
   if(!_trafEv){_mobSetContent(_mobEventFilterHtml(_userEvSel)+'<div class="mob-empty">Nenhum evento ativo. Ative um evento acima.</div>');return;}
-  var tab=params.tab||'operacao';
+  var tab=_trafPrimeiroVisivel(params.tab||'operacao');params.tab=tab;
+  if(!tab||tab==='externo'){_mobSetContent('<div class="mob-empty">Sem acesso a este submódulo do Tráfego.</div>');return;}
   var html=_mobEventFilterHtml(_userEvSel)+'<div class="mob-h" style="padding-bottom:0;">'+(tab==='interno'?'Tráfego interno':'Operação')+'</div>';
   if(evs.length>1)html+='<div style="padding:8px 12px 0;">'+_mobTrafSel('_mobTrafEv(this.value)',evs.map(function(e){return[e,_trafEvNome(e)];}),_trafEv)+'</div>';
   html+=tab==='interno'?_mobTrafInternoHtml():_mobTrafOperacaoHtml(params);

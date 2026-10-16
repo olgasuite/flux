@@ -6409,7 +6409,7 @@ window.addEventListener('DOMContentLoaded',function(){
       <button class="nav-group-arrow" onclick="_toggleNavGroup('Trafego')" title="Expandir">▸</button>
     </div>
     <div class="nav-group-items">
-      <button class="nav-sub-tab" id="navSubTrafInterno" disabled onclick="_trafGo('interno')">Tráfego interno</button>
+      <button class="nav-sub-tab" id="navSubTrafInterno" disabled onclick="_trafGo('interno')">Distribuição interna</button>
       <button class="nav-sub-tab" id="navSubTrafOperacao" disabled onclick="_trafGo('operacao')">Operação</button>
     </div>
   </div>
@@ -19032,7 +19032,7 @@ function renderDash(){
   html+=colBlock('legendagem','Legendagem',legBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 15/10/2026 às 21:44';
+  var sysUpdate='última atualização do sistema · 15/10/2026 às 21:45';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -22072,7 +22072,7 @@ var _EQUIPE_RESTRICOES=[
   {k:'sessoes.renda',label:'Sessões · Renda'},
   {k:'bilheteria.editar_bordero',label:'Bilheteria · PERMITIR editar Público, Renda e Ingressos (borderô)'},
   {k:'trafego.operar',label:'Tráfego · PERMITIR editar a Operação (ingest, volume, lente, KDM, obs) nos complexos do usuário'},
-  {k:'trafego.ocultar_interno',label:'Tráfego · Ocultar Tráfego interno (inclui o quadro de HDs do Dashboard)'},
+  {k:'trafego.ocultar_interno',label:'Tráfego · Ocultar Distribuição interna (inclui o quadro de HDs do Dashboard)'},
   {k:'trafego.ocultar_operacao',label:'Tráfego · Ocultar Operação'},
   {k:'convidados.ocultar',label:'Convidados · Ocultar nomes de convidados (fichas, sessões e dashboard)'},
   {k:'dashboard.publico',label:'Dashboard · Público (borderô)'},
@@ -28663,7 +28663,7 @@ function _sxcPrint(){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 15/10/2026 às 21:44</span></div>
+<div id="page-footer"><span>última atualização · 15/10/2026 às 21:45</span></div>
 
 </div>
 
@@ -29283,7 +29283,7 @@ function olgaMobileModulos(noStack){
     {mod:'cinemas',    icon:'clapperboard',  label:'Cinemas',     sub:'Salas e complexos',    fn:'olgaMobileCinemas()'},
     {mod:'catalogo',   icon:'book-open',     label:'Revista',     sub:'Leitura digital',      fn:'olgaMobileRevista()'},
     {mod:'trafego',    icon:'hard-drive',    label:'Operação',    sub:'Ingest e cabine',      fn:"olgaMobileTrafego('operacao')", traf:'operacao'},
-    {mod:'trafego',    icon:'hard-drive',    label:'Tráfego interno', sub:'HDs de envio',     fn:"olgaMobileTrafego('interno')", traf:'interno'},
+    {mod:'trafego',    icon:'hard-drive',    label:'Distribuição interna', sub:'HDs de envio',     fn:"olgaMobileTrafego('interno')", traf:'interno'},
   ];
 
   // dedup por fn
@@ -32320,7 +32320,7 @@ function renderTrafego(){
   _trafRenderInterno(cont);
 }
 
-/* ─── Tráfego interno: lista de HDs + pendências ─── */
+/* ─── Distribuição interna: lista de HDs + pendências ─── */
 function _trafRenderInterno(cont){
   var ev=_trafEv,canEdit=_trafCanEdit(),todos=_trafHdsEv(ev);
   var hds=todos.filter(function(h){return !h.data.devolvido;}),devolvidos=todos.filter(function(h){return h.data.devolvido;});
@@ -33024,7 +33024,7 @@ function _trafRenderOperacao(cont){
 /* ─── Mobile (views 'trafego' e 'trafego-hd') ─── */
 var _TRAF_MOB_IN='font-size:16px;width:100%;padding:7px 9px;';  // 16px evita zoom automático no iOS
 function olgaMobileTrafego(tab){
-  _mobPush({view:'trafego',params:{tab:tab||'operacao'},title:tab==='interno'?'Tráfego interno':'Operação'});
+  _mobPush({view:'trafego',params:{tab:tab||'operacao'},title:tab==='interno'?'Distribuição interna':'Operação'});
   _mobRenderTrafego(_mobStack[_mobStack.length-1].params);
 }
 function _mobTrafAbrirHd(id){
@@ -33053,7 +33053,7 @@ function _mobRenderTrafego(params){
   if(!_trafEv){_mobSetContent(_mobEventFilterHtml(_userEvSel)+'<div class="mob-empty">Nenhum evento ativo. Ative um evento acima.</div>');return;}
   var tab=_trafPrimeiroVisivel(params.tab||'operacao');params.tab=tab;
   if(!tab){_mobSetContent('<div class="mob-empty">Sem acesso a este submódulo do Tráfego.</div>');return;}
-  var html=_mobEventFilterHtml(_userEvSel)+'<div class="mob-h" style="padding-bottom:0;">'+(tab==='interno'?'Tráfego interno':'Operação')+'</div>';
+  var html=_mobEventFilterHtml(_userEvSel)+'<div class="mob-h" style="padding-bottom:0;">'+(tab==='interno'?'Distribuição interna':'Operação')+'</div>';
   if(evs.length>1)html+='<div style="padding:8px 12px 0;">'+_mobTrafSel('_mobTrafEv(this.value)',evs.map(function(e){return[e,_trafEvNome(e)];}),_trafEv)+'</div>';
   html+=tab==='interno'?_mobTrafInternoHtml():_mobTrafOperacaoHtml(params);
   _mobSetContent(html);
@@ -33155,7 +33155,7 @@ function _mobTrafSessHtml(s,canOp,hdSel){
   return html+'</div></div>';
 }
 
-/* Tráfego interno no mobile */
+/* Distribuição interna no mobile */
 function _mobTrafInternoHtml(){
   var ev=_trafEv,canEdit=_trafCanEdit(),todos=_trafHdsEv(ev);
   var ativos=todos.filter(function(h){return !h.data.devolvido;}),devolvidos=todos.filter(function(h){return h.data.devolvido;});

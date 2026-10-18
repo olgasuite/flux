@@ -8267,7 +8267,7 @@ function _fichaContentHTML(nome,s){
   // extra panel (right side of header)
   function feRow(label,value){if(!value)return'';return'<div class="fe-row"><span class="fe-label">'+label+'</span><span class="fe-value accent">'+value+'</span></div>';}
   function feCheck(label,val){var checked=(val||'').toLowerCase()==='sim';return'<div class="fe-check"><span class="fe-box'+(checked?' checked':'')+'">'+( checked?'✕':'')+'</span><span>'+label+'</span></div>';}
-  var hasExtra=s.convidados||s.apresentacao||s.ingressos||s.ticket_url||s.access_type||s.leg_eletronica||s.col_ag||s.acessibilidades||s.para_convidados||(s.operador&&s.operador.length);
+  var hasExtra=s.convidados||s.apresentacao||s.ingressos||s.access_type||s.leg_eletronica||s.col_ag||s.acessibilidades||s.para_convidados||(s.operador&&s.operador.length);
   var extraHtml='';
   if(hasExtra){
     var checkFields=(s.apresentacao||s.leg_eletronica||s.col_ag||s.acessibilidades||s.para_convidados)?'<div class="fe-checks">'+feCheck('Apresentação',s.apresentacao)+feCheck('Leg. elet.',s.leg_eletronica)+feCheck('Debate',s.col_ag)+feCheck('Acessibilidade',s.acessibilidades)+feCheck('P/ convidados',s.para_convidados)+'</div>':'';
@@ -8286,7 +8286,6 @@ function _fichaContentHTML(nome,s){
       (s.convidados&&!_hideGuests()?feRow('Convidados',esc(s.convidados)):'')+
       (s.ingressos?feRow('Ing. reservados',esc(s.ingressos)):'')+
       (s.access_type?feRow('Acesso',esc(s.access_type)):'')+
-      (s.ticket_url&&/^https?:\/\//i.test(s.ticket_url)?feRow('Ingresso','<a href="'+esc(s.ticket_url)+'" target="_blank" rel="noopener" style="color:inherit;">comprar</a>'):'')+
       checkFields+
       (s.operador&&s.operador.length?'<div class="fe-row"><span class="fe-value accent">'+esc(s.operador.join(', '))+' <span style="opacity:0.6;font-weight:400;">(op. de leg.)</span></span></div>':'')+
       (acessLabel?feRow('Recursos acessib.',esc(acessLabel)):'')+
@@ -19086,7 +19085,7 @@ function renderDash(){
   html+=colBlock('legendagem','Legendagem',legBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 16/10/2026 às 16:55';
+  var sysUpdate='última atualização do sistema · 18/10/2026 às 17:37';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -20873,7 +20872,7 @@ function _progFichaContentHTML(sessaoNome,s,prog){
   var ratingBadge=_ratingMax?_catRatingBadge(_ratingMax):'';
   function feRow(label,value){if(!value)return'';return'<div class="fe-row"><span class="fe-label">'+label+'</span><span class="fe-value accent">'+esc(value)+'</span></div>';}
   function feCheck(label,val){var checked=(val||'').toLowerCase()==='sim';return'<div class="fe-check"><span class="fe-box'+(checked?' checked':'')+'">'+( checked?'✕':'')+'</span><span>'+label+'</span></div>';}
-  var hasExtra=s.convidados||s.apresentacao||s.ingressos||s.access_type||s.leg_eletronica||s.col_ag||s.acessibilidades||s.para_convidados||(s.operador&&s.operador.length);
+  var hasExtra=s.convidados||s.apresentacao||s.ingressos||s.ticket_url||s.access_type||s.leg_eletronica||s.col_ag||s.acessibilidades||s.para_convidados||(s.operador&&s.operador.length);
   var extraHtml='';
   if(hasExtra){
     var checkFields=(s.apresentacao||s.leg_eletronica||s.col_ag||s.acessibilidades||s.para_convidados)?'<div class="fe-checks">'+feCheck('Apresentação',s.apresentacao)+feCheck('Leg. elet.',s.leg_eletronica)+feCheck('Debate',s.col_ag)+feCheck('Acessibilidade',s.acessibilidades)+feCheck('P/ convidados',s.para_convidados)+'</div>':'';
@@ -20881,7 +20880,7 @@ function _progFichaContentHTML(sessaoNome,s,prog){
     if((s.acessibilidades||'').toLowerCase()==='sim'){
       films.forEach(function(f){if(f.acessibilidade){f.acessibilidade.split(/[,;\/\n]+/).forEach(function(a){var t=a.trim();if(t&&acessSet2.indexOf(t)<0)acessSet2.push(t);});}});
     }
-    extraHtml='<div class="ficha-extra">'+(s.convidados&&!_hideGuests()?feRow('Convidados',s.convidados):'')+feRow('Acesso',s.access_type)+(s.ingressos?feRow('Ing. reservados',s.ingressos):'')+checkFields+(s.operador&&s.operador.length?'<div class="fe-row"><span class="fe-value accent">'+esc(s.operador.join(', '))+' <span style="opacity:0.6;font-weight:400;">(op. de leg.)</span></span></div>':'')+(acessSet2.length?feRow('Recursos acessib.',acessSet2.join(' · ')):'')+'</div>';
+    extraHtml='<div class="ficha-extra">'+(s.convidados&&!_hideGuests()?feRow('Convidados',s.convidados):'')+feRow('Acesso',s.access_type)+(s.ticket_url&&/^https?:\/\//i.test(s.ticket_url)?'<div class="fe-row"><span class="fe-label">Ingresso</span><span class="fe-value accent"><a href="'+esc(s.ticket_url)+'" target="_blank" rel="noopener" style="color:inherit;">comprar</a></span></div>':'')+(s.ingressos?feRow('Ing. reservados',s.ingressos):'')+checkFields+(s.operador&&s.operador.length?'<div class="fe-row"><span class="fe-value accent">'+esc(s.operador.join(', '))+' <span style="opacity:0.6;font-weight:400;">(op. de leg.)</span></span></div>':'')+(acessSet2.length?feRow('Recursos acessib.',acessSet2.join(' · ')):'')+'</div>';
   }
   var vinhetasHtml='';
   var totalVinSecs=0;
@@ -28717,7 +28716,7 @@ function _sxcPrint(){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 16/10/2026 às 16:55</span></div>
+<div id="page-footer"><span>última atualização · 18/10/2026 às 17:37</span></div>
 
 </div>
 

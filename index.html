@@ -19085,7 +19085,7 @@ function renderDash(){
   html+=colBlock('legendagem','Legendagem',legBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 18/10/2026 às 17:37';
+  var sysUpdate='última atualização do sistema · 19/10/2026 às 09:59';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -22636,6 +22636,19 @@ async function saveEvento(){
     }else{
       await window._olgaEventos.save(id,data);
       window._logFirestoreEdit&&window._logFirestoreEdit('individual',id,data,'eventos','eventos');
+      // Quem cria o evento passa a vê-lo: perfil com lista de eventos restrita ganha o novo id
+      var _me=window._olgaUser;
+      if(_me&&_me.email&&Array.isArray(_me.eventos)&&_me.eventos.length&&_me.eventos.indexOf(id)<0){
+        var _evNovo=_me.eventos.concat([id]);
+        await window._olgaUsuarios.saveField(_me.email.toLowerCase(),{eventos:_evNovo});
+        window._logFirestoreEdit&&window._logFirestoreEdit('individual',_me.email.toLowerCase(),{eventos:_evNovo},'eventos','usuarios');
+        _me.eventos=_evNovo;
+        if(typeof window._olgaSnapshotsUnsubAll==='function'&&window._olgaSnapshotsActive){
+          window._olgaSnapshotsUnsubAll();
+          var _rl=window._olgaLoadFirestore&&window._olgaLoadFirestore({silent:true});
+          if(_rl&&_rl.then)_rl.then(function(){if(typeof window._olgaRerenderActive==='function')window._olgaRerenderActive();});
+        }
+      }
     }
     // atualiza eventColors em memória e cache local imediatamente
     if(data.cor&&data.cor.bg){
@@ -28716,7 +28729,7 @@ function _sxcPrint(){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 18/10/2026 às 17:37</span></div>
+<div id="page-footer"><span>última atualização · 19/10/2026 às 09:59</span></div>
 
 </div>
 

@@ -16036,6 +16036,8 @@ function renderProjecao(){
     return cs.size;
   })():0;
   function detail(count,singular,plural){return loaded?count+' '+(count===1?singular:plural):'Carregue uma planilha para começar';}
+  var _opNav=document.getElementById('navSubProjOperacao');
+  var opVisivel=!!_opNav&&_opNav.style.display!=='none';
   document.getElementById('projecao-container').innerHTML=
     '<div class="proj-hub">'+
     '<div class="proj-hub-title">Projeção · atalhos rápidos</div>'+
@@ -16047,12 +16049,12 @@ function renderProjecao(){
         '<div class="proj-card-detail">'+detail(fichaCount,'sessão disponível','sessões disponíveis')+'</div>'+
         '<div class="proj-card-arrow">Abrir Ficha →</div>'+
       '</button>'+
-      '<button class="proj-card" onclick="switchMode(\'ingest\')">'+
-        '<div class="proj-card-icon"><svg width="26" height="26" viewBox="0 0 24 24" style="stroke:currentColor;stroke-width:1.5;fill:none;stroke-linecap:round;stroke-linejoin:round;" xmlns="http://www.w3.org/2000/svg"><polyline points="12 2 12 13"/><path d="m8 9 4 4 4-4"/><rect x="2" y="14" width="20" height="8" rx="2" ry="2"/><path d="M6 18h.01M10 18h.01"/></svg></div>'+
-        '<div class="proj-card-name">Ingest</div>'+
-        '<div class="proj-card-desc">Cronograma de ingest por sala, com CPL e tamanhos</div>'+
-        '<div class="proj-card-detail">'+detail(ingestCount,'sessão no acervo','sessões no acervo')+'</div>'+
-        '<div class="proj-card-arrow">Abrir Ingest →</div>'+
+      '<button class="proj-card" onclick="_trafGo(\'operacao\')"'+(opVisivel?'':' disabled')+'>'+
+        '<div class="proj-card-icon"><svg width="26" height="26" viewBox="0 0 24 24" style="stroke:currentColor;stroke-width:1.5;fill:none;stroke-linecap:round;stroke-linejoin:round;" xmlns="http://www.w3.org/2000/svg"><line x1="22" y1="12" x2="2" y2="12"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/><line x1="6" y1="16" x2="6.01" y2="16"/><line x1="10" y1="16" x2="10.01" y2="16"/></svg></div>'+
+        '<div class="proj-card-name">Operação</div>'+
+        '<div class="proj-card-desc">Ingest e operação de cabine por filme e sessão (Exibição)</div>'+
+        '<div class="proj-card-detail">'+detail(ingestCount,'sessão','sessões')+'</div>'+
+        '<div class="proj-card-arrow">Abrir Operação →</div>'+
       '</button>'+
       '<button class="proj-card" onclick="switchMode(\'grade2\')">'+
         '<div class="proj-card-icon"><svg width="26" height="26" viewBox="0 0 24 24" style="stroke:currentColor;stroke-width:1.5;fill:none;stroke-linecap:round;stroke-linejoin:round;" xmlns="http://www.w3.org/2000/svg"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg></div>'+
@@ -19085,7 +19087,7 @@ function renderDash(){
   html+=colBlock('legendagem','Legendagem',legBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 20/10/2026 às 10:33';
+  var sysUpdate='última atualização do sistema · 20/10/2026 às 11:54';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -28729,7 +28731,7 @@ function _sxcPrint(){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 20/10/2026 às 10:33</span></div>
+<div id="page-footer"><span>última atualização · 20/10/2026 às 11:54</span></div>
 
 </div>
 

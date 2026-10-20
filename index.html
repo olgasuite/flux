@@ -19087,7 +19087,7 @@ function renderDash(){
   html+=colBlock('legendagem','Legendagem',legBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 20/10/2026 às 11:54';
+  var sysUpdate='última atualização do sistema · 20/10/2026 às 20:06';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -28731,7 +28731,7 @@ function _sxcPrint(){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 20/10/2026 às 11:54</span></div>
+<div id="page-footer"><span>última atualização · 20/10/2026 às 20:06</span></div>
 
 </div>
 
@@ -32827,7 +32827,9 @@ function _trafSpecsHtml(c){
 }
 function _trafOpFilmes(s,hdSel){
   var films=s.filmes.filter(_isFest);
-  return hdSel?films.filter(function(c){return _trafEnvio(s,c).some(function(h){return h.id===hdSel.id;});}):films;
+  if(!hdSel)return films;
+  var ids=Array.isArray(hdSel)?hdSel.map(function(h){return h.id;}):[hdSel.id];
+  return films.filter(function(c){return _trafEnvio(s,c).some(function(h){return ids.indexOf(h.id)>=0;});});
 }
 function _trafGbLista(cs){return cs.reduce(function(t,c){return t+_trafGB(c);},0);}
 function _trafGbDias(list,hdSel){var t={};list.forEach(function(s){var d=_trafIso(s.date);t[d]=(t[d]||0)+_trafGbLista(_trafOpFilmes(s,hdSel));});return t;}
@@ -32838,17 +32840,19 @@ function _trafGbHd(pares){var u={};pares.forEach(function(x){u[x.c]=1;});return 
 // `dia` = só aquele dia; vazio = de hoje em diante. Usa os filtros da tela atual
 // (desktop: _trafOpFiltro; mobile: params da view). Dentro da sala: um cabeçalho de colunas
 // por dia e cada sessão como faixa de separação.
-function _trafOpImprimir(dia){
+// `opts` (da janela de escolha): {dias:[iso…], hds:[id…]|null} — substitui o dia e o filtro de HD.
+function _trafOpImprimir(dia,opts){
   var F=window._mobileActive?((_trafMobTop()||{}).params||{}):_trafOpFiltro;
   var ev=_trafEv,as=allowedSalas(),hoje=_trafIso(new Date());
-  var hdSel=F.hd?_trafHdById(F.hd):null;
+  var hdSel=opts&&opts.hds?opts.hds.map(_trafHdById).filter(Boolean):(F.hd?_trafHdById(F.hd):null);
   var list=sessoesArr.filter(function(s){
     if(s.evento!==ev||!s.date||!s.cinema||(as&&!as.has(s.cinema)))return false;
     var d=_trafIso(s.date);
-    if(dia?d!==dia:d<hoje)return false;
+    if(opts&&opts.dias){if(opts.dias.indexOf(d)<0)return false;}
+    else if(dia?d!==dia:d<hoje)return false;
     if(F.complexo&&_getSalaComplexo(s.cinema)!==F.complexo)return false;
     if(F.sala&&s.cinema!==F.sala)return false;
-    if(hdSel&&!_trafHdMatch(hdSel,s))return false;
+    if(hdSel&&!Array.isArray(hdSel)&&!_trafHdMatch(hdSel,s))return false;
     return _trafOpFilmes(s,hdSel).length>0;
   }).sort(_trafSort);
   if(!list.length){alert('Nada para imprimir nos filtros atuais.');return;}
@@ -32856,7 +32860,7 @@ function _trafOpImprimir(dia){
   var e=esc,porSala={};
   list.forEach(function(s){(porSala[s.cinema]=porSala[s.cinema]||[]).push(s);});
   var salas=Object.keys(porSala).sort(function(x,y){return x.localeCompare(y,'pt-BR',{numeric:true,sensitivity:'base'});});
-  var periodo=dia?_trafBr(dia):'de '+_trafBr(hoje)+' em diante';
+  var periodo=opts&&opts.dias?opts.dias.slice().sort().map(_trafBr).join(', '):dia?_trafBr(dia):'de '+_trafBr(hoje)+' em diante';
   var COLS='<colgroup><col style="width:13%"><col style="width:11%"><col style="width:9%"><col style="width:20.5%"><col style="width:6%"><col style="width:4.5%"><col style="width:5%"><col style="width:6%"><col style="width:7%"><col style="width:18%"></colgroup>'+
     '<thead><tr><th>Filme</th><th>Cópia</th><th>Legenda</th><th>CPL</th><th>HD envio</th><th>Ingest</th><th>Volume</th><th>Lente</th><th>KDM</th><th>Obs.</th></tr></thead>';
   var body=salas.map(function(sala){
@@ -32890,7 +32894,7 @@ function _trafOpImprimir(dia){
     });
     return h+'<div class="rod">OLGA Flux · '+e(new Date().toLocaleString('pt-BR'))+'</div></section>';
   }).join('');
-  var filtros=[F.complexo,F.sala,hdSel?('HD '+(hdSel.data.nome||'')):''].filter(Boolean).join(' · ');
+  var filtros=[F.complexo,F.sala,hdSel?('HD '+(Array.isArray(hdSel)?hdSel:[hdSel]).map(function(h){return h.data.nome||'';}).join(', ')):''].filter(Boolean).join(' · ');
   var titulo='Operação · '+_trafEvNome(ev)+' · '+periodo+(filtros?' · '+filtros:'');
   w.document.write('<!doctype html><html><head><meta charset="utf-8"><title>'+e(titulo)+'</title><style>@page{size:A4 landscape;margin:9mm;}body{font-family:sans-serif;font-size:11px;margin:0;width:279mm;}section+section{page-break-before:always;}'+
     '.blk thead{display:none;}.blk.th thead{display:table-header-group;}table.blk{break-inside:avoid;page-break-inside:avoid;}'+
@@ -32905,6 +32909,53 @@ function _trafOpImprimir(dia){
     '.lx{display:inline-block;margin-top:2px;border:1.5px solid #000;font-weight:bold;font-size:8.5px;padding:0 3px;text-transform:uppercase;}.rod{margin-top:8px;color:#555;font-size:10px;}.lt{display:inline-block;border:2px solid #000;font-weight:bold;font-size:13px;padding:0 4px;text-transform:uppercase;white-space:nowrap;}.hds{font-size:13px;border:2px solid #000;padding:1px 8px;}'+
     '</style></head><body>'+body+'<script>('+_trafOpPaginar.toString()+')();window.focus();setTimeout(function(){window.print();},200);<\/script></body></html>');
   w.document.close();
+}
+// Janela de escolha da impressão: dias e HDs disponíveis nos filtros atuais.
+// Todos os HDs marcados = sem filtro de HD (inclui sessões sem HD de envio).
+function _trafOpImprimirEscolher(){
+  var F=window._mobileActive?((_trafMobTop()||{}).params||{}):_trafOpFiltro;
+  var ev=_trafEv,as=allowedSalas(),hoje=_trafIso(new Date());
+  var hdF=F.hd?_trafHdById(F.hd):null,dias={},hds={};
+  sessoesArr.forEach(function(s){
+    if(s.evento!==ev||!s.date||!s.cinema||(as&&!as.has(s.cinema)))return;
+    if(F.complexo&&_getSalaComplexo(s.cinema)!==F.complexo)return;
+    if(F.sala&&s.cinema!==F.sala)return;
+    if(hdF&&!_trafHdMatch(hdF,s))return;
+    var fl=_trafOpFilmes(s,hdF);if(!fl.length)return;
+    dias[_trafIso(s.date)]=1;
+    fl.forEach(function(c){_trafEnvio(s,c).forEach(function(h){if(!hdF||h.id===hdF.id)hds[h.id]=h;});});
+  });
+  var ds=Object.keys(dias).sort();
+  if(!ds.length){alert('Nada para imprimir nos filtros atuais.');return;}
+  var futuros=ds.some(function(d){return d>=hoje;});
+  var hl=Object.keys(hds).map(function(k){return hds[k];}).sort(function(a,b){return(a.data.nome||'').localeCompare(b.data.nome||'','pt-BR',{numeric:true});});
+  function chk(cls,v,lbl,on){return'<label style="display:flex;align-items:center;gap:8px;padding:5px 0;cursor:pointer;"><input type="checkbox" class="'+cls+'" value="'+esc(v)+'"'+(on?' checked':'')+' style="width:16px;height:16px;accent-color:var(--accent);">'+esc(lbl)+'</label>';}
+  function todos(cls,on){return'<a href="#" style="color:var(--text-muted);font-size:11px;margin-left:8px;" onclick="event.preventDefault();document.querySelectorAll(\'.'+cls+'\').forEach(function(x){x.checked='+on+';})">'+(on?'todos':'nenhum')+'</a>';}
+  var ov=document.createElement('div');ov.id='trafPrOverlay';
+  ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px;';
+  ov.onclick=function(e){if(e.target===ov)ov.remove();};
+  ov.innerHTML='<div style="background:var(--surface);border:1px solid var(--border);color:var(--text);width:100%;max-width:520px;max-height:85vh;overflow:auto;padding:20px 22px;">'+
+    '<div style="font-family:var(--mono);font-size:13px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:var(--accent);margin-bottom:14px;">Imprimir operação</div>'+
+    '<div style="display:flex;gap:24px;flex-wrap:wrap;">'+
+      '<div style="flex:1;min-width:180px;"><div style="font-size:12px;color:var(--text-dim);margin-bottom:4px;">Dias'+todos('trafPrDia',true)+todos('trafPrDia',false)+'</div>'+
+        ds.map(function(d){return chk('trafPrDia',d,_trafBr(d),futuros?d>=hoje:true);}).join('')+'</div>'+
+      (hl.length?'<div style="flex:1;min-width:180px;"><div style="font-size:12px;color:var(--text-dim);margin-bottom:4px;">HDs de envio'+todos('trafPrHd',true)+todos('trafPrHd',false)+'</div>'+
+        hl.map(function(h){return chk('trafPrHd',h.id,h.data.nome||'HD',true);}).join('')+
+        '<div style="font-size:11px;color:var(--text-muted);margin-top:6px;">Todos marcados = imprime também sessões sem HD.</div></div>':'')+
+    '</div>'+
+    '<div style="display:flex;gap:8px;justify-content:flex-end;margin-top:18px;">'+
+      '<button class="print-btn" onclick="document.getElementById(\'trafPrOverlay\').remove()">Cancelar</button>'+
+      '<button class="print-btn" style="color:var(--accent);border-color:var(--accent);" onclick="_trafOpImprimirOk('+(hdF?'true':'false')+')">⎙ Imprimir</button>'+
+    '</div></div>';
+  document.body.appendChild(ov);
+}
+function _trafOpImprimirOk(hdFixo){
+  var v=function(cls){return Array.prototype.slice.call(document.querySelectorAll('.'+cls)).filter(function(x){return x.checked;}).map(function(x){return x.value;});};
+  var dias=v('trafPrDia'),hdAll=document.querySelectorAll('.trafPrHd').length,hds=v('trafPrHd');
+  if(!dias.length){alert('Marque ao menos um dia.');return;}
+  if(hdAll&&!hds.length){alert('Marque ao menos um HD.');return;}
+  var ov=document.getElementById('trafPrOverlay');if(ov)ov.remove();
+  _trafOpImprimir('',{dias:dias,hds:(hdAll&&(hds.length<hdAll||hdFixo))?hds:null});
 }
 // Roda DENTRO da janela de impressão: nenhuma sessão (faixa + filmes) é dividida entre páginas.
 // Se o bloco não cabe no resto da página, vai inteiro para a seguinte, com aviso no pé e
@@ -33079,7 +33130,7 @@ function _trafRenderOperacao(cont){
     '<select class="traf-input" onchange="_trafOpFiltroSet(\'sala\',this.value)">'+opt('','Todas as salas',F.sala)+Object.keys(salas).sort().map(function(c){return opt(c,c,F.sala);}).join('')+'</select>'+
     (hdSel?'<span class="traf-chip" style="cursor:pointer;color:var(--accent);border-color:var(--accent);" onclick="_trafOpFiltroSet(\'hd\',\'\')">só '+esc(hdSel.data.nome||'HD')+' ✕</span>':'')+
     (canOp?'':'<span class="traf-muted">somente leitura</span>')+
-    '<button class="print-btn" style="margin-left:auto;" onclick="_trafOpImprimir(\'\')" title="Imprime de hoje em diante, com os filtros atuais">⎙ imprimir</button>'+
+    '<button class="print-btn" style="margin-left:auto;" onclick="_trafOpImprimirEscolher()" title="Escolha os dias e HDs a imprimir, dentro dos filtros atuais">⎙ imprimir</button>'+
   '</div>';
 
   var list=base.filter(function(s){
@@ -33165,7 +33216,7 @@ function _mobTrafOperacaoHtml(p){
     _mobTrafSel("_mobTrafSet('complexo',this.value)",[['','Todos os complexos']].concat(Object.keys(cxs).sort().map(function(c){return[c,c];})),p.complexo||'')+
     _mobTrafSel("_mobTrafSet('sala',this.value)",[['','Todas as salas']].concat(Object.keys(salas).sort().map(function(c){return[c,c];})),p.sala||'')+
     (canOp?'':'<span class="traf-muted">somente leitura</span>')+
-    '<button class="print-btn" style="padding:8px 0;" onclick="_trafOpImprimir(\'\')">⎙ imprimir de hoje em diante</button>'+
+    '<button class="print-btn" style="padding:8px 0;" onclick="_trafOpImprimirEscolher()">⎙ imprimir (escolher dias e HDs)</button>'+
   '</div>';
 
   var list=base.filter(function(s){

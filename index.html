@@ -19093,7 +19093,7 @@ function renderDash(){
   html+=colBlock('legendagem','Legendagem',legBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 21/10/2026 às 11:10';
+  var sysUpdate='última atualização do sistema · 21/10/2026 às 11:19';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -28737,7 +28737,7 @@ function _sxcPrint(){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 21/10/2026 às 11:10</span></div>
+<div id="page-footer"><span>última atualização · 21/10/2026 às 11:19</span></div>
 
 </div>
 
@@ -32894,7 +32894,7 @@ function _trafOpImprimir(dia,opts){
           '<td>'+(_trafMin(f)?'<b class="du">'+e(_trafMin(f))+'</b><br>':'')+(spec||'—')+'</td>'+
           '<td>'+legCel+'</td>'+
           '<td class="m cpl">'+(clean(f.cpl)?'<span class="cb">'+e(clean(f.cpl))+'</span>':'—')+(clean(f.cplOV)?'<div class="co">OV: '+e(clean(f.cplOV))+'</div>':'')+'</td>'+
-          '<td>'+e(env||'—')+'</td><td class="c">'+(op.ingestado?'✓':'☐')+'</td><td>'+e(op.volume||'')+'</td><td>'+(_trafLenteOp(op,f)?'<span class="lt">'+e(_trafLenteOp(op,f)).replace(/^FLAT (200|\(C\))$/i,'FLAT<br>$1')+'</span>':'')+'</td><td>'+kdm+'</td><td>'+e(op.obs||'')+'</td></tr>';
+          '<td>'+e(env||'—')+'</td><td class="c">'+(op.ingestado?'✓':'☐')+'</td><td>'+e(op.volume||'')+'</td><td>'+(_trafLenteOp(op,f)?'<span class="lt">'+(function(l){var u=l.toUpperCase().replace(/\s/g,'');return u.indexOf('FLAT')>=0&&u.indexOf('200')>=0?'FLAT<br>200':u.indexOf('FLAT')>=0&&u.indexOf('(C)')>=0?'FLAT<br>(C)':e(l);})(_trafLenteOp(op,f))+'</span>':'')+'</td><td>'+kdm+'</td><td>'+e(op.obs||'')+'</td></tr>';
       });
       h+='</tbody></table>';
     });

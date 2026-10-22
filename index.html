@@ -14699,6 +14699,7 @@ function _revGetSessionGroups(sessoes){
   return{groups:groups,order:order};
 }
 
+function _revFilmsSig(codes){return(codes||[]).filter(function(c){return _isFest(c);}).map(String).sort().join('|');}
 function _revSessionItemFns(sessionGroups){
   var items=[];
   function _instLinesHtml(instances){
@@ -14759,19 +14760,21 @@ function _revSessionItemFns(sessionGroups){
         // 1 filme: entrada de filme, texto curatorial logo abaixo do Dir./ano
         var fl=sess.films[0];
         var soloGroup=[];
-        (function(film,desc,iHtml,sn){soloGroup.push(function(){return _filmEntryEl(film,{description:desc,instanceHtml:iHtml,sessName:sn});});})(fl,sess.description,instHtml,sess.name);
+        (function(film,desc,iHtml,sn){soloGroup.push(function(){var el=_filmEntryEl(film,{description:desc,instanceHtml:iHtml,sessName:sn});el.dataset.sessFilms=_revFilmsSig([film.code]);return el;});})(fl,sess.description,instHtml,sess.name);
         soloGroup.push(function(){var el=document.createElement('hr');el.className='rev-sess-end-sep';return el;});
         items.push(soloGroup);
       } else {
         // 2+ filmes: cabeçalho da sessão + descrição + filmes + horário, mantidos juntos
         var sessGroup=[];
-        var headerText=sess.name||'VÁRIOS';
-        (function(sn){sessGroup.push(function(){var el=document.createElement('div');el.className='rev-sess-header';el.dataset.sessName=sn;el.textContent=sn;return el;});})(headerText);
+        if(sess.name){
+          (function(sn){sessGroup.push(function(){var el=document.createElement('div');el.className='rev-sess-header';el.dataset.sessName=sn;el.textContent=sn;return el;});})(sess.name);
+        }
+        var _sig=_revFilmsSig(sess.films.map(function(f){return f.code;}));
         if(sess.description){
           (function(sd){sessGroup.push(function(){var el=document.createElement('div');el.className='rev-sess-desc';el.textContent=sd;return el;});})(sess.description);
         }
-        sess.films.forEach(function(film){
-          (function(fl){sessGroup.push(function(){return _filmEntryEl(fl);});})(film);
+        sess.films.forEach(function(film,fi){
+          (function(fl,first){sessGroup.push(function(){var el=_filmEntryEl(fl);if(first)el.dataset.sessFilms=_sig;return el;});})(film,fi===0);
         });
         if(instHtml){
           (function(h){sessGroup.push(function(){var tmp=document.createElement('div');tmp.innerHTML=h;return tmp.firstElementChild;});})(instHtml);
@@ -15174,6 +15177,7 @@ function _revRenderGradePages(evName,evBg,evText,msr,allPages,startPageNum){
         } else if(filmsData.length>1){
           var variosEl=document.createElement('div');
           variosEl.className='rev-grade-sess-label2';
+          variosEl.dataset.linkFilms=_revFilmsSig(s.filmes);
           variosEl.innerHTML=_revEsc('VÁRIOS'+(durStr?' ('+durStr+')':''))+_indicH;
           cnt.appendChild(variosEl);
           filmsData.forEach(function(fi){
@@ -15255,7 +15259,9 @@ function _revBuildTabelaCell(td,sessions,mostraColor){
     var _titulo=filmDisplayTitle(_cod);
     var _span=document.createElement('span');_span.className='rev-tabela-film';_span.dataset.filmCode=_cod;_span.textContent=_titulo;td.appendChild(_span);
   }else if(nFilms>1){
-    var _sn2=document.createElement('span');_sn2.className='rev-tabela-sess-name';_sn2.textContent='VÁRIOS';td.appendChild(_sn2);
+    var _sn2=document.createElement('span');_sn2.className='rev-tabela-sess-name';_sn2.textContent='VÁRIOS';
+    _sn2.dataset.linkFilms=_revFilmsSig(s.filmes);_sn2.title=s.filmes.map(function(c){return filmDisplayTitle(c);}).join(' / ');
+    td.appendChild(_sn2);
   }else{
     var _dash=document.createElement('span');_dash.className='rev-tabela-film';_dash.textContent='—';td.appendChild(_dash);
   }
@@ -15998,13 +16004,17 @@ function _revWireLinks(container){
       if(sid&&!submostraPage[sid])submostraPage[sid]=pg;
     });
   });
-  var sessPage={};
+  var sessPage={},sessFilmsPage={};
   revPages.forEach(function(pg){
     // Sessões nomeadas aparecem no curatorial como rev-sess-header (multi-filme/sem filme)
     // ou como rev-film-entry (sessão de filme único com nome).
     pg.querySelectorAll('.rev-sess-header[data-sess-name],.rev-film-entry[data-sess-name]').forEach(function(el){
       var sn=el.dataset.sessName;
       if(sn&&!sessPage[sn])sessPage[sn]=pg;
+    });
+    pg.querySelectorAll('.rev-film-entry[data-sess-films]').forEach(function(el){
+      var sg=el.dataset.sessFilms;
+      if(sg&&!sessFilmsPage[sg])sessFilmsPage[sg]=pg;
     });
   });
   function scrollTo(pg){pg.scrollIntoView({behavior:'smooth',block:'start'});}
@@ -16055,6 +16065,9 @@ function _revWireLinks(container){
   });
   container.querySelectorAll('.rev-tabela-sess-name[data-link-sess],.rev-grade-sess-label2[data-link-sess]').forEach(function(el){
     wire(el,sessPage[el.dataset.linkSess]);
+  });
+  container.querySelectorAll('[data-link-films]').forEach(function(el){
+    wire(el,sessFilmsPage[el.dataset.linkFilms]);
   });
   container.querySelectorAll('[data-index-link]').forEach(function(el){
     var key=el.dataset.indexLink;
@@ -19152,7 +19165,7 @@ function renderDash(){
   html+=colBlock('legendagem','Legendagem',legBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 22/10/2026 às 14:56';
+  var sysUpdate='última atualização do sistema · 22/10/2026 às 17:26';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -28805,7 +28818,7 @@ function _sxcPrint(){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 22/10/2026 às 14:56</span></div>
+<div id="page-footer"><span>última atualização · 22/10/2026 às 17:26</span></div>
 
 </div>
 

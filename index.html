@@ -3223,7 +3223,7 @@ mark{background:rgba(255,186,32,0.28);color:var(--accent);border-radius:2px;padd
 #catalogo-panel{padding:0 0 80px;}
 #triagem-panel{padding:0 0 80px;}
 .cat-list{padding:14px 24px;display:flex;flex-direction:column;gap:4px;}
-.cat-item{display:grid;grid-template-columns:70px 60px 1fr 130px 40px 48px 50px 38px 50px 80px 84px;align-items:center;gap:12px;padding:9px 14px;background:var(--surface);border:1px solid var(--border);border-left:3px solid var(--border2);cursor:pointer;transition:background 0.1s;text-align:left;width:100%;color:var(--text);}
+.cat-item{display:grid;grid-template-columns:70px 60px minmax(140px,1fr) minmax(0,130px) 40px 48px 50px 38px 50px 80px 84px;align-items:center;gap:12px;padding:9px 14px;background:var(--surface);border:1px solid var(--border);border-left:3px solid var(--border2);cursor:pointer;transition:background 0.1s;text-align:left;width:100%;color:var(--text);}
 .cat-item:hover{background:var(--surface2);}
 .cat-item.has-meta{border-left-color:var(--accent);}
 .cat-item-code{font-family:var(--mono);font-size:8.5px;color:var(--text-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
@@ -19093,7 +19093,7 @@ function renderDash(){
   html+=colBlock('legendagem','Legendagem',legBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 21/10/2026 às 11:19';
+  var sysUpdate='última atualização do sistema · 21/10/2026 às 21:10';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -23493,7 +23493,7 @@ function _catSortHeader(){
     var arr=act?(_catSortDir==='asc'?' ↑':' ↓'):'';
     return'<button onclick="_catSetSort(\''+key+'\')" style="background:none;border:none;padding:0;width:100%;cursor:pointer;user-select:none;font-family:var(--mono);font-size:8px;font-weight:600;letter-spacing:0.12em;text-transform:uppercase;color:'+(act?'var(--accent)':'var(--text-muted)')+';text-align:'+(align||'left')+';white-space:nowrap;">'+label+arr+'</button>';
   }
-  return'<div style="display:grid;grid-template-columns:70px 60px 1fr 130px 40px 48px 50px 38px 50px 80px 84px;align-items:center;gap:12px;padding:5px '+pr+' 5px '+pl+';background:var(--surface2);border-bottom:2px solid var(--border);border-top:1px solid var(--border);position:sticky;top:44px;z-index:10;">'
+  return'<div style="display:grid;grid-template-columns:70px 60px minmax(140px,1fr) minmax(0,130px) 40px 48px 50px 38px 50px 80px 84px;align-items:center;gap:12px;padding:5px '+pr+' 5px '+pl+';background:var(--surface2);border-bottom:2px solid var(--border);border-top:1px solid var(--border);position:sticky;top:44px;z-index:10;">'
     +sh('Evento','evento','center')
     +sh('Código','code')
     +sh('Título','title')
@@ -28737,7 +28737,7 @@ function _sxcPrint(){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 21/10/2026 às 11:19</span></div>
+<div id="page-footer"><span>última atualização · 21/10/2026 às 21:10</span></div>
 
 </div>
 

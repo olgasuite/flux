@@ -3230,6 +3230,10 @@ mark{background:rgba(255,186,32,0.28);color:var(--accent);border-radius:2px;padd
 .cat-item-title{font-family:var(--sans);font-size:13px;font-weight:600;color:var(--text);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .cat-item-dir{font-family:var(--sans);font-size:11px;color:var(--text-dim);min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .cat-item-dir.dim{color:var(--text-muted);}
+.cat-sel-grid{grid-template-columns:70px 60px 1fr 130px 40px 48px 50px 38px 50px 80px 84px;}
+@media (max-width:1200px){.cat-sel-grid{grid-template-columns:70px 60px 1fr 130px 40px 50px 80px 84px;}.cat-sel-grid>.cc-ftype,.cat-sel-grid>.cc-exhibition_format,.cat-sel-grid>.cc-crating{display:none;}}
+@media (max-width:1000px){.cat-sel-grid{grid-template-columns:70px 60px 1fr 130px 80px 84px;}.cat-sel-grid>.cc-dur,.cat-sel-grid>.cc-kdm{display:none;}}
+@media (max-width:850px){.cat-sel-grid{grid-template-columns:70px 60px 1fr 80px 84px;}.cat-sel-grid>.cc-dir{display:none;}}
 .cat-item-dur{font-family:var(--mono);font-size:10px;color:var(--text-muted);white-space:nowrap;text-align:center;display:block;}
 .cat-item-status{font-family:var(--mono);font-size:9px;font-weight:600;padding:1px 7px;border:1px solid var(--border);color:var(--text-muted);white-space:nowrap;text-align:center;display:block;}
 .cat-item-status:empty{border:none;padding:0;}
@@ -19093,7 +19097,7 @@ function renderDash(){
   html+=colBlock('legendagem','Legendagem',legBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 21/10/2026 às 21:11';
+  var sysUpdate='última atualização do sistema · 21/10/2026 às 21:45';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -23491,9 +23495,9 @@ function _catSortHeader(){
   function sh(label,key,align){
     var act=_catSortKey===key;
     var arr=act?(_catSortDir==='asc'?' ↑':' ↓'):'';
-    return'<button onclick="_catSetSort(\''+key+'\')" style="background:none;border:none;padding:0;width:100%;cursor:pointer;user-select:none;font-family:var(--mono);font-size:8px;font-weight:600;letter-spacing:0.12em;text-transform:uppercase;color:'+(act?'var(--accent)':'var(--text-muted)')+';text-align:'+(align||'left')+';white-space:nowrap;">'+label+arr+'</button>';
+    return'<button class="cc-'+key+'" onclick="_catSetSort(\''+key+'\')" style="background:none;border:none;padding:0;width:100%;cursor:pointer;user-select:none;font-family:var(--mono);font-size:8px;font-weight:600;letter-spacing:0.12em;text-transform:uppercase;color:'+(act?'var(--accent)':'var(--text-muted)')+';text-align:'+(align||'left')+';white-space:nowrap;">'+label+arr+'</button>';
   }
-  return'<div style="display:grid;grid-template-columns:70px 60px 1fr 130px 40px 48px 50px 38px 50px 80px 84px;align-items:center;gap:12px;padding:5px '+pr+' 5px '+pl+';background:var(--surface2);border-bottom:2px solid var(--border);border-top:1px solid var(--border);position:sticky;top:44px;z-index:10;">'
+  return'<div class="cat-sel-grid" style="display:grid;align-items:center;gap:12px;padding:5px '+pr+' 5px '+pl+';background:var(--surface2);border-bottom:2px solid var(--border);border-top:1px solid var(--border);position:sticky;top:44px;z-index:10;">'
     +sh('Evento','evento','center')
     +sh('Código','code')
     +sh('Título','title')
@@ -23524,23 +23528,23 @@ function _catBuildCards(films){
     var sCls=catStatusCls(f.status);
     var evCol=f.evento&&eventColors[f.evento]?eventColors[f.evento]:null;
     var evSpan=evCol?'<span class="cat-item-ev" style="background:'+evCol.bg+';color:'+evCol.text+';border-color:transparent;">'+f.evento+'</span>':'<span></span>';
-    var durSpan=dur?'<span class="cat-item-dur">'+dur+'</span>':'<span class="cat-item-dur">—</span>';
+    var durSpan=dur?'<span class="cat-item-dur cc-dur">'+dur+'</span>':'<span class="cat-item-dur cc-dur">—</span>';
     var ftypeShort=(function(t){if(!t)return'';t=t.toLowerCase();if(t.indexOf('longa')>=0)return'longa';if(t.indexOf('média')>=0||t.indexOf('media')>=0||t.indexOf('médio')>=0||t.indexOf('medio')>=0)return'média';if(t.indexOf('curta')>=0)return'curta';return t.slice(0,6);})(meta.film_type||'');
-    var ftypeSpan='<span style="font-family:var(--mono);font-size:9px;color:var(--text-muted);text-align:center;text-transform:lowercase;">'+(ftypeShort||'—')+'</span>';
+    var ftypeSpan='<span class="cc-ftype" style="font-family:var(--mono);font-size:9px;color:var(--text-muted);text-align:center;text-transform:lowercase;">'+(ftypeShort||'—')+'</span>';
     var exFmt=f.exhibition_format||'';
     var exFmtNotes=f.exhibition_format_notes||'';
-    var fmtSpan='<span style="font-family:var(--mono);font-size:9px;color:var(--text-muted);text-align:center;text-transform:lowercase;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"'+(exFmtNotes?' title="'+exFmtNotes.replace(/"/g,'&quot;')+'"':'')+'>'+(exFmt||'—')+'</span>';
-    var crSpan='<span style="font-family:var(--mono);font-size:9px;color:var(--text-muted);text-align:center;">'+(meta.content_rating||'—')+'</span>';
-    var kdmSpan=f.kdm&&f.kdm.toString().toUpperCase()==='SIM'?'<span class="cat-item-kdm">KDM</span>':'<span></span>';
+    var fmtSpan='<span class="cc-exhibition_format" style="font-family:var(--mono);font-size:9px;color:var(--text-muted);text-align:center;text-transform:lowercase;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"'+(exFmtNotes?' title="'+exFmtNotes.replace(/"/g,'&quot;')+'"':'')+'>'+(exFmt||'—')+'</span>';
+    var crSpan='<span class="cc-crating" style="font-family:var(--mono);font-size:9px;color:var(--text-muted);text-align:center;">'+(meta.content_rating||'—')+'</span>';
+    var kdmSpan=f.kdm&&f.kdm.toString().toUpperCase()==='SIM'?'<span class="cc-kdm"><span class="cat-item-kdm">KDM</span></span>':'<span class="cc-kdm"></span>';
     var selSpan=meta.selecao?'<span class="cat-item-status '+(selCls[meta.selecao]||'')+'" style="text-transform:uppercase;letter-spacing:0.05em;">'+meta.selecao+'</span>':'<span></span>';
     var statusSpan=f.status?'<span class="cat-item-status '+sCls+'">'+f.status+'</span>':'<span></span>';
     html+=(_batchCanEdit()?'<div class="cat-item-wrap">':'')
       +(_batchCanEdit()?'<label class="batch-cb-wrap" onclick="event.stopPropagation()"><input type="checkbox" class="batch-cb" data-codigo="'+f.codigo.replace(/"/g,'&quot;')+'" onclick="event.stopPropagation();_catToggleSel(this,event)"'+(_catBatchSel.has(f.codigo)?' checked':'')+'/></label>':'')
-      +'<button class="cat-item'+(hasMeta?' has-meta':'')+'" data-cod="'+f.codigo.replace(/"/g,'&quot;')+'" onclick="openCatDetail(this.dataset.cod)">'
+      +'<button class="cat-item cat-sel-grid'+(hasMeta?' has-meta':'')+'" data-cod="'+f.codigo.replace(/"/g,'&quot;')+'" onclick="openCatDetail(this.dataset.cod)">'
       +evSpan
       +'<span class="cat-item-code" title="'+f.codigo.replace(/"/g,'&quot;')+'">'+stripEvPrefix(f.codigo,f.evento)+'</span>'
       +'<span class="cat-item-title">'+(title||'')+'</span>'
-      +(dir?'<span class="cat-item-dir">'+dir+'</span>':'<span class="cat-item-dir dim">—</span>')
+      +(dir?'<span class="cat-item-dir cc-dir">'+dir+'</span>':'<span class="cat-item-dir dim cc-dir">—</span>')
       +durSpan
       +ftypeSpan
       +fmtSpan
@@ -28737,7 +28741,7 @@ function _sxcPrint(){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 21/10/2026 às 21:11</span></div>
+<div id="page-footer"><span>última atualização · 21/10/2026 às 21:45</span></div>
 
 </div>
 

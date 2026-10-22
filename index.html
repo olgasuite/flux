@@ -8647,11 +8647,14 @@ function printAcervoRelatorio(){
 /* GRADE PRINT TABLE — compartilhada entre "Grade" (ctx='grade', ficha de programação) e
    "Grade de Projeção" (ctx='grade2', ficha de projeção); _gptCtx guarda o contexto ativo. */
 var _gptCtx='grade';
-function _gptSessoes(){return _gptCtx==='grade2'?sessoesGrade2():_gptCtx==='leg'?sessoesLegGrade():sessoesGrade();}
-function _gptActiveEvents(){return _gptCtx==='grade2'?activeEventsGrade2:_gptCtx==='leg'?activeEventsLegendagem:activeEventsGrade;}
+function _gptSessoes(){
+  if(_gptCtx==='pv'){var as=allowedSalas();return sessoesArr.filter(function(s){return s.evento===_pvState.ev&&activeEventsProgramacao.has(s.evento)&&(!as||!s.cinema||as.has(s.cinema));});}
+  return _gptCtx==='grade2'?sessoesGrade2():_gptCtx==='leg'?sessoesLegGrade():sessoesGrade();
+}
+function _gptActiveEvents(){return _gptCtx==='grade2'?activeEventsGrade2:_gptCtx==='leg'?activeEventsLegendagem:_gptCtx==='pv'?activeEventsProgramacao:activeEventsGrade;}
 function _gptClickFn(){return _gptCtx==='grade2'||_gptCtx==='leg'?'goToFicha':'goToProgFichaFromGrade';}
 function openGradePrintModal(ctx){
-  _gptCtx=ctx==='grade2'?'grade2':ctx==='leg'?'leg':'grade';
+  _gptCtx=ctx==='grade2'?'grade2':ctx==='leg'?'leg':ctx==='pv'?'pv':'grade';
   var t=document.getElementById('gptModalTitle');
   if(t)t.textContent=_gptCtx==='grade2'?'⎙ Tabela de projeção':_gptCtx==='leg'?'⎙ Tabela de legendagem':'⎙ Tabela de programação';
   var modal=document.getElementById('gradePrintModal');
@@ -8676,6 +8679,7 @@ function openGradePrintModal(ctx){
   updateGptSelectors();
   document.getElementById('gptTableWrap').innerHTML='';
   modal.style.display='block';
+  if(_gptCtx==='pv'&&_pvState.venue&&cinemaSet.has(_pvState.venue)){ss.value=_pvState.venue;buildGradePrintTable();}
 }
 
 function closeGradePrintModal(){
@@ -19099,7 +19103,7 @@ function renderDash(){
   html+=colBlock('legendagem','Legendagem',legBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 21/10/2026 às 21:54';
+  var sysUpdate='última atualização do sistema · 22/10/2026 às 14:37';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -19376,7 +19380,7 @@ function _pvParseTimeStr(v){if(!v)return{h:0,m:0,str:'?'};var p=v.split(':').map
 function _pvFmtDate(iso){var d=new Date(iso+'T00:00:00');return d.toLocaleDateString('pt-BR',{weekday:'short',day:'2-digit',month:'2-digit',year:'2-digit'});}
 function _pvEventos(){
   var set=new Set();
-  (sessoesArr||[]).forEach(function(s){if(s.evento)set.add(s.evento);});
+  (sessoesArr||[]).forEach(function(s){if(s.evento&&activeEventsProgramacao.has(s.evento))set.add(s.evento);});
   return Array.from(set).sort(function(a,b){return a.localeCompare(b,'pt-BR');});
 }
 function _pvVenues(){
@@ -19839,7 +19843,15 @@ function _pvRender(){
   var _pvScrollLeft=_pvOldScroll?_pvOldScroll.scrollLeft:0,_pvScrollTop=_pvOldScroll?_pvOldScroll.scrollTop:0;
   var canEdit=!!(window._olgaCanEdit&&window._olgaCanEdit('programacao'));
   var st=_pvState;
-  var evs=_pvEventos(),venues=_pvVenues();
+  var evs=_pvEventos();
+  // evento desmarcado no painel de eventos com o Programador aberto: troca pro primeiro ativo
+  if(evs.indexOf(st.ev)<0&&(st.ev||evs.length)){
+    st.pending={};st.ev=evs[0]||'';
+    if(!_pvVenues().some(function(v){return v===st.venue;}))st.venue=_pvVenues()[0]||'';
+    _pvLoadGrid().then(_pvRender);
+    return;
+  }
+  var venues=_pvVenues();
   var head='<button class="prog-back-btn" onclick="closeProgramadorVisual()">← Programação</button>'
     +'<div class="prog-prog-title" style="margin-top:14px;">Programador Visual</div>';
   var toolbar='<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:10px 0 18px;border-bottom:1px solid var(--border);margin-bottom:16px;">'
@@ -19853,6 +19865,7 @@ function _pvRender(){
     toolbar+='<button class="print-btn" onclick="_pvAddCol()">+ coluna</button>'
       +'<button class="print-btn" onclick="_pvAddRow()">+ linha</button>';
   }
+  if(st.ev)toolbar+='<button class="print-btn" onclick="openGradePrintModal(\'pv\')">⎙ Tabela</button>';
   var pendCount=Object.keys(st.pending||{}).length;
   if(pendCount)toolbar+='<button class="print-btn" style="'+(st.selected.size?'':'margin-left:auto;')+'background:var(--accent);color:#000;border-color:var(--accent);" onclick="_pvCommitPending()">Salvar '+pendCount+' pendente'+(pendCount>1?'s':'')+'</button>';
   if(st.selected.size)toolbar+='<button class="print-btn" style="margin-left:auto;background:var(--accent);color:#000;border-color:var(--accent);" onclick="_pvOpenBatch()">Editar '+st.selected.size+' selecionada'+(st.selected.size>1?'s':'')+'</button>';
@@ -28743,7 +28756,7 @@ function _sxcPrint(){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 21/10/2026 às 21:54</span></div>
+<div id="page-footer"><span>última atualização · 22/10/2026 às 14:37</span></div>
 
 </div>
 

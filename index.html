@@ -2126,6 +2126,23 @@ mark{background:rgba(255,186,32,0.28);color:var(--accent);border-radius:2px;padd
 .rev-cover-mostra-item{flex:1;min-width:135px;}
 .rev-cover-mostra-name{font-family:'IBM Plex Sans',sans-serif;font-size:10px;font-weight:600;color:#111;margin-bottom:4px;}
 .rev-cover-sub-item{font-family:'IBM Plex Mono',monospace;font-size:6.5px;color:#777;letter-spacing:0.06em;line-height:1.9;}
+.rev-cv-venues .rev-cover-info-val{column-count:var(--vc,1);column-gap:14px;}
+.rev-cover-mostras.rev-cv-cols{display:block;column-count:var(--mc,3);column-gap:20px;}
+.rev-cv-cols .rev-cover-mostra-item{break-inside:avoid;min-width:0;margin-bottom:9px;}
+.rev-cover-d1 .rev-cover-event{font-size:32px;}
+.rev-cover-d1 .rev-cover-info-row{padding:10px 0;}
+.rev-cover-d1 .rev-cover-mostras{padding-top:10px;}
+.rev-cover-d2 .rev-cover-event{font-size:26px;}
+.rev-cover-d2 .rev-cover-info-val{font-size:7.5px;line-height:1.5;}
+.rev-cover-d2 .rev-cover-stat-num{font-size:16px;}
+.rev-cover-d2 .rev-cover-mostra-name{font-size:9px;margin-bottom:2px;}
+.rev-cover-d2 .rev-cover-sub-item{font-size:6px;line-height:1.6;}
+.rev-cover-d2 .rev-cv-cols .rev-cover-mostra-item{margin-bottom:6px;}
+.rev-cover-d3 .rev-cover-event{font-size:22px;}
+.rev-cover-d3 .rev-cover-info-val{font-size:6.5px;line-height:1.4;}
+.rev-cover-d3 .rev-cover-stat-num{font-size:13px;}
+.rev-cover-d3 .rev-cover-mostra-name{font-size:8px;}
+.rev-cover-d3 .rev-cover-sub-item{font-size:5.5px;line-height:1.45;}
 .rev-grade-acess-icon,.rev-grade-debate-badge,.rev-grade-convidados-badge{display:inline-flex;align-items:center;margin-left:3px;vertical-align:middle;}
 .rev-grade-acess-icon{opacity:0.55;}
 .rev-grade-debate-badge{opacity:0.5;color:#555;}
@@ -15116,7 +15133,7 @@ function _revRenderGradePages(evName,evBg,evText,msr,allPages,startPageNum){
         row.appendChild(timeEl);
         var cnt=document.createElement('div');
         cnt.className='rev-grade-sess-content2';
-        var sessName=s.name||s.nome||'';
+        var sessName=s.name&&s.name.trim()&&s.name!==s.nome?s.name.trim():'';
         var filmsData=(s.filmes||[]).map(function(cod){
           var f=filmesMap[cod]||{};
           var title=filmDisplayTitle(cod);
@@ -15138,7 +15155,7 @@ function _revRenderGradePages(evName,evBg,evText,msr,allPages,startPageNum){
           nameEl.dataset.linkSess=sessName;
           nameEl.innerHTML=_revEsc(sessName+(durStr?' ('+durStr+')':''))+_indicH;
           cnt.appendChild(nameEl);
-          if(filmsData.length>1){
+          if(filmsData.length){
             filmsData.forEach(function(fi){
               var fEl=document.createElement('div');
               fEl.className='rev-grade-sess-films2';
@@ -15166,6 +15183,11 @@ function _revRenderGradePages(evName,evBg,evText,msr,allPages,startPageNum){
             fEl.textContent=fi.title+(fi.dur?' ('+fi.dur+')':'');
             cnt.appendChild(fEl);
           });
+        } else {
+          var codEl=document.createElement('div');
+          codEl.className='rev-grade-sess-label2';
+          codEl.innerHTML=_revEsc(stripEvPrefix(s.nome||'',s.evento))+_indicH;
+          cnt.appendChild(codEl);
         }
         row.appendChild(cnt);
         block.appendChild(row);
@@ -15582,8 +15604,12 @@ function _revMakeCoverPage(evName,evBg,evText,mostras,salaParaComplexo,pageNum){
   var infoRow=document.createElement('div');
   infoRow.className='rev-cover-info-row';
 
-  var vcol=document.createElement('div');vcol.className='rev-cover-info-col';
-  vcol.innerHTML='<div class="rev-cover-info-val">'+complexosList.map(_revEsc).join('<br>')+'</div>';
+  // muitos cinemas: divide em colunas (até 3); acima de 24 vira texto corrido
+  var vcol=document.createElement('div');vcol.className='rev-cover-info-col rev-cv-venues';
+  var _nCx=complexosList.length,_vc=_nCx>24?1:Math.min(3,Math.ceil(_nCx/6)||1);
+  vcol.style.setProperty('--vc',_vc);
+  if(_nCx>6)vcol.style.flex=String(_nCx>24?3:_vc);
+  vcol.innerHTML='<div class="rev-cover-info-val">'+complexosList.map(_revEsc).join(_nCx>24?' · ':'<br>')+'</div>';
   infoRow.appendChild(vcol);
 
   var pcol=document.createElement('div');pcol.className='rev-cover-info-col';
@@ -15608,6 +15634,8 @@ function _revMakeCoverPage(evName,evBg,evText,mostras,salaParaComplexo,pageNum){
 
   if(mostras.length){
     var mDiv=document.createElement('div');mDiv.className='rev-cover-mostras';
+    var _nLin=mostras.length+(_progData.subprograms||[]).filter(function(s){return s.data&&mostras.some(function(m){return m.id===s.data.program_id;});}).length;
+    if(mostras.length>4||_nLin>14){mDiv.classList.add('rev-cv-cols');mDiv.style.setProperty('--mc',mostras.length>8?4:3);}
     mostras.forEach(function(prog){
       var mEl=document.createElement('div');mEl.className='rev-cover-mostra-item';
       mEl.innerHTML='<div class="rev-cover-mostra-name" data-mostra-id="'+_revEsc(prog.id)+'">'+_revEsc(prog.data.name||prog.id)+'</div>';
@@ -15624,6 +15652,23 @@ function _revMakeCoverPage(evName,evBg,evText,mostras,salaParaComplexo,pageNum){
 
   page.appendChild(body);
   return page;
+}
+// Capa já no DOM de medição: reduz densidade em degraus até caber; último recurso encolhe as mostras.
+function _revFitCover(page){
+  var body=page.querySelector('.rev-cover-body');if(!body)return;
+  var mDiv=body.querySelector('.rev-cover-mostras');
+  function over(){return body.scrollHeight-body.clientHeight;}
+  for(var lv=1;lv<=3&&over()>0;lv++){
+    page.classList.add('rev-cover-d'+lv);
+    if(mDiv&&lv>=2&&mDiv.classList.contains('rev-cv-cols'))mDiv.style.setProperty('--mc',Math.min(5,parseInt(mDiv.style.getPropertyValue('--mc')||3)+1));
+  }
+  var o=over();
+  if(o>0&&mDiv){
+    var h=mDiv.offsetHeight,f=Math.max(0.4,(h-o)/h);
+    mDiv.style.transformOrigin='top left';
+    mDiv.style.transform='scale('+f.toFixed(4)+')';
+    mDiv.style.width=(100/f).toFixed(2)+'%';
+  }
 }
 
 function renderRevista(){
@@ -15660,7 +15705,7 @@ function renderRevista(){
   // Folha de rosto
   var coverPg=_revMakeCoverPage(evName,evBg,evText,mostras,salaParaComplexo,pageNum);
   coverPg.dataset.isCover='1';
-  msr.appendChild(coverPg);allPages.push(coverPg);pageNum++;
+  msr.appendChild(coverPg);_revFitCover(coverPg);allPages.push(coverPg);pageNum++;
 
   // Índice (preenchido após renderização completa)
   var indexPg=document.createElement('div');indexPg.className='rev-page';indexPg.dataset.isIndex='1';
@@ -19107,7 +19152,7 @@ function renderDash(){
   html+=colBlock('legendagem','Legendagem',legBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 22/10/2026 às 14:50';
+  var sysUpdate='última atualização do sistema · 22/10/2026 às 14:56';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -28760,7 +28805,7 @@ function _sxcPrint(){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 22/10/2026 às 14:50</span></div>
+<div id="page-footer"><span>última atualização · 22/10/2026 às 14:56</span></div>
 
 </div>
 

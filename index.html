@@ -15242,6 +15242,7 @@ var _REV_TABELA_PALETTE=[
   '#C2A4E0','#E4D480','#8ECECC','#E4AAAA','#A4D898','#90B8E8'
 ];
 
+var _REV_TABELA_MAX_TITULOS=60;
 function _revBuildTabelaCell(td,sessions,mostraColor){
   var s=sessions[0];
   var bg=s.program_id?(mostraColor[s.program_id]||'#e8e8e8'):'#e8e8e8';
@@ -15250,7 +15251,14 @@ function _revBuildTabelaCell(td,sessions,mostraColor){
   (s.filmes||[]).forEach(function(cod){totalSecs+=_parseDurSecs((filmesMap[cod]||{}).duracao||'');});
   var sessLabel=s.name&&s.name.trim()?s.name.trim():'';
   var nFilms=(s.filmes||[]).length;
-  if(sessLabel){
+  // 2–3 filmes cujos títulos cabem na célula (ex.: curta + longa): mostra os títulos no lugar do nome
+  var _tits=nFilms>=2&&nFilms<=3?s.filmes.map(function(c){return filmDisplayTitle(c);}):null;
+  if(_tits&&_tits.join(' + ').length<=_REV_TABELA_MAX_TITULOS){
+    s.filmes.forEach(function(c,i){
+      var fs=document.createElement('span');fs.className='rev-tabela-film';fs.dataset.filmCode=c;
+      fs.textContent=(i?'+ ':'')+_tits[i];td.appendChild(fs);
+    });
+  }else if(sessLabel){
     // título de sessão sempre leva para o curatorial (não para a sinopse)
     var sn=document.createElement('span');sn.className='rev-tabela-sess-name';sn.dataset.linkSess=sessLabel;
     sn.textContent=sessLabel;td.appendChild(sn);
@@ -19165,7 +19173,7 @@ function renderDash(){
   html+=colBlock('legendagem','Legendagem',legBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 22/10/2026 às 17:26';
+  var sysUpdate='última atualização do sistema · 23/10/2026 às 14:53';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -28818,7 +28826,7 @@ function _sxcPrint(){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 22/10/2026 às 17:26</span></div>
+<div id="page-footer"><span>última atualização · 23/10/2026 às 14:53</span></div>
 
 </div>
 

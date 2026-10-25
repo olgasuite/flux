@@ -25751,6 +25751,9 @@ function _initCinModal(){
 
 function _showCinMerge(codigo,atual,novo,btn,rawCd,fonte){
   _initCinModal();
+  // o botão que disparou a importação volta com o próprio nome (guardado em
+  // _openFilmBusca), não com o da fonte usada — a janela permite trocar de fonte
+  var _btnLabel=(btn&&btn.dataset.label)||(fonte==='TMDB'?'↓ TMDB':'↓ Filmografia Brasileira');
   var preench=[],conflito=[];
   function flatten(obj,prefix){
     var out={};
@@ -25838,16 +25841,16 @@ function _showCinMerge(codigo,atual,novo,btn,rawCd,fonte){
           window._logFirestoreEdit&&window._logFirestoreEdit('individual',codigo,{dcp_duration:_hmms},'acervo','copias');
         }
       }catch(e){console.warn('Falha ao preencher dcp_duration a partir do runtime:',e);}
-      if(btn){btn.disabled=false;btn.textContent='↓ Filmografia Brasileira';}
+      if(btn){btn.disabled=false;btn.textContent=_btnLabel;}
       renderCatDetail();
     }catch(e){
       alert('Erro ao salvar: '+e.message);
-      if(btn){btn.disabled=false;btn.textContent='↓ Filmografia Brasileira';}
+      if(btn){btn.disabled=false;btn.textContent=_btnLabel;}
     }
   };
   document.getElementById('_cinMergeCancel').onclick=function(){
     document.getElementById('_cinMergeModal').style.display='none';
-    if(btn){btn.disabled=false;btn.textContent='↓ Filmografia Brasileira';}
+    if(btn){btn.disabled=false;btn.textContent=_btnLabel;}
   };
 }
 
@@ -25866,7 +25869,7 @@ async function _importCinId(codigo,id,btn){
     _showCinMerge(codigo,catalogData,_cinToCatalog(cd),btn,cd,'Filmografia Brasileira');
   }catch(e){
     alert('Erro ao consultar Filmografia Brasileira: '+e.message);
-    if(btn){btn.disabled=false;btn.textContent='↓ Filmografia Brasileira';}
+    if(btn){btn.disabled=false;btn.textContent=btn.dataset.label||'↓ Filmografia Brasileira';}
   }
 }
 
@@ -25923,6 +25926,7 @@ function _openFilmBusca(codigo,fonte,btn){
   _initFilmBusca();
   var cat=catalogoFilmesMap[codigo]||{};
   var cop=(typeof filmesMap!=='undefined'&&filmesMap[codigo])||{};
+  if(btn&&!btn.dataset.label)btn.dataset.label=btn.textContent;
   _fbCtx={codigo:codigo,btn:btn,fontes:[],origem:fonte};
   var semCin=window._olgaHasRestricao&&window._olgaHasRestricao('catalogo.cinemateca');
   var semTmdb=window._olgaHasRestricao&&window._olgaHasRestricao('catalogo.tmdb');

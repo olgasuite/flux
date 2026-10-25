@@ -13724,12 +13724,12 @@ function _bilhRelRenderTipoToggle(){
     var btn=document.getElementById('bilhRelTipo_'+t);
     if(btn)btn.classList.toggle('bilh-rel-tipo-active',t===_bilhRelTipo);
   });
-  ['sessao','sala','filme'].forEach(function(a){
+  ['sessao','sala','filme','dist'].forEach(function(a){
     var btn=document.getElementById('bilhRelAgrup_'+a);
     if(btn)btn.classList.toggle('bilh-rel-tipo-active',a===_bilhRelAgrup);
   });
-  // por filme só há público (renda é da sessão)
-  var hideTipo=_bilhRelAgrup==='filme';
+  // por filme/distribuidora só há público (renda é da sessão)
+  var hideTipo=_bilhRelAgrup==='filme'||_bilhRelAgrup==='dist';
   ['bilhRelTipoLbl','bilhRelTipoGroup'].forEach(function(id){var el=document.getElementById(id);if(el)el.style.display=hideTipo?'none':'';});
 }
 
@@ -13781,7 +13781,9 @@ function _bilhRelRenderTabela(){
 
   if(_bilhRelAgrup!=='sessao'){
     var porFilme=_bilhRelAgrup==='filme';
-    if(porFilme){showPub=true;showRenda=false;showPMI=false;}
+    var porDist=_bilhRelAgrup==='dist';
+    var _semDist='(sem distribuidora)';
+    if(porFilme||porDist){showPub=true;showRenda=false;showPMI=false;}
     var grp={};
     sessoes.forEach(function(s){
       var hasSPub=s.publico!==''&&s.publico!==null&&s.publico!==undefined;
@@ -13795,7 +13797,16 @@ function _bilhRelRenderTabela(){
           if(!(Array.isArray(dc)?dc.indexOf(bilheteriaDistribuidoraFilter)>=0:dc===bilheteriaDistribuidoraFilter))return false;
         }
         return true;
-      }):[s.cinema||'—'];
+      }):porDist?(function(){
+        var ds=new Set();
+        (s.filmes||[]).forEach(function(c){
+          var dc=catalogoFilmesMap&&catalogoFilmesMap[c]&&catalogoFilmesMap[c].distribution_company;
+          var arr=(Array.isArray(dc)?dc:(dc?[dc]:[])).filter(Boolean);
+          if(!arr.length)ds.add(_semDist);else arr.forEach(function(d){ds.add(d);});
+        });
+        if(bilheteriaDistribuidoraFilter)return ds.has(bilheteriaDistribuidoraFilter)?[bilheteriaDistribuidoraFilter]:[];
+        return Array.from(ds);
+      })():[s.cinema||'—'];
       keys.forEach(function(k){
         if(!grp[k])grp[k]={k:k,label:porFilme?_bilhFilmeLabel(k):k,sess:0,pub:0,bloq:0,renda:0,hasPub:false,hasRenda:false};
         var g=grp[k];
@@ -13805,11 +13816,12 @@ function _bilhRelRenderTabela(){
       });
     });
     var arr=Object.keys(grp).map(function(k){return grp[k];}).sort(function(a,b){
+      if(porDist&&(a.k===_semDist)!==(b.k===_semDist))return a.k===_semDist?1:-1;
       var d=showPub?b.pub-a.pub:b.renda-a.renda;
       return d||a.label.localeCompare(b.label,'pt-BR',{sensitivity:'base'});
     });
     var gThead='<thead><tr>'
-      +'<th class="bilh-rel-th">'+(porFilme?'Filme':'Sala')+'</th>'
+      +'<th class="bilh-rel-th">'+(porFilme?'Filme':porDist?'Distribuidora':'Sala')+'</th>'
       +'<th class="bilh-rel-th bilh-rel-th-num">Sessões</th>'
       +(showPub?'<th class="bilh-rel-th bilh-rel-th-num">Público</th>':'')
       +(showRenda?'<th class="bilh-rel-th bilh-rel-th-num">Renda</th>':'')
@@ -13828,13 +13840,13 @@ function _bilhRelRenderTabela(){
         +'</tr>';
     });
     gBody+='<tr class="bilh-rel-total-row">'
-      +'<td class="bilh-rel-td bilh-rel-total-label">Total — '+arr.length+' '+(porFilme?(arr.length===1?'filme':'filmes'):(arr.length===1?'sala':'salas'))+(filterParts.length?' · '+filterParts.join(' · '):'')+'</td>'
+      +'<td class="bilh-rel-td bilh-rel-total-label">Total — '+arr.length+' '+(porFilme?(arr.length===1?'filme':'filmes'):porDist?(arr.length===1?'distribuidora':'distribuidoras'):(arr.length===1?'sala':'salas'))+(filterParts.length?' · '+filterParts.join(' · '):'')+'</td>'
       +'<td class="bilh-rel-td bilh-rel-num bilh-rel-total-num">'+sessoes.length+'</td>'
       +(showPub?'<td class="bilh-rel-td bilh-rel-num bilh-rel-total-num">'+(hasPub?totalPub.toLocaleString('pt-BR'):'—')+'</td>':'')
       +(showRenda?'<td class="bilh-rel-td bilh-rel-num bilh-rel-total-num">'+(hasRenda?_bilhFmtRenda(totalRenda):'—')+'</td>':'')
       +(showPMI?'<td class="bilh-rel-td bilh-rel-num bilh-rel-total-num">'+(totalPMI?_bilhFmtPMI(totalPMI):'—')+'</td>':'')
       +'</tr>';
-    if(!showPMI&&!porFilme){
+    if(!showPMI&&!porFilme&&!porDist){
       var gPmiNote=tipo==='publico'?'(sem dados de renda)':tipo==='renda'?'(sem dados de público)':'';
       gBody+='<tr class="bilh-rel-pmi-row"><td colspan="'+(2+(showPub?1:0)+(showRenda?1:0))+'" class="bilh-rel-td bilh-rel-pmi-cell">PMI geral: <strong>'+(totalPMI?_bilhFmtPMI(totalPMI):'—')+'</strong>'+(gPmiNote?' <span class="bilh-rel-pmi-note">'+gPmiNote+'</span>':'')+'</td></tr>';
     }
@@ -19378,7 +19390,7 @@ function renderDash(){
   html+=colBlock('legendagem','Legendagem',legBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 24/10/2026 às 23:22';
+  var sysUpdate='última atualização do sistema · 24/10/2026 às 23:28';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -28443,6 +28455,7 @@ function _sxcPrint(){
         <button id="bilhRelAgrup_sessao" class="bilh-rel-tipo-btn bilh-rel-tipo-active" onclick="_bilhRelSetAgrup('sessao')">Sessão</button>
         <button id="bilhRelAgrup_sala" class="bilh-rel-tipo-btn" onclick="_bilhRelSetAgrup('sala')">Sala</button>
         <button id="bilhRelAgrup_filme" class="bilh-rel-tipo-btn" onclick="_bilhRelSetAgrup('filme')">Filme</button>
+        <button id="bilhRelAgrup_dist" class="bilh-rel-tipo-btn" onclick="_bilhRelSetAgrup('dist')">Distribuidora</button>
       </div>
       <span id="bilhRelTipoLbl" style="font-family:var(--mono);font-size:8px;font-weight:600;letter-spacing:0.12em;text-transform:uppercase;color:var(--text-muted);margin-left:8px;">Exibir</span>
       <div id="bilhRelTipoGroup" class="bilh-rel-tipo-group">
@@ -29058,7 +29071,7 @@ function _sxcPrint(){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 24/10/2026 às 23:22</span></div>
+<div id="page-footer"><span>última atualização · 24/10/2026 às 23:28</span></div>
 
 </div>
 

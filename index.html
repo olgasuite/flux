@@ -7218,6 +7218,9 @@ var sessoesCinemaFilter='',_sessoesHidePast=true,_sessoesComplexo='',_sessoesFil
 var fichaCinemaFilter='',_fichaComplexo='',_fichaFiltroData='';
 var vinhetasCinemaFilter='',vinhetasDayFilter='';
 var dashCinemaFilter='__todos__',dashRespFilter='',dashDayFilter=new Set(),dashStatusSelected=null,dashStatSelected=null;
+// Agrupamento do detalhe "público total": 'sessao' | 'sala' | 'filme'
+var dashPubMode='sessao';
+function _dashSetPubMode(m){dashPubMode=m;renderDash();}
 // Expansão de linhas dentro do detalhe de mostra/submostra/programa no bloco Programação do
 // Dashboard (mostra sessões vinculadas ao clicar) — chave 'mostra_ID'/'sub_ID'/'show_ID'.
 var _dashProgRowExpand={};
@@ -13606,6 +13609,9 @@ function renderBilheteria(){
     var _mostraP=s.program_id?_progData.programs.find(function(x){return x.id===s.program_id;}):null;
     var _mostraNome=_mostraP&&_mostraP.data&&_mostraP.data.name?_mostraP.data.name:'';
     var canBordero=(window._olgaUser&&window._olgaUser.role==='admin')||!!(window._olgaHasRestricao&&window._olgaHasRestricao('bilheteria.editar_bordero'));
+    var _tUrl=(s.ticket_url||'').trim();
+    var ticketHtml=(/^https?:\/\//i.test(_tUrl)?'<a class="bordero-btn" style="text-decoration:none;" href="'+esc(_tUrl)+'" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation()">Ingressos ↗</a>':'')
+      +(canBordero?'<button class="bordero-btn" style="white-space:nowrap;" title="'+(_tUrl?'Editar link de ingresso':'Adicionar link de ingresso')+'" onclick="event.stopPropagation();openTicketUrlModal(\''+safe+'\')">'+(_tUrl?'✎ Link':'+ Link de ingresso')+'</button>':'');
     return'<div class="sess-row bilh-sess-row" style="cursor:pointer;" onclick="goToProgFichaFromGrade(\''+safe+'\')">'
       +'<span class="sess-time">'+(s.time?s.time.str:'—')+'</span>'
       +'<span class="sess-name" title="'+esc(s.nome)+'">'+esc(stripEvPrefix(s.nome,s.evento))+'</span>'
@@ -13621,7 +13627,8 @@ function renderBilheteria(){
       +'<span class="sess-cinema">'+cinemaLabel+'</span>'
       +'<span class="sess-extras">'
         +(canBordero?'<button class="bordero-btn" style="white-space:nowrap;" onclick="event.stopPropagation();openSessaoBordero(\''+safe+'\')">Público e Renda</button>':'')
-        +(canBordero?'<button class="bordero-btn" style="white-space:nowrap;" onclick="event.stopPropagation();openReservasModal(\''+safe+'\')">'+(s.ingressos?'Ingressos reservados · '+esc(s.ingressos):'Ingressos reservados')+'</button>':'')
+        +ticketHtml
+      +(canBordero?'<button class="bordero-btn" style="white-space:nowrap;" onclick="event.stopPropagation();openReservasModal(\''+safe+'\')">'+(s.ingressos?'Ingressos reservados · '+esc(s.ingressos):'Ingressos reservados')+'</button>':'')
         +evTag
       +'</span>'
       +borderoHtml
@@ -13677,6 +13684,7 @@ function toggleBilheteriaPast(btn){
 
 /* ── Relatório de Bilheteria ── */
 var _bilhRelTipo='ambos'; // 'publico' | 'renda' | 'ambos'
+var _bilhRelAgrup='sessao'; // 'sessao' | 'sala' | 'filme'
 
 function _bilhParsePub(v){var n=parseInt((v||'').toString().replace(/\D/g,''));return isNaN(n)?0:n;}
 function _bilhParseRenda(v){if(!v||v==='')return null;var n=parseFloat((v||'').toString().replace(/[^\d,\.]/g,'').replace(',','.'));return isNaN(n)?null:n;}
@@ -13685,6 +13693,7 @@ function _bilhFmtPMI(pmi){if(!pmi||isNaN(pmi))return'—';return'R$\xa0'+pmi.toL
 
 function openBilhRelatorio(){
   _bilhRelTipo='ambos';
+  _bilhRelAgrup='sessao';
   _bilhRelRenderTipoToggle();
   _bilhRelRenderTabela();
   document.getElementById('bilhRelModal').style.display='flex';
@@ -13696,6 +13705,19 @@ function _bilhRelRenderTipoToggle(){
     var btn=document.getElementById('bilhRelTipo_'+t);
     if(btn)btn.classList.toggle('bilh-rel-tipo-active',t===_bilhRelTipo);
   });
+  ['sessao','sala','filme'].forEach(function(a){
+    var btn=document.getElementById('bilhRelAgrup_'+a);
+    if(btn)btn.classList.toggle('bilh-rel-tipo-active',a===_bilhRelAgrup);
+  });
+  // por filme só há público (renda é da sessão)
+  var hideTipo=_bilhRelAgrup==='filme';
+  ['bilhRelTipoLbl','bilhRelTipoGroup'].forEach(function(id){var el=document.getElementById(id);if(el)el.style.display=hideTipo?'none':'';});
+}
+
+function _bilhRelSetAgrup(a){
+  _bilhRelAgrup=a;
+  _bilhRelRenderTipoToggle();
+  _bilhRelRenderTabela();
 }
 
 function _bilhRelSetTipo(t){
@@ -13737,6 +13759,66 @@ function _bilhRelRenderTabela(){
   if(bilheteriaFilmeFilter)filterParts.push('Filme: '+_bilhFilmeLabel(bilheteriaFilmeFilter));
   var evAtivos=Object.keys(eventColors).filter(function(ev){return activeEventsBilheteria.has(ev);});
   if(evAtivos.length&&evAtivos.length<Object.keys(eventColors).length)filterParts.push('Evento: '+evAtivos.join(', '));
+
+  if(_bilhRelAgrup!=='sessao'){
+    var porFilme=_bilhRelAgrup==='filme';
+    if(porFilme){showPub=true;showRenda=false;showPMI=false;}
+    var grp={};
+    sessoes.forEach(function(s){
+      var hasSPub=s.publico!==''&&s.publico!==null&&s.publico!==undefined;
+      var p=_bilhParsePub(s.publico);
+      var r=_bilhParseRenda(s.renda);
+      var b=parseInt((s.ingressos||'').toString().replace(/\D/g,''))||0;
+      var keys=porFilme?(s.filmes||[]).filter(function(c){return!bilheteriaFilmeFilter||c===bilheteriaFilmeFilter;}):[s.cinema||'—'];
+      keys.forEach(function(k){
+        if(!grp[k])grp[k]={k:k,label:porFilme?_bilhFilmeLabel(k):k,sess:0,pub:0,bloq:0,renda:0,hasPub:false,hasRenda:false};
+        var g=grp[k];
+        g.sess++;g.bloq+=b;
+        if(hasSPub){g.hasPub=true;g.pub+=p;}
+        if(r!==null){g.hasRenda=true;g.renda+=r;}
+      });
+    });
+    var arr=Object.keys(grp).map(function(k){return grp[k];}).sort(function(a,b){
+      var d=showPub?b.pub-a.pub:b.renda-a.renda;
+      return d||a.label.localeCompare(b.label,'pt-BR',{sensitivity:'base'});
+    });
+    var gThead='<thead><tr>'
+      +'<th class="bilh-rel-th">'+(porFilme?'Filme':'Sala')+'</th>'
+      +'<th class="bilh-rel-th bilh-rel-th-num">Sessões</th>'
+      +(showPub?'<th class="bilh-rel-th bilh-rel-th-num">Público</th>':'')
+      +(showRenda?'<th class="bilh-rel-th bilh-rel-th-num">Renda</th>':'')
+      +(showPMI?'<th class="bilh-rel-th bilh-rel-th-num">PMI</th>':'')
+      +'</tr></thead>';
+    var gBody='<tbody>';
+    arr.forEach(function(g){
+      var gPag=Math.max(0,g.pub-g.bloq);
+      var gPMI=(gPag&&g.hasRenda&&g.renda)?g.renda/gPag:null;
+      gBody+='<tr class="bilh-rel-row">'
+        +'<td class="bilh-rel-td">'+esc(g.label)+(porFilme?'<div class="bilh-rel-name">'+esc(g.k)+'</div>':'')+'</td>'
+        +'<td class="bilh-rel-td bilh-rel-num">'+g.sess+'</td>'
+        +(showPub?'<td class="bilh-rel-td bilh-rel-num">'+(g.hasPub?g.pub.toLocaleString('pt-BR'):'—')+'</td>':'')
+        +(showRenda?'<td class="bilh-rel-td bilh-rel-num">'+(g.hasRenda?_bilhFmtRenda(g.renda):'—')+'</td>':'')
+        +(showPMI?'<td class="bilh-rel-td bilh-rel-num">'+(gPMI!==null?_bilhFmtPMI(gPMI):'—')+'</td>':'')
+        +'</tr>';
+    });
+    gBody+='<tr class="bilh-rel-total-row">'
+      +'<td class="bilh-rel-td bilh-rel-total-label">Total — '+arr.length+' '+(porFilme?(arr.length===1?'filme':'filmes'):(arr.length===1?'sala':'salas'))+(filterParts.length?' · '+filterParts.join(' · '):'')+'</td>'
+      +'<td class="bilh-rel-td bilh-rel-num bilh-rel-total-num">'+sessoes.length+'</td>'
+      +(showPub?'<td class="bilh-rel-td bilh-rel-num bilh-rel-total-num">'+(hasPub?totalPub.toLocaleString('pt-BR'):'—')+'</td>':'')
+      +(showRenda?'<td class="bilh-rel-td bilh-rel-num bilh-rel-total-num">'+(hasRenda?_bilhFmtRenda(totalRenda):'—')+'</td>':'')
+      +(showPMI?'<td class="bilh-rel-td bilh-rel-num bilh-rel-total-num">'+(totalPMI?_bilhFmtPMI(totalPMI):'—')+'</td>':'')
+      +'</tr>';
+    if(!showPMI&&!porFilme){
+      var gPmiNote=tipo==='publico'?'(sem dados de renda)':tipo==='renda'?'(sem dados de público)':'';
+      gBody+='<tr class="bilh-rel-pmi-row"><td colspan="'+(2+(showPub?1:0)+(showRenda?1:0))+'" class="bilh-rel-td bilh-rel-pmi-cell">PMI geral: <strong>'+(totalPMI?_bilhFmtPMI(totalPMI):'—')+'</strong>'+(gPmiNote?' <span class="bilh-rel-pmi-note">'+gPmiNote+'</span>':'')+'</td></tr>';
+    }
+    gBody+='</tbody>';
+    var gWrap=document.getElementById('bilhRelTableWrap');
+    if(gWrap)gWrap.innerHTML='<table class="bilh-rel-table">'+gThead+gBody+'</table>';
+    var gCount=document.getElementById('bilhRelCount');
+    if(gCount)gCount.textContent=sessoes.length+' sess'+(sessoes.length===1?'ão':'ões');
+    return;
+  }
 
   var thead='<thead><tr>'
     +'<th class="bilh-rel-th bilh-rel-th-data">Data</th>'
@@ -14091,6 +14173,41 @@ function openReservasModal(nome){
   setTimeout(function(){document.getElementById('reservasQtd').focus();},50);
 }
 function closeReservasModal(){document.getElementById('reservasModal').style.display='none';}
+
+function openTicketUrlModal(nome){
+  var s=sessoesMap[nome];if(!s)return;
+  var modal=document.getElementById('ticketUrlModal');
+  document.getElementById('ticketUrlNome').textContent=nome+(s.name?' · '+s.name:'');
+  document.getElementById('ticketUrlInput').value=s.ticket_url||'';
+  document.getElementById('ticketUrlErr').style.display='none';
+  document.getElementById('ticketUrlSave').disabled=false;
+  document.getElementById('ticketUrlSave').textContent='Salvar';
+  modal._sessaoNome=nome;
+  modal.style.display='flex';
+  setTimeout(function(){document.getElementById('ticketUrlInput').focus();},50);
+}
+function closeTicketUrlModal(){document.getElementById('ticketUrlModal').style.display='none';}
+async function saveTicketUrl(){
+  var modal=document.getElementById('ticketUrlModal');
+  var nome=modal._sessaoNome;
+  var s=sessoesMap[nome];if(!s||!window._olgaSessoes)return;
+  var errEl=document.getElementById('ticketUrlErr');
+  var url=(document.getElementById('ticketUrlInput').value||'').trim();
+  if(url&&!/^https?:\/\//i.test(url))url='https://'+url;
+  if(url&&!/^https?:\/\/[^\s\/]+\.[^\s]+$/i.test(url)){errEl.textContent='Link inválido.';errEl.style.display='block';return;}
+  if(url===(s.ticket_url||'')){closeTicketUrlModal();return;}
+  var btn=document.getElementById('ticketUrlSave');btn.disabled=true;btn.textContent='Salvando…';
+  var data={ticket_url:url};
+  try{
+    await window._olgaSessoes.saveField(s._docId||nome,data);
+    window._logFirestoreEdit&&window._logFirestoreEdit('individual',nome,data,'bilheteria','sessoes');
+    s.ticket_url=url;
+    closeTicketUrlModal();
+    renderBilheteria();
+  }catch(e){
+    errEl.textContent='Erro: '+e.message;errEl.style.display='block';
+  }finally{btn.disabled=false;btn.textContent='Salvar';}
+}
 async function saveReservas(){
   var modal=document.getElementById('reservasModal');
   var nome=modal._sessaoNome;
@@ -18561,6 +18678,65 @@ function renderDash(){
       }
       title+=' ('+salaOcupArr.length+' sala'+(salaOcupArr.length===1?'':'s')+')';
 
+    }else if(key==='publico'&&dashPubMode!=='sessao'){
+      var _pubSess=sessoes.filter(function(s){return s.publico&&s.publico.toString().trim()!=='';});
+      var _pubEmpty='<div style="font-family:var(--mono);font-size:11px;color:var(--text-muted);padding:16px 0;">Nenhum dado de público registrado.</div>';
+      var _pubNumStyle='font-family:var(--mono);font-size:13px;font-weight:700;color:var(--text);margin-left:auto;flex-shrink:0;';
+      if(dashPubMode==='sala'){
+        title='Público por sala';
+        var _cMap=getAllCinemas().map;
+        var salaPubMap={};
+        _pubSess.forEach(function(s){
+          var k=s.cinema||'—';
+          if(!salaPubMap[k])salaPubMap[k]={pub:0,sess:0};
+          salaPubMap[k].pub+=parsePubDash(s.publico);
+          salaPubMap[k].sess++;
+        });
+        var salaPubArr=Object.keys(salaPubMap).map(function(sala){return{sala:sala,pub:salaPubMap[sala].pub,sess:salaPubMap[sala].sess};})
+          .sort(function(a,b){return b.pub-a.pub||a.sala.localeCompare(b.sala,'pt-BR',{sensitivity:'base'});});
+        if(!salaPubArr.length){bodyHtml=_pubEmpty;}
+        else{
+          bodyHtml='';
+          salaPubArr.forEach(function(st){
+            var ass=parseInt((_cMap[st.sala]||{}).assentos)||0;
+            var ocup=ass?Math.round(st.pub/(ass*st.sess)*100):null;
+            var safeSala=st.sala.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+            bodyHtml+='<div class="dsd-sala-row">'+
+              '<span class="dsd-sala-name" onclick="goToBilhFromDash(\''+esc(safeSala)+'\')">'+esc(st.sala)+'</span>'+
+              '<span style="'+_pubNumStyle+'">'+st.pub.toLocaleString('pt-BR')+'</span>'+
+              '<span class="dsd-extra">'+st.sess+' sess'+(st.sess===1?'ão':'ões')+' com dados'+(ocup!==null?' · ocupação '+ocup+'%':'')+'</span>'+
+            '</div>';
+          });
+        }
+        title+=' ('+salaPubArr.length+' sala'+(salaPubArr.length===1?'':'s')+')';
+      }else{
+        title='Público por filme';
+        var filmPubMap={};
+        _pubSess.forEach(function(s){
+          var p=parsePubDash(s.publico);
+          (s.filmes||[]).forEach(function(c){
+            if(!filmPubMap[c])filmPubMap[c]={pub:0,sess:0};
+            filmPubMap[c].pub+=p;
+            filmPubMap[c].sess++;
+          });
+        });
+        var filmPubArr=Object.keys(filmPubMap).map(function(c){return{cod:c,titulo:filmDisplayTitle(c),pub:filmPubMap[c].pub,sess:filmPubMap[c].sess};})
+          .sort(function(a,b){return b.pub-a.pub||a.titulo.localeCompare(b.titulo,'pt-BR',{sensitivity:'base'});});
+        if(!filmPubArr.length){bodyHtml=_pubEmpty;}
+        else{
+          bodyHtml='';
+          filmPubArr.forEach(function(f){
+            bodyHtml+='<div class="dsd-film-row">'+
+              '<span class="dsd-film-title">'+esc(f.titulo)+'</span>'+
+              '<span class="dsd-film-code">'+esc(f.cod)+'</span>'+
+              '<span style="'+_pubNumStyle+'">'+f.pub.toLocaleString('pt-BR')+'</span>'+
+              '<span style="font-family:var(--mono);font-size:9px;color:var(--text-dim);flex-shrink:0;">'+f.sess+' sess'+(f.sess===1?'ão':'ões')+'</span>'+
+            '</div>';
+          });
+        }
+        title+=' ('+filmPubArr.length+' filme'+(filmPubArr.length===1?'':'s')+')';
+      }
+
     }else if(key==='publico'){
       title='Público por sessão';
       var sorted2=sessoes.filter(function(s){return s.publico&&s.publico.toString().trim()!=='';})
@@ -18756,6 +18932,9 @@ function renderDash(){
       '<div class="dash-stat-detail-hdr">'+
         '<span class="dash-stat-detail-title">'+title+'</span>'+
         (key==='sessoes'?borderoBtn:'')+
+        (key==='publico'?'<span class="bilh-rel-tipo-group" style="margin-left:8px;">'+[['sessao','Sessão'],['sala','Sala'],['filme','Filme']].map(function(m){
+          return'<button class="bilh-rel-tipo-btn'+(dashPubMode===m[0]?' bilh-rel-tipo-active':'')+'" style="padding:2px 8px;" onclick="event.stopPropagation();_dashSetPubMode(\''+m[0]+'\')">'+m[1]+'</button>';
+        }).join('')+'</span>':'')+
         '<button class="dash-stat-detail-close" onclick="selectDashStat(null,null)">✕ Fechar</button>'+
       '</div>'+
       '<div class="dash-stat-detail-body">'+bodyHtml+'</div>'+
@@ -19173,7 +19352,7 @@ function renderDash(){
   html+=colBlock('legendagem','Legendagem',legBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 23/10/2026 às 14:58';
+  var sysUpdate='última atualização do sistema · 24/10/2026 às 23:09';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -28233,8 +28412,14 @@ function _sxcPrint(){
       </div>
     </div>
     <div class="bilh-rel-toolbar">
-      <span style="font-family:var(--mono);font-size:8px;font-weight:600;letter-spacing:0.12em;text-transform:uppercase;color:var(--text-muted);">Exibir</span>
+      <span style="font-family:var(--mono);font-size:8px;font-weight:600;letter-spacing:0.12em;text-transform:uppercase;color:var(--text-muted);">Agrupar</span>
       <div class="bilh-rel-tipo-group">
+        <button id="bilhRelAgrup_sessao" class="bilh-rel-tipo-btn bilh-rel-tipo-active" onclick="_bilhRelSetAgrup('sessao')">Sessão</button>
+        <button id="bilhRelAgrup_sala" class="bilh-rel-tipo-btn" onclick="_bilhRelSetAgrup('sala')">Sala</button>
+        <button id="bilhRelAgrup_filme" class="bilh-rel-tipo-btn" onclick="_bilhRelSetAgrup('filme')">Filme</button>
+      </div>
+      <span id="bilhRelTipoLbl" style="font-family:var(--mono);font-size:8px;font-weight:600;letter-spacing:0.12em;text-transform:uppercase;color:var(--text-muted);margin-left:8px;">Exibir</span>
+      <div id="bilhRelTipoGroup" class="bilh-rel-tipo-group">
         <button id="bilhRelTipo_ambos" class="bilh-rel-tipo-btn bilh-rel-tipo-active" onclick="_bilhRelSetTipo('ambos')">Público + Renda</button>
         <button id="bilhRelTipo_publico" class="bilh-rel-tipo-btn" onclick="_bilhRelSetTipo('publico')">Público</button>
         <button id="bilhRelTipo_renda" class="bilh-rel-tipo-btn" onclick="_bilhRelSetTipo('renda')">Renda</button>
@@ -28363,6 +28548,27 @@ function _sxcPrint(){
     <div class="sb-footer">
       <button onclick="closeReservasModal()" style="font-family:var(--mono);font-size:10px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;padding:7px 16px;background:transparent;color:var(--text-dim);border:1px solid var(--border);cursor:pointer;">Cancelar</button>
       <button id="reservasSave" onclick="saveReservas()" style="font-family:var(--mono);font-size:10px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;padding:7px 20px;background:var(--accent);color:var(--on-accent);border:none;cursor:pointer;">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<div id="ticketUrlModal" style="display:none;position:fixed;inset:0;z-index:6100;background:rgba(0,0,0,0.78);align-items:center;justify-content:center;padding:20px;">
+  <div class="sb-wrap">
+    <div class="sb-header">
+      <span class="sb-title">Link de Ingresso</span>
+      <button onclick="closeTicketUrlModal()" style="background:none;border:none;color:var(--text-muted);font-size:18px;cursor:pointer;line-height:1;">×</button>
+    </div>
+    <div class="sb-nome" id="ticketUrlNome"></div>
+    <div class="sb-body">
+      <div class="sb-field">
+        <label class="sb-label" for="ticketUrlInput">Link de compra (deixe vazio para remover)</label>
+        <input id="ticketUrlInput" type="url" class="sb-input" placeholder="https://" onkeydown="if(event.key==='Enter')saveTicketUrl()">
+      </div>
+    </div>
+    <div id="ticketUrlErr" style="display:none;font-family:var(--mono);font-size:10px;color:var(--warn);padding:6px 20px;background:rgba(255,180,171,0.06);border-top:1px solid rgba(255,180,171,0.15);"></div>
+    <div class="sb-footer">
+      <button onclick="closeTicketUrlModal()" style="font-family:var(--mono);font-size:10px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;padding:7px 16px;background:transparent;color:var(--text-dim);border:1px solid var(--border);cursor:pointer;">Cancelar</button>
+      <button id="ticketUrlSave" onclick="saveTicketUrl()" style="font-family:var(--mono);font-size:10px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;padding:7px 20px;background:var(--accent);color:var(--on-accent);border:none;cursor:pointer;">Salvar</button>
     </div>
   </div>
 </div>
@@ -28826,7 +29032,7 @@ function _sxcPrint(){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 23/10/2026 às 14:58</span></div>
+<div id="page-footer"><span>última atualização · 24/10/2026 às 23:09</span></div>
 
 </div>
 

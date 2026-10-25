@@ -24834,8 +24834,8 @@ function renderCatCreate(){
       +'<div style="font-family:var(--mono);font-size:9px;color:var(--text-muted);margin-top:3px;">Após a criação do filme esse código não pode ser alterado.</div>'
     )
     +catFld('Nome no sistema *','<input class="cat-input" id="catf_system_name" placeholder="Atribua um nome para circulação interna — esse campo não pode ser alterado">')
-    +(!window._olgaHasRestricao('catalogo.tmdb')?catFld('ID no TMDB <span style="font-weight:400;opacity:0.6;">(opcional)</span>','<input class="cat-input" id="catf_tmdb_id" placeholder="Ex: 155 · preenche títulos, direção, sinopse, gênero e país automaticamente">'):'')
-    +catFld('ID na Filmografia Brasileira <span style="font-weight:400;opacity:0.6;">(opcional)</span>','<input class="cat-input" id="catf_cinemateca_id" placeholder="Ex: 036372 · preenche dados da Filmografia Brasileira automaticamente">')
+    +(!window._olgaHasRestricao('catalogo.tmdb')?catFld('ID no TMDB <span style="font-weight:400;opacity:0.6;">(opcional)</span>',_catCreateIdFld('tmdb','catf_tmdb_id','Ex: 155 · preenche títulos, direção, sinopse, gênero e país automaticamente')):'')
+    +(!window._olgaHasRestricao('catalogo.cinemateca')?catFld('ID na Filmografia Brasileira <span style="font-weight:400;opacity:0.6;">(opcional)</span>',_catCreateIdFld('cin','catf_cinemateca_id','Ex: 036372 · preenche dados da Filmografia Brasileira automaticamente')):'')
   );
   // Campos de copias (acervo técnico) — só na criação
   html+=catBlock('Acervo Técnico',
@@ -24908,6 +24908,31 @@ function renderCatCreate(){
   _catUpdateCodeSuggestion();
   _catCheckCodeDup();
   if(typeof lucide!=='undefined')lucide.createIcons();
+}
+
+// Campo de ID (TMDB / Filmografia) da criação, com botão de busca por nome:
+// o resultado escolhido só preenche o ID; os dados são importados ao criar o filme.
+function _catCreateIdFld(fonte,id,ph){
+  return '<div style="display:flex;gap:6px;"><input class="cat-input" id="'+id+'" placeholder="'+esc(ph)+'" style="flex:1;" oninput="var n=document.getElementById(\''+id+'_info\');if(n)n.textContent=\'\';">'
+    +'<button type="button" class="cat-edit-btn" style="flex:none;" onclick="_catCreateBusca(\''+fonte+'\')">⌕ Buscar</button></div>'
+    +'<div id="'+id+'_info" style="font-family:var(--mono);font-size:9px;color:#3dba6e;margin-top:3px;"></div>';
+}
+function _catCreateBusca(fonte){
+  var val=function(i){return((document.getElementById(i)||{value:''}).value||'').trim();};
+  var dir=catGetTags('director');
+  _openFilmBusca(null,fonte,null,{
+    q:val('catf_title_pt')||val('catf_original_title')||val('catf_system_name'),
+    ano:val('catf_year'),
+    dir:dir&&dir.length?dir.join(', '):'',
+    onPick:function(f,idVal,c){
+      var campo=f==='tmdb'?'catf_tmdb_id':'catf_cinemateca_id';
+      var inp=document.getElementById(campo);
+      if(!inp){alert('Seu usuário não tem acesso à importação de '+(f==='tmdb'?'TMDB':'Filmografia Brasileira')+'.');return;}
+      inp.value=idVal;_catDirty=true;
+      var info=document.getElementById(campo+'_info');
+      if(info)info.textContent=c?'✓ '+c.titulo+(c.ano?' ('+c.ano+')':'')+(c.direcao?' · '+c.direcao:'')+' — dados importados ao criar o filme':'✓ código informado — dados importados ao criar o filme';
+    }
+  });
 }
 
 function _catCreateCheckVF(){
@@ -25922,21 +25947,29 @@ function _closeFilmBusca(){
   var m=document.getElementById('_fbModal');if(m)m.style.display='none';
   if(_fbCtx&&_fbCtx.btn){_fbCtx.btn.disabled=false;}
 }
-function _openFilmBusca(codigo,fonte,btn){
+// opts (formulário de criação): {q,ano,dir,onPick(fonte,id,candidato)} — em vez
+// de importar num filme existente, só devolve o código escolhido
+function _openFilmBusca(codigo,fonte,btn,opts){
   _initFilmBusca();
-  var cat=catalogoFilmesMap[codigo]||{};
-  var cop=(typeof filmesMap!=='undefined'&&filmesMap[codigo])||{};
+  var cat=(codigo&&catalogoFilmesMap[codigo])||{};
+  var cop=(codigo&&typeof filmesMap!=='undefined'&&filmesMap[codigo])||{};
   if(btn&&!btn.dataset.label)btn.dataset.label=btn.textContent;
-  _fbCtx={codigo:codigo,btn:btn,fontes:[],origem:fonte};
+  _fbCtx={codigo:codigo,btn:btn,fontes:[],origem:fonte,onPick:opts&&opts.onPick};
   var semCin=window._olgaHasRestricao&&window._olgaHasRestricao('catalogo.cinemateca');
   var semTmdb=window._olgaHasRestricao&&window._olgaHasRestricao('catalogo.tmdb');
   // a fonte do botão clicado vem primeiro; a outra aparece ao lado se o usuário puder usá-la
   if(fonte==='cin'||!semCin)_fbCtx.fontes.push('cin');
   if(fonte==='tmdb'||!semTmdb)_fbCtx.fontes.push('tmdb');
   if(fonte==='tmdb')_fbCtx.fontes.reverse();
-  document.getElementById('_fbQ').value=cat.title_pt||cat.original_title||cop.titulo||'';
-  document.getElementById('_fbAno').value=cat.year||'';
-  document.getElementById('_fbDir').value=Array.isArray(cat.director)?cat.director.join(', '):(cat.director||'');
+  if(opts){
+    document.getElementById('_fbQ').value=opts.q||'';
+    document.getElementById('_fbAno').value=opts.ano||'';
+    document.getElementById('_fbDir').value=opts.dir||'';
+  }else{
+    document.getElementById('_fbQ').value=cat.title_pt||cat.original_title||cop.titulo||'';
+    document.getElementById('_fbAno').value=cat.year||'';
+    document.getElementById('_fbDir').value=Array.isArray(cat.director)?cat.director.join(', '):(cat.director||'');
+  }
   document.getElementById('_fbModal').style.display='flex';
   _fbBuscar();
 }
@@ -25945,7 +25978,7 @@ function _fbColHtml(f,corpo){
   return '<div style="padding:14px 18px;border-right:1px solid var(--border);">'+
     '<div style="font-family:var(--mono);font-size:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:8px;">'+_FB_NOME[f]+'</div>'+
     '<div style="display:flex;gap:6px;margin-bottom:12px;"><input class="cat-input" id="_fbId_'+f+'" placeholder="Já sabe? Código ou link '+(f==='cin'?'(ex: 021464)':'(ex: 155)')+'" style="flex:1;">'+
-    '<button class="cat-edit-btn" style="color:var(--accent);border-color:var(--accent);" onclick="_fbImportId(\''+f+'\')">Importar código</button></div>'+
+    '<button class="cat-edit-btn" style="color:var(--accent);border-color:var(--accent);" onclick="_fbImportId(\''+f+'\')">'+(_fbCtx&&_fbCtx.onPick?'Usar código':'Importar código')+'</button></div>'+
     '<div style="font-family:var(--mono);font-size:10px;color:var(--text-muted);margin-bottom:6px;">ou escolha um resultado da busca:</div>'+
     '<div id="_fbRes_'+f+'">'+corpo+'</div>'+
   '</div>';
@@ -25960,7 +25993,7 @@ function _fbCandHtml(f,c,i){
       '<div style="color:var(--text-muted);">'+esc(c.direcao||'direção não informada')+(c.extra?' · '+esc(c.extra):'')+'</div>'+
       '<div style="font-family:var(--mono);font-size:10px;color:var(--text-muted);margin-top:2px;">ID '+esc(c.id)+' · '+c.pontos+' pts · <a href="'+esc(c.url)+'" target="_blank" rel="noopener" style="color:var(--accent);">ver ↗</a></div>'+
     '</div>'+
-    '<button class="cat-edit-btn" style="flex:none;color:var(--accent);border-color:var(--accent);" onclick="_fbImport(\''+f+'\','+i+')">Importar</button>'+
+    '<button class="cat-edit-btn" style="flex:none;color:var(--accent);border-color:var(--accent);" onclick="_fbImport(\''+f+'\','+i+')">'+(_fbCtx&&_fbCtx.onPick?'Usar este':'Importar')+'</button>'+
   '</div>';
 }
 async function _fbBuscar(){
@@ -26009,7 +26042,7 @@ async function _fbBuscaTmdb(q,ano,dir){
 }
 function _fbImport(f,i){
   var c=_fbCtx.res&&_fbCtx.res[f]&&_fbCtx.res[f][i];if(!c)return;
-  _fbIr(f,c.id);
+  _fbIr(f,c.id,c);
 }
 function _fbImportId(f){
   var v=(document.getElementById('_fbId_'+f)||{value:''}).value.trim();if(!v)return;
@@ -26019,8 +26052,13 @@ function _fbImportId(f){
   if(!/^\d+$/.test(v)){alert('Código inválido: informe só o número'+(f==='cin'?' (ex: 021464)':' (ex: 155)')+' ou cole o link do filme.');return;}
   _fbIr(f,v);
 }
-function _fbIr(f,id){
+function _fbIr(f,id,cand){
   var ctx=_fbCtx;
+  if(ctx.onPick){  // criação: só preenche o código (o aviso de uso aparece ao criar)
+    document.getElementById('_fbModal').style.display='none';
+    ctx.onPick(f,id,cand);
+    return;
+  }
   // o aviso da fonte do botão já foi aceito; o da outra fonte ainda não
   if(f!==ctx.origem&&!confirm(f==='cin'?_CIN_DISCLAIMER:_TMDB_DISCLAIMER))return;
   document.getElementById('_fbModal').style.display='none';

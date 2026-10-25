@@ -13655,6 +13655,25 @@ function renderBilheteria(){
   var pastKeys=dayOrder.filter(function(k){return k<todayKey;});
   var presentKeys=dayOrder.filter(function(k){return k>=todayKey;});
   var html='';
+
+  // Totais das sessões filtradas
+  var _tPub=0,_tBloq=0,_tRenda=0,_tHasPub=false,_tHasRenda=false;
+  filtered.forEach(function(s){
+    if(s.publico!==''&&s.publico!==null&&s.publico!==undefined){_tHasPub=true;_tPub+=parsePub(s.publico);}
+    _tBloq+=parseInt((s.ingressos||'').toString().replace(/\D/g,''))||0;
+    var r=parseRenda(s.renda);if(r!==null){_tHasRenda=true;_tRenda+=r;}
+  });
+  var _tPag=Math.max(0,_tPub-_tBloq);
+  var _tPMI=(_tPag&&_tHasRenda&&_tRenda)?_tRenda/_tPag:null;
+  var _tParts=[filtered.length+' '+(filtered.length===1?'sessão':'sessões')];
+  _tParts.push(_tHasPub?'<b>'+_tPub.toLocaleString('pt-BR')+'</b> de público':'sem dados de público');
+  if(_tHasRenda)_tParts.push('<b>'+fmtRenda(_tRenda)+'</b>');
+  if(_tPMI!==null)_tParts.push('PMI R$\xa0'+fmtPMI(_tPMI));
+  html+='<div style="font-family:var(--mono);font-size:11px;color:var(--text-dim);padding:10px 12px;border-bottom:1px solid var(--border);background:var(--surface2);">'
+    +'<span style="font-size:8px;font-weight:600;letter-spacing:0.12em;text-transform:uppercase;color:var(--text-muted);margin-right:10px;">Total filtrado</span>'
+    +_tParts.join(' · ')
+    +'</div>';
+
   if(pastKeys.length){
     var totalPast=pastKeys.reduce(function(n,k){return n+byDay[k].length;},0);
     html+='<button class="sess-past-toggle" onclick="toggleBilheteriaPast(this)">▸ <span>'+pastKeys.length+' '+(pastKeys.length===1?'dia anterior':'dias anteriores')+'</span> <span class="sess-past-count">· '+totalPast+' '+(totalPast===1?'sessão':'sessões')+'</span></button>';
@@ -19352,7 +19371,7 @@ function renderDash(){
   html+=colBlock('legendagem','Legendagem',legBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 24/10/2026 às 23:09';
+  var sysUpdate='última atualização do sistema · 24/10/2026 às 23:15';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -29032,7 +29051,7 @@ function _sxcPrint(){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 24/10/2026 às 23:09</span></div>
+<div id="page-footer"><span>última atualização · 24/10/2026 às 23:15</span></div>
 
 </div>
 

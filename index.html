@@ -13788,7 +13788,14 @@ function _bilhRelRenderTabela(){
       var p=_bilhParsePub(s.publico);
       var r=_bilhParseRenda(s.renda);
       var b=parseInt((s.ingressos||'').toString().replace(/\D/g,''))||0;
-      var keys=porFilme?(s.filmes||[]).filter(function(c){return!bilheteriaFilmeFilter||c===bilheteriaFilmeFilter;}):[s.cinema||'—'];
+      var keys=porFilme?(s.filmes||[]).filter(function(c){
+        if(bilheteriaFilmeFilter&&c!==bilheteriaFilmeFilter)return false;
+        if(bilheteriaDistribuidoraFilter){
+          var dc=catalogoFilmesMap&&catalogoFilmesMap[c]&&catalogoFilmesMap[c].distribution_company;
+          if(!(Array.isArray(dc)?dc.indexOf(bilheteriaDistribuidoraFilter)>=0:dc===bilheteriaDistribuidoraFilter))return false;
+        }
+        return true;
+      }):[s.cinema||'—'];
       keys.forEach(function(k){
         if(!grp[k])grp[k]={k:k,label:porFilme?_bilhFilmeLabel(k):k,sess:0,pub:0,bloq:0,renda:0,hasPub:false,hasRenda:false};
         var g=grp[k];
@@ -19371,7 +19378,7 @@ function renderDash(){
   html+=colBlock('legendagem','Legendagem',legBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 24/10/2026 às 23:15';
+  var sysUpdate='última atualização do sistema · 24/10/2026 às 23:22';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -29051,7 +29058,7 @@ function _sxcPrint(){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 24/10/2026 às 23:15</span></div>
+<div id="page-footer"><span>última atualização · 24/10/2026 às 23:22</span></div>
 
 </div>
 

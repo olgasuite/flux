@@ -25939,10 +25939,11 @@ function _openFilmBusca(codigo,fonte,btn){
 var _FB_NOME={cin:'Filmografia Brasileira',tmdb:'TMDB'};
 function _fbColHtml(f,corpo){
   return '<div style="padding:14px 18px;border-right:1px solid var(--border);">'+
-    '<div style="font-family:var(--mono);font-size:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:10px;">'+_FB_NOME[f]+'</div>'+
+    '<div style="font-family:var(--mono);font-size:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:8px;">'+_FB_NOME[f]+'</div>'+
+    '<div style="display:flex;gap:6px;margin-bottom:12px;"><input class="cat-input" id="_fbId_'+f+'" placeholder="Já sabe? Código ou link '+(f==='cin'?'(ex: 021464)':'(ex: 155)')+'" style="flex:1;">'+
+    '<button class="cat-edit-btn" style="color:var(--accent);border-color:var(--accent);" onclick="_fbImportId(\''+f+'\')">Importar código</button></div>'+
+    '<div style="font-family:var(--mono);font-size:10px;color:var(--text-muted);margin-bottom:6px;">ou escolha um resultado da busca:</div>'+
     '<div id="_fbRes_'+f+'">'+corpo+'</div>'+
-    '<div style="display:flex;gap:6px;margin-top:12px;"><input class="cat-input" id="_fbId_'+f+'" placeholder="ou informe o ID '+(f==='cin'?'(ex: 021464)':'(ex: 155)')+'" style="flex:1;">'+
-    '<button class="cat-edit-btn" onclick="_fbImportId(\''+f+'\')">Importar ID</button></div>'+
   '</div>';
 }
 function _fbCandHtml(f,c,i){
@@ -26008,6 +26009,10 @@ function _fbImport(f,i){
 }
 function _fbImportId(f){
   var v=(document.getElementById('_fbId_'+f)||{value:''}).value.trim();if(!v)return;
+  // aceita o link colado: themoviedb.org/movie/155-nome · ...exprSearch=ID=021464...
+  var m=f==='tmdb'?v.match(/themoviedb\.org\/movie\/(\d+)/):v.match(/ID=(\d+)/i);
+  if(m)v=m[1];
+  if(!/^\d+$/.test(v)){alert('Código inválido: informe só o número'+(f==='cin'?' (ex: 021464)':' (ex: 155)')+' ou cole o link do filme.');return;}
   _fbIr(f,v);
 }
 function _fbIr(f,id){

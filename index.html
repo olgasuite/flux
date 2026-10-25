@@ -25179,6 +25179,7 @@ async function doCreateFilm(){
       if(td.trailer&&!catalogData.trailer)catalogData.trailer=td.trailer;
       if(td.poster)catalogData.poster=td.poster;
       if(td.foto_principal)catalogData.foto_principal=td.foto_principal;
+      if(td.fotos&&td.fotos.length)catalogData.fotos=td.fotos;
     }catch(tmdbErr){console.warn('TMDB:',tmdbErr);}
     if(msg){msg.className='cat-msg';msg.textContent='Salvando…';}
   }
@@ -25664,7 +25665,7 @@ var _tmdbCountryPt={
 };
 async function fetchTMDBMovie(tmdbId){
   var KEY='06567bcb467a70e4cdae54a19c4b72bf';
-  var ptResp=await fetch('https://api.themoviedb.org/3/movie/'+tmdbId+'?api_key='+KEY+'&language=pt-BR&append_to_response=credits,videos');
+  var ptResp=await fetch('https://api.themoviedb.org/3/movie/'+tmdbId+'?api_key='+KEY+'&language=pt-BR&append_to_response=credits,videos,images&include_image_language=pt,null,en');
   if(!ptResp.ok)throw new Error('TMDB '+ptResp.status+': '+ptResp.statusText);
   var d=await ptResp.json();
   var enTitle=d.original_title||'',enSynopsis='',enHomepage='';
@@ -25705,6 +25706,10 @@ async function fetchTMDBMovie(tmdbId){
     trailer:trailer,
     poster:d.poster_path?'https://image.tmdb.org/t/p/w780'+d.poster_path:'',
     foto_principal:d.backdrop_path?'https://image.tmdb.org/t/p/w1280'+d.backdrop_path:'',
+    // galeria: imagens de cena do TMDB (as mais votadas, sem repetir a principal), até 12
+    fotos:((d.images&&d.images.backdrops)||[]).slice().sort(function(a,b){return(b.vote_average||0)-(a.vote_average||0);})
+      .filter(function(b){return b.file_path&&b.file_path!==d.backdrop_path;}).slice(0,12)
+      .map(function(b){return{url:'https://image.tmdb.org/t/p/w1280'+b.file_path,legenda:'TMDB'};}),
     production_company:(d.production_companies||[]).map(function(c){return c.name;}),
     producers:crewByJobs(['Producer','Co-Producer']),
     executive_producers:crewByJobs(['Executive Producer']),
@@ -25928,6 +25933,13 @@ function _showCinMerge(codigo,atual,novo,btn,rawCd,fonte){
   }
   var novoFlat=flatten(novo,'');
   var atualFlat=flatten(atual,'');
+  // fotos: nunca substitui — soma à lista atual só as que ainda não estão lá
+  if(novoFlat.fotos){
+    var _fAt=_catFotosParse(atualFlat.fotos),_urls=_fAt.map(function(f){return f.url;});
+    var _fNov=_catFotosParse(novoFlat.fotos).filter(function(f){return _urls.indexOf(f.url)<0&&f.url!==atual.foto_principal;});
+    if(_fNov.length)preench.push({k:'fotos',novo:_fAt.concat(_fNov),rotulo:'Fotos (+'+_fNov.length+')'});
+    delete novoFlat.fotos;
+  }
   Object.keys(novoFlat).forEach(function(k){
     var vN=novoFlat[k];
     var vA=atualFlat[k];
@@ -25942,7 +25954,7 @@ function _showCinMerge(codigo,atual,novo,btn,rawCd,fonte){
     html+='<div style="font-family:var(--mono);font-size:10px;color:var(--text-muted);margin-bottom:8px;text-transform:uppercase;letter-spacing:0.06em;">Campos que serão preenchidos ('+preench.length+')</div>';
     html+='<div style="display:flex;flex-wrap:wrap;gap:5px;">';
     preench.forEach(function(p){
-      html+='<span style="font-family:var(--sans);font-size:11px;background:rgba(80,180,100,0.1);border:1px solid rgba(80,180,100,0.3);padding:2px 8px;color:var(--text);">'+(_CIN_LABELS[p.k]||p.k)+'</span>';
+      html+='<span style="font-family:var(--sans);font-size:11px;background:rgba(80,180,100,0.1);border:1px solid rgba(80,180,100,0.3);padding:2px 8px;color:var(--text);">'+(p.rotulo||_CIN_LABELS[p.k]||p.k)+'</span>';
     });
     html+='</div></div>';
   }

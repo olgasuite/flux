@@ -25571,8 +25571,9 @@ var _CIN_DISCLAIMER='Os dados solicitados estão hospedados na base do Catálogo
 async function importFromTMDB(codigo,btn){
   if(!window._olgaCanEdit||!window._olgaCanEdit('catalogo')){alert('Sem permissão para editar os Selecionados.');return;}
   if(!confirm(_TMDB_DISCLAIMER))return;
-  var tmdbId=(prompt('ID do filme no TMDB (ex: 155 para "O Cavaleiro das Trevas"):')||'').trim();
-  if(!tmdbId)return;
+  _openFilmBusca(codigo,'tmdb',btn);
+}
+async function _importTMDBId(codigo,tmdbId,btn){
   var origText=btn?btn.textContent:'';
   if(btn){btn.disabled=true;btn.textContent='Importando…';}
   try{
@@ -25853,8 +25854,9 @@ function _showCinMerge(codigo,atual,novo,btn,rawCd,fonte){
 async function importFromCinemateca(codigo,btn){
   if(!window._olgaCanEdit||!window._olgaCanEdit('catalogo')){alert('Sem permissão para editar os Selecionados.');return;}
   if(!confirm(_CIN_DISCLAIMER))return;
-  var id=(prompt('ID do filme na Filmografia Brasileira:')||'').trim();
-  if(!id)return;
+  _openFilmBusca(codigo,'cin',btn);
+}
+async function _importCinId(codigo,id,btn){
   if(btn){btn.disabled=true;btn.textContent='Consultando…';}
   try{
     var resp=await fetch(_CINEMATECA_FN+'?id='+encodeURIComponent(id));
@@ -25866,6 +25868,155 @@ async function importFromCinemateca(codigo,btn){
     alert('Erro ao consultar Filmografia Brasileira: '+e.message);
     if(btn){btn.disabled=false;btn.textContent='↓ Filmografia Brasileira';}
   }
+}
+
+// ── Busca por nome (Filmografia Brasileira + TMDB) ───────────────────────────
+// Substitui o antigo prompt de ID: busca pelo título nas duas fontes, pontua
+// cada candidato por título/ano/direção e importa o escolhido pelo fluxo de
+// mesclagem de sempre (_showCinMerge). O ID direto continua aceito.
+var _CINBUSCA_FN='https://us-central1-olga-suite.cloudfunctions.net/cinematecaBusca';
+var _fbCtx=null;
+function _fbNorm(s){return String(s||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().replace(/[^a-z0-9 ]+/g,' ').replace(/\s+/g,' ').trim();}
+function _fbSimil(a,b){
+  a=_fbNorm(a);b=_fbNorm(b);if(!a||!b)return 0;if(a===b)return 1;
+  var bi=function(s){var r=[];for(var i=0;i<s.length-1;i++)r.push(s.substr(i,2));return r;};
+  var A=bi(a),B=bi(b),cnt={},comum=0;
+  A.forEach(function(x){cnt[x]=(cnt[x]||0)+1;});
+  B.forEach(function(x){if(cnt[x]){comum++;cnt[x]--;}});
+  return(A.length+B.length)?2*comum/(A.length+B.length):0;
+}
+function _fbNomes(s){return _fbNorm(s).split(' ').filter(function(p){return p.length>2&&['jr','junior','filho','neto'].indexOf(p)<0;});}
+function _fbPontua(titulos,ano,diretores,qTit,qAno,qDir){
+  var pts=Math.max.apply(null,titulos.filter(Boolean).map(function(t){return _fbSimil(qTit,t);}).concat([0]))*50;
+  if(qAno&&ano){var d=Math.abs(ano-qAno);pts+=({0:30,1:25,2:18,3:10})[d]!==undefined?({0:30,1:25,2:18,3:10})[d]:(d<8?-10:-30);}
+  if(qDir&&diretores){var a=_fbNomes(qDir),b=_fbNomes(diretores);pts+=a.some(function(x){return b.indexOf(x)>=0;})?25:-5;}
+  return Math.round(pts*10)/10;
+}
+function _initFilmBusca(){
+  if(document.getElementById('_fbModal'))return;
+  var el=document.createElement('div');
+  el.id='_fbModal';
+  el.style.cssText='display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:9998;align-items:flex-start;justify-content:center;overflow:auto;padding:40px 20px;';
+  el.innerHTML=
+    '<div style="background:var(--surface);border:1px solid var(--border);width:100%;max-width:980px;display:flex;flex-direction:column;">'+
+      '<div style="padding:14px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;">'+
+        '<span style="font-family:var(--mono);font-size:12px;font-weight:700;letter-spacing:0.05em;color:var(--text);">⌕ BUSCAR FILME PARA IMPORTAR</span>'+
+        '<button onclick="_closeFilmBusca()" style="background:none;border:none;cursor:pointer;color:var(--text-muted);font-size:20px;line-height:1;padding:0 4px;">×</button>'+
+      '</div>'+
+      '<div style="padding:14px 18px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;border-bottom:1px solid var(--border);">'+
+        '<input class="cat-input" id="_fbQ" placeholder="Título" style="flex:3 1 260px;">'+
+        '<input class="cat-input" id="_fbAno" placeholder="Ano" style="flex:0 1 80px;">'+
+        '<input class="cat-input" id="_fbDir" placeholder="Direção (opcional)" style="flex:2 1 180px;">'+
+        '<button class="cat-edit-btn" id="_fbGo" style="color:var(--accent);border-color:var(--accent);">Buscar</button>'+
+      '</div>'+
+      '<div id="_fbCols" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:0;max-height:62vh;overflow-y:auto;"></div>'+
+    '</div>';
+  document.body.appendChild(el);
+  el.addEventListener('keydown',function(e){if(e.key==='Enter'&&e.target.tagName==='INPUT'){e.preventDefault();if(e.target.id&&e.target.id.indexOf('_fbId_')===0)_fbImportId(e.target.id.substring(6));else _fbBuscar();}else if(e.key==='Escape')_closeFilmBusca();});
+  document.getElementById('_fbGo').onclick=_fbBuscar;
+}
+function _closeFilmBusca(){
+  var m=document.getElementById('_fbModal');if(m)m.style.display='none';
+  if(_fbCtx&&_fbCtx.btn){_fbCtx.btn.disabled=false;}
+}
+function _openFilmBusca(codigo,fonte,btn){
+  _initFilmBusca();
+  var cat=catalogoFilmesMap[codigo]||{};
+  var cop=(typeof filmesMap!=='undefined'&&filmesMap[codigo])||{};
+  _fbCtx={codigo:codigo,btn:btn,fontes:[],origem:fonte};
+  var semCin=window._olgaHasRestricao&&window._olgaHasRestricao('catalogo.cinemateca');
+  var semTmdb=window._olgaHasRestricao&&window._olgaHasRestricao('catalogo.tmdb');
+  // a fonte do botão clicado vem primeiro; a outra aparece ao lado se o usuário puder usá-la
+  if(fonte==='cin'||!semCin)_fbCtx.fontes.push('cin');
+  if(fonte==='tmdb'||!semTmdb)_fbCtx.fontes.push('tmdb');
+  if(fonte==='tmdb')_fbCtx.fontes.reverse();
+  document.getElementById('_fbQ').value=cat.title_pt||cat.original_title||cop.titulo||'';
+  document.getElementById('_fbAno').value=cat.year||'';
+  document.getElementById('_fbDir').value=Array.isArray(cat.director)?cat.director.join(', '):(cat.director||'');
+  document.getElementById('_fbModal').style.display='flex';
+  _fbBuscar();
+}
+var _FB_NOME={cin:'Filmografia Brasileira',tmdb:'TMDB'};
+function _fbColHtml(f,corpo){
+  return '<div style="padding:14px 18px;border-right:1px solid var(--border);">'+
+    '<div style="font-family:var(--mono);font-size:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:10px;">'+_FB_NOME[f]+'</div>'+
+    '<div id="_fbRes_'+f+'">'+corpo+'</div>'+
+    '<div style="display:flex;gap:6px;margin-top:12px;"><input class="cat-input" id="_fbId_'+f+'" placeholder="ou informe o ID '+(f==='cin'?'(ex: 021464)':'(ex: 155)')+'" style="flex:1;">'+
+    '<button class="cat-edit-btn" onclick="_fbImportId(\''+f+'\')">Importar ID</button></div>'+
+  '</div>';
+}
+function _fbCandHtml(f,c,i){
+  var cor=c.pontos>=80?'rgba(80,180,100,0.5)':(c.pontos>=55?'rgba(220,170,60,0.5)':'var(--border)');
+  return '<div style="display:flex;gap:10px;align-items:flex-start;border:1px solid '+cor+';padding:8px 10px;margin-bottom:6px;">'+
+    (c.poster?'<img src="'+esc(c.poster)+'" style="width:38px;height:57px;object-fit:cover;flex:none;" loading="lazy">':'')+
+    '<div style="flex:1;min-width:0;font-family:var(--sans);font-size:12px;">'+
+      '<div style="font-weight:600;color:var(--text);">'+esc(c.titulo)+' <span style="font-weight:400;color:var(--text-muted);">('+(c.ano||'?')+')</span></div>'+
+      (c.original&&_fbNorm(c.original)!==_fbNorm(c.titulo)?'<div style="color:var(--text-muted);font-style:italic;">'+esc(c.original)+'</div>':'')+
+      '<div style="color:var(--text-muted);">'+esc(c.direcao||'direção não informada')+(c.extra?' · '+esc(c.extra):'')+'</div>'+
+      '<div style="font-family:var(--mono);font-size:10px;color:var(--text-muted);margin-top:2px;">ID '+esc(c.id)+' · '+c.pontos+' pts · <a href="'+esc(c.url)+'" target="_blank" rel="noopener" style="color:var(--accent);">ver ↗</a></div>'+
+    '</div>'+
+    '<button class="cat-edit-btn" style="flex:none;color:var(--accent);border-color:var(--accent);" onclick="_fbImport(\''+f+'\','+i+')">Importar</button>'+
+  '</div>';
+}
+async function _fbBuscar(){
+  var q=document.getElementById('_fbQ').value.trim();
+  var ano=parseInt(document.getElementById('_fbAno').value,10)||null;
+  var dir=document.getElementById('_fbDir').value.trim();
+  var cols=document.getElementById('_fbCols');
+  cols.innerHTML=_fbCtx.fontes.map(function(f){return _fbColHtml(f,'<div style="font-size:12px;color:var(--text-muted);">'+(q?'Buscando…':'Informe o título.')+'</div>');}).join('');
+  if(!q)return;
+  _fbCtx.res={};
+  _fbCtx.fontes.forEach(async function(f){
+    var box=document.getElementById('_fbRes_'+f);
+    try{
+      var lista=f==='cin'?await _fbBuscaCin(q,ano,dir):await _fbBuscaTmdb(q,ano,dir);
+      _fbCtx.res[f]=lista;
+      box.innerHTML=lista.length?lista.map(function(c,i){return _fbCandHtml(f,c,i);}).join(''):'<div style="font-size:12px;color:var(--text-muted);">Nada encontrado. Tente outro título (sem subtítulo) ou o título original.</div>';
+    }catch(e){box.innerHTML='<div style="font-size:12px;color:var(--warn);">Erro na busca: '+esc(e.message)+'</div>';}
+  });
+}
+async function _fbBuscaCin(q,ano,dir){
+  var p=new URLSearchParams({q:q});if(ano)p.set('ano',ano);if(dir)p.set('diretor',dir);
+  var r=await fetch(_CINBUSCA_FN+'?'+p);var d=await r.json();
+  if(!r.ok)throw new Error(d.error||('HTTP '+r.status));
+  return(d.candidatos||[]).slice(0,10).map(function(c){return{
+    id:c.codigo,titulo:c.titulo,original:(c.outros||[])[0]||'',ano:c.ano||c.ano_lanc,direcao:c.direcao,extra:c.categoria,pontos:c.pontos,
+    url:'https://bases.cinemateca.org.br/cgi-bin/wxis.exe/iah/?IsisScript=iah/iah.xis&base=FILMOGRAFIA&lang=p&nextAction=lnk&exprSearch=ID='+c.codigo+'&format=detailed.pft'
+  };});
+}
+async function _fbBuscaTmdb(q,ano,dir){
+  var KEY='06567bcb467a70e4cdae54a19c4b72bf';
+  var r=await fetch('https://api.themoviedb.org/3/search/movie?api_key='+KEY+'&language=pt-BR&include_adult=false&query='+encodeURIComponent(q));
+  if(!r.ok)throw new Error('TMDB '+r.status);
+  var lista=((await r.json()).results||[]).slice(0,10).map(function(m){
+    var a=m.release_date?parseInt(m.release_date.slice(0,4),10):null;
+    return{id:String(m.id),titulo:m.title||m.original_title,original:m.original_title,ano:a,direcao:'',
+      extra:(m.original_language||'').toUpperCase(),poster:m.poster_path?'https://image.tmdb.org/t/p/w92'+m.poster_path:'',
+      url:'https://www.themoviedb.org/movie/'+m.id,_t:[m.title,m.original_title]};
+  });
+  // direção dos 6 primeiros (a busca do TMDB não traz equipe)
+  await Promise.all(lista.slice(0,6).map(async function(c){
+    try{var cr=await fetch('https://api.themoviedb.org/3/movie/'+c.id+'/credits?api_key='+KEY);
+      if(cr.ok){c.direcao=((await cr.json()).crew||[]).filter(function(p){return p.job==='Director';}).map(function(p){return p.name;}).join(', ');}}catch(e){}
+  }));
+  lista.forEach(function(c){c.pontos=_fbPontua(c._t,c.ano,c.direcao,q,ano,dir);});
+  return lista.sort(function(a,b){return b.pontos-a.pontos;});
+}
+function _fbImport(f,i){
+  var c=_fbCtx.res&&_fbCtx.res[f]&&_fbCtx.res[f][i];if(!c)return;
+  _fbIr(f,c.id);
+}
+function _fbImportId(f){
+  var v=(document.getElementById('_fbId_'+f)||{value:''}).value.trim();if(!v)return;
+  _fbIr(f,v);
+}
+function _fbIr(f,id){
+  var ctx=_fbCtx;
+  // o aviso da fonte do botão já foi aceito; o da outra fonte ainda não
+  if(f!==ctx.origem&&!confirm(f==='cin'?_CIN_DISCLAIMER:_TMDB_DISCLAIMER))return;
+  document.getElementById('_fbModal').style.display='none';
+  if(f==='cin')_importCinId(ctx.codigo,id,ctx.btn);
+  else _importTMDBId(ctx.codigo,id,ctx.btn);
 }
 
 async function importCopiasToCatalog(){

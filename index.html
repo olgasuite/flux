@@ -4747,7 +4747,9 @@ html[data-theme="indexof"]:not([data-theme="win98"]) .module-icon{display:flex!i
               cast:fsa(r.crew.cast)
             }:{},
             runtime:r.runtime?parseInt(r.runtime):null,
-            cinemateca_raw:r.cinemateca_raw?(function(){try{return JSON.parse(r.cinemateca_raw);}catch(e){return null;}})():null
+            cinemateca_raw:r.cinemateca_raw?(function(){try{return JSON.parse(r.cinemateca_raw);}catch(e){return null;}})():null,
+            poster:fss(r.poster), foto_principal:fss(r.foto_principal), foto_principal_legenda:fss(r.foto_principal_legenda),
+            fotos:_catFotosParse(r.fotos)
           };
         });
         return map;
@@ -4809,6 +4811,9 @@ html[data-theme="indexof"]:not([data-theme="win98"]) .module-icon{display:flex!i
         runtime:data.runtime?fsInt(data.runtime):{integerValue:'0'},
         crew:{mapValue:{fields:crewF}},
         cinemateca_raw:fsStr(data.cinemateca_raw?JSON.stringify(data.cinemateca_raw):''),
+        // imagens (links): cartaz, foto principal e fotos adicionais {url, legenda}
+        poster:fsStr(data.poster||''),foto_principal:fsStr(data.foto_principal||''),foto_principal_legenda:fsStr(data.foto_principal_legenda||''),
+        fotos:{arrayValue:{values:_catFotosParse(data.fotos).map(function(f){return{mapValue:{fields:{url:{stringValue:f.url},legenda:{stringValue:f.legenda}}}};})}},
         avaliacoes:(function(){
           var av=data.avaliacoes||{};var fs={};
           Object.keys(av).forEach(function(em){
@@ -5627,7 +5632,9 @@ html[data-theme="indexof"]:not([data-theme="win98"]) .module-icon{display:flex!i
             cast:fsa(r.crew.cast)
           }:{},
           runtime:r.runtime?parseInt(r.runtime):null,
-          cinemateca_raw:r.cinemateca_raw?(function(){try{return JSON.parse(r.cinemateca_raw);}catch(e){return null;}})():null
+          cinemateca_raw:r.cinemateca_raw?(function(){try{return JSON.parse(r.cinemateca_raw);}catch(e){return null;}})():null,
+          poster:fss(r.poster), foto_principal:fss(r.foto_principal), foto_principal_legenda:fss(r.foto_principal_legenda),
+          fotos:_catFotosParse(r.fotos)
         };
       });
       catalogoFilmesMap = map;
@@ -24215,7 +24222,7 @@ function renderCatalogo(){
 
 function openCatDetail(codigo){
   // sempre cria nova entrada (voltar leva à ficha anterior); evita duplicar mesma ficha
-  _catView='detail';_catCode=codigo;_catEditing=false;
+  _catView='detail';_catCode=codigo;_catEditing=false;_catTab='ficha';
   if(!_browserNav){
     var st={olga:'catalogo',catCode:codigo};
     var cur=history.state;
@@ -24271,6 +24278,7 @@ function renderCatDetail(){
   else
     html+='<div class="cat-actions">'+acervoBtn+'</div>';
   html+='<div class="cat-header">';
+  if(!_catEditing&&meta.poster)html+='<img src="'+esc(_catImgSrc(meta.poster,'w400'))+'" referrerpolicy="no-referrer" alt="Cartaz" title="Ver imagens" onclick="_catSetTab(\'imagens\')" onerror="this.remove()" style="float:right;max-width:110px;max-height:165px;margin:0 0 10px 16px;border:1px solid var(--border);cursor:pointer;object-fit:cover;">';
   var _evColDet=copia.evento&&eventColors[copia.evento]?eventColors[copia.evento]:null;
   var _evBadge=copia.evento&&_evColDet?'<span class="cat-status-badge" style="background:'+_evColDet.bg+';color:'+_evColDet.text+';border-color:transparent;font-family:var(--sans);text-transform:none;letter-spacing:0;">'+copia.evento+'</span>':'';
   html+='<div class="cat-header-code">'+_catCode+(copia.status?'<span class="cat-status-badge '+sCls+'">'+copia.status+'</span>':'')+kdmBadge+selBadge+_evBadge+'</div>';
@@ -24303,7 +24311,21 @@ function renderCatDetail(){
     if(firmLine.length)html+='<div class="cat-header-firms" style="display:flex;flex-direction:column;gap:3px;margin-top:8px;font-family:var(--sans);font-size:12px;color:var(--text-dim);">'+firmLine.join('')+'</div>';
     if(meta.content_rating)html+='<div style="margin-top:10px;">'+_catRatingBadge(meta.content_rating)+'</div>';
   }
-  html+='</div>';
+  html+='<div style="clear:both;"></div></div>';
+  // abas da ficha (a aba Imagens não aparece durante a edição da ficha)
+  if(!_catEditing){
+    var _nImg=(meta.poster?1:0)+(meta.foto_principal?1:0)+(meta.fotos||[]).length;
+    var _tabSt=function(on){return'background:none;border:none;border-bottom:2px solid '+(on?'var(--accent)':'transparent')+';color:'+(on?'var(--text)':'var(--text-muted)')+';font-family:var(--mono);font-size:11px;letter-spacing:0.06em;text-transform:uppercase;padding:8px 14px;cursor:pointer;';};
+    html+='<div style="display:flex;gap:4px;border-bottom:1px solid var(--border);margin:6px 0 14px;">'
+      +'<button style="'+_tabSt(_catTab!=='imagens')+'" onclick="_catSetTab(\'ficha\')">Ficha</button>'
+      +'<button style="'+_tabSt(_catTab==='imagens')+'" onclick="_catSetTab(\'imagens\')">Imagens'+(_nImg?' ('+_nImg+')':'')+'</button>'
+      +'</div>';
+    if(_catTab==='imagens'){
+      html+=_catImagensHtml(meta,canEdit)+'</div>';
+      cont.innerHTML=html;
+      return;
+    }
+  }
   html+=catBlock('Técnico',
     '<div class="cat-grid">'+catFld('Legendas',(_catEditing&&_catEditLeg)?catInp('copia_legenda',copia.legenda||''):legDisplay)+catFld('Legenda de exibição',(_catEditing&&_catEditLeg)?('<select class="cat-input" id="catf_legenda_exibicao">'+['ORIGINAL','ELETRÔNICA EM PORTUGUÊS','ELETRÔNICA EM INGLÊS','ELETRÔNICA LSE','PRODUZIR VF'].map(function(o){return'<option value="'+o+'"'+((copia.legenda_exibicao||'ORIGINAL').toUpperCase()===o?' selected':'')+'>'+o+'</option>';}).join('')+'</select>'):esc(copia.legenda_exibicao||'ORIGINAL'))+'</div>'
     +'<div class="cat-grid">'+catFld('Metragem',_catEditing?catInp('film_type',meta.film_type||''):(meta.film_type||'\u2014'))+catFld('Classificação etária',_catEditing?'<select class="cat-input" id="catf_content_rating"><option value="">—</option>'+['L','10','12','14','16','18'].map(function(r){return'<option value="'+r+'"'+(meta.content_rating===r?' selected':'')+'>'+r+'</option>';}).join('')+'</select>':_catRatingBadge(meta.content_rating))+'</div>'
@@ -24622,7 +24644,7 @@ function catAddTag(event,id){
 }
 function catRmTag(event,id,idx){event.stopPropagation();var tags=catGetTags(id);tags.splice(idx,1);catSetTags(id,tags);}
 var _catOriginalData=null;
-function startCatEdit(){_catOriginalData=JSON.parse(JSON.stringify(catalogoFilmesMap[_catCode]||{}));_catEditing=true;_catDirty=false;renderCatDetail();}
+function startCatEdit(){_catTab='ficha';_catOriginalData=JSON.parse(JSON.stringify(catalogoFilmesMap[_catCode]||{}));_catEditing=true;_catDirty=false;renderCatDetail();}
 function cancelCatEdit(){_catEditing=false;_catDirty=false;renderCatDetail();}
 function _catRatingBadge(r){
   var cfg={
@@ -24681,6 +24703,8 @@ async function doSaveCat(){
             cast:catGetTags('crew_cast')})
     };
     if(catalogoFilmesMap[_catCode]&&catalogoFilmesMap[_catCode].cinemateca_raw)data.cinemateca_raw=catalogoFilmesMap[_catCode].cinemateca_raw;
+    // imagens são editadas na aba Imagens; aqui só são preservadas
+    _CAT_IMG_KEYS.forEach(function(k){var o=catalogoFilmesMap[_catCode];if(o&&o[k]!==undefined)data[k]=o[k];});
     // Duração: lê do novo input catf_runtime; cai para o valor anterior se vazio.
     var _runtimeInp=document.getElementById('catf_runtime');
     var _runtimeNew=_runtimeInp?parseInt(_runtimeInp.value):NaN;
@@ -24910,6 +24934,112 @@ function renderCatCreate(){
   if(typeof lucide!=='undefined')lucide.createIcons();
 }
 
+/* ═══ IMAGENS DO FILME (aba "Imagens" da ficha) ═══════════════════
+   Só links — nada é armazenado no Firestore além das URLs:
+   poster (cartaz), foto_principal (+ foto_principal_legenda) e fotos [{url, legenda}].
+   Links do Google Drive viram miniatura exibível (o arquivo precisa estar
+   compartilhado como "Qualquer pessoa com o link").                       */
+var _catTab='ficha';
+var _CAT_IMG_KEYS=['poster','foto_principal','foto_principal_legenda','fotos'];
+function _catFotosParse(v){
+  if(!Array.isArray(v))return[];
+  return v.map(function(x){
+    if(typeof x==='string')return{url:x.trim(),legenda:''};
+    x=x||{};return{url:String(x.url||'').trim(),legenda:String(x.legenda||'').trim()};
+  }).filter(function(x){return x.url;});
+}
+function _catDriveId(url){
+  var m=String(url||'').match(/drive\.google\.com\/(?:file\/d\/|open\?id=|uc\?(?:export=\w+&)?id=|thumbnail\?id=)([\w-]{20,})/)||String(url||'').match(/docs\.google\.com\/uc\?.*id=([\w-]{20,})/);
+  return m?m[1]:null;
+}
+function _catImgSrc(url,tam){
+  var id=_catDriveId(url);
+  if(id)return'https://drive.google.com/thumbnail?id='+id+'&sz='+(tam||'w1200');
+  var u=String(url||'');
+  if(/dropbox\.com/.test(u)){   // link de compartilhamento do Dropbox → arquivo direto
+    if(/[?&]dl=0/.test(u))return u.replace(/([?&])dl=0/,'$1raw=1');
+    if(!/[?&]raw=1/.test(u))return u+(u.indexOf('?')>=0?'&':'?')+'raw=1';
+  }
+  return u;
+}
+function _catSetTab(t){_catTab=t;renderCatDetail();window.scrollTo&&window.scrollTo(0,0);}
+function _catImgBox(url,alt,estilo){
+  if(!url)return'<div style="'+estilo+'display:flex;align-items:center;justify-content:center;border:1px dashed var(--border);color:var(--text-muted);font-family:var(--mono);font-size:10px;">sem imagem</div>';
+  return'<a href="'+esc(url)+'" target="_blank" rel="noopener" title="Abrir original"><img src="'+esc(_catImgSrc(url))+'" alt="'+esc(alt)+'" referrerpolicy="no-referrer" loading="lazy" style="'+estilo+'object-fit:cover;border:1px solid var(--border);display:block;" '
+    +'onerror="this.outerHTML=\'<div style=&quot;'+estilo.replace(/"/g,'')+'display:flex;align-items:center;justify-content:center;text-align:center;padding:8px;border:1px dashed var(--warn);color:var(--warn);font-family:var(--mono);font-size:10px;&quot;>não foi possível exibir — o link é público?</div>\'"></a>';
+}
+function _catImagensHtml(meta,canEdit){
+  var podeEd=canEdit&&window._olgaCanEdit&&window._olgaCanEdit('catalogo');
+  var fotos=meta.fotos||[];
+  var dica='<div style="font-family:var(--mono);font-size:9px;color:var(--text-muted);margin-top:4px;">Cole o link da imagem (Drive, site, TMDB…). No Google Drive, compartilhe o arquivo como “Qualquer pessoa com o link”.</div>';
+  var h='';
+  // Cartaz + foto principal lado a lado
+  h+='<div style="display:grid;grid-template-columns:minmax(160px,220px) 1fr;gap:18px;align-items:start;">';
+  h+='<div>'+catFld('Cartaz',_catImgBox(meta.poster,'Cartaz','width:100%;aspect-ratio:2/3;'))
+    +(podeEd?'<div style="display:flex;gap:6px;margin-top:6px;"><input class="cat-input" id="catimg_poster" placeholder="link do cartaz" value="'+esc(meta.poster||'')+'" style="flex:1;min-width:0;">'
+      +'<button class="cat-edit-btn" onclick="_catImgSet(\'poster\')">Salvar</button></div>':'')
+    +'</div>';
+  h+='<div>'+catFld('Foto principal',_catImgBox(meta.foto_principal,'Foto principal','width:100%;aspect-ratio:16/9;')
+      +(meta.foto_principal_legenda&&!podeEd?'<div style="font-family:var(--sans);font-size:11px;color:var(--text-muted);margin-top:4px;">'+esc(meta.foto_principal_legenda)+'</div>':''))
+    +(podeEd?'<div style="display:flex;gap:6px;margin-top:6px;flex-wrap:wrap;"><input class="cat-input" id="catimg_foto_principal" placeholder="link da foto principal" value="'+esc(meta.foto_principal||'')+'" style="flex:2 1 220px;min-width:0;">'
+      +'<input class="cat-input" id="catimg_foto_principal_legenda" placeholder="legenda / crédito" value="'+esc(meta.foto_principal_legenda||'')+'" style="flex:1 1 160px;min-width:0;">'
+      +'<button class="cat-edit-btn" onclick="_catImgSet(\'foto_principal\')">Salvar</button></div>'+dica:'')
+    +'</div>';
+  h+='</div>';
+  // Fotos adicionais
+  var grid='<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:12px;">'
+    +fotos.map(function(f,i){
+      return'<div>'+_catImgBox(f.url,f.legenda||'Foto '+(i+1),'width:100%;aspect-ratio:16/10;')
+        +(f.legenda?'<div style="font-family:var(--sans);font-size:11px;color:var(--text-muted);margin-top:4px;">'+esc(f.legenda)+'</div>':'')
+        +(podeEd?'<div style="display:flex;gap:4px;margin-top:4px;">'
+          +'<button class="cat-edit-btn" style="font-size:10px;padding:2px 6px;" title="Tornar foto principal" onclick="_catImgPrincipal('+i+')">★ principal</button>'
+          +'<button class="cat-edit-btn" style="font-size:10px;padding:2px 6px;color:var(--warn);border-color:var(--warn);" title="Remover" onclick="_catImgRemove('+i+')">×</button></div>':'')
+        +'</div>';
+    }).join('')+'</div>';
+  var add=podeEd?'<div style="margin-top:14px;">'
+      +'<textarea class="cat-textarea" id="catimg_novas" rows="3" placeholder="Cole um ou vários links (um por linha). Para legenda, use: link | legenda"></textarea>'
+      +'<div style="margin-top:6px;"><button class="cat-edit-btn" style="color:var(--accent);border-color:var(--accent);" onclick="_catImgAdd()">+ Adicionar fotos</button></div>'+dica+'</div>':'';
+  h+=catBlock('Fotos ('+fotos.length+')',(fotos.length?grid:'<div style="font-family:var(--mono);font-size:10px;color:var(--text-muted);">Nenhuma foto adicional.</div>')+add);
+  return h;
+}
+async function _catImgSalvar(patch){
+  if(!window._olgaCanEdit||!window._olgaCanEdit('catalogo')){alert('Sem permissão para editar os Selecionados.');return;}
+  var atual=catalogoFilmesMap[_catCode];if(!atual){alert('Filme não encontrado nos Selecionados.');return;}
+  var novo=Object.assign({},atual,patch);
+  try{
+    await window._olgaCatalogo.save(_catCode,novo,atual);   // com baseline: grava só os campos alterados
+    window._logFirestoreEdit&&window._logFirestoreEdit('individual',_catCode,patch,'catalogo','filmes');
+    catalogoFilmesMap[_catCode]=novo;
+    renderCatDetail();
+  }catch(e){alert('Erro ao salvar imagem: '+e.message);}
+}
+function _catImgSet(campo){
+  var v=((document.getElementById('catimg_'+campo)||{value:''}).value||'').trim();
+  var p={};p[campo]=v;
+  if(campo==='foto_principal')p.foto_principal_legenda=((document.getElementById('catimg_foto_principal_legenda')||{value:''}).value||'').trim();
+  _catImgSalvar(p);
+}
+function _catImgAdd(){
+  var linhas=((document.getElementById('catimg_novas')||{value:''}).value||'').split(/\n+/).map(function(l){return l.trim();}).filter(Boolean);
+  if(!linhas.length)return;
+  var novas=linhas.map(function(l){var p=l.split('|');return{url:p[0].trim(),legenda:(p.slice(1).join('|')||'').trim()};})
+    .filter(function(f){return/^https?:\/\//i.test(f.url);});
+  if(novas.length<linhas.length)alert((linhas.length-novas.length)+' linha(s) ignorada(s): o link precisa começar com http:// ou https://');
+  if(!novas.length)return;
+  _catImgSalvar({fotos:(catalogoFilmesMap[_catCode].fotos||[]).concat(novas)});
+}
+function _catImgRemove(i){
+  var fotos=(catalogoFilmesMap[_catCode].fotos||[]).slice();
+  if(!fotos[i]||!confirm('Remover esta foto da lista? (o arquivo original não é apagado)'))return;
+  fotos.splice(i,1);_catImgSalvar({fotos:fotos});
+}
+function _catImgPrincipal(i){
+  var m=catalogoFilmesMap[_catCode];var fotos=(m.fotos||[]).slice();var f=fotos[i];if(!f)return;
+  fotos.splice(i,1);
+  if(m.foto_principal)fotos.unshift({url:m.foto_principal,legenda:m.foto_principal_legenda||''});   // a principal antiga volta para a lista
+  _catImgSalvar({foto_principal:f.url,foto_principal_legenda:f.legenda||'',fotos:fotos});
+}
+
 // Campo de ID (TMDB / Filmografia) da criação, com botão de busca por nome:
 // o resultado escolhido só preenche o ID; os dados são importados ao criar o filme.
 function _catCreateIdFld(fonte,id,ph){
@@ -25047,6 +25177,8 @@ async function doCreateFilm(){
       }
       if(td.runtime&&!durHMMSS){durHMMSS=_catMinToHMMSS(td.runtime);var _durInp=document.getElementById('catf_dcp_duration_min');if(_durInp)_durInp.value=td.runtime;}
       if(td.trailer&&!catalogData.trailer)catalogData.trailer=td.trailer;
+      if(td.poster)catalogData.poster=td.poster;
+      if(td.foto_principal)catalogData.foto_principal=td.foto_principal;
     }catch(tmdbErr){console.warn('TMDB:',tmdbErr);}
     if(msg){msg.className='cat-msg';msg.textContent='Salvando…';}
   }
@@ -25571,6 +25703,8 @@ async function fetchTMDBMovie(tmdbId){
     original_language:_tmdbLangPt[d.original_language]||d.original_language||'',
     runtime:d.runtime||null,
     trailer:trailer,
+    poster:d.poster_path?'https://image.tmdb.org/t/p/w780'+d.poster_path:'',
+    foto_principal:d.backdrop_path?'https://image.tmdb.org/t/p/w1280'+d.backdrop_path:'',
     production_company:(d.production_companies||[]).map(function(c){return c.name;}),
     producers:crewByJobs(['Producer','Co-Producer']),
     executive_producers:crewByJobs(['Executive Producer']),
@@ -25741,7 +25875,7 @@ var _CIN_LABELS={
   distribution_company:'Distribuidora',producers:'Produtores',executive_producers:'Produção executiva',
   world_sales:'World sales',print_source:'Fonte da cópia',trailer:'Trailer',website:'Website',
   english_title:'Título em inglês',synopsis_en:'Sinopse em inglês',original_language:'Idioma original',cpb:'CPB',
-  keywords:'Palavras-chave',awards:'Prêmios',
+  keywords:'Palavras-chave',awards:'Prêmios',poster:'Cartaz',foto_principal:'Foto principal',
   'crew.screenplay':'Roteiro','crew.cinematography':'Fotografia',
   'crew.editing':'Montagem','crew.direct_sound':'Som direto','crew.sound_editing':'Edição de som','crew.soundtrack':'Música','crew.art_direction':'Direção de arte',
   'crew.costume_design':'Figurinos','crew.sound_design':'Desenho de som','crew.production_design':'Design de produção',

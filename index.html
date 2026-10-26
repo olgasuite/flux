@@ -15884,7 +15884,6 @@ function renderRevista(){
   var container=document.getElementById('revista-container');
   var empty=document.getElementById('revistaEmpty');
   if(!container)return;
-  if(typeof _ptRevistaAvisos==='function')_ptRevistaAvisos();
   Array.from(container.querySelectorAll('.rev-page,.rev-page-divider')).forEach(function(el){el.remove();});
   if(!revistaSelectedEvent){
     if(empty){empty.innerHTML='<p>Selecione um evento acima para gerar a revista.</p>';empty.style.display='flex';}
@@ -19453,7 +19452,7 @@ function renderDash(){
   html+=colBlock('legendagem','Legendagem',legBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 26/10/2026 às 16:27';
+  var sysUpdate='última atualização do sistema · 26/10/2026 às 16:33';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -29515,7 +29514,7 @@ function _sxcPrint(){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 26/10/2026 às 16:27</span></div>
+<div id="page-footer"><span>última atualização · 26/10/2026 às 16:33</span></div>
 
 </div>
 
@@ -33068,10 +33067,7 @@ textarea.pt-in{resize:vertical;}
 .pt-ro{font-family:var(--sans);font-size:13px;color:var(--text);padding:7px 0;border-bottom:1px solid var(--border);min-height:18px;}
 .pt-ro a{color:var(--accent);}
 .pt-leg-aviso{font-family:var(--sans);font-size:12px;color:var(--text);background:rgba(59,125,255,.08);border-left:3px solid #3b7dff;padding:6px 10px;margin:6px 0;}
-.pt-leg-aviso a,.pt-aviso-l a{color:var(--accent);}
-.pt-aviso-box{background:var(--surface);border:1px solid var(--border);border-left:3px solid var(--accent);padding:12px 16px;margin:0 0 16px;}
-.pt-aviso-l{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;font-family:var(--sans);font-size:12px;color:var(--text);padding:6px 0;border-bottom:1px solid var(--border);}
-@media print{#ptRevAvisos{display:none!important;}}
+.pt-leg-aviso a{color:var(--accent);}
 </style>
 <script>
 /* ═══ TRÁFEGO DE CÓPIAS ═══════════════════════════════════════════════
@@ -33247,7 +33243,6 @@ function _ptEnsure(){
 function _ptRerender(){
   if(currentMode==='printtraffic')renderPrintTraffic();
   else if(currentMode==='legendagem'&&typeof renderLegendagem==='function'&&!_ptBusy('legendagem-container'))renderLegendagem();
-  else if(currentMode==='revista')_ptRevistaAvisos();
 }
 function _ptSave(c,partial){
   var f=filmesMap[c],u=window._olgaUser||{};
@@ -33301,7 +33296,7 @@ function _ptCopiaLeg(c,st){
 }
 window._ptSetLeg=function(c,k,v){
   var f=filmesMap[c]||{},st=(f.col_n||'').trim();
-  if(v==='encaminhada'){_ptAvisar(c,'legendagem');return;}
+  if(v==='encaminhada'&&!st)_ptCopiaLeg(c,'SRT para tradução');
   if(v==='pendente'&&st){
     if(!confirm('O filme está na Legendagem com status "'+st+'". Tirar de lá?'))return;
     _ptCopiaLeg(c,'');
@@ -33309,29 +33304,6 @@ window._ptSetLeg=function(c,k,v){
   if(v==='finalizada'&&st!=='OK')_ptCopiaLeg(c,'OK');
   _ptSave(c,{legenda_status:v});
 };
-window._ptAvisar=function(c,eq){
-  var d=_ptDoc(c),link=eq==='catalogo'?(d.material_link||''):(d.legenda_link||'');
-  if(!link&&!confirm('O link está vazio. Avisar assim mesmo?'))return;
-  var u=window._olgaUser||{},p={avisos:{}};
-  p.avisos[eq]={em:new Date().toISOString(),por:u.name||u.email||'',link:link,ciente_em:'',ciente_por:''};
-  if(eq==='legendagem'){
-    p.legenda_status='encaminhada';
-    var f=filmesMap[c];if(f&&!(f.col_n||'').trim())_ptCopiaLeg(c,'SRT para tradução');
-  }
-  _ptSave(c,p);
-  _ptMsg(c,eq==='catalogo'?'Avisei a equipe do catálogo sobre os materiais promocionais.':'Encaminhei a legenda para a Programação/Legendagem.',true);
-};
-// "ciente" grava só avisos.{equipe} (as rules liberam isso para Legendagem e Revista)
-window._ptCiente=function(c,eq){
-  var u=window._olgaUser||{},p={avisos:{}};
-  p.avisos[eq]={ciente_em:new Date().toISOString(),ciente_por:u.name||u.email||''};
-  window._olgaPT.save(c,p).catch(function(e){alert('Erro ao marcar ciente: '+e.message);});
-};
-function _ptAvisoInfo(d,eq){
-  var a=d.avisos&&d.avisos[eq];if(!a||!a.em)return'';
-  return'<div class="traf-muted" style="margin-top:4px;">avisado por '+esc(a.por||'')+' em '+_ptDt(a.em)+' · '+
-    (a.ciente_em?'<span style="color:var(--ok);">ciente: '+esc(a.ciente_por||'')+' em '+_ptDt(a.ciente_em)+'</span>':'<span style="color:var(--accent);">aguardando ciente</span>')+'</div>';
-}
 function _ptBadge(opts,v){var l=_ptLabel(opts,v)||opts[0][1];return'<span class="pt-badge pt-st-'+esc(v||opts[0][0])+'">'+esc(l)+'</span>';}
 function _ptMatDots(d){
   var m=d.materiais||{};
@@ -33467,13 +33439,13 @@ function _ptDetalheHtml(c){
   // materiais
   h+='<div class="pt-box"><div class="pt-box-h">Materiais</div>'+
     '<div class="pt-lbl">Materiais promocionais para catálogo</div>'+
-    _ptLinkRow(c,'material_link','Link da pasta de materiais',can,can?'<button class="pt-btn-azul" onclick="_ptAvisar(\''+sc+'\',\'catalogo\')">Avisar equipe do catálogo</button>':'')+_ptAvisoInfo(d,'catalogo');
+    _ptLinkRow(c,'material_link','Link da pasta de materiais',can);
   _PT_MATS.forEach(function(x){h+='<div class="pt-lbl">'+x[1]+'</div>'+_ptRad(c,'materiais.'+x[0],_PT_MAT,mat[x[0]]||'pendente',can);});
   h+='</div>';
   // legenda
   h+='<div class="pt-box"><div class="pt-box-h">Legenda</div>'+
     '<div class="pt-lbl">Legendagem (arquivo enviado pela source)</div>'+
-    _ptLinkRow(c,'legenda_link','Link da legenda / lista de diálogos',can,can?'<button class="pt-btn-azul" onclick="_ptAvisar(\''+sc+'\',\'legendagem\')">Avisar Programação/Legendagem</button>':'')+_ptAvisoInfo(d,'legendagem')+
+    _ptLinkRow(c,'legenda_link','Link da legenda / lista de diálogos',can)+
     '<div class="pt-lbl">Status da legenda</div>'+_ptRad(c,'legenda_status',_PT_LEG,_ptLegStatus(c),can,'_ptSetLeg')+
     (st?'<div class="traf-muted" style="margin-top:4px;">na Legendagem: '+esc(st)+'</div>':'')+'</div>';
   h+='</div><div>';
@@ -33591,36 +33563,11 @@ function _ptSourcesHtml(){
   });
   return h+'</tbody></table></div>';
 }
-// pendências para as equipes que recebem avisos
+// no card da Legendagem: link da legenda que veio da distribuidora
 function _ptLegAviso(c){
-  var d=_ptDocs[c];if(!d)return'';
-  var a=(d.avisos||{}).legendagem,link=d.legenda_link||'';
-  if(!(a&&a.em)&&!link)return'';
-  var can=!!(window._olgaCanEdit&&window._olgaCanEdit('legendagem'));
-  return'<div class="pt-leg-aviso"><b>Legenda da distribuidora</b> (Print Traffic): '+(_ptUrl(link)?'<a href="'+esc(link.trim())+'" target="_blank" rel="noopener">abrir link</a>':esc(link||'sem link'))+
-    (a&&a.em?' · <span class="traf-muted">enviada por '+esc(a.por||'')+' em '+_ptDt(a.em)+'</span> · '+
-      (a.ciente_em?'<span style="color:var(--ok);">ciente: '+esc(a.ciente_por||'')+'</span>':(can?'<button class="leg-batch-btn" onclick="_ptCiente(\''+_trafSafe(c)+'\',\'legendagem\')">ciente</button>':'<span style="color:var(--accent);">aguardando ciente</span>')):'')+'</div>';
-}
-function _ptRevistaAvisos(){
-  var cont=document.getElementById('revista-container');if(!cont)return;
-  _ptEnsure();
-  var el=document.getElementById('ptRevAvisos');
-  var pend=Object.keys(_ptDocs).filter(function(c){
-    var a=(_ptDocs[c].avisos||{}).catalogo;
-    return a&&a.em&&!a.ciente_em&&(!revistaSelectedEvent||_ptDocs[c].event_name===revistaSelectedEvent);
-  });
-  if(!pend.length){if(el)el.remove();return;}
-  if(!el){el=document.createElement('div');el.id='ptRevAvisos';}
-  if(cont.firstChild!==el)cont.insertBefore(el,cont.firstChild);
-  var can=!!(window._olgaCanEdit&&window._olgaCanEdit('revista'));
-  el.innerHTML='<div class="pt-aviso-box"><div class="traf-h" style="margin-top:0;">Materiais promocionais recebidos · Print Traffic</div>'+
-    pend.map(function(c){
-      var d=_ptDocs[c],a=d.avisos.catalogo,link=a.link||d.material_link||'';
-      return'<div class="pt-aviso-l"><b>'+esc(filmDisplayTitle(c))+'</b> '+_ptMatDots(d)+' '+
-        (_ptUrl(link)?'<a href="'+esc(link.trim())+'" target="_blank" rel="noopener">abrir materiais</a> ':'')+
-        '<span class="traf-muted">avisado por '+esc(a.por||'')+' em '+_ptDt(a.em)+'</span>'+
-        (can?' <button class="print-btn" onclick="_ptCiente(\''+_trafSafe(c)+'\',\'catalogo\')">ciente</button>':'')+'</div>';
-    }).join('')+'</div>';
+  var link=(_ptDocs[c]||{}).legenda_link||'';
+  if(!link)return'';
+  return'<div class="pt-leg-aviso"><b>Legenda da distribuidora</b> (Print Traffic): '+(_ptUrl(link)?'<a href="'+esc(link.trim())+'" target="_blank" rel="noopener">abrir link</a>':esc(link))+'</div>';
 }
 function _trafGo(v){
   v=_trafPrimeiroVisivel(v);if(!v)return;

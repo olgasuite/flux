@@ -19452,7 +19452,7 @@ function renderDash(){
   html+=colBlock('legendagem','Legendagem',legBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 26/10/2026 às 16:33';
+  var sysUpdate='última atualização do sistema · 26/10/2026 às 16:48';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -29514,7 +29514,7 @@ function _sxcPrint(){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 26/10/2026 às 16:33</span></div>
+<div id="page-footer"><span>última atualização · 26/10/2026 às 16:48</span></div>
 
 </div>
 
@@ -33214,6 +33214,8 @@ var _PT_INV=[['nao_solicitado','Não solicitado'],['solicitado','Solicitado'],['
 var _PT_MAT=[['pendente','Pendente'],['solicitado','Solicitado'],['recebido','Recebido'],['aprovado','Aprovado'],['liberado','Liberado']];
 var _PT_MATS=[['stills','Stills','S'],['diretor','Diretor','D'],['poster','Poster','P'],['pressbook','Press Book','PB'],['trailer','Trailer','T']];
 var _PT_LEG=[['pendente','Pendente'],['encaminhada','Encaminhada'],['finalizada','Finalizada']];
+// formato de exibição: mesmas opções e mesmo campo do Acervo Técnico (copias.exhibition_format)
+var _PT_FORMATOS=['DCP','arquivo','35mm','16mm','Super 8mm','HDCAM','Outro'].map(function(o){return[o,o];});
 var _PT_MOEDAS=['Real','Dólar','Euro','Libra'];
 var _PT_MOEDA_SIM={'Real':'R$','Dólar':'US$','Euro':'€','Libra':'£'};
 var _PT_SRC_CAMPOS=[['categoria','Categoria','cat'],['nome','Nome'],['contato','Contato'],['email','E-mail'],['telefone','Telefone','',1],['celular','Celular','',1],['cep','CEP/ZipCode','',1],['endereco','Endereço completo','',1],['cidade','Cidade','',1],['estado','Estado','',1],['pais','País','pais',1],['origem','Origem','pais',1],['website','Website'],['obs','Observações','txt']];
@@ -33271,7 +33273,7 @@ window._ptChatEnviar=function(c){
 };
 function _ptTotal(d){
   var t={};
-  [['fee_moeda','fee_valor'],['dcp_moeda','dcp_valor']].forEach(function(p){
+  [['fee_moeda','fee_valor'],['dcp_moeda','dcp_valor'],['kdm_moeda','kdm_valor']].forEach(function(p){
     var v=Number(d[p[1]]);if(!v)return;var m=d[p[0]]||'?';t[m]=(t[m]||0)+v;
   });
   return t;
@@ -33294,6 +33296,16 @@ function _ptCopiaLeg(c,st){
     .then(function(){window._logFirestoreEdit&&window._logFirestoreEdit('individual',c,{subtitle_status:st},'printtraffic','copias');})
     .catch(function(e){f.col_n=old;alert('Erro ao atualizar a Legendagem: '+e.message);});
 }
+// grava direto na cópia (Acervo Técnico): o que muda aqui muda lá e vice-versa
+window._ptSetCopia=function(c,k,v){
+  var f=filmesMap[c];if(!f||!window._olgaCopias)return;
+  var p={},o={};p[k]=v;o[k]=f[k]||'';
+  f[k]=v;
+  window._olgaCopias.save(c,p,o)
+    .then(function(){window._logFirestoreEdit&&window._logFirestoreEdit('individual',c,p,'printtraffic','copias');})
+    .catch(function(e){f[k]=o[k];alert('Erro ao salvar na cópia: '+e.message);renderPrintTraffic();});
+  renderPrintTraffic();
+};
 window._ptSetLeg=function(c,k,v){
   var f=filmesMap[c]||{},st=(f.col_n||'').trim();
   if(v==='encaminhada'&&!st)_ptCopiaLeg(c,'SRT para tradução');
@@ -33400,7 +33412,7 @@ function _ptListaHtml(){
     h+='<tr class="pt-tr" data-busca="'+esc(busca)+'" onclick="_ptAbrir(\''+_trafSafe(c)+'\')">'+
       '<td><b>'+esc(filmDisplayTitle(c))+'</b><div class="traf-muted">'+esc(stripEvPrefix(c,f.evento))+'</div></td>'+
       '<td>'+(pr?esc(pr.nome||''):'<span class="traf-muted">—</span>')+(ids.length>1?' <span class="traf-muted">+'+(ids.length-1)+'</span>':'')+'</td>'+
-      '<td>'+_ptBadge(_PT_COPIA,d.copia_status)+(d.copia_previsao&&d.copia_status!=='recebido'?'<div class="traf-muted">prev. '+esc(_trafBr(d.copia_previsao))+'</div>':'')+'</td>'+
+      '<td>'+(f.exhibition_format?'<b style="font-family:var(--mono);font-size:10px;margin-right:5px;">'+esc(f.exhibition_format)+'</b>':'')+_ptBadge(_PT_COPIA,d.copia_status)+(d.copia_previsao&&d.copia_status!=='recebido'?'<div class="traf-muted">prev. '+esc(_trafBr(d.copia_previsao))+'</div>':'')+'</td>'+
       '<td>'+_ptBadge(_PT_INV,d.invoice_status)+'</td>'+
       '<td style="white-space:nowrap;">'+_ptMatDots(d)+'</td>'+
       '<td>'+_ptBadge(_PT_LEG,_ptLegStatus(c))+'</td>'+
@@ -33421,14 +33433,18 @@ function _ptDetalheHtml(c){
     '<div><div class="pt-tit">'+esc(filmDisplayTitle(c))+'</div><div class="traf-muted">'+esc(stripEvPrefix(c,f.evento))+' · '+esc(_trafEvNome(f.evento))+'</div></div></div>';
   h+='<div class="pt-grid"><div>';
   // cópia
-  h+='<div class="pt-box"><div class="pt-box-h">Cópia (DCP)</div>'+
+  var fmt=(f.exhibition_format||'').trim();
+  h+='<div class="pt-box"><div class="pt-box-h">Cópia</div>'+
+    '<div class="pt-lbl">Formato de exibição <span class="traf-muted">(o mesmo do Acervo Técnico)</span></div>'+_ptRad(c,'exhibition_format',_PT_FORMATOS,fmt,can,'_ptSetCopia')+
+    (fmt==='Outro'||f.exhibition_format_notes?'<div class="pt-lbl">Obs. do formato</div><input class="pt-in" value="'+esc(f.exhibition_format_notes||'')+'"'+(can?' onchange="_ptSetCopia(\''+sc+'\',\'exhibition_format_notes\',this.value.trim())"':dis)+'>':'')+
     '<div class="pt-lbl">Status da cópia</div>'+_ptRad(c,'copia_status',_PT_COPIA,d.copia_status||'pendente',can)+
     '<div class="pt-row"><div><div class="pt-lbl">Previsão de chegada</div>'+inp('copia_previsao','date')+'</div><div></div></div></div>';
   // despesas
   h+='<div class="pt-box"><div class="pt-box-h">Despesas</div>'+
     '<div class="pt-lbl">Quantidade de screenings</div>'+inp('screenings','num')+
     '<div class="pt-sub">Valor screening fee</div><div class="pt-row"><div><div class="pt-lbl">Moeda</div>'+_ptMoedaSel(c,'fee_moeda',d.fee_moeda,can)+'</div><div><div class="pt-lbl">Valor</div>'+inp('fee_valor','num')+'</div></div>'+
-    '<div class="pt-sub">Valor DCP + material</div><div class="pt-row"><div><div class="pt-lbl">Moeda</div>'+_ptMoedaSel(c,'dcp_moeda',d.dcp_moeda,can)+'</div><div><div class="pt-lbl">Valor</div>'+inp('dcp_valor','num')+'</div></div>'+
+    '<div class="pt-sub">Valor cópia + material</div><div class="pt-row"><div><div class="pt-lbl">Moeda</div>'+_ptMoedaSel(c,'dcp_moeda',d.dcp_moeda,can)+'</div><div><div class="pt-lbl">Valor</div>'+inp('dcp_valor','num')+'</div></div>'+
+    '<div class="pt-sub">KDM extra</div><div class="pt-row"><div><div class="pt-lbl">Moeda</div>'+_ptMoedaSel(c,'kdm_moeda',d.kdm_moeda,can)+'</div><div><div class="pt-lbl">Valor</div>'+inp('kdm_valor','num')+'</div></div>'+
     '<div class="pt-sub">Valor total aproximado</div><div class="pt-total">'+esc(_ptFmtTotal(_ptTotal(d)))+'</div></div>';
   // invoice
   h+='<div class="pt-box"><div class="pt-box-h">Invoice</div><div class="pt-row">'+

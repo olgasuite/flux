@@ -6653,6 +6653,10 @@ window.addEventListener('DOMContentLoaded',function(){
           <div id="fpSubmostraGroup"></div>
         </div>
         <div class="fp-prog-section">
+          <div class="fp-section-title">Sala</div>
+          <div id="fpSalaGroup"></div>
+        </div>
+        <div class="fp-prog-section">
           <div class="fp-section-title">Sessão</div>
           <div id="fpSessaoGroup"></div>
         </div>
@@ -7296,7 +7300,7 @@ var buscaFilters={
   titulo_bin:null,obs_bin:null,cpl_bin:null,cplOV_bin:null,dcp_link_bin:null,legenda_bin:null,
   duracao_min:null,duracao_max:null,gb_min:null,gb_max:null,bitrate_min:null,bitrate_max:null,
   sessao:new Set(),
-  mostra:new Set(),submostra:new Set()
+  mostra:new Set(),submostra:new Set(),sala:new Set()
 };
 var PALETTE=[
   {bg:'#B88ED2',text:'#1E293B'}, /* violet */
@@ -9844,6 +9848,10 @@ function _cleanBuscaSessaoFilter(){
   buscaFilters.submostra.forEach(function(sid){
     var ok=sessoesArr.some(function(s){return s.subprogram_id===sid&&(!s.evento||activeEventsBusca.has(s.evento));});
     if(!ok)buscaFilters.submostra.delete(sid);
+  });
+  buscaFilters.sala.forEach(function(sala){
+    var ok=sessoesArr.some(function(s){return s.cinema===sala&&(!s.evento||activeEventsBusca.has(s.evento));});
+    if(!ok)buscaFilters.sala.delete(sala);
   });
 }
 function buildBuscaFilters(){
@@ -16891,7 +16899,10 @@ function toggleExpand(idx){
         efLink('DCP Link',f.dcp_link),
         efLink('File Link',f.file_link),
       ].filter(Boolean).join('');
-      expandDiv.innerHTML='<div class="expand-grid">'+expandContent+'</div>';
+      var _imgExp=_catImgPrincipalHtml(cm,f.codigo,260);
+      expandDiv.innerHTML=_imgExp
+        ?'<div style="display:flex;gap:16px;align-items:flex-start;flex-wrap:wrap;">'+_imgExp+'<div class="expand-grid" style="flex:1;min-width:260px;">'+expandContent+'</div></div>'
+        :'<div class="expand-grid">'+expandContent+'</div>';
       var _footerBtns=(!window._olgaHasRestricao('acervo.sem_catalogo')?'<button class="cat-card-btn" style="margin-left:0;" data-cod="'+f.codigo.replace(/"/g,'&quot;')+'" onclick="event.stopPropagation();switchMode(\'catalogo\');openCatDetail(this.dataset.cod)">Ver nos Selecionados</button>':'');
       if(window._olgaUser&&window._olgaCanEdit('projecao')&&window._olgaCopias){
         _footerBtns+='<button class="cat-card-btn" style="margin-left:0;" onclick="event.stopPropagation();openAcervoEdit('+idx+')">✎ Editar registro técnico</button>';
@@ -16960,7 +16971,7 @@ function rebuildPillsForMode(m){
 
 /* BUSCA ADITIVA */
 function snapshotCurrentSearch(){
-  var snap={query:buscaQuery,eventos:new Set(activeEventsBusca),sessao:new Set(buscaFilters.sessao),mostra:new Set(buscaFilters.mostra),submostra:new Set(buscaFilters.submostra),duracao_min:buscaFilters.duracao_min,duracao_max:buscaFilters.duracao_max,gb_min:buscaFilters.gb_min,gb_max:buscaFilters.gb_max,bitrate_min:buscaFilters.bitrate_min,bitrate_max:buscaFilters.bitrate_max,norm:{},bin:{}};
+  var snap={query:buscaQuery,eventos:new Set(activeEventsBusca),sessao:new Set(buscaFilters.sessao),mostra:new Set(buscaFilters.mostra),submostra:new Set(buscaFilters.submostra),sala:new Set(buscaFilters.sala),duracao_min:buscaFilters.duracao_min,duracao_max:buscaFilters.duracao_max,gb_min:buscaFilters.gb_min,gb_max:buscaFilters.gb_max,bitrate_min:buscaFilters.bitrate_min,bitrate_max:buscaFilters.bitrate_max,norm:{},bin:{}};
   var nk=['evento','hd','idioma','legenda','vf','lente','som','kdm','status','col_k','resolucao','fps','exhibition_format','col_n','responsavel'];
   nk.forEach(function(k){snap.norm[k]=new Set(buscaFilters[k]);snap.norm[k+'_ex']=new Set(buscaFilters[k+'_ex']);});
   ['titulo_bin','obs_bin','cpl_bin','cplOV_bin','dcp_link_bin','legenda_bin'].forEach(function(k){snap.bin[k]=buscaFilters[k];});
@@ -16975,6 +16986,7 @@ function slotDescription(snap,idx){
   if(snap.sessao.size>0)parts.push(snap.sessao.size+' sessão(ões)');
   if(snap.mostra&&snap.mostra.size>0)parts.push(snap.mostra.size+' mostra(s)');
   if(snap.submostra&&snap.submostra.size>0)parts.push(snap.submostra.size+' submostra(s)');
+  if(snap.sala&&snap.sala.size>0)parts.push(snap.sala.size===1?Array.from(snap.sala)[0]:snap.sala.size+' salas');
   return'Conj.'+(idx+1)+(parts.length?': '+parts.slice(0,4).join(' · '):'');
 }
 function filmMatchesSnapshot(f,snap){
@@ -17002,6 +17014,7 @@ function filmMatchesSnapshot(f,snap){
   if(snap.sessao.size>0){var fs=buscaReverseSessoes[f.codigo]||[];if(!fs.some(function(s){return snap.sessao.has(s);}))return false;}
   if(snap.mostra&&snap.mostra.size>0){var fsM=buscaReverseSessoes[f.codigo]||[];if(!fsM.some(function(s){var ss=sessoesMap[s];return ss&&snap.mostra.has(ss.program_id);}))return false;}
   if(snap.submostra&&snap.submostra.size>0){var fsS=buscaReverseSessoes[f.codigo]||[];if(!fsS.some(function(s){var ss=sessoesMap[s];return ss&&snap.submostra.has(ss.subprogram_id);}))return false;}
+  if(snap.sala&&snap.sala.size>0){var fsL=buscaReverseSessoes[f.codigo]||[];if(!fsL.some(function(s){var ss=sessoesMap[s];return ss&&snap.sala.has(ss.cinema);}))return false;}
   if(snap.query){var q2=snap.query.toLowerCase();var _t=function(v){return String(v||'').toLowerCase();};var _cm2=catalogoFilmesMap&&catalogoFilmesMap[f.codigo]||{};var _sn=_cm2.system_name||'';var _tp=_cm2.title_pt||'';var _to=_cm2.original_title||'';var _te=_cm2.english_title||'';if(!_t(f.titulo).includes(q2)&&!_t(f.codigo).includes(q2)&&!_t(f.cpl).includes(q2)&&!_t(f.idioma).includes(q2)&&!_t(f.obs).includes(q2)&&!_t(f.status).includes(q2)&&!_t(f.cplOV).includes(q2)&&!_t(f.hd).includes(q2)&&!_t(_sn).includes(q2)&&!_t(_tp).includes(q2)&&!_t(_to).includes(q2)&&!_t(_te).includes(q2))return false;}
   return true;
 }
@@ -17038,14 +17051,14 @@ function _ssetStore(mod,arr){localStorage.setItem(_ssetKey(mod),JSON.stringify(a
 
 function _serSnap(snap){
   var nk=['evento','hd','idioma','legenda','vf','lente','som','kdm','status','col_k','resolucao','fps','exhibition_format','col_n','responsavel'];
-  var out={query:snap.query||'',duracao_min:snap.duracao_min,duracao_max:snap.duracao_max,gb_min:snap.gb_min,gb_max:snap.gb_max,bitrate_min:snap.bitrate_min,bitrate_max:snap.bitrate_max,eventos:Array.from(snap.eventos||[]),sessao:Array.from(snap.sessao||[]),mostra:Array.from(snap.mostra||[]),submostra:Array.from(snap.submostra||[]),norm:{},bin:{}};
+  var out={query:snap.query||'',duracao_min:snap.duracao_min,duracao_max:snap.duracao_max,gb_min:snap.gb_min,gb_max:snap.gb_max,bitrate_min:snap.bitrate_min,bitrate_max:snap.bitrate_max,eventos:Array.from(snap.eventos||[]),sessao:Array.from(snap.sessao||[]),mostra:Array.from(snap.mostra||[]),submostra:Array.from(snap.submostra||[]),sala:Array.from(snap.sala||[]),norm:{},bin:{}};
   nk.forEach(function(k){out.norm[k]=Array.from((snap.norm||{})[k]||[]);out.norm[k+'_ex']=Array.from((snap.norm||{})[k+'_ex']||[]);});
   Object.keys(snap.bin||{}).forEach(function(k){out.bin[k]=(snap.bin||{})[k];});
   return out;
 }
 function _deserSnap(raw){
   var nk=['evento','hd','idioma','legenda','vf','lente','som','kdm','status','col_k','resolucao','fps','exhibition_format','col_n','responsavel'];
-  var out={query:raw.query||'',duracao_min:raw.duracao_min,duracao_max:raw.duracao_max,gb_min:raw.gb_min,gb_max:raw.gb_max,bitrate_min:(raw.bitrate_min===undefined?null:raw.bitrate_min),bitrate_max:(raw.bitrate_max===undefined?null:raw.bitrate_max),eventos:new Set(raw.eventos||[]),sessao:new Set(raw.sessao||[]),mostra:new Set(raw.mostra||[]),submostra:new Set(raw.submostra||[]),norm:{},bin:{}};
+  var out={query:raw.query||'',duracao_min:raw.duracao_min,duracao_max:raw.duracao_max,gb_min:raw.gb_min,gb_max:raw.gb_max,bitrate_min:(raw.bitrate_min===undefined?null:raw.bitrate_min),bitrate_max:(raw.bitrate_max===undefined?null:raw.bitrate_max),eventos:new Set(raw.eventos||[]),sessao:new Set(raw.sessao||[]),mostra:new Set(raw.mostra||[]),submostra:new Set(raw.submostra||[]),sala:new Set(raw.sala||[]),norm:{},bin:{}};
   nk.forEach(function(k){out.norm[k]=new Set((raw.norm||{})[k]||[]);out.norm[k+'_ex']=new Set((raw.norm||{})[k+'_ex']||[]);});
   Object.keys(raw.bin||{}).forEach(function(k){out.bin[k]=(raw.bin||{})[k];});
   return out;
@@ -17077,7 +17090,7 @@ function loadBuscaSet(id){
   buscaFilters.gb_min=cur.gb_min;buscaFilters.gb_max=cur.gb_max;
   buscaFilters.bitrate_min=cur.bitrate_min;buscaFilters.bitrate_max=cur.bitrate_max;
   buscaFilters.sessao=cur.sessao||new Set();
-  buscaFilters.mostra=cur.mostra||new Set();buscaFilters.submostra=cur.submostra||new Set();
+  buscaFilters.mostra=cur.mostra||new Set();buscaFilters.submostra=cur.submostra||new Set();buscaFilters.sala=cur.sala||new Set();
   buildBuscaFilters();buildBuscaFilterPanel();renderBuscaResults();
 }
 function deleteBuscaSet(id){
@@ -17160,6 +17173,7 @@ function countActiveFilters(){
   if(buscaFilters.sessao.size>0)n++;
   if(buscaFilters.mostra.size>0)n++;
   if(buscaFilters.submostra.size>0)n++;
+  if(buscaFilters.sala.size>0)n++;
   return n;
 }
 
@@ -17179,8 +17193,8 @@ function clearAllBuscaFilters(){
   buscaFilters.duracao_min=null;buscaFilters.duracao_max=null;
   buscaFilters.gb_min=null;buscaFilters.gb_max=null;
   buscaFilters.bitrate_min=null;buscaFilters.bitrate_max=null;
-  buscaFilters.sessao.clear();buscaFilters.mostra.clear();buscaFilters.submostra.clear();
-  document.querySelectorAll('#fpSessaoGroup input[type=checkbox],#fpMostraGroup input[type=checkbox],#fpSubmostraGroup input[type=checkbox]').forEach(function(cb){cb.checked=false;});
+  buscaFilters.sessao.clear();buscaFilters.mostra.clear();buscaFilters.submostra.clear();buscaFilters.sala.clear();
+  document.querySelectorAll('#fpSessaoGroup input[type=checkbox],#fpMostraGroup input[type=checkbox],#fpSubmostraGroup input[type=checkbox],#fpSalaGroup input[type=checkbox]').forEach(function(cb){cb.checked=false;});
   document.querySelectorAll('#fpNormalGroups .fpill').forEach(function(p){p.classList.remove('active','excluded');});
   document.querySelectorAll('#fpNormalGroups .fp-group-label').forEach(function(l){l.classList.remove('has-active');});
   document.querySelectorAll('#fpBinaryGroups .bpill').forEach(function(p){p.classList.remove('active-yes','active-no');});
@@ -17265,6 +17279,10 @@ function applyBuscaFilters(f){
   if(buscaFilters.submostra.size>0){
     var fSessoes2=buscaReverseSessoes[f.codigo]||[];
     if(!fSessoes2.some(function(s){var ss=sessoesMap[s];return ss&&buscaFilters.submostra.has(ss.subprogram_id);}))return false;
+  }
+  if(buscaFilters.sala.size>0){   // filme com ao menos uma sessão numa das salas marcadas
+    var fSessoes3=buscaReverseSessoes[f.codigo]||[];
+    if(!fSessoes3.some(function(s){var ss=sessoesMap[s];return ss&&buscaFilters.sala.has(ss.cinema);}))return false;
   }
   return true;
 }
@@ -17403,6 +17421,7 @@ function buildBuscaFilterPanel(){
   buildSessaoFilterSection();
   buildMostraFilterSection();
   buildSubmostraFilterSection();
+  buildSalaFilterSection();
 }
 
 function buildRangeFilters(){
@@ -17629,6 +17648,19 @@ function buildSubmostraFilterSection(){
   });
   var items=Object.keys(map).map(function(id){return{id:id,label:map[id]};}).sort(function(a,b){return a.label.localeCompare(b.label,'pt');});
   _buildCheckList(container,items,buscaFilters.submostra,'fpsubmostra_');
+}
+// salas com sessão nos eventos ativos, rotuladas "Complexo · Sala" quando o nome não já traz o complexo
+function _salasProgItems(eventosAtivos){
+  var salas={};
+  sessoesArr.forEach(function(s){
+    if(!s.cinema||!s.evento||!eventosAtivos.has(s.evento))return;
+    if(!salas[s.cinema]){var cx=_getSalaComplexo(s.cinema)||'';salas[s.cinema]=(cx&&cx!==s.cinema&&s.cinema.indexOf(cx)<0)?cx+' · '+s.cinema:s.cinema;}
+  });
+  return Object.keys(salas).map(function(id){return{id:id,label:salas[id]};}).sort(function(a,b){return a.label.localeCompare(b.label,'pt',{numeric:true});});
+}
+function buildSalaFilterSection(){
+  var container=document.getElementById('fpSalaGroup');if(!container)return;
+  _buildCheckList(container,_salasProgItems(activeEventsBusca),buscaFilters.sala,'fpsala_');
 }
 
 function toggleFpProg(btn){btn.classList.toggle('open');document.getElementById('fpProgBody').classList.toggle('open');}
@@ -23607,7 +23639,7 @@ function _catEmptySearch(){
     idioma:'',idioma_neg:false,genre:'',genre_neg:false,pais:'',pais_neg:false,prod:'',prod_neg:false,dist:'',dist_neg:false,
     syn:'',syn_neg:false,scr:'',scr_neg:false,email:'',email_neg:false,keywords:'',keywords_neg:false,
     uf:new Set(),uf_ex:new Set(),ff_student:null,ff_first_time:null,escola:'',escola_neg:false,
-    program_id:new Set(),subprogram_id:new Set(),sessao_cat:new Set(),
+    program_id:new Set(),subprogram_id:new Set(),sessao_cat:new Set(),sala_cat:new Set(),
     responsavel:new Set(),responsavel_ex:new Set()};
 }
 function _catCloneSearch(s){var out={};Object.keys(s).forEach(function(k){out[k]=(s[k]instanceof Set)?new Set(s[k]):s[k];});return out;}
@@ -23663,7 +23695,7 @@ function _catHasCriteria(s){
     ||s.selecao.size||s.selecao_ex.size||s.ftype.size||s.ftype_ex.size||s.fmt.size||s.fmt_ex.size||s.kdm.size||s.kdm_ex.size
     ||s.stat.size||s.stat_ex.size||s.uf.size||s.uf_ex.size||s.responsavel.size||s.responsavel_ex.size
     ||s.ff_student||s.ff_first_time
-    ||s.program_id.size||s.subprogram_id.size||s.sessao_cat.size);
+    ||s.program_id.size||s.subprogram_id.size||s.sessao_cat.size||s.sala_cat.size);
 }
 function _catSlotDesc(s){
   var parts=[];
@@ -23692,6 +23724,7 @@ function _catSlotDesc(s){
   if(s.program_id.size)parts.push('mostra:'+s.program_id.size);
   if(s.subprogram_id.size)parts.push('submostra:'+s.subprogram_id.size);
   if(s.sessao_cat.size)parts.push('sessão:'+s.sessao_cat.size);
+  if(s.sala_cat.size)parts.push('sala:'+(s.sala_cat.size===1?Array.from(s.sala_cat)[0]:s.sala_cat.size));
   setPart('responsavel','resp');
   return parts.join(' · ')||'conjunto';
 }
@@ -23765,6 +23798,7 @@ function _catMatch(f,s){
   if(s.program_id.size){var hasProg=sessoesArr.some(function(sess){return sess.program_id&&s.program_id.has(sess.program_id)&&sess.filmes&&sess.filmes.indexOf(f.codigo)>=0;});if(!hasProg)return false;}
   if(s.subprogram_id.size){var hasSub=sessoesArr.some(function(sess){return sess.subprogram_id&&s.subprogram_id.has(sess.subprogram_id)&&sess.filmes&&sess.filmes.indexOf(f.codigo)>=0;});if(!hasSub)return false;}
   if(s.sessao_cat.size){var hasSessao=sessoesArr.some(function(sess){return sess.nome&&s.sessao_cat.has(sess.nome)&&sess.filmes&&sess.filmes.indexOf(f.codigo)>=0;});if(!hasSessao)return false;}
+  if(s.sala_cat.size){var hasSala=sessoesArr.some(function(sess){return sess.cinema&&s.sala_cat.has(sess.cinema)&&sess.filmes&&sess.filmes.indexOf(f.codigo)>=0;});if(!hasSala)return false;}
   var _resps=Array.isArray(meta.responsaveis)?meta.responsaveis:[];
   if(!arrSetCheck('responsavel',_resps))return false;
   return true;
@@ -23826,7 +23860,7 @@ function _catBuildCards(films){
   if(!films.length)return'<div class="cat-no-results">Nenhum resultado.</div>';
   var selCls={'FEST':'ok','SUPLENTE':'warn'};
   var html='<div class="cat-list">';
-  films.forEach(function(f){
+  films.forEach(function(f,_ci){
     var meta=catalogoFilmesMap[f.codigo]||{};
     var hasMeta=!!(meta.title||meta.system_name||meta.director);
     var title=filmDisplayTitle(f.codigo);
@@ -23852,7 +23886,7 @@ function _catBuildCards(films){
       +'<button class="cat-item cat-sel-grid'+(hasMeta?' has-meta':'')+'" data-cod="'+f.codigo.replace(/"/g,'&quot;')+'" onclick="openCatDetail(this.dataset.cod)">'
       +evSpan
       +'<span class="cat-item-code" title="'+f.codigo.replace(/"/g,'&quot;')+'">'+stripEvPrefix(f.codigo,f.evento)+'</span>'
-      +'<span class="cat-item-title">'+(title||'')+'</span>'
+      +'<span class="cat-item-title"><span class="cat-exp-tg" title="Informações básicas" onclick="event.stopPropagation();_catToggleResExp('+_ci+',this)" style="display:inline-block;width:14px;color:var(--text-muted);cursor:pointer;font-size:9px;transition:transform .15s;">▶</span>'+(title||'')+'</span>'
       +(dir?'<span class="cat-item-dir cc-dir">'+dir+'</span>':'<span class="cat-item-dir dim cc-dir">—</span>')
       +durSpan
       +ftypeSpan
@@ -23862,9 +23896,36 @@ function _catBuildCards(films){
       +selSpan
       +statusSpan
     +'</button>'
-    +(_batchCanEdit()?'</div>':'');
+    +(_batchCanEdit()?'</div>':'')
+    +'<div class="cat-res-exp" id="catresexp_'+_ci+'" data-cod="'+esc(f.codigo)+'" style="display:none;"></div>';
   });
   return html+'</div>';
+}
+// colapsável do resultado dos Selecionados: imagem principal + informações básicas (montado ao abrir)
+function _catToggleResExp(i,tg){
+  var el=document.getElementById('catresexp_'+i);if(!el)return;
+  var abrir=el.style.display==='none';
+  if(abrir&&!el.dataset.ok){
+    var cod=el.dataset.cod,m=catalogoFilmesMap[cod]||{},cop=filmesMap[cod]||{};
+    var arr=function(v){return(Array.isArray(v)?v:(v?[v]:[])).filter(Boolean).join(', ');};
+    var dur=fmtDurMin(cop.duracao)||(m.runtime?m.runtime+"'":'');
+    var tit=filmDisplayTitle(cod),outros=[m.original_title,m.english_title].filter(function(t){return t&&t!==tit;});
+    var lin=function(l,v){return v?'<div style="display:flex;gap:8px;margin:2px 0;"><span style="font-family:var(--mono);font-size:9px;letter-spacing:0.1em;text-transform:uppercase;color:var(--text-muted);min-width:78px;flex:none;padding-top:2px;">'+l+'</span><span>'+esc(String(v))+'</span></div>':'';};
+    var sin=(m.synopsis||'').trim();if(sin.length>420)sin=sin.slice(0,420).replace(/\s+\S*$/,'')+'…';
+    var info='<div style="flex:1;min-width:240px;font-family:var(--sans);font-size:12px;color:var(--text-dim);">'
+      +'<div style="font-size:14px;font-weight:600;color:var(--text);">'+esc(tit)+'</div>'
+      +(outros.length?'<div style="font-style:italic;margin-bottom:6px;">'+esc(outros.join(' · '))+'</div>':'')
+      +lin('Direção',arr(m.director))+lin('Ano',m.year)+lin('País',arr(m.countries))+lin('Duração',dur)
+      +lin('Gênero',arr(m.genre))+lin('Idioma',m.original_language||cop.idioma)+lin('Seleção',m.selecao)
+      +(sin?'<div style="margin-top:8px;line-height:1.45;">'+esc(sin)+'</div>':'')
+      +'<button class="cat-card-btn" style="margin:10px 0 0;" data-cod="'+esc(cod)+'" onclick="openCatDetail(this.dataset.cod)">Abrir ficha →</button>'
+      +'</div>';
+    el.innerHTML='<div style="display:flex;gap:16px;align-items:flex-start;flex-wrap:wrap;padding:12px 14px 14px 28px;border:1px solid var(--border);border-top:none;background:var(--surface2);margin-top:-4px;">'
+      +_catImgPrincipalHtml(m,cod,240)+info+'</div>';
+    el.dataset.ok='1';
+  }
+  el.style.display=abrir?'':'none';
+  if(tg)tg.style.transform=abrir?'rotate(90deg)':'';
 }
 
 /* ── pres toggle (no re-render) ── */
@@ -24143,13 +24204,14 @@ function renderCatalogo(){
   var _progItems=Object.keys(_progMap).map(function(id){return{id:id,label:_progMap[id]};}).sort(function(a,b){return a.label.localeCompare(b.label,'pt');});
   var _subItems=Object.keys(_subMap).map(function(id){return{id:id,label:_subMap[id]};}).sort(function(a,b){return a.label.localeCompare(b.label,'pt');});
   var _sessItems=_sessOpts.map(function(n){return{id:n,label:n};});
-  var _hasProgFilters=s.program_id.size||s.subprogram_id.size||s.sessao_cat.size;
+  var _hasProgFilters=s.program_id.size||s.subprogram_id.size||s.sessao_cat.size||s.sala_cat.size;
   html+='<div class="cat-sf-prog-row">';
   html+='<div class="cat-sf-prog-toggle'+(_hasProgFilters?' open':'')+'" onclick="toggleCatProg(this)"><span class="fp-prog-arrow">▶</span> Filtros de Programação'+(_hasProgFilters?'<span style="color:var(--accent);margin-left:6px;font-size:10px;">●</span>':'')+'</div>';
   html+='<div class="cat-sf-prog-body'+(_hasProgFilters?' open':'')+'">';
   html+='<div class="cat-sf-row" style="margin-bottom:6px;">';
   html+='<div class="cat-sf-cell narrow"><div class="cat-sf-lbl">Mostra</div><div class="cat-sf-wrap">'+_catCheckGroup('program_id',_progItems)+'</div></div>';
   html+='<div class="cat-sf-cell narrow"><div class="cat-sf-lbl">Submostra</div><div class="cat-sf-wrap">'+_catCheckGroup('subprogram_id',_subItems)+'</div></div>';
+  html+='<div class="cat-sf-cell narrow"><div class="cat-sf-lbl">Sala</div><div class="cat-sf-wrap">'+_catCheckGroup('sala_cat',_salasProgItems(activeEventsCatalogo))+'</div></div>';
   html+='<div class="cat-sf-cell"><div class="cat-sf-lbl">Sessão</div><div class="cat-sf-wrap">'+_catCheckGroup('sessao_cat',_sessItems)+'</div></div>';
   html+='</div></div></div>';
   html+='</div>'; // /cat-sf-form
@@ -24963,6 +25025,20 @@ function _catImgSrc(url,tam){
   return u;
 }
 function _catSetTab(t){_catTab=t;renderCatDetail();window.scrollTo&&window.scrollTo(0,0);}
+// imagem principal do filme (foto principal; sem ela, o cartaz) para os colapsáveis
+// do Acervo Técnico e dos resultados dos Selecionados. '' se o filme não tem imagem.
+function _catImgPrincipalHtml(meta,codigo,larg){
+  var url=meta&&(meta.foto_principal||meta.poster);if(!url)return'';
+  var ehCartaz=!meta.foto_principal;
+  var w=larg||240;
+  var estilo='width:'+(ehCartaz?Math.round(w*0.55):w)+'px;aspect-ratio:'+(ehCartaz?'2/3':'16/9')+';object-fit:cover;border:1px solid var(--border);display:block;background:var(--surface2);';
+  var nImg=(meta.poster?1:0)+(meta.foto_principal?1:0)+((meta.fotos||[]).length);
+  return'<div style="flex:none;">'
+    +'<a href="'+esc(url)+'" target="_blank" rel="noopener" title="Abrir imagem original" onclick="event.stopPropagation()">'
+    +'<img src="'+esc(_catImgSrc(url,'w800'))+'" alt="" loading="lazy" referrerpolicy="no-referrer" style="'+estilo+'" onerror="this.closest(\'div\').remove()"></a>'
+    +(codigo&&!(window._olgaHasRestricao&&window._olgaHasRestricao('acervo.sem_catalogo'))?'<button class="cat-card-btn" style="margin:6px 0 0;font-size:9px;" data-cod="'+esc(codigo)+'" onclick="event.stopPropagation();switchMode(\'catalogo\');openCatDetail(this.dataset.cod);_catSetTab(\'imagens\')">'+(nImg>1?'Ver as '+nImg+' imagens':'Ver imagens')+'</button>':'')
+    +'</div>';
+}
 function _catImgBox(url,alt,estilo){
   if(!url)return'<div style="'+estilo+'display:flex;align-items:center;justify-content:center;border:1px dashed var(--border);color:var(--text-muted);font-family:var(--mono);font-size:10px;">sem imagem</div>';
   return'<a href="'+esc(url)+'" target="_blank" rel="noopener" title="Abrir original"><img src="'+esc(_catImgSrc(url))+'" alt="'+esc(alt)+'" referrerpolicy="no-referrer" loading="lazy" style="'+estilo+'object-fit:cover;border:1px solid var(--border);display:block;" '

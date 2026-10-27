@@ -19585,7 +19585,7 @@ function renderDash(){
   html+=colBlock('legendagem','Legendagem',legBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 27/10/2026 às 12:27';
+  var sysUpdate='última atualização do sistema · 27/10/2026 às 12:42';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -26828,6 +26828,7 @@ async function _catSetVersaoNome(id,campo,valor){
     await window._olgaCopias.save(id,p,o);
     window._logFirestoreEdit&&window._logFirestoreEdit('individual',id,p,'catalogo','copias');
   }catch(e){f[campo]=old;alert('Erro ao salvar o nome da versão: '+e.message);}
+  if(window._mobileActive){var _t=_mobStack[_mobStack.length-1];if(_t&&_t.view==='catalogo-detail')_mobRenderCatalogoDetail(_t.params);return;}
   if(currentMode==='catalogo'&&typeof renderCatDetail==='function')renderCatDetail();
 }
 // clicar numa versão no card: edita (quem edita o Acervo) ou mostra o resumo
@@ -29791,7 +29792,7 @@ function _sxcPrint(){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 27/10/2026 às 12:27</span></div>
+<div id="page-footer"><span>última atualização · 27/10/2026 às 12:42</span></div>
 
 </div>
 
@@ -29948,6 +29949,7 @@ var _mobStack = [];
 var _mobYearsClosed = new Set();
 
 var _mobIconPaths = {
+  'truck':'<path d="M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2"/><path d="M15 18H9"/><path d="M19 18h2a1 1 0 0 0 1-1v-3.65a1 1 0 0 0-.22-.624l-3.48-4.35A1 1 0 0 0 17.52 8H14"/><circle cx="17" cy="18" r="2"/><circle cx="7" cy="18" r="2"/>',
   'projector':'<polyline points="6 8 6 2"/><polyline points="18 8 18 2"/><polyline points="2 8 22 8"/><path d="M2 8v10a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8"/><circle cx="12" cy="14" r="2"/>',
   'file-text':'<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>',
   'calendar-clock':'<path d="M21 7.5V6a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h3.5"/><path d="M16 2v4M8 2v4M3 10h5"/><circle cx="17.5" cy="17.5" r="4.5"/><polyline points="17.5 15.5 17.5 17.5 19 17.5"/>',
@@ -30037,6 +30039,8 @@ function _mobDispatch(frame){
   else if(v==='cinemas')_mobRenderCinemas(p);
   else if(v==='trafego')_mobRenderTrafego(p);
   else if(v==='trafego-hd')_mobRenderTrafHd(p);
+  else if(v==='printtraffic')_mobRenderPT(p);
+  else if(v==='printtraffic-filme')_mobRenderPTFilme(p);
 }
 
 function olgaMobileInit(){
@@ -30412,6 +30416,7 @@ function olgaMobileModulos(noStack){
     {mod:'catalogo',   icon:'book-open',     label:'Revista',     sub:'Leitura digital',      fn:'olgaMobileRevista()'},
     {mod:'trafego',    icon:'hard-drive',    label:'Operação',    sub:'Ingest e cabine',      fn:"olgaMobileTrafego('operacao')", traf:'operacao'},
     {mod:'trafego',    icon:'hard-drive',    label:'Distribuição de cópias', sub:'HDs de envio',     fn:"olgaMobileTrafego('interno')", traf:'interno'},
+    {mod:'printtraffic',icon:'truck',        label:'Print Traffic', sub:'Chegada das cópias',    fn:'olgaMobilePrintTraffic()'},
   ];
 
   // dedup por fn
@@ -30705,12 +30710,27 @@ function _mobRenderAcervoDetail(params){
     sessHtml='<div style="margin-top:16px;"><div style="font-family:var(--mono);font-size:9px;font-weight:600;letter-spacing:0.15em;text-transform:uppercase;color:var(--accent);margin-bottom:8px;">Sessões</div>'+
     sessCods.slice(0,15).map(function(sn){
       var s=sessoesMap[sn];if(!s)return'';
-      return'<div style="font-family:var(--mono);font-size:10px;color:var(--text-dim);padding:6px 0;border-bottom:1px solid var(--border);display:flex;gap:8px;">'+
+      return'<div style="font-family:var(--mono);font-size:10px;color:var(--text-dim);padding:6px 0;border-bottom:1px solid var(--border);display:flex;gap:8px;align-items:center;">'+
         '<span style="color:var(--accent);flex-shrink:0;">'+(s.hora||'?')+'</span>'+
         '<span style="flex-shrink:0;">'+(s.dia||'')+'</span>'+
         '<span style="color:var(--text-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+_mobEsc(s.cinema)+'</span>'+
+        _versaoTagSessao(s,cod)+
       '</div>';
     }).join('')+'</div>';
+  }
+  // versões extras do filme (a principal são os campos acima)
+  var _versMob=_versoesDoFilme(cod);
+  var versHtml='';
+  if(_versMob.length>1){
+    versHtml='<div style="margin-top:16px;"><div style="font-family:var(--mono);font-size:9px;font-weight:600;letter-spacing:0.15em;text-transform:uppercase;color:var(--accent);margin-bottom:8px;">Versões</div>'+
+      _versMob.map(function(v,vi){
+        var it=[v.exhibition_format,typeof fmtDur==='function'?fmtDur(v.duracao):v.duracao,v.gb?v.gb+' GB':'',_verLeg(v,false)].filter(function(x){return x&&x!=='—';});
+        return'<div style="padding:6px 0;border-bottom:1px solid var(--border);">'+
+          '<div style="font-family:var(--mono);font-size:11px;font-weight:700;color:var(--text);">'+_mobEsc(_versaoRotulo(v))+(vi?'':' <span style="color:var(--text-muted);font-weight:400;">(principal)</span>')+'</div>'+
+          '<div style="font-family:var(--mono);font-size:10px;color:var(--text-dim);">'+_mobEsc(it.join(' · '))+'</div>'+
+          (v.cpl?'<div style="font-family:var(--mono);font-size:9px;color:var(--cpl-color);word-break:break-all;">CPL '+_mobEsc(v.cpl)+'</div>':'')+
+        '</div>';
+      }).join('')+'</div>';
   }
   _mobSetContent(
     '<div class="mob-ficha-block">'+evPill+
@@ -30722,7 +30742,7 @@ function _mobRenderAcervoDetail(params){
     row('Resolução',f.resolucao)+row('FPS',f.fps)+row('Tamanho',f.gb?f.gb+' GB':'')+
     row('KDM',f.kdm&&f.kdm!=='-'&&f.kdm.toLowerCase()!=='ok'?f.kdm:'')+
     row('Acessib.',f.acessibilidade)+row('CPL',f.cpl)+row('OBS',f.obs)+
-    sessHtml+'</div>'
+    versHtml+sessHtml+'</div>'
   );
 }
 
@@ -31403,9 +31423,28 @@ function _mobRenderCatalogoDetail(params){
     row('Direção',cm.director)+row('Ano',cm.year)+row('País',cm.countries)+
     row('Duração',f&&(typeof fmtDur==='function'?fmtDur(f.duracao):f.duracao))+
     row('Gênero',cm.genre)+row('Tipo',cm.film_type)+row('Classif.',cm.content_rating)+
+    row('Fonte da cópia',(Array.isArray(cm.print_source)?cm.print_source:(cm.print_source?[cm.print_source]:[])).filter(function(n){return n&&!/^(-+|x)$/i.test(String(n).trim());}).join(', '))+
+    _mobCatVersoesHtml(cod)+
     (cm.synopsis?'<div style="font-family:var(--sans);font-size:12px;color:var(--text-dim);line-height:1.6;margin-top:12px;padding-top:12px;border-top:1px solid var(--border);">'+_mobEsc(cm.synopsis)+'</div>':'')+
     '</div>'
   );
+}
+
+// versões do filme no mobile dos Selecionados: o nome é escolha de quem seleciona (editável aqui)
+function _mobCatVersoesHtml(cod){
+  var vers=_versoesDoFilme(cod);if(!vers.length)return'';
+  var can=!!(window._olgaCanEdit&&window._olgaCanEdit('catalogo')&&window._olgaCopias);
+  var IN='font-size:16px;width:100%;padding:7px 9px;box-sizing:border-box;';
+  return'<div style="margin-top:14px;padding-top:10px;border-top:1px solid var(--border);"><div style="font-family:var(--mono);font-size:9px;font-weight:600;letter-spacing:0.15em;text-transform:uppercase;color:var(--accent);margin-bottom:6px;">Versões</div>'+
+    vers.map(function(v,vi){
+      var auto=Object.assign({},v,{versao_publico:''}),sid=String(v.codigo).replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+      function campo(k,val,ph){return can?'<input class="traf-input" style="'+IN+'" value="'+_mobEsc(val||'')+'" placeholder="'+_mobEsc(ph)+'" onchange="_catSetVersaoNome(\''+sid+'\',\''+k+'\',this.value)">':'<div style="font-size:12px;color:var(--text-dim);">'+_mobEsc(val||ph||'—')+'</div>';}
+      return'<div style="padding:8px 0;border-bottom:1px dashed var(--border);">'+
+        '<div style="font-family:var(--mono);font-size:11px;font-weight:700;color:var(--text);margin-bottom:4px;">'+_mobEsc(_verFmt(v,false)||'sem formato')+(vi?'':' · principal')+'</div>'+
+        '<div style="font-family:var(--mono);font-size:9px;color:var(--text-muted);margin:4px 0 2px;">Nome interno</div>'+campo('versao_nome',v.versao_nome,'opcional')+
+        '<div style="font-family:var(--mono);font-size:9px;color:var(--text-muted);margin:6px 0 2px;">Nome na Revista</div>'+campo('versao_publico',v.versao_publico,versaoPublico(auto)||'automático')+
+      '</div>';
+    }).join('')+'</div>';
 }
 
 /* ── DASHBOARD ──────────────────────────────────────────────────── */
@@ -33335,9 +33374,9 @@ textarea.pt-in{resize:vertical;}
 #printtraffic-container select.pt-in{min-width:0;padding:5px 8px;}
 #printtraffic-container select.pt-in.pt-w{width:120px;}
 #printtraffic-container select.pt-in.pt-w2{width:230px;}
-#printtraffic-container .pt-sel{border-left-width:3px;}
-#printtraffic-container .pt-sel.pt-n1{border-left-color:var(--accent);}
-#printtraffic-container .pt-sel.pt-n2{border-left-color:var(--ok);}
+#printtraffic-container .pt-sel,#mobContent .pt-sel{border-left-width:3px;}
+#printtraffic-container .pt-sel.pt-n1,#mobContent .pt-sel.pt-n1{border-left-color:var(--accent);}
+#printtraffic-container .pt-sel.pt-n2,#mobContent .pt-sel.pt-n2{border-left-color:var(--ok);}
 .pt-desp{display:grid;grid-template-columns:auto 120px 120px;gap:6px 10px;align-items:center;justify-content:start;margin-top:10px;}
 .pt-d-lbl{font-family:var(--sans);font-size:12px;color:var(--text);}
 .pt-d-h{font-family:var(--mono);font-size:9px;letter-spacing:.08em;text-transform:uppercase;color:var(--text-muted);margin-top:4px;}
@@ -33574,6 +33613,7 @@ function _ptEnsure(){
   if(!_ptSrcUnsub)_ptSrcUnsub=window._olgaPT.listenSources(function(m){_ptSources=m;_ptRerender();});
 }
 function _ptRerender(){
+  if(window._mobileActive){_ptMobRerender();return;}
   if(currentMode==='printtraffic')renderPrintTraffic();
   else if(currentMode==='legendagem'&&typeof renderLegendagem==='function'&&!_ptBusy('legendagem-container'))renderLegendagem();
 }
@@ -33632,11 +33672,11 @@ window._ptSetCopia=function(c,k,v){
   f[k]=v;
   window._olgaCopias.save(c,p,o)
     .then(function(){window._logFirestoreEdit&&window._logFirestoreEdit('individual',c,p,'printtraffic','copias');})
-    .catch(function(e){f[k]=o[k];alert('Erro ao salvar na cópia: '+e.message);renderPrintTraffic();});
-  renderPrintTraffic();
+    .catch(function(e){f[k]=o[k];alert('Erro ao salvar na cópia: '+e.message);renderPrintTraffic();_ptMobRerender();});
+  renderPrintTraffic();_ptMobRerender();
 };
 // status da legenda grava direto no campo da Legendagem
-window._ptSetLegSt=function(c,k,v){_ptCopiaLeg(c,v);renderPrintTraffic();};
+window._ptSetLegSt=function(c,k,v){_ptCopiaLeg(c,v);renderPrintTraffic();_ptMobRerender();};
 function _ptBadge(opts,v,g){var l=_ptLabel(opts,v)||v||'—';return'<span class="pt-badge pt-n'+_ptNivel(g,v)+'">'+esc(l)+'</span>';}
 function _ptMatDots(d){
   var m=d.materiais||{};
@@ -33863,6 +33903,121 @@ window._ptSrcDoCatalogo=function(c,nome){
   window._olgaPT.saveSource('',{nome:nome,categoria:'',updated_by:(u.email||'').toLowerCase(),updated_at:new Date().toISOString()})
     .then(function(nid){_ptSrcVincular(c,nid);})
     .catch(function(e){alert('Erro ao cadastrar: '+e.message);});
+};
+
+/* ── PRINT TRAFFIC no mobile ────────────────────────────────────────
+   Lista dos filmes do evento e ficha com o que se mexe no dia a dia: fonte da cópia, cópias
+   e legenda por versão, invoice, materiais, histórico e observações. Despesas aparecem só
+   como total; cadastro de fontes e valores ficam no computador. */
+function olgaMobilePrintTraffic(){
+  _mobPush({view:'printtraffic',params:{},title:'Print Traffic'});
+  _mobRenderPT(_mobStack[_mobStack.length-1].params);
+}
+function _ptMobTop(){var t=(typeof _mobStack!=='undefined')&&_mobStack[_mobStack.length-1];return t&&(t.view==='printtraffic'||t.view==='printtraffic-filme')?t:null;}
+// redesenha a tela aberta, menos enquanto se digita (o snapshot chega depois e redesenha)
+function _ptMobRerender(){
+  if(!window._mobileActive)return;
+  var t=_ptMobTop();if(!t)return;
+  var a=document.activeElement,mc=document.getElementById('mobContent');
+  if(a&&mc&&mc.contains(a)&&/^(INPUT|TEXTAREA)$/.test(a.tagName))return;
+  _mobDispatch(t);
+}
+var _PT_MOB_H='font-family:var(--mono);font-size:9px;font-weight:600;letter-spacing:.15em;text-transform:uppercase;color:var(--accent);margin:18px 0 6px;';
+function _mobRenderPT(p){
+  p=p||{};_ptEnsure();
+  var evs=_trafEventosAtivos();
+  if(evs.indexOf(_ptEv)<0)_ptEv=evs[0]||'';
+  if(!_ptEv){_mobSetContent('<div class="mob-empty">Nenhum evento ativo.</div>');return;}
+  var html=(evs.length>1?'<div style="padding:10px 14px 0;"><select class="traf-input" style="'+_TRAF_MOB_IN+'min-width:0;" onchange="_ptEv=this.value;_mobRenderPT(_ptMobTop().params)">'+
+      evs.map(function(e){return'<option value="'+esc(e)+'"'+(e===_ptEv?' selected':'')+'>'+esc(_trafEvNome(e))+'</option>';}).join('')+'</select></div>':'')+
+    '<div class="mob-ficha-search"><input id="mobPtInput" type="text" placeholder="filme, código ou fonte…" value="'+esc(p.q||'')+'" oninput="_ptMobBusca(this.value)" autocomplete="off" autocorrect="off" spellcheck="false"></div>'+
+    '<div id="mobPtList">'+_ptMobLista((p.q||'').toLowerCase())+'</div>';
+  _mobSetContent(html);
+}
+window._ptMobBusca=function(v){
+  var t=_ptMobTop();if(t)t.params.q=v;
+  var el=document.getElementById('mobPtList');if(el)el.innerHTML=_ptMobLista((v||'').toLowerCase());
+};
+function _ptMobLista(q){
+  var films=_ptFilmes().filter(function(f){
+    if(!q)return true;
+    var d=_ptDoc(f.codigo);
+    return(filmDisplayTitle(f.codigo)+' '+f.codigo+' '+(d.sources||[]).map(function(i){return(_ptSources[i]||{}).nome||'';}).join(' ')).toLowerCase().indexOf(q)>=0;
+  });
+  if(!films.length)return'<div class="mob-empty">Nenhum filme.</div>';
+  return films.map(function(f){
+    var c=f.codigo,d=_ptDoc(c),pr=_ptSources[d.source_principal]||null;
+    var cop=_versoesDoFilme(c).map(function(v){return _ptBadge(_PT_COPIA,_ptCopiaSt(_ptVD(c,v.codigo)),'copia');}).join('');
+    return'<div class="mob-sessao-card" style="padding:10px 14px;cursor:pointer;" onclick="_ptMobAbrir(\''+_trafSafe(c)+'\')">'+
+      '<div style="font-size:14px;font-weight:600;color:var(--text);">'+esc(filmDisplayTitle(c))+'</div>'+
+      '<div class="traf-muted">'+esc(stripEvPrefix(c,f.evento))+(pr?' · '+esc(pr.nome||''):'')+'</div>'+
+      '<div style="display:flex;flex-wrap:wrap;gap:4px;align-items:center;margin-top:6px;">'+cop+_ptBadge(_PT_INV,d.invoice_status||'nao_solicitado','inv')+_ptMatDots(d)+'</div></div>';
+  }).join('')+'<div style="height:24px;"></div>';
+}
+window._ptMobAbrir=function(c){_mobPush({view:'printtraffic-filme',params:{c:c},title:'Print Traffic'});_mobRenderPTFilme({c:c});};
+function _mobRenderPTFilme(p){
+  _ptEnsure();
+  var c=p.c,f=filmesMap[c];
+  if(!f){_mobSetContent('<div class="mob-empty">Filme não encontrado.</div>');return;}
+  var d=_ptDoc(c),can=_ptCanEdit(),sc=_trafSafe(c),dis=can?'':' disabled',S=_TRAF_MOB_IN+'min-width:0;';
+  var vers=_versoesDoFilme(c),multi=vers.length>1;
+  function sel(chave,path,opts,val,fn,g){
+    return'<select class="traf-input pt-sel'+(g?' pt-n'+_ptNivel(g,val):'')+'" style="'+S+'"'+(can?' onchange="this.blur();'+(fn||'_ptSet')+'(\''+_trafSafe(chave)+'\',\''+path+'\',this.value)"':dis)+'>'+
+      opts.map(function(o){return'<option value="'+esc(o[0])+'"'+(o[0]===val?' selected':'')+'>'+esc(o[1])+'</option>';}).join('')+'</select>';
+  }
+  function data(path,val){return'<input type="date" class="traf-input" style="'+S+'" value="'+esc(val||'')+'"'+(can?' onchange="_ptSet(\''+sc+'\',\''+path+'\',this.value)"':dis)+'>';}
+  function lbl(t){return'<div class="traf-muted" style="margin:8px 0 3px;">'+t+'</div>';}
+  function link(t,u){return _ptUrl(u)?'<a class="pt-btn" style="border-left:1px solid var(--accent);padding:6px 10px;display:inline-block;margin:6px 6px 0 0;" href="'+esc(String(u).trim())+'" target="_blank" rel="noopener">'+t+'</a>':'';}
+  var html='<div class="mob-ficha-block">'+
+    '<div class="mob-ficha-titulo">'+esc(filmDisplayTitle(c))+'</div>'+
+    '<div class="mob-ficha-subtitulo">'+esc(stripEvPrefix(c,f.evento))+' · '+esc(_trafEvNome(f.evento))+'</div>';
+  // fonte da cópia (+ sugestões dos Selecionados)
+  var ids=(d.sources||[]).filter(Boolean);
+  html+='<div style="'+_PT_MOB_H+'">Fonte da cópia</div>'+
+    (ids.length?ids.map(function(id){var s=_ptSources[id];return'<div style="font-size:13px;color:var(--text);padding:3px 0;">'+(id===d.source_principal?'★ ':'')+esc(s?s.nome||'':'(excluída do cadastro)')+(s&&s.email?' <a href="mailto:'+esc(s.email)+'" class="traf-muted">'+esc(s.email)+'</a>':'')+'</div>';}).join(''):'<div class="traf-muted">Nenhuma fonte.</div>');
+  var _cm=(typeof catalogoFilmesMap!=='undefined'&&catalogoFilmesMap[c])||{},_lig=ids.map(function(id){return _ptChaveNome((_ptSources[id]||{}).nome);});
+  var _sug=(Array.isArray(_cm.print_source)?_cm.print_source:(_cm.print_source?[_cm.print_source]:[])).map(function(n){return String(n||'').trim();}).filter(function(n){return n&&!/^(-+|x)$/i.test(n)&&_lig.indexOf(_ptChaveNome(n))<0;});
+  if(can&&_sug.length)html+='<div style="margin-top:6px;">'+_sug.map(function(n){return'<button class="print-btn" style="margin:3px 6px 0 0;" onclick="_ptSrcDoCatalogo(\''+sc+'\',\''+_trafSafe(n)+'\')">+ '+esc(n)+'</button>';}).join('')+'</div>';
+  // cópias por versão
+  html+='<div style="'+_PT_MOB_H+'">'+(multi?'Cópias':'Cópia')+'</div>';
+  vers.forEach(function(v){
+    var k=v.codigo,vd=_ptVD(c,k);
+    html+=(multi?'<div class="pt-ver-h">'+esc(_versaoRotulo(v))+'</div>':'')+
+      lbl('Formato')+sel(k,'exhibition_format',[['','—']].concat(_PT_FORMATOS),(v.exhibition_format||'').trim(),'_ptSetCopia')+
+      lbl('Status')+sel(c,_ptVPath(c,k,'copia_status'),_PT_COPIA,_ptCopiaSt(vd),'','copia')+
+      lbl('Previsão de chegada')+data(_ptVPath(c,k,'copia_previsao'),vd.copia_previsao)+
+      lbl('Data de devolução')+data(_ptVPath(c,k,'copia_devolucao'),vd.copia_devolucao);
+  });
+  // legenda por versão
+  html+='<div style="'+_PT_MOB_H+'">Legenda</div>';
+  vers.forEach(function(v){
+    var k=v.codigo,vd=_ptVD(c,k);
+    html+=(multi?'<div class="pt-ver-h">'+esc(_versaoRotulo(v))+'</div>':'')+
+      lbl('Status (o mesmo da Legendagem)')+sel(k,'subtitle_status',_ptLegOpts(),(v.col_n||'').trim(),'_ptSetLegSt','leg')+link('Abrir legenda',vd.legenda_link);
+  });
+  // invoice e despesas
+  html+='<div style="'+_PT_MOB_H+'">Invoice</div>'+
+    sel(c,'invoice_status',_PT_INV,d.invoice_status||'nao_solicitado','','inv')+
+    link('Abrir invoice',d.invoice_link)+link('Abrir recibo',d.recibo_link)+
+    '<div class="traf-muted" style="margin-top:8px;">Despesas: <b style="color:var(--text);">'+esc(_ptFmtTotal(_ptTotal(d)))+'</b>'+(d.pagamento_destino?' · pagamento: '+esc(d.pagamento_destino):'')+'</div>';
+  // materiais
+  var mat=d.materiais||{};
+  html+='<div style="'+_PT_MOB_H+'">Materiais</div>'+link('Abrir materiais',d.material_link);
+  _PT_MATS.forEach(function(x){html+=lbl(x[1])+sel(c,'materiais.'+x[0],_PT_MAT,mat[x[0]]||'pendente','','mat');});
+  // histórico e observações
+  var hist=(d.historico||[]).slice().sort(function(a,b){return(b.em||'').localeCompare(a.em||'');});
+  html+='<div style="'+_PT_MOB_H+'">Histórico</div>'+
+    (can?'<div style="display:flex;gap:6px;margin-bottom:8px;"><input id="ptMobChatIn" class="traf-input" style="'+S+'flex:1;" placeholder="Escreva sua mensagem…" onkeydown="if(event.key===\'Enter\'){event.preventDefault();_ptMobChat(\''+sc+'\');}"><button class="print-btn" onclick="_ptMobChat(\''+sc+'\')">Enviar</button></div>':'')+
+    (hist.length?hist.map(function(m){return'<div class="pt-msg'+(m.auto?' pt-auto':'')+'"><div class="pt-msg-h"><b>'+esc(m.autor||m.email||'')+'</b><span>'+esc(_ptDt(m.em))+'</span></div><div class="pt-msg-b">'+esc(m.texto||'')+'</div></div>';}).join(''):'<div class="traf-muted">Sem mensagens.</div>')+
+    '<div style="'+_PT_MOB_H+'">Observações</div>'+
+    '<textarea class="traf-input" style="'+S+'min-height:80px;font-family:var(--sans);"'+(can?' onchange="_ptSet(\''+sc+'\',\'obs\',this.value)"':dis)+'>'+esc(d.obs||'')+'</textarea>'+
+    '</div><div style="height:24px;"></div>';
+  _mobSetContent(html);
+}
+window._ptMobChat=function(c){
+  var i=document.getElementById('ptMobChatIn');if(!i)return;
+  var t=i.value.trim();if(!t)return;
+  i.value='';i.blur();_ptMsg(c,t);
 };
 function _ptSrcVincular(c,id){
   var d=_ptDoc(c),ids=(d.sources||[]).filter(Boolean);

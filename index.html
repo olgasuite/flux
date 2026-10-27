@@ -19585,7 +19585,7 @@ function renderDash(){
   html+=colBlock('legendagem','Legendagem',legBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 27/10/2026 às 12:23';
+  var sysUpdate='última atualização do sistema · 27/10/2026 às 12:27';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -29791,7 +29791,7 @@ function _sxcPrint(){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 27/10/2026 às 12:23</span></div>
+<div id="page-footer"><span>última atualização · 27/10/2026 às 12:27</span></div>
 
 </div>
 
@@ -33679,7 +33679,7 @@ function renderPrintTraffic(){
     (evs.length>1?'<select class="traf-input" onchange="_ptEv=this.value;_ptSel=null;this.blur();renderPrintTraffic()">'+evs.map(function(e){return'<option value="'+esc(e)+'"'+(e===_ptEv?' selected':'')+'>'+esc(_trafEvNome(e))+'</option>';}).join('')+'</select>':(_ptEv?'<span class="traf-muted">'+esc(_trafEvNome(_ptEv))+'</span>':''))+
     '<span style="flex:1"></span>'+
     '<button class="print-btn'+(_ptView==='filmes'?'':' pt-tab-off')+'" onclick="_ptView=\'filmes\';_ptSel=null;renderPrintTraffic()">Filmes</button>'+
-    '<button class="print-btn'+(_ptView==='sources'?'':' pt-tab-off')+'" onclick="_ptView=\'sources\';_ptSel=null;renderPrintTraffic()">Cadastro de sources</button>'+
+    '<button class="print-btn'+(_ptView==='sources'?'':' pt-tab-off')+'" onclick="_ptView=\'sources\';_ptSel=null;renderPrintTraffic()">Cadastro de fontes</button>'+
     '</div>';
   var body;
   if(_ptView==='sources')body=_ptSourcesHtml();
@@ -33724,9 +33724,9 @@ function _ptListaHtml(){
       opts.map(function(o){return'<option value="'+esc(o[0])+'"'+(_ptFiltro[k]===o[0]?' selected':'')+'>'+esc(o[1])+'</option>';}).join('')+'</select>';
   }
   var h='<div class="pt-resumo">'+films.length+' filme(s) · cópias recebidas '+nCop+'/'+nCopTot+' · invoices pagas '+nPago+' · legendas OK '+nLeg+' · despesas '+esc(_ptFmtTotal(tot))+'</div>'+
-    '<div class="traf-filtros"><input class="traf-input" style="min-width:220px;" placeholder="buscar filme, código ou source" oninput="_ptBusca(this.value)">'+
+    '<div class="traf-filtros"><input class="traf-input" style="min-width:220px;" placeholder="buscar filme, código ou fonte" oninput="_ptBusca(this.value)">'+
     sel('copia',_PT_COPIA)+sel('invoice',_PT_INV)+sel('legenda',_LEG_STATUS.map(function(o){return[o||'—',o||'—'];}))+'</div>';
-  h+='<div style="overflow-x:auto;"><table class="traf-table pt-table"><thead><tr><th>Filme</th><th>Source principal</th><th>Cópia</th><th>Invoice</th><th>Materiais</th><th>Legenda</th><th style="text-align:right;">Despesas</th><th>Histórico</th></tr></thead><tbody>';
+  h+='<div style="overflow-x:auto;"><table class="traf-table pt-table"><thead><tr><th>Filme</th><th>Fonte da cópia</th><th>Cópia</th><th>Invoice</th><th>Materiais</th><th>Legenda</th><th style="text-align:right;">Despesas</th><th>Histórico</th></tr></thead><tbody>';
   shown.forEach(function(f){
     var c=f.codigo,d=_ptDoc(c),ids=(d.sources||[]).filter(Boolean);
     var pr=_ptSources[d.source_principal]||(ids[0]&&_ptSources[ids[0]])||null;
@@ -33803,7 +33803,7 @@ function _ptDetalheHtml(c){
   vers.forEach(function(v){
     var k=v.codigo,vd=_ptVD(c,k);
     h+=(multi?'<div class="pt-ver-h">'+esc(_versaoRotulo(v))+'</div>':'')+
-      '<div class="pt-lbl">Arquivo enviado pela source</div>'+
+      '<div class="pt-lbl">Arquivo enviado pela fonte</div>'+
       vlink(_ptVPath(c,k,'legenda_link'),vd.legenda_link,'Link da legenda / lista de diálogos')+
       '<div class="pt-fs">'+fld('Status',_ptDrop(k,'subtitle_status',_ptLegOpts(),(v.col_n||'').trim(),can,'_ptSetLegSt','leg','pt-w2'))+'</div>';
   });
@@ -33830,10 +33830,10 @@ function _ptDetalheHtml(c){
 
 function _ptSourcesBox(c,d,can){
   var sc=_trafSafe(c),ids=(d.sources||[]).filter(Boolean);
-  var h='<div class="pt-box"><div class="pt-box-h">Print Source</div>';
-  if(can)h+='<div class="pt-lbl">Sources</div><input class="pt-in" list="ptSrcList" placeholder="buscar no cadastro e Enter" onkeydown="if(event.key===\'Enter\'){event.preventDefault();_ptSrcAddNome(\''+sc+'\',this);}" onchange="_ptSrcAddNome(\''+sc+'\',this)">';
+  var h='<div class="pt-box"><div class="pt-box-h">Fonte da cópia</div>';
+  if(can)h+='<div class="pt-lbl">Fontes</div><input class="pt-in" list="ptSrcList" placeholder="buscar no cadastro e Enter" onkeydown="if(event.key===\'Enter\'){event.preventDefault();_ptSrcAddNome(\''+sc+'\',this);}" onchange="_ptSrcAddNome(\''+sc+'\',this)">';
   h+='<table class="traf-table" style="margin-top:8px;"><thead><tr><th>Nome</th><th>Categoria</th><th style="text-align:center;">Principal</th><th></th></tr></thead><tbody>';
-  if(!ids.length)h+='<tr><td colspan="4" class="traf-muted">Nenhuma source.</td></tr>';
+  if(!ids.length)h+='<tr><td colspan="4" class="traf-muted">Nenhuma fonte.</td></tr>';
   ids.forEach(function(id){
     var s=_ptSources[id];
     h+='<tr><td>'+(s?esc(s.nome||''):'<span class="traf-muted">(excluída do cadastro)</span>')+'</td><td>'+esc((s&&s.categoria)||'')+'</td>'+
@@ -33843,9 +33843,27 @@ function _ptSourcesBox(c,d,can){
       (can?'<button class="pt-ico pt-ico-rm" title="tirar deste filme" onclick="_ptSrcDesvincular(\''+sc+'\',\''+id+'\')">×</button>':'')+'</td></tr>';
   });
   h+='</tbody></table>';
+  // "Fonte da cópia" dos Selecionados (filmes.print_source) ainda não vinculada: sugerir
+  var _cm=(typeof catalogoFilmesMap!=='undefined'&&catalogoFilmesMap[c])||{};
+  var _ligados=ids.map(function(id){return _ptChaveNome((_ptSources[id]||{}).nome);});
+  var _sug=(Array.isArray(_cm.print_source)?_cm.print_source:(_cm.print_source?[_cm.print_source]:[])).map(function(n){return String(n||'').trim();})
+    .filter(function(n){return n&&!/^(-+|x)$/i.test(n)&&_ligados.indexOf(_ptChaveNome(n))<0;});
+  if(can&&_sug.length)h+='<div class="traf-muted" style="margin-top:8px;">Nos Selecionados: '+_sug.map(function(n){return'<button class="pt-ico" title="vincular a este filme" onclick="_ptSrcDoCatalogo(\''+sc+'\',\''+_trafSafe(n)+'\')">+ '+esc(n)+'</button>';}).join(' ')+'</div>';
   if(can)h+='<div style="text-align:right;margin-top:8px;"><button class="print-btn" onclick="_ptSrcModal(\'\',\'novo\',\''+sc+'\')">Cadastrar novo</button></div>';
   return h+'</div>';
 }
+// nome comparável (sem maiúsculas, acentos, espaços e pontuação), igual ao da importação
+function _ptChaveNome(n){return String(n||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().replace(/[^a-z0-9]/g,'');}
+// vincula a fonte que está nos Selecionados; cadastra a empresa se ainda não existir
+window._ptSrcDoCatalogo=function(c,nome){
+  var k=_ptChaveNome(nome);
+  var id=Object.keys(_ptSources).find(function(x){return _ptChaveNome(_ptSources[x].nome)===k;});
+  if(id){_ptSrcVincular(c,id);return;}
+  var u=window._olgaUser||{};
+  window._olgaPT.saveSource('',{nome:nome,categoria:'',updated_by:(u.email||'').toLowerCase(),updated_at:new Date().toISOString()})
+    .then(function(nid){_ptSrcVincular(c,nid);})
+    .catch(function(e){alert('Erro ao cadastrar: '+e.message);});
+};
 function _ptSrcVincular(c,id){
   var d=_ptDoc(c),ids=(d.sources||[]).filter(Boolean);
   if(ids.indexOf(id)>=0)return;
@@ -33862,7 +33880,7 @@ window._ptSrcAddNome=function(c,inp){
 };
 window._ptSrcDesvincular=function(c,id){
   var d=_ptDoc(c),s=_ptSources[id];
-  if(!confirm('Tirar "'+((s&&s.nome)||'esta source')+'" deste filme? (ela continua no cadastro)'))return;
+  if(!confirm('Tirar "'+((s&&s.nome)||'esta fonte')+'" deste filme? (ela continua no cadastro)'))return;
   var ids=(d.sources||[]).filter(function(x){return x&&x!==id;});
   var p={sources:ids};if(d.source_principal===id)p.source_principal=ids[0]||'';
   _ptSave(c,p);
@@ -33872,7 +33890,7 @@ window._ptSrcModal=function(id,modo,c,nomeIni){
   var el=document.getElementById('ptSrcModal');
   if(!el){el=document.createElement('div');el.id='ptSrcModal';el.className='pt-ov';document.body.appendChild(el);}
   el.onclick=function(e){if(e.target===el)el.remove();};
-  var h='<div class="pt-modal"><div class="pt-modal-h"><span>'+esc(id?(s.nome||'Source'):'Nova source')+'</span><button class="pt-ico" onclick="document.getElementById(\'ptSrcModal\').remove()">×</button></div><div class="pt-modal-b"><div class="pt-form">';
+  var h='<div class="pt-modal"><div class="pt-modal-h"><span>'+esc(id?(s.nome||'Fonte'):'Nova fonte')+'</span><button class="pt-ico" onclick="document.getElementById(\'ptSrcModal\').remove()">×</button></div><div class="pt-modal-b"><div class="pt-form">';
   _PT_SRC_CAMPOS.forEach(function(fd){
     var k=fd[0],v=s[k]||'',lst=fd[2]==='cat'?' list="ptCatList"':(fd[2]==='pais'?' list="ptPaisList"':''),inner;
     if(ro){
@@ -33909,7 +33927,7 @@ window._ptSrcSalvar=function(id,c){
 window._ptSrcExcluir=function(id){
   var s=_ptSources[id]||{};
   var n=Object.keys(_ptDocs).filter(function(c){return(_ptDocs[c].sources||[]).indexOf(id)>=0;}).length;
-  if(!confirm('Excluir "'+(s.nome||'')+'" do cadastro geral de sources?'+(n?'\n\nEla está ligada a '+n+' filme(s) dos eventos ativos (e pode estar em filmes de outros eventos).':'')))return;
+  if(!confirm('Excluir "'+(s.nome||'')+'" do cadastro geral de fontes?'+(n?'\n\nEla está ligada a '+n+' filme(s) dos eventos ativos (e pode estar em filmes de outros eventos).':'')))return;
   window._olgaPT.removeSource(id).then(function(){var el=document.getElementById('ptSrcModal');if(el)el.remove();}).catch(function(e){alert('Erro ao excluir: '+e.message);});
 };
 function _ptSourcesHtml(){
@@ -33917,10 +33935,10 @@ function _ptSourcesHtml(){
   var ids=Object.keys(_ptSources).sort(function(a,b){return(_ptSources[a].nome||'').localeCompare(_ptSources[b].nome||'',undefined,{sensitivity:'base'});});
   var uso={};
   Object.keys(_ptDocs).forEach(function(c){(_ptDocs[c].sources||[]).forEach(function(id){uso[id]=(uso[id]||0)+1;});});
-  var h='<div class="traf-filtros"><input class="traf-input" style="min-width:220px;" placeholder="buscar source" oninput="_ptBusca(this.value)">'+
+  var h='<div class="traf-filtros"><input class="traf-input" style="min-width:220px;" placeholder="buscar fonte" oninput="_ptBusca(this.value)">'+
     (can?'<button class="print-btn" onclick="_ptSrcModal(\'\',\'novo\',\'\')">Cadastrar novo</button>':'')+
-    '<span class="traf-muted">'+ids.length+' source(s) · cadastro único para todos os eventos</span></div>';
-  if(!ids.length)return h+'<div class="traf-muted" style="padding:20px 0;">Nenhuma source cadastrada.</div>';
+    '<span class="traf-muted">'+ids.length+' fonte(s) · cadastro único para todos os eventos</span></div>';
+  if(!ids.length)return h+'<div class="traf-muted" style="padding:20px 0;">Nenhuma fonte cadastrada.</div>';
   h+='<div style="overflow-x:auto;"><table class="traf-table pt-table"><thead><tr><th>Nome</th><th>Categoria</th><th>Contato</th><th>E-mail</th><th>País</th><th>Origem</th><th>Filmes (eventos ativos)</th></tr></thead><tbody>';
   ids.forEach(function(id){
     var s=_ptSources[id];

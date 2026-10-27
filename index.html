@@ -19452,7 +19452,7 @@ function renderDash(){
   html+=colBlock('legendagem','Legendagem',legBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 26/10/2026 às 16:48';
+  var sysUpdate='última atualização do sistema · 27/10/2026 às 08:46';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -29514,7 +29514,7 @@ function _sxcPrint(){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 26/10/2026 às 16:48</span></div>
+<div id="page-footer"><span>última atualização · 27/10/2026 às 08:46</span></div>
 
 </div>
 
@@ -33018,35 +33018,35 @@ async function ressincronizarDuracoes(){
 .pt-tr:hover td{background:var(--surface2);}
 .pt-head{display:flex;align-items:center;gap:14px;margin-bottom:14px;}
 .pt-tit{font-family:var(--sans);font-size:18px;font-weight:700;color:var(--text);}
-.pt-grid{display:grid;grid-template-columns:minmax(0,1fr) 380px;gap:18px;align-items:start;}
+.pt-grid{display:grid;grid-template-columns:minmax(0,1fr) 360px;gap:14px;align-items:start;}
 @media(max-width:1000px){.pt-grid{grid-template-columns:minmax(0,1fr);}}
-.pt-box{background:var(--surface);border:1px solid var(--border);border-top:2px solid var(--accent);padding:12px 16px 16px;margin-bottom:14px;}
-.pt-box-h{font-family:var(--sans);font-size:15px;font-weight:600;color:var(--text);padding-bottom:8px;border-bottom:1px solid var(--border);margin-bottom:4px;}
-.pt-sub{font-family:var(--sans);font-size:13px;font-weight:600;text-transform:uppercase;color:var(--text);margin:16px 0 0;}
-.pt-lbl{font-family:var(--sans);font-size:12px;font-weight:700;color:var(--text);margin:12px 0 5px;}
-.pt-in{width:100%;box-sizing:border-box;font-family:var(--sans);font-size:13px;background:var(--bg);color:var(--text);border:1px solid var(--border2);padding:7px 10px;}
+.pt-blocos{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:14px;align-items:start;}
+.pt-blocos .pt-box{margin-bottom:0;}
+.pt-box{background:var(--surface);border:1px solid var(--border);border-top:2px solid var(--accent);padding:10px 14px 14px;margin-bottom:14px;}
+.pt-box-h{font-family:var(--mono);font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);padding-bottom:6px;border-bottom:1px solid var(--border);}
+.pt-lbl{font-family:var(--mono);font-size:9px;letter-spacing:.08em;text-transform:uppercase;color:var(--text-muted);margin:10px 0 4px;}
+.pt-in{width:100%;box-sizing:border-box;font-family:var(--sans);font-size:12px;background:var(--bg);color:var(--text);border:1px solid var(--border2);padding:5px 8px;}
+.pt-in:focus{outline:none;border-color:var(--accent);}
 .pt-in:disabled{opacity:.75;}
+.pt-in.pt-w{width:120px;}
+.pt-in.pt-w2{width:230px;}
 textarea.pt-in{resize:vertical;}
-.pt-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
-.pt-total{font-family:var(--mono);font-size:14px;text-align:right;background:var(--surface2);border:1px solid var(--border2);padding:8px 10px;margin-top:5px;}
+.pt-fs{display:flex;flex-wrap:wrap;gap:0 12px;}
+.pt-sel{border-left-width:3px;}
+.pt-sel.pt-n1{border-left-color:var(--accent);}
+.pt-sel.pt-n2{border-left-color:var(--ok);}
+.pt-desp{display:grid;grid-template-columns:auto 120px 120px;gap:6px 10px;align-items:center;justify-content:start;margin-top:10px;}
+.pt-d-lbl{font-family:var(--sans);font-size:12px;color:var(--text);}
+.pt-d-h{font-family:var(--mono);font-size:9px;letter-spacing:.08em;text-transform:uppercase;color:var(--text-muted);margin-top:4px;}
+.pt-total{grid-column:2/4;font-family:var(--mono);font-size:12px;font-weight:700;text-align:right;color:var(--text);background:var(--surface2);border:1px solid var(--border2);padding:5px 8px;}
 .pt-linkrow{display:flex;}
 .pt-linkrow .pt-in{flex:1;min-width:0;}
-.pt-btn-cinza,.pt-btn-azul,.pt-btn-laranja{font-family:var(--sans);font-size:12px;border:none;padding:7px 12px;cursor:pointer;white-space:nowrap;text-decoration:none;display:inline-flex;align-items:center;}
-.pt-btn-cinza{background:#6c757d;color:#fff;}
-.pt-btn-cinza.pt-off{opacity:.45;cursor:default;}
-.pt-btn-azul{background:#17a2b8;color:#fff;}
-.pt-btn-laranja{background:#fd7e14;color:#fff;font-weight:600;}
-.pt-radios{display:flex;flex-wrap:wrap;gap:4px 14px;}
-.pt-radio{display:inline-flex;align-items:center;gap:5px;font-family:var(--sans);font-size:12px;font-weight:600;color:var(--text-dim);cursor:pointer;}
-.pt-radio.on{color:var(--text);}
-.pt-radio input{margin:0;accent-color:#2b8fd6;}
-.pt-radio.pt-st-liberado input,.pt-radio.pt-st-pago input,.pt-radio.pt-st-finalizada input,.pt-radio.pt-st-recebido input{accent-color:#1f9d55;}
+.pt-btn{font-family:var(--mono);font-size:9px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;background:transparent;color:var(--accent);border:1px solid var(--accent);border-left:none;padding:0 10px;cursor:pointer;white-space:nowrap;text-decoration:none;display:inline-flex;align-items:center;}
+.pt-btn.pt-off{color:var(--text-muted);border-color:var(--border2);cursor:default;}
 .pt-badge{display:inline-block;font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:.04em;padding:2px 6px;border:1px solid var(--border2);color:var(--text-muted);white-space:nowrap;}
 .pt-dot{display:inline-block;font-family:var(--mono);font-size:8px;font-weight:700;min-width:16px;text-align:center;padding:1px 2px;margin-right:2px;border:1px solid var(--border2);color:var(--text-muted);}
-.pt-badge.pt-st-solicitado,.pt-dot.pt-st-solicitado,.pt-badge.pt-st-enviado{color:var(--accent);border-color:var(--accent);}
-.pt-badge.pt-st-recebido,.pt-dot.pt-st-recebido,.pt-badge.pt-st-encaminhado,.pt-badge.pt-st-encaminhada{color:#3b7dff;border-color:#3b7dff;}
-.pt-dot.pt-st-aprovado{color:#17a2b8;border-color:#17a2b8;}
-.pt-badge.pt-st-pago,.pt-badge.pt-st-finalizada,.pt-dot.pt-st-liberado{color:var(--ok);border-color:var(--ok);}
+.pt-badge.pt-n1,.pt-dot.pt-n1{color:var(--accent);border-color:var(--accent);}
+.pt-badge.pt-n2,.pt-dot.pt-n2{color:var(--ok);border-color:var(--ok);}
 .pt-table td:first-child{min-width:200px;}
 .pt-ico{font-family:var(--mono);font-size:10px;background:none;border:1px solid var(--border2);color:var(--text-dim);padding:2px 6px;margin-left:3px;cursor:pointer;}
 .pt-ico:hover{color:var(--accent);border-color:var(--accent);}
@@ -33055,8 +33055,8 @@ textarea.pt-in{resize:vertical;}
 .pt-msg{margin:8px 0;}
 .pt-msg-h{display:flex;justify-content:space-between;gap:8px;font-family:var(--sans);font-size:11px;color:var(--text-dim);}
 .pt-msg-h b{color:var(--text);}
-.pt-msg-b{background:#fd7e14;color:#fff;font-family:var(--sans);font-size:13px;padding:7px 11px;border-radius:6px;margin-top:3px;white-space:pre-wrap;word-break:break-word;}
-.pt-auto .pt-msg-b{background:var(--surface2);color:var(--text-dim);font-style:italic;}
+.pt-msg-b{background:var(--accent-dim,var(--surface2));color:var(--text);border-left:2px solid var(--accent);font-family:var(--sans);font-size:12px;padding:6px 10px;margin-top:3px;white-space:pre-wrap;word-break:break-word;}
+.pt-auto .pt-msg-b{background:var(--surface2);color:var(--text-dim);border-left-color:var(--border2);font-style:italic;}
 .pt-ov{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:650;display:flex;padding:20px;overflow-y:auto;}
 .pt-modal{background:var(--surface);border:1px solid var(--border);width:100%;max-width:760px;margin:auto;display:flex;flex-direction:column;max-height:calc(100vh - 40px);}
 .pt-modal-h{display:flex;justify-content:space-between;align-items:center;padding:14px 20px;border-bottom:1px solid var(--border);font-family:var(--sans);font-size:18px;color:var(--text);}
@@ -33066,7 +33066,7 @@ textarea.pt-in{resize:vertical;}
 .pt-form .pt-full{grid-column:1/-1;}
 .pt-ro{font-family:var(--sans);font-size:13px;color:var(--text);padding:7px 0;border-bottom:1px solid var(--border);min-height:18px;}
 .pt-ro a{color:var(--accent);}
-.pt-leg-aviso{font-family:var(--sans);font-size:12px;color:var(--text);background:rgba(59,125,255,.08);border-left:3px solid #3b7dff;padding:6px 10px;margin:6px 0;}
+.pt-leg-aviso{font-family:var(--sans);font-size:12px;color:var(--text);background:var(--surface2);border-left:3px solid var(--accent);padding:6px 10px;margin:6px 0;}
 .pt-leg-aviso a{color:var(--accent);}
 </style>
 <script>
@@ -33203,17 +33203,25 @@ function _trafPrimeiroVisivel(pref){var ord=[pref,'interno','operacao'];for(var 
    Chegada das cópias das distribuidoras. printtraffic/{código da cópia}: sources (ids de
    pt_sources, cadastro GLOBAL de empresas — exceção à regra de nada vazar entre eventos,
    como os cinemas), histórico da negociação, observações, despesas, invoice, materiais e
-   legenda. Avisos às equipes ficam no próprio doc (avisos.catalogo / avisos.legendagem) e
-   aparecem como pendência na Revista e na Legendagem, onde se marca "ciente".
-   Legenda ligada à Legendagem: encaminhar põe o filme lá (copias.subtitle_status) e o OK
-   de lá aparece aqui como "Finalizada". */
+   legenda. Formato de exibição e status da legenda NÃO têm campo próprio: são os mesmos
+   campos da cópia (copias.exhibition_format, do Acervo Técnico, e copias.subtitle_status,
+   da Legendagem) — mudar aqui muda lá e vice-versa. */
 var _ptEv='',_ptSel=null,_ptView='filmes',_ptDocs={},_ptSources={},_ptUnsub=null,_ptKey='',_ptSrcUnsub=null,_ptDirty=false,_ptChatFoco=false;
 var _ptFiltro={copia:'',invoice:'',legenda:''};
-var _PT_COPIA=[['pendente','Pendente'],['solicitado','Solicitado'],['enviado','Enviado'],['recebido','Recebido']];
+var _PT_COPIA=[['nao_solicitado','Não solicitado'],['solicitado','Solicitado'],['em_transito','Em trânsito'],['recebido','Recebido']];
 var _PT_INV=[['nao_solicitado','Não solicitado'],['solicitado','Solicitado'],['recebido','Recebido'],['encaminhado','Encaminhado'],['pago','Pago']];
 var _PT_MAT=[['pendente','Pendente'],['solicitado','Solicitado'],['recebido','Recebido'],['aprovado','Aprovado'],['liberado','Liberado']];
 var _PT_MATS=[['stills','Stills','S'],['diretor','Diretor','D'],['poster','Poster','P'],['pressbook','Press Book','PB'],['trailer','Trailer','T']];
-var _PT_LEG=[['pendente','Pendente'],['encaminhada','Encaminhada'],['finalizada','Finalizada']];
+// status da legenda = lista do módulo Legendagem
+function _ptLegOpts(){return _LEG_STATUS.map(function(o){return[o,o||'—'];});}
+// cópia: valores da 1ª versão (pendente/enviado) lidos como os atuais
+function _ptCopiaSt(d){var v=d.copia_status||'nao_solicitado';return v==='pendente'?'nao_solicitado':v==='enviado'?'em_transito':v;}
+// nível do status para a cor (0 = não iniciado, 1 = em andamento, 2 = concluído)
+function _ptNivel(g,v){
+  if(g==='leg')return !v?0:v==='OK'?2:1;
+  if(!v||v==='nao_solicitado'||v==='pendente')return 0;
+  return(g==='copia'&&v==='recebido')||(g==='inv'&&v==='pago')||(g==='mat'&&v==='liberado')?2:1;
+}
 // formato de exibição: mesmas opções e mesmo campo do Acervo Técnico (copias.exhibition_format)
 var _PT_FORMATOS=['DCP','arquivo','35mm','16mm','Super 8mm','HDCAM','Outro'].map(function(o){return[o,o];});
 var _PT_MOEDAS=['Real','Dólar','Euro','Libra'];
@@ -33282,13 +33290,6 @@ function _ptFmtTotal(t){
   var ks=Object.keys(t);if(!ks.length)return'—';
   return ks.map(function(m){return(_PT_MOEDA_SIM[m]||m)+' '+t[m].toLocaleString('pt-BR',{maximumFractionDigits:2});}).join(' + ');
 }
-// status da legenda: OK na Legendagem = finalizada; filme já na Legendagem = encaminhada
-function _ptLegStatus(c){
-  var f=filmesMap[c]||{},st=(f.col_n||'').trim(),d=_ptDoc(c);
-  if(st==='OK')return'finalizada';
-  if(st||d.legenda_status==='encaminhada')return'encaminhada';
-  return d.legenda_status==='finalizada'?'finalizada':'pendente';
-}
 function _ptCopiaLeg(c,st){
   var f=filmesMap[c];if(!f||!window._olgaCopias)return;
   var old=f.col_n||'';f.col_n=st;
@@ -33306,36 +33307,26 @@ window._ptSetCopia=function(c,k,v){
     .catch(function(e){f[k]=o[k];alert('Erro ao salvar na cópia: '+e.message);renderPrintTraffic();});
   renderPrintTraffic();
 };
-window._ptSetLeg=function(c,k,v){
-  var f=filmesMap[c]||{},st=(f.col_n||'').trim();
-  if(v==='encaminhada'&&!st)_ptCopiaLeg(c,'SRT para tradução');
-  if(v==='pendente'&&st){
-    if(!confirm('O filme está na Legendagem com status "'+st+'". Tirar de lá?'))return;
-    _ptCopiaLeg(c,'');
-  }
-  if(v==='finalizada'&&st!=='OK')_ptCopiaLeg(c,'OK');
-  _ptSave(c,{legenda_status:v});
-};
-function _ptBadge(opts,v){var l=_ptLabel(opts,v)||opts[0][1];return'<span class="pt-badge pt-st-'+esc(v||opts[0][0])+'">'+esc(l)+'</span>';}
+// status da legenda grava direto no campo da Legendagem
+window._ptSetLegSt=function(c,k,v){_ptCopiaLeg(c,v);renderPrintTraffic();};
+function _ptBadge(opts,v,g){var l=_ptLabel(opts,v)||v||'—';return'<span class="pt-badge pt-n'+_ptNivel(g,v)+'">'+esc(l)+'</span>';}
 function _ptMatDots(d){
   var m=d.materiais||{};
-  return _PT_MATS.map(function(x){var st=m[x[0]]||'pendente';return'<span class="pt-dot pt-st-'+st+'" title="'+x[1]+': '+_ptLabel(_PT_MAT,st)+'">'+x[2]+'</span>';}).join('');
+  return _PT_MATS.map(function(x){var st=m[x[0]]||'pendente';return'<span class="pt-dot pt-n'+_ptNivel('mat',st)+'" title="'+x[1]+': '+_ptLabel(_PT_MAT,st)+'">'+x[2]+'</span>';}).join('');
 }
-function _ptRad(c,k,opts,val,can,fn){
+// dropdown de status; g = grupo para a cor (copia, inv, mat, leg) ou '' sem cor
+function _ptDrop(c,k,opts,val,can,fn,g,larg){
   var sc=_trafSafe(c);
-  return'<div class="pt-radios">'+opts.map(function(o){
-    var on=o[0]===val;
-    return'<label class="pt-radio'+(on?' on pt-st-'+o[0]:'')+'"><input type="radio" name="pt_'+esc(k)+'"'+(on?' checked':'')+
-      (can?' onclick="'+(fn||'_ptSet')+'(\''+sc+'\',\''+k+'\',\''+o[0]+'\')"':' disabled')+'>'+esc(o[1])+'</label>';
-  }).join('')+'</div>';
+  return'<select class="pt-in '+(larg||'pt-w')+(g?' pt-sel pt-n'+_ptNivel(g,val):'')+'"'+(can?' onchange="this.blur();'+(fn||'_ptSet')+'(\''+sc+'\',\''+k+'\',this.value)"':' disabled')+'>'+
+    opts.map(function(o){return'<option value="'+esc(o[0])+'"'+(o[0]===val?' selected':'')+'>'+esc(o[1])+'</option>';}).join('')+'</select>';
 }
-function _ptLinkRow(c,k,ph,can,extra){
+function _ptLinkRow(c,k,ph,can){
   var v=_ptDoc(c)[k]||'',sc=_trafSafe(c);
   return'<div class="pt-linkrow"><input class="pt-in" placeholder="'+esc(ph)+'" value="'+esc(v)+'"'+(can?' onchange="_ptSet(\''+sc+'\',\''+k+'\',this.value.trim())"':' disabled')+'>'+
-    (_ptUrl(v)?'<a class="pt-btn-cinza" href="'+esc(v.trim())+'" target="_blank" rel="noopener">Abrir link</a>':'<span class="pt-btn-cinza pt-off">Abrir link</span>')+(extra||'')+'</div>';
+    (_ptUrl(v)?'<a class="pt-btn" href="'+esc(v.trim())+'" target="_blank" rel="noopener">Abrir link</a>':'<span class="pt-btn pt-off">Abrir link</span>')+'</div>';
 }
 function _ptMoedaSel(c,k,v,can){
-  return'<select class="pt-in"'+(can?' onchange="_ptSet(\''+_trafSafe(c)+'\',\''+k+'\',this.value)"':' disabled')+'><option value=""></option>'+
+  return'<select class="pt-in pt-w"'+(can?' onchange="_ptSet(\''+_trafSafe(c)+'\',\''+k+'\',this.value)"':' disabled')+'><option value=""></option>'+
     _PT_MOEDAS.map(function(m){return'<option'+(m===v?' selected':'')+'>'+esc(m)+'</option>';}).join('')+'</select>';
 }
 function _ptDatalists(){
@@ -33384,25 +33375,25 @@ function _ptListaHtml(){
   var nCop=0,nPago=0,nLeg=0,tot={};
   films.forEach(function(f){
     var d=_ptDoc(f.codigo);
-    if(d.copia_status==='recebido')nCop++;
+    if(_ptCopiaSt(d)==='recebido')nCop++;
     if(d.invoice_status==='pago')nPago++;
-    if(_ptLegStatus(f.codigo)==='finalizada')nLeg++;
+    if((f.col_n||'').trim()==='OK')nLeg++;
     var t=_ptTotal(d);Object.keys(t).forEach(function(m){tot[m]=(tot[m]||0)+t[m];});
   });
   var shown=films.filter(function(f){
     var d=_ptDoc(f.codigo);
-    if(_ptFiltro.copia&&(d.copia_status||'pendente')!==_ptFiltro.copia)return false;
+    if(_ptFiltro.copia&&_ptCopiaSt(d)!==_ptFiltro.copia)return false;
     if(_ptFiltro.invoice&&(d.invoice_status||'nao_solicitado')!==_ptFiltro.invoice)return false;
-    if(_ptFiltro.legenda&&_ptLegStatus(f.codigo)!==_ptFiltro.legenda)return false;
+    if(_ptFiltro.legenda&&((f.col_n||'').trim()||'—')!==_ptFiltro.legenda)return false;
     return true;
   });
   function sel(k,opts){
     return'<select class="traf-input" onchange="this.blur();_ptFiltrar(\''+k+'\',this.value)"><option value="">'+({copia:'cópia',invoice:'invoice',legenda:'legenda'})[k]+': todas</option>'+
-      opts.map(function(o){return'<option value="'+o[0]+'"'+(_ptFiltro[k]===o[0]?' selected':'')+'>'+esc(o[1])+'</option>';}).join('')+'</select>';
+      opts.map(function(o){return'<option value="'+esc(o[0])+'"'+(_ptFiltro[k]===o[0]?' selected':'')+'>'+esc(o[1])+'</option>';}).join('')+'</select>';
   }
-  var h='<div class="pt-resumo">'+films.length+' filme(s) · cópias recebidas '+nCop+'/'+films.length+' · invoices pagas '+nPago+' · legendas finalizadas '+nLeg+' · despesas '+esc(_ptFmtTotal(tot))+'</div>'+
+  var h='<div class="pt-resumo">'+films.length+' filme(s) · cópias recebidas '+nCop+'/'+films.length+' · invoices pagas '+nPago+' · legendas OK '+nLeg+' · despesas '+esc(_ptFmtTotal(tot))+'</div>'+
     '<div class="traf-filtros"><input class="traf-input" style="min-width:220px;" placeholder="buscar filme, código ou source" oninput="_ptBusca(this.value)">'+
-    sel('copia',_PT_COPIA)+sel('invoice',_PT_INV)+sel('legenda',_PT_LEG)+'</div>';
+    sel('copia',_PT_COPIA)+sel('invoice',_PT_INV)+sel('legenda',_LEG_STATUS.map(function(o){return[o||'—',o||'—'];}))+'</div>';
   h+='<div style="overflow-x:auto;"><table class="traf-table pt-table"><thead><tr><th>Filme</th><th>Source principal</th><th>Cópia</th><th>Invoice</th><th>Materiais</th><th>Legenda</th><th style="text-align:right;">Despesas</th><th>Histórico</th></tr></thead><tbody>';
   shown.forEach(function(f){
     var c=f.codigo,d=_ptDoc(c),ids=(d.sources||[]).filter(Boolean);
@@ -33412,10 +33403,10 @@ function _ptListaHtml(){
     h+='<tr class="pt-tr" data-busca="'+esc(busca)+'" onclick="_ptAbrir(\''+_trafSafe(c)+'\')">'+
       '<td><b>'+esc(filmDisplayTitle(c))+'</b><div class="traf-muted">'+esc(stripEvPrefix(c,f.evento))+'</div></td>'+
       '<td>'+(pr?esc(pr.nome||''):'<span class="traf-muted">—</span>')+(ids.length>1?' <span class="traf-muted">+'+(ids.length-1)+'</span>':'')+'</td>'+
-      '<td>'+(f.exhibition_format?'<b style="font-family:var(--mono);font-size:10px;margin-right:5px;">'+esc(f.exhibition_format)+'</b>':'')+_ptBadge(_PT_COPIA,d.copia_status)+(d.copia_previsao&&d.copia_status!=='recebido'?'<div class="traf-muted">prev. '+esc(_trafBr(d.copia_previsao))+'</div>':'')+'</td>'+
-      '<td>'+_ptBadge(_PT_INV,d.invoice_status)+'</td>'+
+      '<td>'+(f.exhibition_format?'<b style="font-family:var(--mono);font-size:10px;margin-right:5px;">'+esc(f.exhibition_format)+'</b>':'')+_ptBadge(_PT_COPIA,_ptCopiaSt(d),'copia')+(d.copia_previsao&&_ptCopiaSt(d)!=='recebido'?'<div class="traf-muted">prev. '+esc(_trafBr(d.copia_previsao))+'</div>':'')+'</td>'+
+      '<td>'+_ptBadge(_PT_INV,d.invoice_status||'nao_solicitado','inv')+'</td>'+
       '<td style="white-space:nowrap;">'+_ptMatDots(d)+'</td>'+
-      '<td>'+_ptBadge(_PT_LEG,_ptLegStatus(c))+'</td>'+
+      '<td>'+_ptBadge([],(f.col_n||'').trim(),'leg')+'</td>'+
       '<td style="text-align:right;white-space:nowrap;">'+esc(_ptFmtTotal(_ptTotal(d)))+'</td>'+
       '<td class="traf-muted">'+(ult?esc(_ptDt(ult.em))+' · '+esc(ult.autor||''):'—')+'</td>'+
     '</tr>';
@@ -33427,43 +33418,47 @@ function _ptListaHtml(){
 
 function _ptDetalheHtml(c){
   var f=filmesMap[c],d=_ptDoc(c),can=_ptCanEdit(),sc=_trafSafe(c),dis=can?'':' disabled';
-  function inp(k,tipo,extra){return'<input class="pt-in"'+(tipo==='num'?' type="number" step="any" style="text-align:right;"':(tipo==='date'?' type="date"':''))+' value="'+esc(d[k]==null?'':d[k])+'"'+(can?' onchange="_ptSet(\''+sc+'\',\''+k+'\',this.value'+(tipo==='num'?',\'num\'':'')+')"':dis)+(extra||'')+'>';}
-  var mat=d.materiais||{},st=(f.col_n||'').trim();
+  function inp(k,tipo,extra){return'<input class="pt-in pt-w"'+(tipo==='num'?' type="number" step="any" style="text-align:right;"':(tipo==='date'?' type="date"':''))+' value="'+esc(d[k]==null?'':d[k])+'"'+(can?' onchange="_ptSet(\''+sc+'\',\''+k+'\',this.value'+(tipo==='num'?',\'num\'':'')+')"':dis)+(extra||'')+'>';}
+  function fld(lbl,ctl){return'<div class="pt-f"><div class="pt-lbl">'+lbl+'</div>'+ctl+'</div>';}
+  var mat=d.materiais||{},st=(f.col_n||'').trim(),fmt=(f.exhibition_format||'').trim();
   var h='<div class="pt-head"><button class="print-btn" onclick="_ptSel=null;renderPrintTraffic()">← filmes</button>'+
     '<div><div class="pt-tit">'+esc(filmDisplayTitle(c))+'</div><div class="traf-muted">'+esc(stripEvPrefix(c,f.evento))+' · '+esc(_trafEvNome(f.evento))+'</div></div></div>';
-  h+='<div class="pt-grid"><div>';
-  // cópia
-  var fmt=(f.exhibition_format||'').trim();
-  h+='<div class="pt-box"><div class="pt-box-h">Cópia</div>'+
-    '<div class="pt-lbl">Formato de exibição <span class="traf-muted">(o mesmo do Acervo Técnico)</span></div>'+_ptRad(c,'exhibition_format',_PT_FORMATOS,fmt,can,'_ptSetCopia')+
+  h+='<div class="pt-grid"><div class="pt-blocos">';
+  // cópia (formato = campo do Acervo Técnico)
+  h+='<div class="pt-box"><div class="pt-box-h">Cópia</div><div class="pt-fs">'+
+    fld('Formato',_ptDrop(c,'exhibition_format',[['','—']].concat(_PT_FORMATOS),fmt,can,'_ptSetCopia'))+
+    fld('Status',_ptDrop(c,'copia_status',_PT_COPIA,_ptCopiaSt(d),can,'','copia'))+
+    fld('Previsão de chegada',inp('copia_previsao','date'))+'</div>'+
     (fmt==='Outro'||f.exhibition_format_notes?'<div class="pt-lbl">Obs. do formato</div><input class="pt-in" value="'+esc(f.exhibition_format_notes||'')+'"'+(can?' onchange="_ptSetCopia(\''+sc+'\',\'exhibition_format_notes\',this.value.trim())"':dis)+'>':'')+
-    '<div class="pt-lbl">Status da cópia</div>'+_ptRad(c,'copia_status',_PT_COPIA,d.copia_status||'pendente',can)+
-    '<div class="pt-row"><div><div class="pt-lbl">Previsão de chegada</div>'+inp('copia_previsao','date')+'</div><div></div></div></div>';
+    '<div class="traf-muted" style="margin-top:8px;">o formato é o mesmo do Acervo Técnico</div></div>';
   // despesas
-  h+='<div class="pt-box"><div class="pt-box-h">Despesas</div>'+
-    '<div class="pt-lbl">Quantidade de screenings</div>'+inp('screenings','num')+
-    '<div class="pt-sub">Valor screening fee</div><div class="pt-row"><div><div class="pt-lbl">Moeda</div>'+_ptMoedaSel(c,'fee_moeda',d.fee_moeda,can)+'</div><div><div class="pt-lbl">Valor</div>'+inp('fee_valor','num')+'</div></div>'+
-    '<div class="pt-sub">Valor cópia + material</div><div class="pt-row"><div><div class="pt-lbl">Moeda</div>'+_ptMoedaSel(c,'dcp_moeda',d.dcp_moeda,can)+'</div><div><div class="pt-lbl">Valor</div>'+inp('dcp_valor','num')+'</div></div>'+
-    '<div class="pt-sub">KDM extra</div><div class="pt-row"><div><div class="pt-lbl">Moeda</div>'+_ptMoedaSel(c,'kdm_moeda',d.kdm_moeda,can)+'</div><div><div class="pt-lbl">Valor</div>'+inp('kdm_valor','num')+'</div></div>'+
-    '<div class="pt-sub">Valor total aproximado</div><div class="pt-total">'+esc(_ptFmtTotal(_ptTotal(d)))+'</div></div>';
+  function desp(lbl,km,kv){return'<div class="pt-d-lbl">'+lbl+'</div>'+_ptMoedaSel(c,km,d[km],can)+inp(kv,'num');}
+  h+='<div class="pt-box"><div class="pt-box-h">Despesas</div><div class="pt-desp">'+
+    '<div class="pt-d-lbl">Screenings</div><span></span>'+inp('screenings','num')+
+    '<span></span><div class="pt-d-h">Moeda</div><div class="pt-d-h">Valor</div>'+
+    desp('Screening fee','fee_moeda','fee_valor')+
+    desp('Cópia + material','dcp_moeda','dcp_valor')+
+    desp('KDM extra','kdm_moeda','kdm_valor')+
+    '<div class="pt-d-lbl"><b>Total aproximado</b></div><div class="pt-total">'+esc(_ptFmtTotal(_ptTotal(d)))+'</div>'+
+    '</div></div>';
   // invoice
-  h+='<div class="pt-box"><div class="pt-box-h">Invoice</div><div class="pt-row">'+
-    '<div><div class="pt-lbl">Link da invoice</div>'+_ptLinkRow(c,'invoice_link','Cole o link aqui',can)+'</div>'+
-    '<div><div class="pt-lbl">Link do recibo</div>'+_ptLinkRow(c,'recibo_link','Cole o link aqui',can)+'</div></div>'+
-    '<div class="pt-lbl">Status invoice</div>'+_ptRad(c,'invoice_status',_PT_INV,d.invoice_status||'nao_solicitado',can)+
-    '<div class="pt-row"><div><div class="pt-lbl">Destino do pagamento</div>'+inp('pagamento_destino','',' list="ptPaisList"')+'</div><div></div></div></div>';
+  h+='<div class="pt-box"><div class="pt-box-h">Invoice</div>'+
+    '<div class="pt-lbl">Link da invoice</div>'+_ptLinkRow(c,'invoice_link','Cole o link aqui',can)+
+    '<div class="pt-lbl">Link do recibo</div>'+_ptLinkRow(c,'recibo_link','Cole o link aqui',can)+
+    '<div class="pt-fs">'+fld('Status',_ptDrop(c,'invoice_status',_PT_INV,d.invoice_status||'nao_solicitado',can,'','inv'))+
+    fld('Destino do pagamento',inp('pagamento_destino','',' list="ptPaisList"'))+'</div></div>';
+  // legenda (status = campo do módulo Legendagem)
+  h+='<div class="pt-box"><div class="pt-box-h">Legenda</div>'+
+    '<div class="pt-lbl">Arquivo enviado pela source</div>'+
+    _ptLinkRow(c,'legenda_link','Link da legenda / lista de diálogos',can)+
+    '<div class="pt-fs">'+fld('Status',_ptDrop(c,'subtitle_status',_ptLegOpts(),st,can,'_ptSetLegSt','leg','pt-w2'))+'</div>'+
+    '<div class="traf-muted" style="margin-top:8px;">o status é o mesmo do módulo Legendagem</div></div>';
   // materiais
   h+='<div class="pt-box"><div class="pt-box-h">Materiais</div>'+
     '<div class="pt-lbl">Materiais promocionais para catálogo</div>'+
-    _ptLinkRow(c,'material_link','Link da pasta de materiais',can);
-  _PT_MATS.forEach(function(x){h+='<div class="pt-lbl">'+x[1]+'</div>'+_ptRad(c,'materiais.'+x[0],_PT_MAT,mat[x[0]]||'pendente',can);});
-  h+='</div>';
-  // legenda
-  h+='<div class="pt-box"><div class="pt-box-h">Legenda</div>'+
-    '<div class="pt-lbl">Legendagem (arquivo enviado pela source)</div>'+
-    _ptLinkRow(c,'legenda_link','Link da legenda / lista de diálogos',can)+
-    '<div class="pt-lbl">Status da legenda</div>'+_ptRad(c,'legenda_status',_PT_LEG,_ptLegStatus(c),can,'_ptSetLeg')+
-    (st?'<div class="traf-muted" style="margin-top:4px;">na Legendagem: '+esc(st)+'</div>':'')+'</div>';
+    _ptLinkRow(c,'material_link','Link da pasta de materiais',can)+'<div class="pt-fs">';
+  _PT_MATS.forEach(function(x){h+=fld(x[1],_ptDrop(c,'materiais.'+x[0],_PT_MAT,mat[x[0]]||'pendente',can,'','mat'));});
+  h+='</div></div>';
   h+='</div><div>';
   h+=_ptSourcesBox(c,d,can);
   // histórico (mais recente primeiro)
@@ -33472,7 +33467,7 @@ function _ptDetalheHtml(c){
     (hist.length?hist.map(function(m){
       return'<div class="pt-msg'+(m.auto?' pt-auto':'')+'"><div class="pt-msg-h"><b>'+esc(m.autor||m.email||'')+'</b><span>'+esc(_ptDt(m.em))+'</span></div><div class="pt-msg-b">'+esc(m.texto||'')+'</div></div>';
     }).join(''):'<div class="traf-muted" style="padding:8px 0;">Sem mensagens.</div>')+'</div>'+
-    (can?'<div class="pt-linkrow" style="margin-top:8px;"><input class="pt-in" id="ptChatIn" placeholder="Escreva sua mensagem…" onkeydown="if(event.key===\'Enter\'){event.preventDefault();_ptChatEnviar(\''+sc+'\');}"><button class="pt-btn-laranja" onclick="_ptChatEnviar(\''+sc+'\')">Enviar</button></div>':'')+'</div>';
+    (can?'<div class="pt-linkrow" style="margin-top:8px;"><input class="pt-in" id="ptChatIn" placeholder="Escreva sua mensagem…" onkeydown="if(event.key===\'Enter\'){event.preventDefault();_ptChatEnviar(\''+sc+'\');}"><button class="print-btn" onclick="_ptChatEnviar(\''+sc+'\')">Enviar</button></div>':'')+'</div>';
   h+='<div class="pt-box"><div class="pt-box-h">Observações</div><textarea class="pt-in" rows="5"'+(can?' onchange="_ptSet(\''+sc+'\',\'obs\',this.value)"':dis)+'>'+esc(d.obs||'')+'</textarea></div>';
   h+='</div></div>';
   return h;
@@ -33493,7 +33488,7 @@ function _ptSourcesBox(c,d,can){
       (can?'<button class="pt-ico pt-ico-rm" title="tirar deste filme" onclick="_ptSrcDesvincular(\''+sc+'\',\''+id+'\')">×</button>':'')+'</td></tr>';
   });
   h+='</tbody></table>';
-  if(can)h+='<div style="text-align:right;margin-top:8px;"><button class="pt-btn-laranja" onclick="_ptSrcModal(\'\',\'novo\',\''+sc+'\')">Cadastrar novo</button></div>';
+  if(can)h+='<div style="text-align:right;margin-top:8px;"><button class="print-btn" onclick="_ptSrcModal(\'\',\'novo\',\''+sc+'\')">Cadastrar novo</button></div>';
   return h+'</div>';
 }
 function _ptSrcVincular(c,id){
@@ -33537,7 +33532,7 @@ window._ptSrcModal=function(id,modo,c,nomeIni){
   h+='</div></div><div class="pt-modal-f"><button class="print-btn" onclick="document.getElementById(\'ptSrcModal\').remove()">Fechar</button><span style="flex:1"></span>';
   if(ro&&can&&id)h+='<button class="print-btn" onclick="_ptSrcModal(\''+id+'\',\'editar\')">Editar</button>';
   if(!ro&&id)h+='<button class="print-btn" style="color:var(--warn);border-color:var(--warn);" onclick="_ptSrcExcluir(\''+id+'\')">Excluir do cadastro</button>';
-  if(!ro)h+='<button class="pt-btn-laranja" onclick="_ptSrcSalvar(\''+(id||'')+'\',\''+_trafSafe(c||'')+'\')">Salvar</button>';
+  if(!ro)h+='<button class="print-btn" onclick="_ptSrcSalvar(\''+(id||'')+'\',\''+_trafSafe(c||'')+'\')">Salvar</button>';
   el.innerHTML=h+'</div></div>'+_ptDatalists();
   var first=el.querySelector('input[data-k="nome"]');if(first&&!id)first.focus();
 };
@@ -33568,7 +33563,7 @@ function _ptSourcesHtml(){
   var uso={};
   Object.keys(_ptDocs).forEach(function(c){(_ptDocs[c].sources||[]).forEach(function(id){uso[id]=(uso[id]||0)+1;});});
   var h='<div class="traf-filtros"><input class="traf-input" style="min-width:220px;" placeholder="buscar source" oninput="_ptBusca(this.value)">'+
-    (can?'<button class="pt-btn-laranja" onclick="_ptSrcModal(\'\',\'novo\',\'\')">Cadastrar novo</button>':'')+
+    (can?'<button class="print-btn" onclick="_ptSrcModal(\'\',\'novo\',\'\')">Cadastrar novo</button>':'')+
     '<span class="traf-muted">'+ids.length+' source(s) · cadastro único para todos os eventos</span></div>';
   if(!ids.length)return h+'<div class="traf-muted" style="padding:20px 0;">Nenhuma source cadastrada.</div>';
   h+='<div style="overflow-x:auto;"><table class="traf-table pt-table"><thead><tr><th>Nome</th><th>Categoria</th><th>Contato</th><th>E-mail</th><th>País</th><th>Origem</th><th>Filmes (eventos ativos)</th></tr></thead><tbody>';

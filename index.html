@@ -8112,7 +8112,7 @@ function _hideGuests(){return !!(window._olgaHasRestricao&&window._olgaHasRestri
 // Info de legendagem eletrônica de uma sessão: tipos de legenda eletrônica (legenda_exibicao) dos filmes, flag leg.elet. e operadores
 function _legSessEletInfo(s){
   var idiomas=[];
-  if(s&&s.filmes)s.filmes.forEach(function(c){var f=filmesMap[c];if(!f)return;var ov=_legendaExibOverride(f);if(ov&&idiomas.indexOf(ov)<0)idiomas.push(ov);});
+  if(s&&s.filmes)s.filmes.forEach(function(c){var f=_copiaNaSessao(s,c);if(!f)return;var ov=_legendaExibOverride(f);if(ov&&idiomas.indexOf(ov)<0)idiomas.push(ov);});
   return {legSim:!!(s&&(s.leg_eletronica||'').toString().trim().toUpperCase()==='SIM'),idiomas:idiomas,operadores:(s&&s.operador||[]).slice()};
 }
 function fmtDateStr(val){if(!val)return'—';var iso=val.match?val.match(/^(\d{4})-(\d{2})-(\d{2})$/):null;var d=iso?new Date(+iso[1],+iso[2]-1,+iso[3]):new Date(val);if(isNaN(d))return val;return d.toLocaleDateString('pt-BR',{weekday:'short',day:'2-digit',month:'2-digit',year:'2-digit'});}
@@ -8212,6 +8212,20 @@ function _ehVersaoExtra(f){return !!(f&&f.film_code&&f.film_code!==f.codigo);}
 function _copiaNaSessao(s,cod){
   var id=s&&s.versoes&&s.versoes[cod],v=id&&copiaVersaoMap[id];
   return(v&&v.film_code===cod)?v:filmesMap[cod];
+}
+// cópia da sessão como objeto "de filme": codigo continua sendo o código do FILME (títulos, links,
+// Operação, HDs); _copiaId = id da cópia exibida; _versaoExtra = é versão extra
+function _filmeNaSessao(s,cod){
+  var cp=_copiaNaSessao(s,cod)||{};
+  var o=Object.assign({},cp,{codigo:cod});
+  o._copiaId=cp.codigo||cod;o._versaoExtra=_ehVersaoExtra(cp);
+  return o;
+}
+// etiqueta da versão na ficha/listas de sessão (só para filme com mais de uma versão)
+function _versaoTagSessao(s,cod){
+  if(_versoesDoFilme(cod).length<2)return'';
+  var cp=_copiaNaSessao(s,cod),ind=_sessaoVersaoIndefinida(s,cod);
+  return'<span class="ver-tag'+(ind?' ver-tag-indef':'')+'" title="'+(ind?'Filme com mais de uma versão: a sessão ainda não escolheu (vale a principal)':'Versão escolhida para esta sessão')+'">'+esc(versaoNome(cp)||'versão')+(ind?' ?':'')+'</span>';
 }
 // sessão com filme de várias versões sem escolha explícita (vale a principal)
 function _sessaoVersaoIndefinida(s,cod){return _versoesDoFilme(cod).length>1&&!(s&&s.versoes&&s.versoes[cod]&&copiaVersaoMap[s.versoes[cod]]);}
@@ -8362,7 +8376,7 @@ function renderFicha(nome,s){
 function _fichaContentHTML(nome,s){
   if(s.evento&&typeof _trafOpEnsure==='function')_trafOpEnsure(s.evento);
   var _ingOp=typeof _trafCanOperar==='function'&&_trafCanOperar(),_ingSn=String(nome).replace(/\\/g,'\\\\').replace(/'/g,"\\'");
-  var films=s.filmes.filter(function(c){return _isFest(c);}).map(function(c){return Object.assign({codigo:c},filmesMap[c]||{});}).filter(function(f){return f.titulo||f.codigo;});
+  var films=s.filmes.filter(function(c){return _isFest(c);}).map(function(c){return _filmeNaSessao(s,c);}).filter(function(f){return f.titulo||f.codigo;});
   var totalSecs=0,totalGB=0;
   films.forEach(function(f){totalSecs+=_parseDurSecs(f.duracao);var g=parseFloat((f.gb||'').toString().replace(',','.'));if(!isNaN(g))totalGB+=g;});
   var totalDur=totalSecs>0?_secsToHMS(totalSecs):'0:00:00';
@@ -8388,7 +8402,7 @@ function _fichaContentHTML(nome,s){
     var acessCell=acessF?'<div title="'+acessF+'" style="font-size:9px;line-height:1.4;color:var(--text-dim);max-width:90px;overflow:hidden;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;cursor:default;">'+acessF+'</div>':'<span style="color:var(--text-muted)">—</span>';
     var _ingDoc=(typeof _trafOpMap!=='undefined'&&_trafOpMap[_trafOpId(s,f.codigo)])||{};
     var _ingCell='<td class="center"><label style="display:inline-flex;align-items:center;gap:5px;cursor:'+(_ingOp?'pointer':'default')+';" title="Ingest (registrado também na Operação da Exibição)"><input type="checkbox" style="width:16px;height:16px;accent-color:var(--ok);"'+(_ingDoc.ingestado?' checked':'')+(_ingOp?'':' disabled')+' onchange="_trafOpSave(\''+_ingSn+'\',\''+String(f.codigo).replace(/'/g,"\\'")+'\',\'ingestado\',this.checked,this)"><span class="traf-badge traf-ok traf-ing" style="margin:0;'+(_ingDoc.ingestado?'':'display:none;')+'">OK</span></label></td>';
-    return '<tr><td class="film-num">'+(idx+1)+'</td><td><div class="film-title">'+titulo+(exh?'<span class="exh-format-badge">'+esc(exh)+'</span>':'')+'</div><div class="film-sub"><span class="film-code">'+esc(f.codigo)+'</span>'+hdTag+resTag+'</div></td><td class="center ficha-lente-cell">'+lenteBadge(lente).replace('FLAT 200','FLAT<br>200').replace('FLAT (C)','FLAT<br>(C)')+'</td><td class="center">'+somBadge(som)+'</td><td>'+legCell+'</td><td class="center">'+idiomaCell+'</td><td class="center">'+kdmFichaBadge(kdm)+'</td><td class="ficha-cpl-cell">'+(cpl?'<div class="cpl-text">'+cpl+'</div>'+(clean(f.cplOV)?'<div class="cpl-ov-ficha"><span class="cpl-ov-ficha-label">CPL DA OV:</span>'+esc(clean(f.cplOV))+'</div>':''):'<span style="color:var(--text-muted)">—</span>')+'</td><td><div class="dur-text">'+fmtDur(dur)+'</div></td><td>'+(obs?'<div class="obs-text">'+obs+'</div>':'<span style="color:var(--text-muted)">—</span>')+'</td><td class="num">'+fpsgb+'</td><td class="center">'+acessCell+'</td>'+_ingCell+'</tr>';
+    return '<tr><td class="film-num">'+(idx+1)+'</td><td><div class="film-title">'+titulo+(exh?'<span class="exh-format-badge">'+esc(exh)+'</span>':'')+_versaoTagSessao(s,f.codigo)+'</div><div class="film-sub"><span class="film-code">'+esc(f.codigo)+'</span>'+hdTag+resTag+'</div></td><td class="center ficha-lente-cell">'+lenteBadge(lente).replace('FLAT 200','FLAT<br>200').replace('FLAT (C)','FLAT<br>(C)')+'</td><td class="center">'+somBadge(som)+'</td><td>'+legCell+'</td><td class="center">'+idiomaCell+'</td><td class="center">'+kdmFichaBadge(kdm)+'</td><td class="ficha-cpl-cell">'+(cpl?'<div class="cpl-text">'+cpl+'</div>'+(clean(f.cplOV)?'<div class="cpl-ov-ficha"><span class="cpl-ov-ficha-label">CPL DA OV:</span>'+esc(clean(f.cplOV))+'</div>':''):'<span style="color:var(--text-muted)">—</span>')+'</td><td><div class="dur-text">'+fmtDur(dur)+'</div></td><td>'+(obs?'<div class="obs-text">'+obs+'</div>':'<span style="color:var(--text-muted)">—</span>')+'</td><td class="num">'+fpsgb+'</td><td class="center">'+acessCell+'</td>'+_ingCell+'</tr>';
   }).join('');
   var eventoCol=s.evento&&eventColors[s.evento]?eventColors[s.evento]:null;
   var eventoBadge=eventoCol?'<span class="ficha-evento-badge" style="background:'+eventoCol.bg+';color:'+eventoCol.text+'">'+esc(s.evento)+'</span>':(s.evento?'<span class="ficha-evento-badge" style="background:var(--surface2);color:var(--text-dim);border:1px solid var(--border)">'+esc(s.evento)+'</span>':'');
@@ -8612,7 +8626,7 @@ function renderIngest(){
     if(id.toISOString().slice(0,10)!==currentIngestDay)return;
     if(s.evento&&!activeEventsIngest.has(s.evento))return;
     if(_as&&s.cinema&&!_as.has(s.cinema))return;
-    s.filmes.forEach(function(c){if(!_isFest(c))return;var f=filmesMap[c];if(!f)return;var g=parseFloat((f.gb||'').toString().replace(',','.'));if(!isNaN(g))totalGB+=g;});
+    s.filmes.forEach(function(c){if(!_isFest(c))return;var f=_copiaNaSessao(s,c);if(!f)return;var g=parseFloat((f.gb||'').toString().replace(',','.'));if(!isNaN(g))totalGB+=g;});
   });
 
   // group by cinema
@@ -8634,19 +8648,19 @@ function renderIngest(){
     if(!visibleSessions.length)return;
     var cinemaGB=0;
     visibleSessions.forEach(function(s){
-      getFilmList(s).forEach(function(c){var f=filmesMap[c];if(!f)return;var g=parseFloat((f.gb||'').toString().replace(',','.'));if(!isNaN(g))cinemaGB+=g;});
+      getFilmList(s).forEach(function(c){var f=_copiaNaSessao(s,c);if(!f)return;var g=parseFloat((f.gb||'').toString().replace(',','.'));if(!isNaN(g))cinemaGB+=g;});
     });
     html+='<div class="ingest-cinema-block"><div class="ingest-cinema-header"><span>'+esc(cinema)+'</span>'+(cinemaGB>0?'<span class="ingest-cinema-gb">'+cinemaGB.toFixed(0)+' GB</span>':'')+'</div>';
 
     visibleSessions.forEach(function(s){
       var filmList=getFilmList(s);
       var sessGB=0;
-      filmList.forEach(function(c){var f=filmesMap[c];if(!f)return;var g=parseFloat((f.gb||'').toString().replace(',','.'));if(!isNaN(g))sessGB+=g;});
+      filmList.forEach(function(c){var f=_copiaNaSessao(s,c);if(!f)return;var g=parseFloat((f.gb||'').toString().replace(',','.'));if(!isNaN(g))sessGB+=g;});
       html+='<div class="ingest-session"><div class="ingest-session-header"><span class="ingest-sess-name" title="'+esc(s.nome)+'">'+esc(stripEvPrefix(s.nome,s.evento))+'</span><span class="ingest-sess-meta">'+s.dia+' · '+s.hora+'</span>'+(sessGB>0?'<span class="ingest-sess-gb">'+sessGB.toFixed(0)+' GB</span>':'')+'</div>';
       html+='<div class="ingest-film-list">';
       filmList.forEach(function(c,idx){
-        var f=filmesMap[c]||{};
-        var titulo=esc(filmDisplayTitle(c));
+        var f=_copiaNaSessao(s,c)||{};
+        var titulo=esc(filmDisplayTitle(c))+_versaoTagSessao(s,c);
         var cpl=esc(clean(f.cpl)),cplOV=esc(clean(f.cplOV)),gb=esc(clean(f.gb));
         var lente=clean(f.lente),som=clean(f.som),hd=_trafEnvioHtml(s,c),res=esc(clean(f.resolucao));
         html+='<div class="ingest-film-row"><span class="ingest-film-num">'+(idx+1)+'</span><div class="ingest-film-body">';
@@ -9880,7 +9894,7 @@ function renderGrade2(){
   if(!ds.length){gw.style.display='none';ge.style.display='flex';return;}
   ge.style.display='none';gw.style.display='block';_gradeFitWrap(gw);
   var co=[],cs=new Set();ds.forEach(function(s){var loc=_sessaoLocal(s);if(!cs.has(loc)){cs.add(loc);co.push(loc);}});co.sort(function(a,b){return a.localeCompare(b,'pt-BR',{sensitivity:'base'});});
-  var minH=24,maxH=0;ds.forEach(function(s){if(!s.time)return;minH=Math.min(minH,s.time.h);var totalM=0;s.filmes.forEach(function(c){var f=filmesMap[c];if(!f)return;var d=f.duracao||'';totalM+=Math.floor(_parseDurSecs(d)/60);});var endH=s.time.h+(s.time.m+(totalM||90))/60;maxH=Math.max(maxH,endH);});
+  var minH=24,maxH=0;ds.forEach(function(s){if(!s.time)return;minH=Math.min(minH,s.time.h);var totalM=0;s.filmes.forEach(function(c){var f=_copiaNaSessao(s,c);if(!f)return;var d=f.duracao||'';totalM+=Math.floor(_parseDurSecs(d)/60);});var endH=s.time.h+(s.time.m+(totalM||90))/60;maxH=Math.max(maxH,endH);});
   if(minH===24)minH=9;minH=Math.max(0,minH-1);maxH=Math.min(26,maxH+1);
   var PPM=2.4,gridH=(maxH-minH)*60*PPM;
   chr.innerHTML='';var gh=document.createElement('div');gh.className='time-gutter-header';chr.appendChild(gh);
@@ -9895,7 +9909,7 @@ function renderGrade2(){
     ds.filter(function(s){return _sessaoLocal(s)===cinema;}).forEach(function(s){
       if(!s.time)return;
       var totalMinsS=0;
-      s.filmes.forEach(function(c){var f=filmesMap[c];if(!f)return;var d=f.duracao||'';totalMinsS+=Math.floor(_parseDurSecs(d)/60);});
+      s.filmes.forEach(function(c){var f=_copiaNaSessao(s,c);if(!f)return;var d=f.duracao||'';totalMinsS+=Math.floor(_parseDurSecs(d)/60);});
       var dur2=totalMinsS>0?totalMinsS:Math.max(60,s.filmes.length*25);
       var tm=(s.time.h-minH)*60+s.time.m;
       var c2raw=eventColors[s.evento]||{bg:'#555',text:'#fff'};var c2=getThemeBlockColor(c2raw);
@@ -9983,7 +9997,7 @@ function rebuildIngestCinemaSelect(){
     if(_asc&&s.cinema&&!_asc.has(s.cinema))return;
     if(ingestCinemaComplexoFilter&&_getSalaComplexo(s.cinema)!==ingestCinemaComplexoFilter)return;
     if(ingestHdFilter){
-      var hasHd=s.filmes.some(function(c){var f=filmesMap[c];return f&&(f.hd||'').toString().trim()===ingestHdFilter;});
+      var hasHd=s.filmes.some(function(c){var f=_copiaNaSessao(s,c);return f&&(f.hd||'').toString().trim()===ingestHdFilter;});
       if(!hasHd)return;
     }
     if(s.cinema)cs.add(s.cinema);
@@ -10371,7 +10385,7 @@ function openCinemaDetail(sala){
     var durStr=_cinTotalSecs>0?_secsToHMS(_cinTotalSecs):'';
     // status check: flag if any film has error status or no status
     var hasAlert=s.filmes.some(function(c){
-      var f=filmesMap[c];
+      var f=_copiaNaSessao(s,c);
       if(!f)return true;// not in filmes sheet = unregistered
       var st=(f.status||'').toString().trim();
       if(!st||st==='-')return true;// sem status
@@ -14582,7 +14596,7 @@ function rebuildKDMComplexoSelect(){
   sessoesArr.forEach(function(s){
     if(s.evento&&!activeEventsKDM.has(s.evento))return;
     if(as&&s.cinema&&!as.has(s.cinema))return;
-    var hasKDM=s.filmes.some(function(c){var f=filmesMap[c];return f&&f.kdm&&f.kdm.toString().toUpperCase()==='SIM';});
+    var hasKDM=s.filmes.some(function(c){var f=_copiaNaSessao(s,c);return f&&f.kdm&&f.kdm.toString().toUpperCase()==='SIM';});
     if(!hasKDM)return;
     var c=allC.map[s.cinema];
     complexos.add((c&&c.complexo)||s.cinema);
@@ -14605,7 +14619,7 @@ function rebuildKDMSalaSelect(){
   sessoesArr.forEach(function(s){
     if(s.evento&&!activeEventsKDM.has(s.evento))return;
     if(as&&s.cinema&&!as.has(s.cinema))return;
-    var hasKDM=s.filmes.some(function(c){var f=filmesMap[c];return f&&f.kdm&&f.kdm.toString().toUpperCase()==='SIM';});
+    var hasKDM=s.filmes.some(function(c){var f=_copiaNaSessao(s,c);return f&&f.kdm&&f.kdm.toString().toUpperCase()==='SIM';});
     if(!hasKDM)return;
     var c=allC.map[s.cinema];
     var cx=(c&&c.complexo)||s.cinema;
@@ -14634,7 +14648,7 @@ function renderKDM(){
       var c=allC.map[s.cinema];
       if(((c&&c.complexo)||s.cinema)!==kdmComplexoFilter)return false;
     }
-    return s.filmes.some(function(code){var f=filmesMap[code];return f&&f.kdm&&f.kdm.toString().toUpperCase()==='SIM';});
+    return s.filmes.some(function(code){var f=_copiaNaSessao(s,code);return f&&f.kdm&&f.kdm.toString().toUpperCase()==='SIM';});
   });
   // filtro por HD de envio (Tráfego): opções = HDs que levam algum filme com KDM às sessões acima
   var _kdmHdIds={};
@@ -14680,8 +14694,8 @@ function renderKDM(){
 
   function sessRowHtml(s){
     var st=sessStatus(s);
-    var kdmFilms=s.filmes.filter(function(code){var f=filmesMap[code];return f&&f.kdm&&f.kdm.toString().toUpperCase()==='SIM';});
-    var filmTitles=kdmFilms.map(filmDisplayTitle).join(' · ');
+    var kdmFilms=s.filmes.filter(function(code){var f=_copiaNaSessao(s,code);return f&&f.kdm&&f.kdm.toString().toUpperCase()==='SIM';});
+    var filmTitles=kdmFilms.map(function(c){return esc(filmDisplayTitle(c))+_versaoTagSessao(s,c);}).join(' · ');
     var safe=s.nome.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
     var evCol=s.evento&&eventColors[s.evento]?eventColors[s.evento]:null;
     var evTag=s.evento?'<span style="display:inline-block;font-family:var(--mono);font-size:8px;font-weight:700;padding:1px 6px;border-radius:2px;flex-shrink:0;background:'+(evCol?evCol.bg:'var(--surface2)')+';color:'+(evCol?evCol.text:'var(--text-dim)')+'">'+s.evento+'</span>':'';
@@ -14786,7 +14800,8 @@ function _processKDMTest(sessaoNome,xml){
   var salaCert=pickCert(cinema);
   if(salaCert&&cinema){salaCert.servidor=cinema.servidor||'';salaCert.serial=cinema.serial||'';}
   var allCerts=all.order.map(function(sala){var ci=all.map[sala];var o=pickCert(ci)||{};o.sala=ci.sala;return o;});
-  var films=[];(s.filmes||[]).forEach(function(code){var f=filmesMap[code];if(f)films.push({codigo:f.codigo,titulo:filmDisplayTitle(f.codigo),dcp_uuid:f.dcp_uuid||'',cpl:f.cpl||''});});
+  // CPL/UUID da versão escolhida na sessão (a cópia que de fato vai ser exibida)
+  var films=[];(s.filmes||[]).forEach(function(code){var f=_copiaNaSessao(s,code);if(f)films.push({codigo:code,titulo:filmDisplayTitle(code),dcp_uuid:f.dcp_uuid||'',cpl:f.cpl||''});});
   var session=s.date?{y:s.date.getFullYear(),mo:s.date.getMonth(),d:s.date.getDate(),h:s.time?s.time.h:0,mi:s.time?s.time.m:0}:null;
   var salaOffsetMs=_parseCinemaOffsetMs(cinema||{});
   _olgaCallFn(_CHECKKDM_FN,{kdmXml:xml,cinemaName:s.cinema,salaCert:salaCert,allCerts:allCerts,films:films,session:session,salaOffsetMs:salaOffsetMs})
@@ -16850,7 +16865,7 @@ function renderGrade(){
   if(!ds.length){gw.style.display='none';ge.style.display='flex';return;}
   ge.style.display='none';gw.style.display='block';_gradeFitWrap(gw);
   var co=[],cs=new Set();ds.forEach(function(s){var loc=_sessaoLocal(s);if(!cs.has(loc)){cs.add(loc);co.push(loc);}});co.sort(function(a,b){return a.localeCompare(b,'pt-BR',{sensitivity:'base'});});
-  var minH=24,maxH=0;ds.forEach(function(s){if(!s.time)return;minH=Math.min(minH,s.time.h);var totalM=0;s.filmes.forEach(function(c){var f=filmesMap[c];if(!f)return;var d=f.duracao||'';totalM+=Math.floor(_parseDurSecs(d)/60);});var endH=s.time.h+(s.time.m+(totalM||90))/60;maxH=Math.max(maxH,endH);});
+  var minH=24,maxH=0;ds.forEach(function(s){if(!s.time)return;minH=Math.min(minH,s.time.h);var totalM=0;s.filmes.forEach(function(c){var f=_copiaNaSessao(s,c);if(!f)return;var d=f.duracao||'';totalM+=Math.floor(_parseDurSecs(d)/60);});var endH=s.time.h+(s.time.m+(totalM||90))/60;maxH=Math.max(maxH,endH);});
   if(minH===24)minH=9;minH=Math.max(0,minH-1);maxH=Math.min(26,maxH+1);
   var PPM=2.4,gridH=(maxH-minH)*60*PPM;
   chr.innerHTML='';var gh=document.createElement('div');gh.className='time-gutter-header';chr.appendChild(gh);
@@ -16865,7 +16880,7 @@ function renderGrade(){
     ds.filter(function(s){return _sessaoLocal(s)===cinema;}).forEach(function(s){
       if(!s.time)return;
       var totalMinsS=0;
-      s.filmes.forEach(function(c){var f=filmesMap[c];if(!f)return;var d=f.duracao||'';totalMinsS+=Math.floor(_parseDurSecs(d)/60);});
+      s.filmes.forEach(function(c){var f=_copiaNaSessao(s,c);if(!f)return;var d=f.duracao||'';totalMinsS+=Math.floor(_parseDurSecs(d)/60);});
       var dur2=totalMinsS>0?totalMinsS:Math.max(60,s.filmes.length*25);
       var tm=(s.time.h-minH)*60+s.time.m;
       var c2raw=eventColors[s.evento]||{bg:'#555',text:'#fff'};var c2=getThemeBlockColor(c2raw);
@@ -16904,7 +16919,7 @@ function renderGrade(){
 function showTooltip(ev,s){
   var tip=document.getElementById('tooltip');
   var totalMinsS=0;
-  s.filmes.forEach(function(c){var f=filmesMap[c];if(!f)return;var d=f.duracao||'';totalMinsS+=Math.floor(_parseDurSecs(d)/60);});
+  s.filmes.forEach(function(c){var f=_copiaNaSessao(s,c);if(!f)return;var d=f.duracao||'';totalMinsS+=Math.floor(_parseDurSecs(d)/60);});
   var durStr=totalMinsS>0?Math.floor(totalMinsS/60)+'h'+String(totalMinsS%60).padStart(2,'0'):'';
   var fl=s.filmes.map(function(c){var f=filmesMap[c];var _cStripped=stripEvPrefix(c,(f&&f.evento)||s.evento);if(!f)return'<div class="tt-film" title="'+esc(c)+'">'+esc(_cStripped)+'</div>';return'<div class="tt-film" title="'+esc(c)+'"><span>'+esc(filmDisplayTitle(c))+'</span> · '+esc(_cStripped)+'</div>';}).join('');
   var iconCal='<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-2px;margin-right:5px;opacity:.7"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>';
@@ -18308,7 +18323,7 @@ function dashGetKDMData(){
   sessoesArr.forEach(function(s){
     if(s.evento&&!activeEventsDash.has(s.evento))return;
     if(dashKdmCinemaFilter&&s.cinema!==dashKdmCinemaFilter)return;
-    var kdmFilms=s.filmes.filter(function(c){var f=filmesMap[c];return f&&f.kdm&&f.kdm.toString().toUpperCase()==='SIM';});
+    var kdmFilms=s.filmes.filter(function(c){var f=_copiaNaSessao(s,c);return f&&f.kdm&&f.kdm.toString().toUpperCase()==='SIM';});
     if(!kdmFilms.length)return;
     var r=_kdmResults[s.nome];
     var st;
@@ -18350,7 +18365,7 @@ function dashGetKDMSessoes(){
   sessoesArr.forEach(function(s){
     if(s.evento&&!activeEventsDash.has(s.evento))return;
     if(dashKdmCinemaFilter&&s.cinema!==dashKdmCinemaFilter)return;
-    var kdmFilms=s.filmes.filter(function(c){var f=filmesMap[c];return f&&f.kdm&&f.kdm.toString().toUpperCase()==='SIM';});
+    var kdmFilms=s.filmes.filter(function(c){var f=_copiaNaSessao(s,c);return f&&f.kdm&&f.kdm.toString().toUpperCase()==='SIM';});
     if(!kdmFilms.length)return;
     if(s.date&&s.date<hoje){passadas++;if(!dashKdmPast)return;}
     var r=_kdmResults[s.nome],st;
@@ -18397,7 +18412,7 @@ function rebuildDashKdmCinemaSelect(){
   var cs=new Set();
   sessoesArr.forEach(function(s){
     if(s.evento&&!activeEventsDash.has(s.evento))return;
-    var hasKDM=s.filmes.some(function(c){var f=filmesMap[c];return f&&f.kdm&&f.kdm.toString().toUpperCase()==='SIM';});
+    var hasKDM=s.filmes.some(function(c){var f=_copiaNaSessao(s,c);return f&&f.kdm&&f.kdm.toString().toUpperCase()==='SIM';});
     if(!hasKDM)return;
     if(s.cinema)cs.add(s.cinema);
   });
@@ -18721,7 +18736,7 @@ function renderDash(){
         var safe=s.nome.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
         var filmTitles=s.filmes.map(filmDisplayTitle).filter(Boolean).join(' · ');
         var hasAlert=s.filmes.some(function(c){
-          var f=filmesMap[c];if(!f)return true;
+          var f=_copiaNaSessao(s,c);if(!f)return true;
           var st=(f.status||'').toString().trim();
           return(!st||st==='-'||st.toUpperCase().includes('ERRO'));
         });
@@ -18961,7 +18976,7 @@ function renderDash(){
       sorted3.forEach(function(s){
         var safe=s.nome.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
         var filmTitles=s.filmes.map(filmDisplayTitle).filter(Boolean).join(' · ');
-        var acessSet=[];s.filmes.forEach(function(c){var f=filmesMap[c];if(f&&f.acessibilidade){f.acessibilidade.split(/[,;\/\n]+/).forEach(function(a){var t=a.trim();if(t&&acessSet.indexOf(t)<0)acessSet.push(t);});}});
+        var acessSet=[];s.filmes.forEach(function(c){var f=_copiaNaSessao(s,c);if(f&&f.acessibilidade){f.acessibilidade.split(/[,;\/\n]+/).forEach(function(a){var t=a.trim();if(t&&acessSet.indexOf(t)<0)acessSet.push(t);});}});
         var acessLabel=acessSet.length?acessSet.join(' · '):s.acessibilidades;
         bodyHtml+='<div class="dsd-sess-row" style="cursor:pointer" onclick="goToFicha(\''+safe+'\')">'+
           '<span class="dsd-date">'+s.dia+'</span>'+
@@ -19099,7 +19114,7 @@ function renderDash(){
         bodyHtml='';
         paArr.forEach(function(s){
           var safe=s.nome.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
-          var acessSet=[];s.filmes.forEach(function(c){var f=filmesMap[c];if(f&&f.acessibilidade){f.acessibilidade.split(/[,;\/\n]+/).forEach(function(a){var t=a.trim();if(t&&acessSet.indexOf(t)<0)acessSet.push(t);});}});
+          var acessSet=[];s.filmes.forEach(function(c){var f=_copiaNaSessao(s,c);if(f&&f.acessibilidade){f.acessibilidade.split(/[,;\/\n]+/).forEach(function(a){var t=a.trim();if(t&&acessSet.indexOf(t)<0)acessSet.push(t);});}});
           var acessLabel=acessSet.length?acessSet.join(' · '):s.acessibilidades;
           bodyHtml+='<div class="dsd-sess-row" style="cursor:pointer" onclick="goToFicha(\''+safe+'\')">'+
             '<span class="dsd-date">'+s.dia+'</span><span class="dsd-time">'+s.hora+'</span>'+
@@ -19534,7 +19549,7 @@ function renderDash(){
   html+=colBlock('legendagem','Legendagem',legBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 27/10/2026 às 09:29';
+  var sysUpdate='última atualização do sistema · 27/10/2026 às 11:10';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -21312,7 +21327,7 @@ function _progRenderSessao(sessaoNome){
 function _progFichaContentHTML(sessaoNome,s,prog){
   var films=s.filmes.map(function(cd){
     var cm=(catalogoFilmesMap&&catalogoFilmesMap[cd])||{};
-    var f=Object.assign({codigo:cd},filmesMap[cd]||{});
+    var f=_filmeNaSessao(s,cd);
     return{codigo:cd,titulo_pt:filmDisplayTitle(cd),titulo:f.titulo||cd,duracao:f.duracao||'',idioma:cm.original_language||f.idioma||'',legenda:f.legenda||'',vf:f.vf||'',acessibilidade:f.acessibilidade||'',countries:cm.countries||[],exhibition_format:f.exhibition_format||'',lente:f.lente||'',som:f.som||''};
   }).filter(function(f){return f.titulo_pt||f.codigo;});
   var totalMins=0;
@@ -21367,7 +21382,7 @@ function _progFichaContentHTML(sessaoNome,s,prog){
   var _legSemOperador=sessLegSim&&!(s.operador&&s.operador.length);
   var _legStar=false;
   var rows=films.map(function(f,idx){
-    var _fRaw=filmesMap[f.codigo]||{};
+    var _fRaw=_copiaNaSessao(s,f.codigo)||{};
     var _legOv=_legendaExibOverride(_fRaw);
     var legCell;
     if(_legOv){
@@ -21382,10 +21397,10 @@ function _progFichaContentHTML(sessaoNome,s,prog){
     var idiomaCell=f.idioma?'<span class="idioma-text">'+esc(f.idioma)+'</span>':'<span style="color:var(--text-muted)">—</span>';
     var acessCell=f.acessibilidade?'<div style="font-size:9px;line-height:1.4;color:var(--text-dim);max-width:100px;overflow:hidden;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;">'+esc(f.acessibilidade)+'</div>':'<span style="color:var(--text-muted)">—</span>';
     var paisCell=f.countries&&f.countries.length?progCountriesCell(f.countries):'<span style="color:var(--text-muted)">—</span>';
-    var fRaw=filmesMap[f.codigo]||{};var fKdm=(fRaw.kdm||'').toLowerCase()==='sim';
+    var fRaw=_copiaNaSessao(s,f.codigo)||{};var fKdm=(fRaw.kdm||'').toLowerCase()==='sim';
     var kdmCell=fKdm?'<span class="badge badge-kdm-sim" style="font-size:8px;">KDM</span>':'<span style="color:var(--text-muted)">—</span>';
     return'<tr><td class="film-num">'+(idx+1)+'</td>'
-      +'<td><div class="film-title">'+esc(f.titulo_pt)+(f.exhibition_format?'<span class="exh-format-badge">'+esc(f.exhibition_format)+'</span>':'')+'</div>'+(f.titulo_pt!==f.titulo&&f.titulo?'<div class="film-sub" style="font-size:9px;color:var(--text-muted);">'+esc(f.titulo)+'</div>':'')+'</td>'
+      +'<td><div class="film-title">'+esc(f.titulo_pt)+(f.exhibition_format?'<span class="exh-format-badge">'+esc(f.exhibition_format)+'</span>':'')+_versaoTagSessao(s,f.codigo)+'</div>'+(f.titulo_pt!==f.titulo&&f.titulo?'<div class="film-sub" style="font-size:9px;color:var(--text-muted);">'+esc(f.titulo)+'</div>':'')+'</td>'
       +'<td><div class="dur-text">'+fmtDur(f.duracao)+'</div></td>'
       +'<td class="center">'+lenteBadge(f.lente)+'</td>'
       +'<td class="center">'+somBadge(f.som)+'</td>'
@@ -29713,7 +29728,7 @@ function _sxcPrint(){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 27/10/2026 às 09:29</span></div>
+<div id="page-footer"><span>última atualização · 27/10/2026 às 11:10</span></div>
 
 </div>
 
@@ -30509,7 +30524,7 @@ function _mobRenderSessaoFicha(params){
   // recursos de acessibilidade dos filmes (quando acessibilidade está ativa)
   if(s.acessibilidades&&s.acessibilidades.toLowerCase().indexOf('sim')!==-1){
     var acessSet=[];
-    s.filmes.forEach(function(c){var f=filmesMap[c];if(f&&f.acessibilidade){f.acessibilidade.split(/[,;\/\n]+/).forEach(function(a){var t=a.trim();if(t&&acessSet.indexOf(t)<0)acessSet.push(t);});}});
+    s.filmes.forEach(function(c){var f=_copiaNaSessao(s,c);if(f&&f.acessibilidade){f.acessibilidade.split(/[,;\/\n]+/).forEach(function(a){var t=a.trim();if(t&&acessSet.indexOf(t)<0)acessSet.push(t);});}});
     if(acessSet.length)html+='<div style="font-family:var(--mono);font-size:9px;color:var(--text-dim);margin-bottom:12px;">'+acessSet.join(' · ')+'</div>';
   }
 
@@ -30533,14 +30548,14 @@ function _mobRenderSessaoFicha(params){
 
   // filmes
   html+='<div style="font-family:var(--mono);font-size:9px;font-weight:600;letter-spacing:0.15em;text-transform:uppercase;color:var(--accent);margin-bottom:8px;">Filmes</div>';
-  var films=s.filmes.map(function(c){return Object.assign({codigo:c},filmesMap[c]||{});}).filter(function(f){return f.titulo||f.codigo;});
+  var films=s.filmes.map(function(c){return _filmeNaSessao(s,c);}).filter(function(f){return f.titulo||f.codigo;});
   if(!films.length)html+='<div class="mob-empty" style="padding:12px 0;">Nenhum filme associado.</div>';
   films.forEach(function(f,i){
     var banner=_mobStatusBanner(f);
     html+='<div style="background:var(--surface);border:1px solid var(--border);border-radius:4px;margin-bottom:10px;overflow:hidden;">';
     html+='<div style="padding:10px 12px;border-bottom:1px solid var(--border);">';
-    html+='<div class="mob-sessao-filme">'+_mobEsc(filmDisplayTitle(f.codigo))+'</div>';
-    html+='<div style="font-family:var(--mono);font-size:9px;color:var(--text-muted);margin-top:2px;">'+_mobEsc(f.codigo)+_trafEnvio(s,f.codigo).map(function(h){var o=_trafOrigem(h,f.codigo);return' · '+_mobEsc(h.data.nome||'HD')+(o?' ← '+_mobEsc(o):'');}).join('')+'</div>';
+    html+='<div class="mob-sessao-filme">'+_mobEsc(filmDisplayTitle(f.codigo))+_versaoTagSessao(s,f.codigo)+'</div>';
+    html+='<div style="font-family:var(--mono);font-size:9px;color:var(--text-muted);margin-top:2px;">'+_mobEsc(f.codigo)+_trafEnvio(s,f.codigo).map(function(h){var o=_trafOrigem(h,f._copiaId||f.codigo);return' · '+_mobEsc(h.data.nome||'HD')+(o?' ← '+_mobEsc(o):'');}).join('')+'</div>';
     html+='</div>';
     html+='<div style="padding:8px 12px;">'+banner;
     var rowS=function(lbl,val){if(!val||val==='-'||val==='—'||val==='')return'';return'<div style="display:flex;gap:8px;padding:3px 0;font-family:var(--mono);font-size:10px;border-bottom:1px solid var(--border);"><span style="color:var(--text-muted);width:72px;flex-shrink:0;">'+lbl+'</span><span style="color:var(--text-dim);">'+_mobEsc(String(val))+'</span></div>';};
@@ -31109,7 +31124,7 @@ function _mobRenderKDM(params,noScroll){
   var diasSet=new Set();
   sessoesArr.forEach(function(s){
     if(filtroEvs&&!filtroEvs.has(s.evento))return;
-    if(s.date&&s.filmes.some(function(c){var f=filmesMap[c];return f&&(f.kdm||'').toLowerCase()==='sim';}))diasSet.add(s.date.getTime());
+    if(s.date&&s.filmes.some(function(c){var f=_copiaNaSessao(s,c);return f&&(f.kdm||'').toLowerCase()==='sim';}))diasSet.add(s.date.getTime());
   });
   var dias=Array.from(diasSet).sort().map(function(t){return new Date(t);});
   if(!dias.length){_mobSetContent(_mobEventFilterHtml(filtroEvs)+'<div class="mob-empty">Nenhuma sessão com KDM.</div>');return;}
@@ -31118,12 +31133,12 @@ function _mobRenderKDM(params,noScroll){
   var sessoes=sessoesArr.filter(function(s){
     if(!s.date||s.date.getTime()!==params.dia)return false;
     if(filtroEvs&&!filtroEvs.has(s.evento))return false;
-    return s.filmes.some(function(c){var f=filmesMap[c];return f&&(f.kdm||'').toLowerCase()==='sim';});
+    return s.filmes.some(function(c){var f=_copiaNaSessao(s,c);return f&&(f.kdm||'').toLowerCase()==='sim';});
   }).sort(function(a,b){return(a.time?a.time.h*60+a.time.m:0)-(b.time?b.time.h*60+b.time.m:0);});
   var lockSvg='<svg style="width:11px;height:11px;stroke:#ff8060;stroke-width:2;fill:none;vertical-align:middle;margin-right:4px;" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>';
   var cards=sessoes.map(function(s){
     var ev=eventColors[s.evento]||{bg:'var(--border2)',text:'var(--text)'};
-    var kdmFilms=s.filmes.map(function(c){return Object.assign({codigo:c},filmesMap[c]||{});}).filter(function(f){return(f.kdm||'').toLowerCase()==='sim';});
+    var kdmFilms=s.filmes.map(function(c){return _filmeNaSessao(s,c);}).filter(function(f){return(f.kdm||'').toLowerCase()==='sim';});
     var kdmRes=window._kdmResults&&window._kdmResults[s.nome];
     var kdmStatusPill='';
     if(kdmRes){
@@ -31450,7 +31465,7 @@ function _mobRenderIngest(params,noScroll){
   }).sort(function(a,b){return(a.time?a.time.h*60+a.time.m:0)-(b.time?b.time.h*60+b.time.m:0);});
   var cards=sessoes.map(function(s){
     var ev=eventColors[s.evento]||{bg:'var(--border2)',text:'var(--text)'};
-    var films=s.filmes.map(function(cod){return Object.assign({codigo:cod},filmesMap[cod]||{});}).filter(function(f){return f.titulo||f.codigo;});
+    var films=s.filmes.map(function(cod){return _filmeNaSessao(s,cod);}).filter(function(f){return f.titulo||f.codigo;});
     return'<div class="mob-sessao-card">'+
       '<div class="mob-sessao-header">'+
         '<span class="mob-sessao-hora">'+(s.hora||'?')+'</span>'+
@@ -31733,7 +31748,7 @@ function _mobRenderProgSessao(params,noScroll){
   html+='</div>';
   if(s.acessibilidades&&s.acessibilidades.toLowerCase().indexOf('sim')!==-1){
     var acessSet2=[];
-    s.filmes.forEach(function(c){var f=filmesMap[c];if(f&&f.acessibilidade){f.acessibilidade.split(/[,;\/\n]+/).forEach(function(a){var t=a.trim();if(t&&acessSet2.indexOf(t)<0)acessSet2.push(t);});}});
+    s.filmes.forEach(function(c){var f=_copiaNaSessao(s,c);if(f&&f.acessibilidade){f.acessibilidade.split(/[,;\/\n]+/).forEach(function(a){var t=a.trim();if(t&&acessSet2.indexOf(t)<0)acessSet2.push(t);});}});
     if(acessSet2.length)html+='<div style="font-family:var(--mono);font-size:9px;color:var(--text-dim);margin-bottom:12px;">'+acessSet2.join(' · ')+'</div>';
   }
   // vinhetas
@@ -31749,13 +31764,13 @@ function _mobRenderProgSessao(params,noScroll){
   }
   // filmes
   html+='<div style="font-family:var(--mono);font-size:9px;font-weight:600;letter-spacing:0.15em;text-transform:uppercase;color:var(--accent);margin-bottom:8px;">Filmes</div>';
-  var films=s.filmes.map(function(c){return Object.assign({codigo:c},filmesMap[c]||{});}).filter(function(f){return f.titulo||f.codigo;});
+  var films=s.filmes.map(function(c){return _filmeNaSessao(s,c);}).filter(function(f){return f.titulo||f.codigo;});
   if(!films.length)html+='<div class="mob-empty" style="padding:12px 0;">Nenhum filme associado.</div>';
   films.forEach(function(f){
     html+='<div style="background:var(--surface);border:1px solid var(--border);border-radius:4px;margin-bottom:10px;overflow:hidden;">';
     html+='<div style="padding:10px 12px;border-bottom:1px solid var(--border);">';
-    html+='<div class="mob-sessao-filme">'+_mobEsc(filmDisplayTitle(f.codigo))+'</div>';
-    html+='<div style="font-family:var(--mono);font-size:9px;color:var(--text-muted);margin-top:2px;">'+_mobEsc(f.codigo)+_trafEnvio(s,f.codigo).map(function(h){var o=_trafOrigem(h,f.codigo);return' · '+_mobEsc(h.data.nome||'HD')+(o?' ← '+_mobEsc(o):'');}).join('')+'</div>';
+    html+='<div class="mob-sessao-filme">'+_mobEsc(filmDisplayTitle(f.codigo))+_versaoTagSessao(s,f.codigo)+'</div>';
+    html+='<div style="font-family:var(--mono);font-size:9px;color:var(--text-muted);margin-top:2px;">'+_mobEsc(f.codigo)+_trafEnvio(s,f.codigo).map(function(h){var o=_trafOrigem(h,f._copiaId||f.codigo);return' · '+_mobEsc(h.data.nome||'HD')+(o?' ← '+_mobEsc(o):'');}).join('')+'</div>';
     html+='</div><div style="padding:8px 12px;">';
     var rowP=function(lbl,val){if(!val||val==='-'||val==='—'||val==='')return'';return'<div style="display:flex;gap:8px;padding:3px 0;font-family:var(--mono);font-size:10px;border-bottom:1px solid var(--border);"><span style="color:var(--text-muted);width:72px;flex-shrink:0;">'+lbl+'</span><span style="color:var(--text-dim);">'+_mobEsc(String(val))+'</span></div>';};
     html+=rowP('Idioma',f.idioma);html+=rowP('Legenda',f.legenda||f.vf);html+=rowP('VF',f.vf);html+=rowP('Duração',typeof fmtDur==='function'?fmtDur(f.duracao):f.duracao);html+=rowP('CPL',f.cpl);html+=rowP('Acessib.',f.acessibilidade);html+=rowP('OBS',f.obs);
@@ -33212,6 +33227,10 @@ async function ressincronizarDuracoes(){
 /* Versões de cópia: seletor da versão na sessão (Programação) */
 select.prog-ver-sel{min-width:0!important;max-width:240px;font-size:10px!important;padding:2px 6px!important;}
 select.prog-ver-sel.prog-ver-indef{border-color:var(--accent)!important;color:var(--accent);}
+/* etiqueta da versão escolhida na sessão (ficha, KDM, Operação, mobile) */
+.ver-tag{display:inline-block;font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:.04em;padding:1px 6px;margin-left:6px;border:1px solid var(--text-dim);color:var(--text);vertical-align:middle;white-space:nowrap;}
+.ver-tag.ver-tag-indef{border-color:var(--accent);color:var(--accent);border-style:dashed;}
+@media print{.ver-tag{border-color:#000!important;color:#000!important;}}
 /* Print Traffic */
 .pt-top{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;margin-bottom:14px;}
 .pt-tab-off{color:var(--text-dim)!important;border-color:var(--border2)!important;}
@@ -33293,9 +33312,18 @@ function _trafCanEdit(){return !!(window._olgaCanEdit&&window._olgaCanEdit('traf
 function _trafCanOperar(){return _trafCanEdit()||!!(window._olgaHasRestricao&&window._olgaHasRestricao('trafego.operar'));}
 function _trafEvNome(ev){return (window._olgaEventoNomes&&window._olgaEventoNomes[ev])||ev;}
 function _trafSort(a,b){return((a.date&&b.date)?a.date-b.date:0)||((a.time?a.time.h*60+a.time.m:0)-(b.time?b.time.h*60+b.time.m:0));}
-function _trafStorage(c){var f=filmesMap[c];return((f&&f.hd)||'').split(';').map(function(x){return x.trim();}).filter(function(x){return x&&x!=='-';});}
-function _trafGB(c){var f=filmesMap[c];var g=parseFloat(((f&&f.gb)||'').toString().replace(',','.'));return isNaN(g)?0:g;}
-function _trafOvVf(c){var f=filmesMap[c];return !!(f&&clean(f.cplOV));}
+// Versões de cópia: no HD e nos dados técnicos, `c` é a CHAVE DA CÓPIA (código do filme para a
+// versão principal; "{código}__vN" para versão extra). _trafKey(s,c) dá a cópia escolhida na sessão.
+// Na Operação o registro continua por filme × sessão (_trafOpId com o código do filme).
+function _trafKey(s,c){var f=_copiaNaSessao(s,c);return(f&&f.codigo)||c;}
+function _trafFilmeDe(k){var v=copiaVersaoMap[k];return(v&&v.film_code)||k;}
+// formatos físicos não vão em HD
+function _trafForaDoHd(f){return /^(35mm|16mm|Super 8mm|HDCAM)$/.test(String((f&&f.exhibition_format)||'').trim());}
+// título do filme + versão (quando o filme tem mais de uma)
+function _trafTitulo(k){var fc=_trafFilmeDe(k),t=filmDisplayTitle(fc);return _versoesDoFilme(fc).length>1?t+' · '+(versaoNome(_copiaPorId(k))||'versão'):t;}
+function _trafStorage(c){var f=_copiaPorId(c);return((f&&f.hd)||'').split(';').map(function(x){return x.trim();}).filter(function(x){return x&&x!=='-';});}
+function _trafGB(c){var f=_copiaPorId(c);var g=parseFloat(((f&&f.gb)||'').toString().replace(',','.'));return isNaN(g)?0:g;}
+function _trafOvVf(c){var f=_copiaPorId(c);return !!(f&&clean(f.cplOV));}
 function _trafOvVfBadge(c){return _trafOvVf(c)?'<span class="traf-badge traf-ovvf" title="Cópia VF: precisa da OV no servidor">OV + VF</span>':'';}
 function _trafHdById(id){return _trafHds.find(function(h){return h.id===id;})||null;}
 function _trafHdsEv(ev){return _trafHds.filter(function(h){return h.data.event_id===ev;}).sort(function(a,b){return(a.data.nome||'').localeCompare(b.data.nome||'','pt-BR',{numeric:true});});}
@@ -33306,19 +33334,30 @@ function _trafHdMatch(h,s){
   return (x.destinos||[]).some(function(de){return de.sala===s.cinema&&(de.dias||[]).indexOf(d)>=0;});
 }
 // HDs de envio que levam o filme `c` para a sessão `s` (exclui onde o filme está marcado ausente)
-function _trafEnvio(s,c){return _trafHds.filter(function(h){if(!_trafHdMatch(h,s))return false;var fo=(h.data.filmes||{})[c];return !(fo&&fo.ausente);});}
+// `c` = código do filme na sessão; vale a versão escolhida (formato físico não vai em HD)
+function _trafEnvio(s,c){
+  var k=_trafKey(s,c);if(_trafForaDoHd(_copiaPorId(k)))return[];
+  return _trafHds.filter(function(h){if(!_trafHdMatch(h,s))return false;var fo=(h.data.filmes||{})[k];return !(fo&&fo.ausente);});
+}
+// `c` = chave da cópia
 function _trafOrigem(h,c){var fo=(h.data.filmes||{})[c];if(fo&&fo.origem)return fo.origem;var st=_trafStorage(c);return st.length===1?st[0]:'';}
 function _trafEnvioHtml(s,c){
+  var k=_trafKey(s,c);
   return _trafEnvio(s,c).map(function(h){
-    var o=_trafOrigem(h,c),n=h.data.nome||'HD';
+    var o=_trafOrigem(h,k),n=h.data.nome||'HD';
     return'<span class="film-hd" title="HD de envio'+(o?' · copiado de '+esc(o):'')+'">'+esc(n)+(o?' <span style="opacity:.6;font-weight:400;">← '+esc(o)+'</span>':'')+'</span>';
   }).join('');
 }
 function _trafHdSessoes(h){return sessoesArr.filter(function(s){return _trafHdMatch(h,s);}).sort(_trafSort);}
+// cópias que o HD leva: a versão escolhida em cada sessão (chave da cópia); formato físico fica fora
 function _trafHdFilmes(h){
   var ord=[],m={};
-  _trafHdSessoes(h).forEach(function(s){s.filmes.forEach(function(c){if(!_isFest(c))return;if(!m[c]){m[c]=[];ord.push(c);}m[c].push(s);});});
-  return ord.map(function(c){return{c:c,sessoes:m[c],fo:(h.data.filmes||{})[c]||{}};});
+  _trafHdSessoes(h).forEach(function(s){s.filmes.forEach(function(c){
+    if(!_isFest(c))return;
+    var k=_trafKey(s,c);if(_trafForaDoHd(_copiaPorId(k)))return;
+    if(!m[k]){m[k]=[];ord.push(k);}m[k].push(s);
+  });});
+  return ord.map(function(k){return{c:k,filme:_trafFilmeDe(k),sessoes:m[k],fo:(h.data.filmes||{})[k]||{}};});
 }
 function _trafResumo(h){
   var fl=_trafHdFilmes(h),pres=fl.filter(function(x){return !x.fo.ausente;});
@@ -33916,7 +33955,7 @@ function _trafRenderHd(cont,h){
         st.concat(orig&&st.indexOf(orig)<0?[orig]:[]).map(function(o){return'<option value="'+esc(o)+'"'+(o===orig?' selected':'')+'>'+esc(o)+'</option>';}).join('')+'</select>':esc(orig||'—');
       if(!aus&&!orig)origCell+='<span class="traf-badge traf-aus">definir</span>';
       html+='<tr class="'+(aus?'traf-row-aus':'')+'"><td class="traf-muted">'+(idx+1)+'</td>'+
-        '<td><span class="traf-film-tit">'+esc(filmDisplayTitle(c))+'</span>'+_trafOvVfBadge(c)+'<div class="traf-muted">'+esc(c)+'</div></td>'+
+        '<td><span class="traf-film-tit">'+esc(_trafTitulo(c))+'</span>'+_trafOvVfBadge(c)+'<div class="traf-muted">'+esc(c)+'</div></td>'+
         '<td class="traf-muted">'+(_trafGB(c)?_trafGB(c).toFixed(0):'—')+'</td>'+
         '<td>'+origCell+'</td>'+
         '<td><input type="checkbox"'+(aus?' checked':'')+dis+' onchange="_trafSetFilme(\''+sid+'\',\''+sc+'\',{ausente:this.checked})"></td>'+
@@ -33930,7 +33969,7 @@ function _trafRenderHd(cont,h){
   else{
     html+='<table class="traf-table"><thead><tr><th>Dia</th><th>Hora</th><th>Sala</th><th>Sessão</th><th>Filmes</th></tr></thead><tbody>';
     r.sessoes.forEach(function(s){
-      var fl=s.filmes.filter(_isFest).map(function(c){var fo=(x.filmes||{})[c]||{};return fo.ausente?'<span style="text-decoration:line-through;opacity:.5;">'+esc(filmDisplayTitle(c))+'</span>':esc(filmDisplayTitle(c));}).join(' · ');
+      var fl=s.filmes.filter(_isFest).map(function(c){var k=_trafKey(s,c),fo=(x.filmes||{})[k]||{},t=esc(_trafTitulo(k));if(_trafForaDoHd(_copiaPorId(k)))return'<span style="opacity:.5;" title="formato físico: não vai em HD">'+t+'</span>';return fo.ausente?'<span style="text-decoration:line-through;opacity:.5;">'+t+'</span>':t;}).join(' · ');
       html+='<tr><td>'+esc(_trafBr(_trafIso(s.date)))+'</td><td>'+esc(s.hora)+'</td><td>'+esc(s.cinema)+'</td><td>'+esc(stripEvPrefix(s.nome,s.evento))+'</td><td>'+fl+'</td></tr>';
     });
     html+='</tbody></table>';
@@ -34059,15 +34098,15 @@ function _trafRelatorio(id){
     var x=h.data,r=_trafResumo(h);
     var dest=(x.destinos||[]).map(function(de){return'<b>'+e(de.sala)+'</b>: '+e((de.dias||[]).map(_trafBr).join(', ')||'—');}).join(' &nbsp;·&nbsp; ');
     var filmRows=r.presentes.map(function(it,i){
-      var f=filmesMap[it.c]||{};
-      return'<tr><td>'+(i+1)+'</td><td><b>'+e(filmDisplayTitle(it.c))+'</b>'+(_trafOvVf(it.c)?' <span class="ov">OV + VF</span>':'')+'<br><span class="m">'+e(it.c)+'</span></td><td>'+e(_trafOrigem(h,it.c)||'—')+'</td><td class="n">'+(_trafGB(it.c)?_trafGB(it.c).toFixed(0):'—')+'</td>'+
+      var f=_copiaPorId(it.c)||{};
+      return'<tr><td>'+(i+1)+'</td><td><b>'+e(_trafTitulo(it.c))+'</b>'+(_trafOvVf(it.c)?' <span class="ov">OV + VF</span>':'')+'<br><span class="m">'+e(it.c)+'</span></td><td>'+e(_trafOrigem(h,it.c)||'—')+'</td><td class="n">'+(_trafGB(it.c)?_trafGB(it.c).toFixed(0):'—')+'</td>'+
         '<td class="m cpl">'+e(clean(f.cpl)||'—')+(clean(f.cplOV)?'<br>OV: '+e(clean(f.cplOV)):'')+'</td>'+
         '<td>'+it.sessoes.map(function(s){return e(_trafBr(_trafIso(s.date))+' '+s.hora+' '+s.cinema);}).join('<br>')+'</td></tr>';
     }).join('');
-    var aus=r.filmes.filter(function(it){return it.fo.ausente;}).map(function(it){return e(filmDisplayTitle(it.c))+' ('+e(it.c)+')';});
+    var aus=r.filmes.filter(function(it){return it.fo.ausente;}).map(function(it){return e(_trafTitulo(it.c))+' ('+e(it.c)+')';});
     var sessRows=r.sessoes.map(function(s){
       return'<tr><td>'+e(_trafBr(_trafIso(s.date)))+'</td><td>'+e(s.hora)+'</td><td>'+e(s.cinema)+'</td><td>'+e(stripEvPrefix(s.nome,s.evento))+'</td><td>'+
-        s.filmes.filter(_isFest).map(function(c){var fo=(x.filmes||{})[c]||{};return fo.ausente?'<s>'+e(filmDisplayTitle(c))+'</s>':e(filmDisplayTitle(c));}).join(' · ')+'</td></tr>';
+        s.filmes.filter(_isFest).map(function(c){var k=_trafKey(s,c),fo=(x.filmes||{})[k]||{},t=e(_trafTitulo(k));if(_trafForaDoHd(_copiaPorId(k)))return t+' (não vai no HD)';return fo.ausente?'<s>'+t+'</s>':t;}).join(' · ')+'</td></tr>';
     }).join('');
     var diasHd={};(x.destinos||[]).forEach(function(de){(de.dias||[]).forEach(function(d){diasHd[d]=1;});});
     var diasLst=Object.keys(diasHd).sort().map(_trafBr);
@@ -34142,7 +34181,7 @@ function _trafOpPares(h,as){
   var out=[];
   _trafHdSessoes(h).forEach(function(s){
     if(as&&!as.has(s.cinema))return;
-    s.filmes.forEach(function(c){if(!_isFest(c))return;var fo=(h.data.filmes||{})[c];if(fo&&fo.ausente)return;out.push({s:s,c:c});});
+    s.filmes.forEach(function(c){if(!_isFest(c))return;var k=_trafKey(s,c);if(_trafForaDoHd(_copiaPorId(k)))return;var fo=(h.data.filmes||{})[k];if(fo&&fo.ausente)return;out.push({s:s,c:c,k:k});});
   });
   return out;
 }
@@ -34208,7 +34247,7 @@ function _trafSessInfo(s,films){
   var avisos=[];if(sim(s.apresentacao))avisos.push('Apresentação');if(sim(s.col_ag))avisos.push('Debate');
   var li=typeof _legSessEletInfo==='function'?_legSessEletInfo(s):{legSim:false,idiomas:[],operadores:[]};
   var leg=(li.legSim||li.idiomas.length)?'Leg. eletrônica'+(li.idiomas.length?': '+li.idiomas.join(', '):'')+(li.operadores.length?' · op.: '+li.operadores.join(', '):''):'';
-  var obs=(films||[]).filter(function(c){return clean((filmesMap[c]||{}).obs);}).map(function(c){return((films||[]).length>1?filmDisplayTitle(c)+': ':'')+clean(filmesMap[c].obs);});
+  var obs=(films||[]).filter(function(c){return clean((_copiaNaSessao(s,c)||{}).obs);}).map(function(c){return((films||[]).length>1?filmDisplayTitle(c)+': ':'')+clean(_copiaNaSessao(s,c).obs);});
   var bump=window._effectiveBumpers?_effectiveBumpers(s):(s.vinhetas||[]),vm={};
   (vinhetasArr||[]).forEach(function(v){vm[v.codigo]=v;});
   var vin=bump.map(function(cod){var i=vm[cod],t=(i&&i.cpl)?i.cpl:cod;return t.length>20?t.slice(0,20)+'…':t;});
@@ -34236,8 +34275,9 @@ function _trafLenteOpts(op,f,vazio){
   return'<option value=""'+(cur?'':' selected')+'>'+vazio+'</option>'+lst.map(function(l){return'<option value="'+esc(l)+'"'+(l===cur?' selected':'')+'>'+esc(l)+'</option>';}).join('');
 }
 // especificações técnicas da cópia e tamanhos (o que antes só aparecia no Ingest)
+// `c` = chave da cópia
 function _trafSpecsHtml(c){
-  var f=filmesMap[c]||{},sp=[];
+  var f=_copiaPorId(c)||{},sp=[];
   if(_trafMin(f))sp.push('<span class="traf-chip" style="font-weight:700;color:var(--text);">'+esc(_trafMin(f))+'</span>');
   if(clean(f.lente))sp.push(lenteBadge(clean(f.lente)));
   if(clean(f.som))sp.push(somBadge(clean(f.som)));
@@ -34254,9 +34294,10 @@ function _trafOpFilmes(s,hdSel){
   var ids=Array.isArray(hdSel)?hdSel.map(function(h){return h.id;}):[hdSel.id];
   return films.filter(function(c){return _trafEnvio(s,c).some(function(h){return ids.indexOf(h.id)>=0;});});
 }
-function _trafGbLista(cs){return cs.reduce(function(t,c){return t+_trafGB(c);},0);}
-function _trafGbDias(list,hdSel){var t={};list.forEach(function(s){var d=_trafIso(s.date);t[d]=(t[d]||0)+_trafGbLista(_trafOpFilmes(s,hdSel));});return t;}
-function _trafGbHd(pares){var u={};pares.forEach(function(x){u[x.c]=1;});return _trafGbLista(Object.keys(u));}
+// `cs` = códigos de filme; com `s`, soma o GB da versão escolhida na sessão (formato físico não pesa)
+function _trafGbLista(cs,s){return cs.reduce(function(t,c){var k=s?_trafKey(s,c):c;return t+(_trafForaDoHd(_copiaPorId(k))?0:_trafGB(k));},0);}
+function _trafGbDias(list,hdSel){var t={};list.forEach(function(s){var d=_trafIso(s.date);t[d]=(t[d]||0)+_trafGbLista(_trafOpFilmes(s,hdSel),s);});return t;}
+function _trafGbHd(pares){var u={};pares.forEach(function(x){u[x.k||x.c]=1;});return _trafGbLista(Object.keys(u));}
 // Impressão da Operação: `dia` = só aquele dia; vazio = de hoje em diante. Usa os filtros
 // da tela atual (desktop: _trafOpFiltro; mobile: params da view).
 // Impressão da Operação, uma página por sala (cada operador imprime a folha da própria sala).
@@ -34294,7 +34335,7 @@ function _trafOpImprimir(dia,opts){
       (hdsTxt.length?'<span class="hds">HD de envio: '+hdsTxt.map(function(n){return'<b>'+e(n)+'</b>';}).join(' · ')+'</span>':'<span class="hds">sem HD de envio</span>')+
       '<span class="tt2">'+ss.length+' sess'+(ss.length!==1?'ões':'ão')+(gbSala?' · '+_trafGbStr(gbSala):'')+'</span></div>';
     ss.forEach(function(s){
-      var d=_trafIso(s.date),films=_trafOpFilmes(s,hdSel),gb=_trafGbLista(films),si=_trafSessInfo(s,films);
+      var d=_trafIso(s.date),films=_trafOpFilmes(s,hdSel),gb=_trafGbLista(films,s),si=_trafSessInfo(s,films);
       if(d!==last){last=d;h+='<h2 data-dia="'+e(s.dia)+'">'+e(s.dia)+(gbDia[d]?' · '+_trafGbStr(gbDia[d]):'')+'</h2>';}
       h+='<table class="blk">'+COLS+'<thead><tr class="sr"><td colspan="10"><b class="hr">'+e(s.hora)+'</b> <b>'+e(stripEvPrefix(s.nome,s.evento))+'</b>'+(s.name&&s.name!==s.nome?' · '+e(s.name):'')+(gb?' · '+_trafGbStr(gb):'')+
         (si.avisos.length?' <span class="av2">'+e(si.avisos.join(' + ').toUpperCase())+'</span>':'')+
@@ -34302,12 +34343,12 @@ function _trafOpImprimir(dia,opts){
         (si.obs.length?'<div class="sx"><b>Obs. do acervo:</b> '+e(si.obs.join(' · '))+'</div>':'')+
         (si.vin.length?'<div class="sx"><b>Vinhetas:</b> '+e(si.vin.join(' · '))+'</div><div class="vo">* vinhetas com opção FLAT e SCOPE: usar a da mesma lente do primeiro filme, para reduzir troca de lentes</div>':'')+'</td></tr>'+CH+'</thead><tbody>';
       films.forEach(function(c){
-        var f=filmesMap[c]||{},op=_trafOpMap[_trafOpId(s,c)]||{};
-        var spec=[clean(f.lente),clean(f.som),clean(f.resolucao),_trafFps(f),_trafGB(c)?_trafGB(c).toFixed(0)+' GB':'',clean(f.status)].filter(Boolean).map(function(x){return'<span style="white-space:nowrap">'+e(x)+'</span>';}).join(' · ');
+        var k=_trafKey(s,c),f=_copiaPorId(k)||{},op=_trafOpMap[_trafOpId(s,c)]||{};
+        var spec=[clean(f.lente),clean(f.som),clean(f.resolucao),_trafFps(f),_trafGB(k)?_trafGB(k).toFixed(0)+' GB':'',clean(f.status)].filter(Boolean).map(function(x){return'<span style="white-space:nowrap">'+e(x)+'</span>';}).join(' · ');
         var legCel=(_trafLegCopia(f)?'<b class="lg">'+e(_trafLegCopia(f))+'</b>'+(_trafLegNome(f)?' <span class="ln">'+e(_trafLegNome(f))+'</span>':''):'—')+(_trafLegExib(f)?'<br><span class="lx">'+e(_trafLegExib(f))+'</span>':'');
-        var env=_trafEnvio(s,c).map(function(hd){var o=_trafOrigem(hd,c);return(hd.data.nome||'HD')+(o?' ← '+o:'');}).join(', ');
+        var env=_trafEnvio(s,c).map(function(hd){var o=_trafOrigem(hd,k);return(hd.data.nome||'HD')+(o?' ← '+o:'');}).join(', ');
         var kdm=(f.kdm||'').toString().toUpperCase()==='SIM'?e({sim:'recebido',nao:'NÃO recebido',erro:'COM ERRO'}[op.kdm_recebido]||'—'):'<span class="ab">aberto</span>';
-        h+='<tr><td><b class="tf">'+e(filmDisplayTitle(c))+'</b>'+(_trafOvVf(c)?' <span class="ov">OV + VF</span>':'')+'<br><span class="m">'+e(c)+'</span></td>'+
+        h+='<tr><td><b class="tf">'+e(filmDisplayTitle(c))+'</b>'+(_trafOvVf(k)?' <span class="ov">OV + VF</span>':'')+(_versoesDoFilme(c).length>1?'<br><b class="ov">'+e(versaoNome(f))+'</b>':'')+'<br><span class="m">'+e(c)+'</span></td>'+
           '<td>'+(_trafMin(f)?'<b class="du">'+e(_trafMin(f))+'</b><br>':'')+(spec||'—')+'</td>'+
           '<td>'+legCel+'</td>'+
           '<td class="m cpl">'+(clean(f.cpl)?'<span class="cb">'+e(clean(f.cpl))+'</span>':'—')+(clean(f.cplOV)?'<div class="co">OV: '+e(clean(f.cplOV))+'</div>':'')+'</td>'+
@@ -34417,7 +34458,7 @@ function _trafOpSessHtml(s,canOp,hdSel){
   var dis=canOp?'':' disabled',sn=_trafSafe(s.nome),kr=(typeof _kdmResults!=='undefined'&&_kdmResults[s.nome])||null;
   var films=_trafOpFilmes(s,hdSel);
   if(!films.length)return'';
-  var gb=_trafGbLista(films);
+  var gb=_trafGbLista(films,s);
   var kdmBtn=kr&&kr.files&&kr.files.length?'<button class="print-btn" onclick="_trafKdmDownload(\''+sn+'\')">⤓ KDM ('+kr.files.length+')</button>':'';
   function meta(l,v,hl){return'<div class="meta-item"><div class="meta-label">'+l+'</div><div class="meta-value'+(hl?' highlight':'')+'">'+v+'</div></div>';}
   var html='<div class="ficha" style="margin:0 0 14px;max-width:none;">'+
@@ -34435,13 +34476,13 @@ function _trafOpSessHtml(s,canOp,hdSel){
   html+='<div class="film-table-wrap"><table><thead><tr><th>#</th><th>Filme</th><th class="center">Lente</th><th class="center">Som</th><th>Legenda</th><th>CPL</th><th>HD de envio</th>'+
     '<th class="center">Ingest</th><th>Volume</th><th>Lente cabine</th><th>KDM</th><th>Obs.</th></tr></thead><tbody>';
   films.forEach(function(c,idx){
-    var f=filmesMap[c]||{},op=_trafOpMap[_trafOpId(s,c)]||{},sc=_trafSafe(c);
+    var k=_trafKey(s,c),f=_copiaPorId(k)||{},op=_trafOpMap[_trafOpId(s,c)]||{},sc=_trafSafe(c);
     var precisaKdm=(f.kdm||'').toString().toUpperCase()==='SIM';
     var sub=['<span class="film-code">'+esc(c)+'</span>'];
     if(_trafMin(f))sub.push('<span class="film-hd" style="font-weight:700;color:var(--text);">'+esc(_trafMin(f))+'</span>');
     if(clean(f.resolucao))sub.push('<span class="film-hd">'+esc(clean(f.resolucao))+'</span>');
     if(_trafFps(f))sub.push('<span class="film-hd">'+esc(_trafFps(f))+'</span>');
-    if(_trafGB(c))sub.push('<span class="film-hd">'+_trafGB(c).toFixed(0)+' GB</span>');
+    if(_trafGB(k))sub.push('<span class="film-hd">'+_trafGB(k).toFixed(0)+' GB</span>');
     if(f.status)sub.push(statusBadge(f.status));
     var outras=_trafOpOutras(s,c).map(function(o){
       var oop=_trafOpMap[_trafOpId(o,c)]||{};
@@ -34450,7 +34491,7 @@ function _trafOpSessHtml(s,canOp,hdSel){
     var lenteOpts=_trafLenteOpts(op,f,'—');
     html+='<tr>'+
       '<td class="film-num">'+(idx+1)+'</td>'+
-      '<td><div class="film-title">'+esc(filmDisplayTitle(c))+_trafOvVfBadge(c)+'</div><div class="film-sub">'+sub.join('')+'</div>'+
+      '<td><div class="film-title">'+esc(filmDisplayTitle(c))+_trafOvVfBadge(k)+_versaoTagSessao(s,c)+'</div><div class="film-sub">'+sub.join('')+'</div>'+
         (outras?'<div class="film-sub" style="margin-top:4px;"><span class="traf-muted">nesta sala também:</span>'+outras+'</div>':'')+'</td>'+
       '<td class="center">'+(lenteBadge(clean(f.lente))||'<span style="color:var(--text-muted)">—</span>')+'</td>'+
       '<td class="center">'+(somBadge(clean(f.som))||'<span style="color:var(--text-muted)">—</span>')+'</td>'+
@@ -34659,7 +34700,7 @@ function _mobTrafSessHtml(s,canOp,hdSel){
   var dis=canOp?'':' disabled',sn=_trafSafe(s.nome),kr=(typeof _kdmResults!=='undefined'&&_kdmResults[s.nome])||null;
   var films=_trafOpFilmes(s,hdSel);
   if(!films.length)return'';
-  var gb=_trafGbLista(films);
+  var gb=_trafGbLista(films,s);
   var kdmBtn=kr&&kr.files&&kr.files.length?'<button class="print-btn" style="padding:7px 10px;" onclick="_trafKdmDownload(\''+sn+'\')">⤓ KDM ('+kr.files.length+')</button>':'';
   var html='<div class="mob-sessao-card"><div class="mob-sessao-header"><span class="mob-sessao-hora">'+esc(s.hora)+'</span>'+
     '<div style="flex:1;min-width:0;"><div style="font-family:var(--mono);font-size:12px;font-weight:700;color:var(--text);">'+esc(s.dia)+'</div>'+
@@ -34675,7 +34716,7 @@ function _mobTrafSessHtml(s,canOp,hdSel){
     })()+
     '<div class="mob-sessao-body">';
   films.forEach(function(c){
-    var f=filmesMap[c]||{},op=_trafOpMap[_trafOpId(s,c)]||{},sc=_trafSafe(c);
+    var k=_trafKey(s,c),f=_copiaPorId(k)||{},op=_trafOpMap[_trafOpId(s,c)]||{},sc=_trafSafe(c);
     var precisaKdm=(f.kdm||'').toString().toUpperCase()==='SIM';
     var outras=_trafOpOutras(s,c).map(function(o){
       var oop=_trafOpMap[_trafOpId(o,c)]||{};
@@ -34683,8 +34724,8 @@ function _mobTrafSessHtml(s,canOp,hdSel){
     }).join('');
     var save=function(campo,expr){return' onchange="_trafOpSave(\''+sn+'\',\''+sc+'\',\''+campo+'\','+expr+',this)"';};
     html+='<div style="padding:10px 0 12px;border-bottom:1px solid var(--border);">'+
-      '<div style="font-size:14px;font-weight:600;color:var(--text);">'+esc(filmDisplayTitle(c))+_trafOvVfBadge(c)+'</div>'+
-      '<div class="traf-muted">'+esc(c)+'</div>'+_trafSpecsHtml(c)+
+      '<div style="font-size:14px;font-weight:600;color:var(--text);">'+esc(filmDisplayTitle(c))+_trafOvVfBadge(k)+_versaoTagSessao(s,c)+'</div>'+
+      '<div class="traf-muted">'+esc(c)+'</div>'+_trafSpecsHtml(k)+
       (clean(f.cpl)?'<div class="traf-muted" style="word-break:break-all;color:var(--cpl-color);margin-top:2px;font-weight:700;">CPL '+esc(clean(f.cpl))+'</div>':'')+
       (clean(f.cplOV)?'<div class="traf-muted" style="word-break:break-all;">CPL da OV '+esc(clean(f.cplOV))+'</div>':'')+
       (_trafEnvioHtml(s,c)?'<div style="margin-top:4px;">'+_trafEnvioHtml(s,c)+'</div>':'')+
@@ -34781,7 +34822,7 @@ function _mobRenderTrafHd(p){
   r.filmes.forEach(function(it){
     var c=it.c,sc=_trafSafe(c),st=_trafStorage(c),orig=_trafOrigem(h,c),aus=!!it.fo.ausente;
     html+='<div class="mob-sessao-card" style="padding:10px 14px;'+(aus?'opacity:.6;':'')+'">'+
-      '<div style="font-size:14px;font-weight:600;'+(aus?'text-decoration:line-through;':'')+'">'+esc(filmDisplayTitle(c))+_trafOvVfBadge(c)+'</div>'+
+      '<div style="font-size:14px;font-weight:600;'+(aus?'text-decoration:line-through;':'')+'">'+esc(_trafTitulo(c))+_trafOvVfBadge(c)+'</div>'+
       '<div class="traf-muted">'+esc(c)+(_trafGB(c)?' · '+_trafGB(c).toFixed(0)+' GB':'')+'</div>'+
       '<div style="display:flex;gap:8px;align-items:center;margin-top:8px;">'+
         (canEdit?'<select class="traf-input" style="'+_TRAF_MOB_IN+'flex:1;"'+(aus?' disabled':'')+' onchange="_trafSetFilme(\''+sid+'\',\''+sc+'\',{origem:this.value})"><option value="">HD de origem…</option>'+

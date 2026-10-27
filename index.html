@@ -8240,6 +8240,7 @@ function _verFmt(f,pub){
   if(x==='Outro')return(f.exhibition_format_notes||'').trim()||(pub?'outro formato':'Outro');
   var m=_VER_FMT[x];return m?m[pub?1:0]:x;
 }
+function _verLegCod(v){v=String(v||'').trim();return /^(n[ãa]o|-+|x)$/i.test(v)?'':v;}
 function _verLangNome(code){var n=String(dcncToCldr(code)||code);return n.charAt(0).toLowerCase()+n.slice(1);}
 function _verLeg(f,pub){
   var ex=(f.legenda_exibicao||'').trim().toUpperCase().normalize('NFD').replace(/[̀-ͯ]/g,'');
@@ -8247,8 +8248,8 @@ function _verLeg(f,pub){
     var l=ex.indexOf('PORTUGUES')>=0?['PT','português']:ex.indexOf('INGLES')>=0?['EN','inglês']:ex.indexOf('LSE')>=0?['LSE','']:null;
     if(l)return pub?(l[0]==='LSE'?'legendas LSE (eletrônicas)':'legendas em '+l[1]+' (eletrônicas)'):'leg. eletrônica '+l[0];
   }
-  // na Revista nunca "VF": sempre "legendas em…"
-  var vf=(f.vf||'').trim(),lg=(f.legenda||'').trim();
+  // na Revista nunca "VF": sempre "legendas em…"; "NÃO", "-" e "X" no campo = sem legenda
+  var vf=_verLegCod(f.vf),lg=_verLegCod(f.legenda);
   if(vf)return pub?'legendas em '+_verLangNome(vf):'VF '+vf.replace(/-.*$/,'');
   if(lg)return pub?'legendas em '+_verLangNome(lg):'leg. '+lg.replace(/-.*$/,'');
   return pub?'sem legendas':'sem leg.';
@@ -19584,7 +19585,7 @@ function renderDash(){
   html+=colBlock('legendagem','Legendagem',legBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 27/10/2026 às 12:22';
+  var sysUpdate='última atualização do sistema · 27/10/2026 às 12:23';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -29790,7 +29791,7 @@ function _sxcPrint(){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 27/10/2026 às 12:22</span></div>
+<div id="page-footer"><span>última atualização · 27/10/2026 às 12:23</span></div>
 
 </div>
 

@@ -19578,7 +19578,7 @@ function renderDash(){
   html+=colBlock('legendagem','Legendagem',legBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 27/10/2026 às 11:20';
+  var sysUpdate='última atualização do sistema · 27/10/2026 às 11:49';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -24513,8 +24513,19 @@ function renderCatDetail(){
     html+='<div class="cat-actions"><span class="cat-msg" id="catSaveMsg"></span><button class="cat-cancel-btn" onclick="_catConfirmLeave(cancelCatEdit)">Cancelar</button><button class="cat-save-btn" onclick="doSaveCat()">Salvar</button></div>';
   else
     html+='<div class="cat-actions">'+acervoBtn+'</div>';
+  // versões do filme: o NOME (interno e na Revista) é escolha de quem seleciona, editável aqui
   var _versCat=_versoesDoFilme(_catCode);
-  if(_versCat.length>1)html+='<div style="font-family:var(--mono);font-size:10px;color:var(--text-dim);margin:4px 0 10px;"><span style="color:var(--text-muted);text-transform:uppercase;letter-spacing:.1em;">Versões</span> '+_versCat.map(function(v,vi){return esc(versaoNome(v)||v.codigo)+(vi?'':' (principal)');}).join(' · ')+'</div>';
+  if(_versCat.length&&!_catEditing){
+    var _canVerNome=!!(canEdit&&window._olgaCopias);
+    html+='<div class="cat-versoes"><div class="cat-versoes-h">Versões'+(_versCat.length>1?' · '+_versCat.length:'')+'</div>'+
+      _versCat.map(function(v,vi){
+        var auto=Object.assign({},v,{versao_nome:'',versao_publico:''}),sid=String(v.codigo).replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+        function campo(k,val,ph){return _canVerNome?'<input class="cat-input" value="'+esc(val||'')+'" placeholder="'+esc(ph||'automático')+'" onchange="_catSetVersaoNome(\''+sid+'\',\''+k+'\',this.value)">':'<span>'+esc(val||ph||'—')+'</span>';}
+        return'<div class="cat-versao-row"><div class="cat-versao-tag">'+esc(_verFmt(v,false)||'sem formato')+(vi?'':' · principal')+'</div>'+
+          '<div class="cat-versao-campo"><span class="cat-label">Nome interno</span>'+campo('versao_nome',v.versao_nome,versaoNome(auto))+'</div>'+
+          '<div class="cat-versao-campo"><span class="cat-label">Nome na Revista</span>'+campo('versao_publico',v.versao_publico,versaoPublico(auto))+'</div></div>';
+      }).join('')+'</div>';
+  }
   html+='<div class="cat-header">';
   if(!_catEditing&&meta.poster)html+='<img src="'+esc(_catImgSrc(meta.poster,'w400'))+'" referrerpolicy="no-referrer" alt="Cartaz" title="Ver imagens" onclick="_catSetTab(\'imagens\')" onerror="this.remove()" style="float:right;max-width:110px;max-height:165px;margin:0 0 10px 16px;border:1px solid var(--border);cursor:pointer;object-fit:cover;">';
   var _evColDet=copia.evento&&eventColors[copia.evento]?eventColors[copia.evento]:null;
@@ -26569,12 +26580,12 @@ function _openAcervoEditCopia(f){
   function aeRow(label,inputHtml){return'<div class="cat-field" style="margin-bottom:8px;"><div class="cat-label">'+label+'</div><div class="cat-value">'+inputHtml+'</div></div>';}
   function aeInp(id,val,type){return'<input class="cat-input" id="ae_'+id+'" type="'+(type||'text')+'" value="'+esc(val||'')+'">';}
   function aeDatalist(id,val,listId,opts){return'<input class="cat-input" id="ae_'+id+'" list="ae_'+listId+'_list" value="'+esc(val||'')+'" autocomplete="off"><datalist id="ae_'+listId+'_list">'+opts+'</datalist>';}
-  var _verPh=Object.assign({},f,{versao_nome:'',versao_publico:''});
   var body=''
     +(_ehExtra?'<div style="font-family:var(--mono);font-size:10px;color:var(--accent);margin-bottom:10px;">Versão extra de '+esc(filmDisplayTitle(f.film_code))+' ('+esc(f.film_code)+')</div>':'')
     +'<div class="cat-grid">'
-    +aeRow('Nome da versão (interno)','<input class="cat-input" id="ae_versao_nome" type="text" value="'+esc(f.versao_nome||'')+'" placeholder="'+esc(versaoNome(_verPh)||'automático')+'">')
-    +aeRow('Nome na Revista','<input class="cat-input" id="ae_versao_publico" type="text" value="'+esc(f.versao_publico||'')+'" placeholder="'+esc(versaoPublico(_verPh)||'automático')+'">')
+    // o nome da versão é escolha de quem seleciona (Selecionados), não do técnico: aqui só leitura
+    +aeRow('Nome da versão (interno)','<div class="cat-input" style="opacity:.75;" title="Definido nos Selecionados">'+esc(versaoNome(f)||'—')+(f.versao_nome?'':' <span style="color:var(--text-muted);">(automático)</span>')+'</div>')
+    +aeRow('Nome na Revista','<div class="cat-input" style="opacity:.75;" title="Definido nos Selecionados">'+esc(versaoPublico(f)||'—')+(f.versao_publico?'':' <span style="color:var(--text-muted);">(automático)</span>')+'</div>')
     +'</div>'
     +aeRow('Título (copias)',aeInp('titulo',f.titulo))
     +'<div class="cat-grid">'
@@ -26660,8 +26671,7 @@ function _openAcervoEditCopia(f){
     exhibition_format:f.exhibition_format||'',
     exhibition_format_notes:f.exhibition_format_notes||'',
     legenda_exibicao:f.legenda_exibicao||'ORIGINAL',
-    dcp_link:f.dcp_link||'',file_link:f.file_link||'',
-    versao_nome:f.versao_nome||'',versao_publico:f.versao_publico||''
+    dcp_link:f.dcp_link||'',file_link:f.file_link||''
   };
 }
 function _aeAcessRender(){
@@ -26701,8 +26711,7 @@ async function doSaveAcervoEdit(){
     exhibition_format:aeVal('exhibition_format'),
     exhibition_format_notes:aeVal('exhibition_format_notes'),
     legenda_exibicao:aeVal('legenda_exibicao')||'ORIGINAL',
-    dcp_link:aeVal('dcp_link'),file_link:aeVal('file_link'),
-    versao_nome:aeVal('versao_nome'),versao_publico:aeVal('versao_publico')
+    dcp_link:aeVal('dcp_link'),file_link:aeVal('file_link')
   };
   try{
     await window._olgaCopias.save(f.codigo,data,_acervoOriginalData);
@@ -26722,7 +26731,6 @@ async function doSaveAcervoEdit(){
     // Atualizar memória
     var m=_copiaPorId(f.codigo);
     if(m){
-      m.versao_nome=data.versao_nome;m.versao_publico=data.versao_publico;
       m.titulo=data.title;m.idioma=data.original_language;m.legenda=data.dcp_subtitle_code;
       m.vf=data.vf_subtitle_code;m.lente=data.projection_lens;m.som=data.audio_format;
       m.status=data.status;m.obs=data.notes;m.col_k=data.dcp_creator;m.kdm=data.has_kdm;
@@ -26761,8 +26769,11 @@ function _novaVersao(cod){
     row('VF (código)','<input class="pt-in" id="vn_vf" placeholder="ex.: ES-XX">')+
     row('Legenda de exibição','<select class="pt-in" id="vn_lex" style="min-width:0;">'+lex.map(function(o){return'<option>'+esc(o)+'</option>';}).join('')+'</select>')+
     row('Duração (H:MM:SS)','<input class="pt-in" id="vn_dur" value="'+esc(p.duracao||'')+'">')+
-    '<div class="pt-full">'+row('Nome da versão (interno, opcional)','<input class="pt-in" id="vn_nome" placeholder="automático: formato · legenda">')+'</div>'+
-    '<div class="pt-full">'+row('Nome na Revista (opcional)','<input class="pt-in" id="vn_pub" placeholder="automático: ex. cópia em 35mm, legendas em inglês">')+'</div>'+
+    // nomes da versão: escolha de quem seleciona (Selecionados)
+    (window._olgaCanEdit&&window._olgaCanEdit('catalogo')?
+      '<div class="pt-full">'+row('Nome da versão (interno, opcional)','<input class="pt-in" id="vn_nome" placeholder="automático: formato · legenda">')+'</div>'+
+      '<div class="pt-full">'+row('Nome na Revista (opcional)','<input class="pt-in" id="vn_pub" placeholder="automático: ex. cópia em 35mm, legendas em inglês">')+'</div>':
+      '<div class="pt-full traf-muted" style="margin-top:8px;">O nome da versão é automático (formato · legenda) e pode ser ajustado nos Selecionados.</div>')+
     '</div></div><div class="pt-modal-f"><button class="print-btn" onclick="document.getElementById(\'verNovaModal\').remove()">Cancelar</button><span style="flex:1"></span>'+
     '<button class="print-btn" onclick="_novaVersaoSalvar(\''+_trafSafe(cod)+'\')">Criar versão</button></div></div>';
 }
@@ -26799,6 +26810,18 @@ async function _acervoExcluirVersao(){
     closeAcervoEditModal();
     if(currentMode==='busca')renderBuscaResults();
   }catch(e){alert('Erro ao excluir: '+e.message);}
+}
+// nome da versão (interno / Revista): definido por quem seleciona, nos Selecionados
+async function _catSetVersaoNome(id,campo,valor){
+  var f=_copiaPorId(id);if(!f||!window._olgaCopias)return;
+  valor=(valor||'').trim();
+  var old=f[campo]||'',p={},o={};p[campo]=valor;o[campo]=old;
+  f[campo]=valor;
+  try{
+    await window._olgaCopias.save(id,p,o);
+    window._logFirestoreEdit&&window._logFirestoreEdit('individual',id,p,'catalogo','copias');
+  }catch(e){f[campo]=old;alert('Erro ao salvar o nome da versão: '+e.message);}
+  if(currentMode==='catalogo'&&typeof renderCatDetail==='function')renderCatDetail();
 }
 // clicar numa versão no card: edita (quem edita o Acervo) ou mostra o resumo
 function _acervoVerVersao(id){
@@ -29761,7 +29784,7 @@ function _sxcPrint(){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 27/10/2026 às 11:20</span></div>
+<div id="page-footer"><span>última atualização · 27/10/2026 às 11:49</span></div>
 
 </div>
 
@@ -33260,6 +33283,14 @@ async function ressincronizarDuracoes(){
 /* Versões de cópia: seletor da versão na sessão (Programação) */
 select.prog-ver-sel{min-width:0!important;max-width:240px;font-size:10px!important;padding:2px 6px!important;}
 select.prog-ver-sel.prog-ver-indef{border-color:var(--accent)!important;color:var(--accent);}
+/* versões na ficha dos Selecionados (nome definido por quem seleciona) */
+.cat-versoes{border:1px solid var(--border);background:var(--surface);padding:8px 12px 10px;margin:6px 0 12px;}
+.cat-versoes-h{font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);margin-bottom:4px;}
+.cat-versao-row{display:grid;grid-template-columns:150px minmax(0,1fr) minmax(0,1.4fr);gap:4px 12px;align-items:end;padding:6px 0;border-top:1px dashed var(--border);}
+.cat-versao-row:first-of-type{border-top:none;}
+.cat-versao-tag{font-family:var(--mono);font-size:11px;font-weight:700;color:var(--text);padding-bottom:6px;}
+.cat-versao-campo{display:flex;flex-direction:column;gap:2px;font-size:12px;color:var(--text);}
+@media(max-width:700px){.cat-versao-row{grid-template-columns:minmax(0,1fr);}}
 /* coluna Formato da ficha de programação */
 .prog-fmt-cell{white-space:nowrap;}
 .prog-fmt-val{font-family:var(--mono);font-size:12px;font-weight:700;color:var(--text);}

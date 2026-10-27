@@ -19452,7 +19452,7 @@ function renderDash(){
   html+=colBlock('legendagem','Legendagem',legBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 27/10/2026 às 08:51';
+  var sysUpdate='última atualização do sistema · 27/10/2026 às 08:54';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -29514,7 +29514,7 @@ function _sxcPrint(){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 27/10/2026 às 08:51</span></div>
+<div id="page-footer"><span>última atualização · 27/10/2026 às 08:54</span></div>
 
 </div>
 
@@ -33212,7 +33212,7 @@ function _trafPrimeiroVisivel(pref){var ord=[pref,'interno','operacao'];for(var 
    da Legendagem) — mudar aqui muda lá e vice-versa. */
 var _ptEv='',_ptSel=null,_ptView='filmes',_ptDocs={},_ptSources={},_ptUnsub=null,_ptKey='',_ptSrcUnsub=null,_ptDirty=false,_ptChatFoco=false;
 var _ptFiltro={copia:'',invoice:'',legenda:''};
-var _PT_COPIA=[['nao_solicitado','Não solicitado'],['solicitado','Solicitado'],['em_transito','Em trânsito'],['recebido','Recebido']];
+var _PT_COPIA=[['nao_solicitado','Não solicitado'],['solicitado','Solicitado'],['em_transito','Em trânsito'],['recebido','Recebido'],['devolvido','Devolvido']];
 var _PT_INV=[['nao_solicitado','Não solicitado'],['solicitado','Solicitado'],['recebido','Recebido'],['encaminhado','Encaminhado'],['pago','Pago']];
 var _PT_MAT=[['pendente','Pendente'],['solicitado','Solicitado'],['recebido','Recebido'],['aprovado','Aprovado'],['liberado','Liberado']];
 var _PT_MATS=[['stills','Stills','S'],['diretor','Diretor','D'],['poster','Poster','P'],['pressbook','Press Book','PB'],['trailer','Trailer','T']];
@@ -33224,7 +33224,7 @@ function _ptCopiaSt(d){var v=d.copia_status||'nao_solicitado';return v==='penden
 function _ptNivel(g,v){
   if(g==='leg')return !v?0:v==='OK'?2:1;
   if(!v||v==='nao_solicitado'||v==='pendente')return 0;
-  return(g==='copia'&&v==='recebido')||(g==='inv'&&v==='pago')||(g==='mat'&&v==='liberado')?2:1;
+  return(g==='copia'&&(v==='recebido'||v==='devolvido'))||(g==='inv'&&v==='pago')||(g==='mat'&&v==='liberado')?2:1;
 }
 // formato de exibição: mesmas opções e mesmo campo do Acervo Técnico (copias.exhibition_format)
 var _PT_FORMATOS=['DCP','arquivo','35mm','16mm','Super 8mm','HDCAM','Outro'].map(function(o){return[o,o];});
@@ -33379,7 +33379,7 @@ function _ptListaHtml(){
   var nCop=0,nPago=0,nLeg=0,tot={};
   films.forEach(function(f){
     var d=_ptDoc(f.codigo);
-    if(_ptCopiaSt(d)==='recebido')nCop++;
+    if(_ptCopiaSt(d)==='recebido'||_ptCopiaSt(d)==='devolvido')nCop++;
     if(d.invoice_status==='pago')nPago++;
     if((f.col_n||'').trim()==='OK')nLeg++;
     var t=_ptTotal(d);Object.keys(t).forEach(function(m){tot[m]=(tot[m]||0)+t[m];});
@@ -33407,7 +33407,7 @@ function _ptListaHtml(){
     h+='<tr class="pt-tr" data-busca="'+esc(busca)+'" onclick="_ptAbrir(\''+_trafSafe(c)+'\')">'+
       '<td><b>'+esc(filmDisplayTitle(c))+'</b><div class="traf-muted">'+esc(stripEvPrefix(c,f.evento))+'</div></td>'+
       '<td>'+(pr?esc(pr.nome||''):'<span class="traf-muted">—</span>')+(ids.length>1?' <span class="traf-muted">+'+(ids.length-1)+'</span>':'')+'</td>'+
-      '<td>'+(f.exhibition_format?'<b style="font-family:var(--mono);font-size:10px;margin-right:5px;">'+esc(f.exhibition_format)+'</b>':'')+_ptBadge(_PT_COPIA,_ptCopiaSt(d),'copia')+(d.copia_previsao&&_ptCopiaSt(d)!=='recebido'?'<div class="traf-muted">prev. '+esc(_trafBr(d.copia_previsao))+'</div>':'')+'</td>'+
+      '<td>'+(f.exhibition_format?'<b style="font-family:var(--mono);font-size:10px;margin-right:5px;">'+esc(f.exhibition_format)+'</b>':'')+_ptBadge(_PT_COPIA,_ptCopiaSt(d),'copia')+(d.copia_previsao&&_ptNivel('copia',_ptCopiaSt(d))<2?'<div class="traf-muted">prev. '+esc(_trafBr(d.copia_previsao))+'</div>':'')+'</td>'+
       '<td>'+_ptBadge(_PT_INV,d.invoice_status||'nao_solicitado','inv')+'</td>'+
       '<td style="white-space:nowrap;">'+_ptMatDots(d)+'</td>'+
       '<td>'+_ptBadge([],(f.col_n||'').trim(),'leg')+'</td>'+

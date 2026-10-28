@@ -6226,10 +6226,11 @@ html[data-theme="indexof"]:not([data-theme="win98"]) .module-icon{display:flex!i
 
   // ── Mudanças de programação (SAI/ENTRA) ───────────────────────────
   // A partir de _MUD_DIAS_ANTES dias antes do início do evento até o fim, cada sessão que cai,
-  // entra ou muda de data/hora/local/filmes vira um doc em `prog_mudancas` ({sai, entra}).
-  // Várias edições seguidas da mesma sessão nesta aba viram um registro só (SAI = estado
-  // original, ENTRA = o último); se voltar ao original, o registro some.
-  var _MUD_DIAS_ANTES = 3, _mudRecentes = {};
+  // entra ou muda de data/hora/local/filmes vira registro em `prog_mudancas` ({sai, entra}).
+  // O par é o BLOCO DE HORÁRIO (mesma sala e dia, horários que se sobrepõem): SAI = o que
+  // estava naquele horário, ENTRA = o que ocupou o lugar. Sessão que muda de bloco gera SAI no
+  // bloco antigo e ENTRA no novo; ajuste dentro do mesmo bloco é um registro só.
+  var _MUD_DIAS_ANTES = 3, _mudFila = Promise.resolve();
   window._MUD_DIAS_ANTES = _MUD_DIAS_ANTES;
   window._mudJanela = function(ev){
     var e=(window._adminEventosFullCache||[]).find(function(x){return x.id===ev||(x.data&&x.data.nome)===ev;});
@@ -6241,13 +6242,23 @@ html[data-theme="indexof"]:not([data-theme="win98"]) .module-icon{display:flex!i
   function _mudAtivo(ev){ var j=window._mudJanela(ev), h=_avIso(_avHoje()); return !!j&&h>=j.desde&&(!j.fim||h<=j.fim); }
   function _mudLado(n){
     if(!n)return null;
+    var films=(n.films||[]).slice(), dur=0;
+    try{ if(typeof _showFilmsDurMin==='function')dur=_showFilmsDurMin(films)||0; }catch(e){}
     return {session_id:n.nome||'',nome:n.name||'',data:n.date||'',hora:n.time||'',local:n.cinema||n.livre||'',
-      film_codes:(n.films||[]).slice(),filmes:(n.films||[]).map(_avFilmeTit)};
+      film_codes:films,filmes:films.map(_avFilmeTit),dur:dur};
   }
   function _mudIgual(a,b){
     if(!a||!b)return !a&&!b;
     return a.data===b.data&&a.hora===b.hora&&a.local===b.local&&a.film_codes.join('|')===b.film_codes.join('|');
   }
+  function _mudMin(h){ var m=/^(\d{1,2}):(\d{2})/.exec(h||''); return m?(+m[1])*60+(+m[2]):null; }
+  // mesmo bloco = mesma sala, mesmo dia e intervalos [início, início+duração] que se cruzam
+  window._mudMesmoBloco = function(a,b){
+    if(!a||!b||a.local!==b.local||a.data!==b.data)return false;
+    var ia=_mudMin(a.hora), ib=_mudMin(b.hora);
+    if(ia===null||ib===null)return a.hora===b.hora;
+    return ia<ib+Math.max(b.dur||90,30)&&ib<ia+Math.max(a.dur||90,30);
+  };
   window._mudTipo = function(sai,entra){
     if(!entra)return 'queda';
     if(!sai)return 'entrada';
@@ -6272,28 +6283,43 @@ html[data-theme="indexof"]:not([data-theme="win98"]) .module-icon{display:flex!i
       if(!ev||!_mudAtivo(ev))return null;
       var sai=_mudLado(o), entra=_mudLado(n);
       if(sai&&entra&&_mudIgual(sai,entra))return null;
-      return function(){ _mudGravar(ev,id,sai,entra); };
+      return function(){ _mudFila=_mudFila.then(function(){ return _mudGravar(ev,sai,entra); }); };
     }catch(e){ console.warn('mudança prep:',e); return null; }
   }
-  async function _mudGravar(ev,id,sai,entra){
+  // o mesmo estado de uma sessão (id + data/hora/local/filmes)
+  function _mudEh(x,s){ return !!x&&!!s&&x.session_id===s.session_id&&_mudIgual(x,s); }
+  async function _mudGravar(ev,o,n){
     var u=window._olgaUser; if(!u)return;
-    var r=_mudRecentes[id];
-    if(r&&Date.now()-r.ms<30*60000){ sai=r.sai; }
     try{
-      if(r&&(!sai&&!entra||_mudIgual(sai,entra))){
-        delete _mudRecentes[id];
-        await deleteDoc(doc(db,'prog_mudancas',r.docId));
+      var lista=await window._olgaMudancas.list(ev), base={origem:'flux',user:(u.email||'').toLowerCase(),user_name:u.name||u.email||''};
+      var put=async function(r,sai,entra){
+        if(!sai&&!entra||_mudEh(sai,entra)){ await window._olgaMudancas.remove(r._id); return; }
+        await window._olgaMudancas.update(r._id,Object.assign({sai:sai,entra:entra,ts:serverTimestamp()},base));
+      };
+      var novo=async function(sai,entra){
+        await addDoc(collection(db,'prog_mudancas'),Object.assign({event_id:ev,tipo:window._mudTipo(sai,entra),sai:sai,entra:entra,
+          data_ref:_mudDataRef(sai,entra),obs:'',ts:serverTimestamp()},base));
+      };
+      // o estado anterior já foi registrado como ENTRA de algum bloco → esta edição continua aquele registro
+      var rEntra=o?lista.find(function(r){return _mudEh(r.entra,o);}):null;
+      if(o&&n&&window._mudMesmoBloco(o,n)){
+        if(rEntra)await put(rEntra,rEntra.sai,n);
+        else await novo(o,n);
         return;
       }
-      var rec={event_id:ev,tipo:window._mudTipo(sai,entra),sai:sai,entra:entra,data_ref:_mudDataRef(sai,entra),
-        origem:'flux',user:(u.email||'').toLowerCase(),user_name:u.name||u.email||'',ts:serverTimestamp()};
-      if(r&&Date.now()-r.ms<30*60000){
-        await setDoc(doc(db,'prog_mudancas',r.docId),rec,{merge:true});
-        r.ms=Date.now();
-      }else{
-        rec.obs='';
-        var ref=await addDoc(collection(db,'prog_mudancas'),rec);
-        _mudRecentes[id]={docId:ref.id,sai:sai,ms:Date.now()};
+      if(o){
+        if(rEntra)await put(rEntra,rEntra.sai,null);
+        else{
+          var e=lista.find(function(r){return !r.sai&&r.entra&&window._mudMesmoBloco(r.entra,o);});
+          if(e)await put(e,o,e.entra); else await novo(o,null);
+        }
+      }
+      if(n){
+        lista=await window._olgaMudancas.list(ev);
+        var volta=lista.find(function(r){return _mudEh(r.sai,n)&&!r.entra;});
+        if(volta){ await window._olgaMudancas.remove(volta._id); return; }
+        var q=lista.find(function(r){return r.sai&&!r.entra&&window._mudMesmoBloco(r.sai,n);});
+        if(q)await put(q,q.sai,n); else await novo(null,n);
       }
     }catch(e){ console.warn('mudança:',e); }
   }
@@ -19682,7 +19708,7 @@ function renderDash(){
   html+=colBlock('legendagem','Legendagem',legBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 28/10/2026 às 17:12';
+  var sysUpdate='última atualização do sistema · 28/10/2026 às 17:22';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -20024,20 +20050,24 @@ function _mudOrdenada(){
   var hoje=_pvIso(new Date());
   return _mudState.lista.filter(function(m){return !_mudState.futuras||!m.data_ref||[m.sai&&m.sai.data,m.entra&&m.entra.data].some(function(d){return d&&d>=hoje;});})
     .sort(function(a,b){
-      var ka=(a.data_ref||'')+((a.sai||a.entra||{}).hora||''),kb=(b.data_ref||'')+((b.sai||b.entra||{}).hora||'');
-      return ka.localeCompare(kb)||a._ms-b._ms;
+      return (a.data_ref||'').localeCompare(b.data_ref||'')||_mudSala(a).localeCompare(_mudSala(b),'pt-BR')||_mudHora(a).localeCompare(_mudHora(b))||a._ms-b._ms;
     });
 }
+// sala e horário do bloco (o mais cedo entre SAI e ENTRA; no registro automático os dois são da mesma sala)
+function _mudSala(m){return((m.sai||m.entra||{}).local)||'—';}
+function _mudHora(m){return[m.sai&&m.sai.hora,m.entra&&m.entra.hora].filter(Boolean).sort()[0]||'';}
 function _mudLadoTxt(x){
   if(!x)return '';
   return [_mudBr(x.data)+(x.hora?' '+x.hora:''),x.local,x.nome||x.session_id,(x.filmes||[]).join(' + ')].filter(Boolean).join(' · ');
 }
-function _mudLadoHtml(rot,x,cor){
+// dia e sala já estão no cabeçalho do grupo — só aparecem no lado quando forem outros
+function _mudLadoHtml(rot,x,cor,dia,sala){
   var h='<div style="display:flex;gap:10px;align-items:flex-start;padding:6px 0;">'
     +'<span style="flex:0 0 58px;font-family:var(--mono);font-size:11px;font-weight:700;letter-spacing:0.08em;color:'+cor+';">'+rot+':</span>';
   if(!x)return h+'<span style="color:var(--text-muted);font-size:13px;">—</span></div>';
+  var extra=[x.data&&x.data!==dia?_mudBr(x.data):'',x.local&&x.local!==sala?x.local:''].filter(Boolean).join(' · ');
   return h+'<div style="flex:1;min-width:0;">'
-    +'<div style="font-size:13px;color:var(--text);"><b>'+esc(_mudBr(x.data))+' '+esc(x.hora||'')+'</b> · '+esc(x.local||'—')+'</div>'
+    +'<div style="font-size:13px;color:var(--text);"><b>'+esc(x.hora||'—')+'</b>'+(extra?' · '+esc(extra):'')+'</div>'
     +'<div style="font-family:var(--mono);font-size:11px;color:var(--text-dim);margin-top:2px;">'+esc(x.nome||x.session_id||'')+(x.nome&&x.session_id?' <span style="color:var(--text-muted);">('+esc(x.session_id)+')</span>':'')+'</div>'
     +'<div style="font-size:12px;color:var(--text-dim);margin-top:2px;">'+esc((x.filmes||[]).join(' + ')||'sem filmes')+'</div>'
     +'</div></div>';
@@ -20070,11 +20100,15 @@ function _mudRender(){
     var cont={};lista.forEach(function(m){cont[m.tipo]=(cont[m.tipo]||0)+1;});
     h+='<div style="font-family:var(--mono);font-size:11px;color:var(--text-dim);margin-bottom:12px;">'+lista.length+' mudança'+(lista.length>1?'s':'')+' · '
       +Object.keys(_MUD_TIT).filter(function(k){return cont[k];}).map(function(k){return cont[k]+' '+_MUD_TIT[k].toLowerCase();}).join(' · ')+'</div>';
-    var hoje=_pvIso(new Date()),dia=null;
+    var hoje=_pvIso(new Date()),dia=null,sala=null;
     lista.forEach(function(m){
       if(m.data_ref!==dia){
-        dia=m.data_ref;
-        h+='<div style="font-family:var(--mono);font-size:12px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:'+(dia&&dia<hoje?'var(--text-muted)':'var(--accent)')+';margin:18px 0 6px;">'+(dia?esc(_pvFmtDate(dia)):'sem data')+'</div>';
+        dia=m.data_ref;sala=null;
+        h+='<div style="font-family:var(--mono);font-size:12px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:'+(dia&&dia<hoje?'var(--text-muted)':'var(--accent)')+';margin:22px 0 6px;">'+(dia?esc(_pvFmtDate(dia)):'sem data')+'</div>';
+      }
+      if(_mudSala(m)!==sala){
+        sala=_mudSala(m);
+        h+='<div style="font-size:13px;font-weight:600;color:var(--text);margin:10px 0 6px 2px;">'+esc(sala)+'</div>';
       }
       var dt=new Date(m._ms),sid=m._id.replace(/'/g,"\\'");
       h+='<div style="border:1px solid var(--border);background:var(--surface);padding:8px 14px;margin-bottom:8px;'+(dia&&dia<hoje?'opacity:0.65;':'')+'">'
@@ -20084,7 +20118,7 @@ function _mudRender(){
         +'<span style="color:var(--text-muted);text-transform:none;">'+esc(m.origem==='site'?'site do festival':m.origem==='manual'?'registro manual':'edição no Flux')+' · '+esc(m.user_name||m.user||'')+' · '+dt.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'})+' '+dt.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})+'</span>'
         +(canEdit?'<span style="margin-left:auto;display:flex;gap:4px;"><button class="prog-btn-icon" title="Observação" onclick="_mudObs(\''+sid+'\')">✎</button><button class="prog-btn-icon prog-btn-del" title="Excluir" onclick="_mudExcluir(\''+sid+'\')">×</button></span>':'')
         +'</div>'
-        +_mudLadoHtml('SAI',m.sai,'var(--warn)')+_mudLadoHtml('ENTRA',m.entra,'var(--ok)')
+        +_mudLadoHtml('SAI',m.sai,'var(--warn)',dia,sala)+_mudLadoHtml('ENTRA',m.entra,'var(--ok)',dia,sala)
         +(m.obs?'<div style="font-size:12px;color:var(--text-dim);border-top:1px dashed var(--border);padding-top:6px;margin-top:2px;">'+esc(m.obs)+'</div>':'')
         +'</div>';
     });
@@ -20093,10 +20127,16 @@ function _mudRender(){
 }
 function _mudToggle(id,on){if(on)_mudState.sel.add(id);else _mudState.sel.delete(id);_mudRender();}
 function _mudCopiar(){
-  var lista=_mudOrdenada(),t='MUDANÇAS DE PROGRAMAÇÃO — '+_mudState.ev+'\n',dia=null;
+  var lista=_mudOrdenada(),t='MUDANÇAS DE PROGRAMAÇÃO — '+_mudState.ev+'\n',dia=null,sala=null;
+  var lt=function(x){
+    if(!x)return '';
+    var extra=[x.data&&x.data!==dia?_mudBr(x.data):'',x.local&&x.local!==sala?x.local:''].filter(Boolean).join(' · ');
+    return [x.hora,extra,x.nome||x.session_id,(x.filmes||[]).join(' + ')].filter(Boolean).join(' · ');
+  };
   lista.forEach(function(m){
-    if(m.data_ref!==dia){dia=m.data_ref;t+='\n'+(dia?_pvFmtDate(dia).toUpperCase():'SEM DATA')+'\n';}
-    t+='SAI: '+_mudLadoTxt(m.sai)+'\nENTRA: '+_mudLadoTxt(m.entra)+'\n'+(m.obs?'Obs: '+m.obs+'\n':'')+'\n';
+    if(m.data_ref!==dia){dia=m.data_ref;sala=null;t+='\n'+(dia?_pvFmtDate(dia).toUpperCase():'SEM DATA')+'\n';}
+    if(_mudSala(m)!==sala){sala=_mudSala(m);t+='\n'+sala+'\n';}
+    t+='SAI: '+lt(m.sai)+'\nENTRA: '+lt(m.entra)+'\n'+(m.obs?'Obs: '+m.obs+'\n':'');
   });
   var ok=function(){alert('Texto de '+lista.length+' mudança(s) copiado.');};
   if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(t).then(ok,function(){prompt('Copie:',t);});
@@ -30047,7 +30087,7 @@ function _sxcPrint(){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 28/10/2026 às 17:12</span></div>
+<div id="page-footer"><span>última atualização · 28/10/2026 às 17:22</span></div>
 
 </div>
 

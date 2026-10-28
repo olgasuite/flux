@@ -6229,7 +6229,7 @@ html[data-theme="indexof"]:not([data-theme="win98"]) .module-icon{display:flex!i
   // entra ou muda de data/hora/local/filmes vira um doc em `prog_mudancas` ({sai, entra}).
   // Várias edições seguidas da mesma sessão nesta aba viram um registro só (SAI = estado
   // original, ENTRA = o último); se voltar ao original, o registro some.
-  var _MUD_DIAS_ANTES = 2, _mudRecentes = {};
+  var _MUD_DIAS_ANTES = 3, _mudRecentes = {};
   window._MUD_DIAS_ANTES = _MUD_DIAS_ANTES;
   window._mudJanela = function(ev){
     var e=(window._adminEventosFullCache||[]).find(function(x){return x.id===ev||(x.data&&x.data.nome)===ev;});
@@ -19682,7 +19682,7 @@ function renderDash(){
   html+=colBlock('legendagem','Legendagem',legBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 28/10/2026 às 17:02';
+  var sysUpdate='última atualização do sistema · 28/10/2026 às 17:12';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -20051,7 +20051,7 @@ function _mudRender(){
   var h='<button class="prog-back-btn" onclick="closeProgMudancas()">← Programação</button>'
     +'<div class="prog-prog-title" style="margin-top:14px;">Mudanças de programação</div>'
     +'<div style="font-family:var(--mono);font-size:11px;color:var(--text-muted);margin-top:4px;">'
-    +(j?'Registro automático das edições de sessão de '+esc(_mudBr(j.desde))+' ('+(window._MUD_DIAS_ANTES||2)+' dias antes do início) até '+esc(_mudBr(j.fim))+'.':'Evento sem data de início cadastrada — sem registro automático.')+'</div>';
+    +(j?'Registro automático das edições de sessão de '+esc(_mudBr(j.desde))+' ('+(window._MUD_DIAS_ANTES||3)+' dias antes do início) até '+esc(_mudBr(j.fim))+'.':'Evento sem data de início cadastrada — sem registro automático.')+'</div>';
   h+='<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:10px 0 18px;border-bottom:1px solid var(--border);margin-bottom:16px;">'
     +'<select onchange="_mudState.ev=this.value;_mudLoad()" style="height:34px;padding:0 10px;border:1px solid var(--border);background:var(--surface);color:var(--text);font-family:var(--mono);font-size:13px;">'
     +evs.map(function(ev){return'<option value="'+esc(ev)+'"'+(ev===st.ev?' selected':'')+'>'+esc(ev)+'</option>';}).join('')+'</select>'
@@ -30047,7 +30047,7 @@ function _sxcPrint(){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 28/10/2026 às 17:02</span></div>
+<div id="page-footer"><span>última atualização · 28/10/2026 às 17:12</span></div>
 
 </div>
 

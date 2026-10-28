@@ -19702,7 +19702,7 @@ function renderDash(){
   html+=colBlock('legendagem','Legendagem',legBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 28/10/2026 às 17:28';
+  var sysUpdate='última atualização do sistema · 28/10/2026 às 19:18';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -20022,7 +20022,7 @@ function closeProgramadorVisual(){
 // ── Mudanças de programação (SAI/ENTRA) — sub-view do módulo Programação ──
 // Só leitura: os registros em prog_mudancas são automáticos (ao salvar/apagar sessão, ver
 // _mudPrep) ou da sincronização com o site do festival (SCRIPTS\mostra_mudancas.py).
-var _mudState={ev:'',lista:[],futuras:false,loading:false};
+var _mudState={ev:'',lista:[],futuras:false,tipos:new Set(),loading:false};
 var _MUD_TIT={queda:'Queda',entrada:'Entrada',alteracao:'Alteração',substituicao:'Substituição'};
 async function openProgMudancas(ev){
   var evs=_pvEventos();
@@ -20040,10 +20040,12 @@ async function _mudLoad(){
 }
 function closeProgMudancas(){_progView={level:'landing',programId:null,sessaoNome:null};_progRender();}
 function _mudBr(iso){var m=/^(\d{4})-(\d{2})-(\d{2})$/.exec(iso||'');return m?m[3]+'/'+m[2]:(iso||'');}
-// ordenada por dia → sala → horário; futuras = só as que têm SAI ou ENTRA de hoje em diante
-function _mudOrdenada(lista,futuras){
+// ordenada por dia → sala → horário; futuras = só as que têm SAI ou ENTRA de hoje em diante;
+// tipos = Set de categorias (queda/entrada/...) — vazio ou ausente = todas
+function _mudOrdenada(lista,futuras,tipos){
   var hoje=_pvIso(new Date());
   return (lista||[]).filter(function(m){return !futuras||!m.data_ref||[m.sai&&m.sai.data,m.entra&&m.entra.data].some(function(d){return d&&d>=hoje;});})
+    .filter(function(m){return !tipos||!tipos.size||tipos.has(m.tipo);})
     .sort(function(a,b){
       return (a.data_ref||'').localeCompare(b.data_ref||'')||_mudSala(a).localeCompare(_mudSala(b),'pt-BR')||_mudHora(a).localeCompare(_mudHora(b))||a._ms-b._ms;
     });
@@ -20087,6 +20089,15 @@ function _mudListaHtml(lista,mob){
   });
   return h;
 }
+// botões de categoria com contagem (sobre a lista já filtrada por data); fn = nome da função de toggle
+function _mudChipsHtml(lista,tipos,fn){
+  var cont={};lista.forEach(function(m){cont[m.tipo]=(cont[m.tipo]||0)+1;});
+  return '<div style="display:flex;gap:6px;flex-wrap:wrap;">'+Object.keys(_MUD_TIT).map(function(k){
+    var on=tipos.has(k);
+    return '<button class="print-btn" onclick="'+fn+'(\''+k+'\')" style="'+(on?'background:var(--accent);color:#000;border-color:var(--accent);':'')+'">'+_MUD_TIT[k]+' ('+(cont[k]||0)+')</button>';
+  }).join('')+'</div>';
+}
+function _mudToggleTipo(k){if(_mudState.tipos.has(k))_mudState.tipos.delete(k);else _mudState.tipos.add(k);_mudRender();}
 function _mudResumo(lista){
   var cont={};lista.forEach(function(m){cont[m.tipo]=(cont[m.tipo]||0)+1;});
   return lista.length+' mudança'+(lista.length>1?'s':'')+' · '+Object.keys(_MUD_TIT).filter(function(k){return cont[k];}).map(function(k){return cont[k]+' '+_MUD_TIT[k].toLowerCase();}).join(' · ');
@@ -20104,13 +20115,14 @@ function _mudRender(){
     +'<select onchange="_mudState.ev=this.value;_mudLoad()" style="height:34px;padding:0 10px;border:1px solid var(--border);background:var(--surface);color:var(--text);font-family:var(--mono);font-size:13px;">'
     +evs.map(function(ev){return'<option value="'+esc(ev)+'"'+(ev===st.ev?' selected':'')+'>'+esc(ev)+'</option>';}).join('')+'</select>'
     +'<label style="display:flex;align-items:center;gap:6px;font-family:var(--mono);font-size:11px;color:var(--text-dim);cursor:pointer;"><input type="checkbox"'+(st.futuras?' checked':'')+' onchange="_mudState.futuras=this.checked;_mudRender()"> só de hoje em diante</label>'
-    +'<button class="print-btn" style="margin-left:auto;" onclick="_mudCopiar(_mudOrdenada(_mudState.lista,_mudState.futuras),_mudState.ev)">⧉ Copiar texto</button>'
+    +_mudChipsHtml(_mudOrdenada(st.lista,st.futuras),st.tipos,'_mudToggleTipo')
+    +'<button class="print-btn" style="margin-left:auto;" onclick="_mudCopiar(_mudOrdenada(_mudState.lista,_mudState.futuras,_mudState.tipos),_mudState.ev)">⧉ Copiar texto</button>'
     +'</div>';
-  var lista=_mudOrdenada(st.lista,st.futuras);
+  var lista=_mudOrdenada(st.lista,st.futuras,st.tipos);
   if(st.loading)h+='<div style="padding:40px;text-align:center;color:var(--text-muted);font-family:var(--mono);font-size:12px;">Carregando…</div>';
   else if(!lista.length)h+='<div style="padding:60px;text-align:center;color:var(--text-muted);font-size:14px;">Nenhuma mudança registrada.</div>';
   else h+='<div style="font-family:var(--mono);font-size:11px;color:var(--text-dim);margin-bottom:12px;">'+esc(_mudResumo(lista))+'</div>'+_mudListaHtml(lista,false);
-  c.innerHTML=h;
+  c.innerHTML='<div class="prog-landing">'+h+'</div>';
 }
 function _mudTexto(lista,ev){
   var t='MUDANÇAS DE PROGRAMAÇÃO — '+ev+'\n',dia=null,sala=null;
@@ -30024,7 +30036,7 @@ function _sxcPrint(){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 28/10/2026 às 17:28</span></div>
+<div id="page-footer"><span>última atualização · 28/10/2026 às 19:18</span></div>
 
 </div>
 
@@ -31956,7 +31968,11 @@ function _mobRenderProgramacao(params,noScroll){
 }
 
 // Mudanças de programação (SAI/ENTRA) no mobile — mesma lista do web (_mudListaHtml), só leitura
-var _mobMud={ev:'',lista:null,futuras:true};
+var _mobMud={ev:'',lista:null,futuras:true,tipos:new Set()};
+window._mobMudToggleTipo=function(k){
+  if(_mobMud.tipos.has(k))_mobMud.tipos.delete(k);else _mobMud.tipos.add(k);
+  _mobRenderProgMudancas({ev:_mobMud.ev},true);
+};
 window._mobIrProgMudancas=function(ev){
   _mobPush({view:'programacao-mudancas',params:{ev:ev}});
   _mobRenderProgMudancas({ev:ev});
@@ -31973,18 +31989,19 @@ function _mobRenderProgMudancas(params,noScroll){
     }).catch(function(e){_mobSetContent('<div class="mob-empty">Erro ao carregar mudanças.</div>');});
     return;
   }
-  var lista=_mudOrdenada(_mobMud.lista,_mobMud.futuras);
+  var lista=_mudOrdenada(_mobMud.lista,_mobMud.futuras,_mobMud.tipos);
   var h='<div style="margin:12px 12px 4px;font-family:var(--sans);font-size:15px;font-weight:600;color:var(--text);">Mudanças · '+_mobEsc(ev)+'</div>'
     +'<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:8px 12px;">'
     +'<label style="display:flex;align-items:center;gap:6px;font-family:var(--mono);font-size:11px;color:var(--text-dim);"><input type="checkbox"'+(_mobMud.futuras?' checked':'')+' onchange="_mobMud.futuras=this.checked;_mobRenderProgMudancas({ev:\''+_mobJsq(ev)+'\'},true)"> só de hoje em diante</label>'
     +'<button class="print-btn" style="margin-left:auto;" onclick="_mobMudCompartilhar()">⧉ Compartilhar</button>'
-    +'<button class="print-btn" onclick="_mobMud.lista=null;_mobRenderProgMudancas({ev:\''+_mobJsq(ev)+'\'},true)">↻</button></div>';
+    +'<button class="print-btn" onclick="_mobMud.lista=null;_mobRenderProgMudancas({ev:\''+_mobJsq(ev)+'\'},true)">↻</button></div>'
+    +'<div style="margin:0 12px 8px;">'+_mudChipsHtml(_mudOrdenada(_mobMud.lista,_mobMud.futuras),_mobMud.tipos,'_mobMudToggleTipo')+'</div>';
   if(!lista.length)h+='<div class="mob-empty">Nenhuma mudança registrada.</div>';
   else h+='<div style="font-family:var(--mono);font-size:10px;color:var(--text-dim);margin:0 12px;">'+_mobEsc(_mudResumo(lista))+'</div>'+_mudListaHtml(lista,true)+'<div style="height:24px;"></div>';
   _mobSetContent(h);
 }
 window._mobMudCompartilhar=function(){
-  var lista=_mudOrdenada(_mobMud.lista||[],_mobMud.futuras),t=_mudTexto(lista,_mobMud.ev);
+  var lista=_mudOrdenada(_mobMud.lista||[],_mobMud.futuras,_mobMud.tipos),t=_mudTexto(lista,_mobMud.ev);
   if(navigator.share)navigator.share({title:'Mudanças de programação — '+_mobMud.ev,text:t}).catch(function(){});
   else _mudCopiar(lista,_mobMud.ev);
 };

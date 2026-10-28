@@ -19719,7 +19719,7 @@ function renderDash(){
   html+=colBlock('legendagem','Legendagem',legBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 28/10/2026 às 19:30';
+  var sysUpdate='última atualização do sistema · 28/10/2026 às 19:37';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -20158,7 +20158,17 @@ function _mudTexto(lista,ev){
 }
 // ── Letreiro de mudanças (topo do conteúdo, acima das barras dos módulos) ──
 // Docs vêm do listener _olgaMudMarqueeListen; mostra hoje + 2 dias dos eventos selecionados.
-var _mudMqKey='';
+var _mudMqKey='',_mudMqRec=null;
+// recolhido vale para a sessão do navegador (sessionStorage), até o usuário mostrar de novo
+function _mudMqRecolhido(){
+  if(_mudMqRec===null){try{_mudMqRec=sessionStorage.getItem('olgaMudMqRecolhido')==='1';}catch(e){_mudMqRec=false;}}
+  return _mudMqRec;
+}
+function _mudMqRecolher(v){
+  _mudMqRec=!!v;
+  try{sessionStorage.setItem('olgaMudMqRecolhido',v?'1':'0');}catch(e){}
+  window._mudMarqueeRender();
+}
 window._mudMarqueeRender=function(){
   var mc=document.getElementById('main-content');if(!mc)return;
   var el=document.getElementById('olga-mud-marquee');
@@ -20174,6 +20184,10 @@ window._mudMarqueeRender=function(){
         +'#olga-mud-marquee .mq-it::after{content:"◆";color:var(--accent);margin-left:28px;font-size:8px;vertical-align:middle;}'
         +'#olga-mud-marquee .mq-dia{color:var(--accent);font-weight:700;}'
         +'#olga-mud-marquee .mq-sai{color:var(--warn);font-weight:700;}#olga-mud-marquee .mq-ent{color:var(--ok);font-weight:700;}'
+        +'#olga-mud-marquee .mq-btn{flex:0 0 auto;display:flex;align-items:center;padding:0 12px;background:none;border:none;border-left:1px solid var(--border);color:var(--text-dim);font-family:var(--mono);font-size:10px;letter-spacing:0.08em;text-transform:uppercase;cursor:pointer;}'
+        +'#olga-mud-marquee .mq-btn:hover{color:var(--accent);}'
+        +'#olga-mud-marquee.mq-rec{height:22px;background:transparent;border-bottom:1px solid var(--border);}'
+        +'#olga-mud-marquee.mq-rec .mq-lbl{font-size:9px;}'
         +'@keyframes olgaMq{from{transform:translateX(0);}to{transform:translateX(-50%);}}'
         +'@media print{#olga-mud-marquee{display:none!important;}}';
       document.head.appendChild(css);
@@ -20201,10 +20215,17 @@ window._mudMarqueeRender=function(){
   }).join('');
   el.setAttribute('data-ev',lista[0].event_id);
   el.style.display='';
-  if(itens===_mudMqKey)return;
-  _mudMqKey=itens;
-  el.innerHTML='<div class="mq-lbl">⇄ Mudanças <span style="font-weight:400;opacity:.8;">('+lista.length+')</span></div>'
-    +'<div class="mq-vp"><div class="mq-track"><span>'+itens+'</span><span>'+itens+'</span></div></div>';
+  var rec=_mudMqRecolhido(),lbl='<div class="mq-lbl">⇄ Mudanças <span style="font-weight:400;opacity:.8;">('+lista.length+')</span></div>';
+  if(itens+rec===_mudMqKey)return;
+  _mudMqKey=itens+rec;
+  el.classList.toggle('mq-rec',rec);
+  if(rec){
+    el.title='Mudanças de programação — clique para abrir';
+    el.innerHTML=lbl+'<div style="flex:1;"></div><button class="mq-btn" onclick="event.stopPropagation();_mudMqRecolher(false)" title="Mostrar o letreiro">▾ mostrar</button>';
+    return;
+  }
+  el.innerHTML=lbl+'<div class="mq-vp"><div class="mq-track"><span>'+itens+'</span><span>'+itens+'</span></div></div>'
+    +'<button class="mq-btn" onclick="event.stopPropagation();_mudMqRecolher(true)" title="Recolher o letreiro (fica recolhido nesta sessão)">▴ recolher</button>';
   var vp=el.querySelector('.mq-vp'),tr=el.querySelector('.mq-track'),meia=tr&&tr.firstChild;
   if(!tr||!meia)return;
   // poucos itens: repete até cada metade cobrir a largura visível (o loop em -50% não deixa buraco)
@@ -30112,7 +30133,7 @@ function _sxcPrint(){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 28/10/2026 às 19:30</span></div>
+<div id="page-footer"><span>última atualização · 28/10/2026 às 19:37</span></div>
 
 </div>
 

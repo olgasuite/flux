@@ -6536,6 +6536,7 @@ function _applyNavMargin(){
   var sidebarW=parseFloat(cs.getPropertyValue(prop))||148;
   var z=parseFloat(mc.style.zoom)||1;
   mc.style.marginLeft=(sidebarW/z)+'px';
+  if(typeof _mudMqAjustaTopo==='function')_mudMqAjustaTopo();
 }
 function _updateNavToggleIcon(){
   var b=document.getElementById('navToggleBtn');if(!b)return;
@@ -19721,7 +19722,7 @@ function renderDash(){
   html+=colBlock('legendagem','Legendagem',legBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 28/10/2026 às 19:40';
+  var sysUpdate='última atualização do sistema · 28/10/2026 às 19:46';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -20166,6 +20167,14 @@ function _mudMqRecolhido(){
   if(_mudMqRec===null){try{_mudMqRec=sessionStorage.getItem('olgaMudMqRecolhido')==='1';}catch(e){_mudMqRec=false;}}
   return _mudMqRec;
 }
+// #main-content tem zoom e padding-top:52px (altura do header, que não tem zoom): o padding
+// cresce com o zoom e sobrava uma faixa acima do letreiro. Compensa para colar no header.
+function _mudMqAjustaTopo(){
+  var el=document.getElementById('olga-mud-marquee'),mc=document.getElementById('main-content');
+  if(!el||!mc)return;
+  var z=parseFloat(mc.style.zoom)||1;
+  el.style.marginTop=(52/z-52)+'px';
+}
 function _mudMqRecolher(v){
   _mudMqRec=!!v;
   try{sessionStorage.setItem('olgaMudMqRecolhido',v?'1':'0');}catch(e){}
@@ -20205,6 +20214,7 @@ window._mudMarqueeRender=function(){
     };
     mc.insertBefore(el,mc.firstChild);
   }
+  _mudMqAjustaTopo();
   var hj=new Date(),dias=[0,1,2].map(function(i){var d=new Date(hj.getFullYear(),hj.getMonth(),hj.getDate()+i);return _pvIso(d);});
   var docs=(window._mudMarqueeDocs||[]).filter(function(m){return _userEvSel.has(m.event_id)&&dias.indexOf(m.data_ref)>=0;});
   var lista=_mudOrdenada(docs,false);
@@ -30137,7 +30147,7 @@ function _sxcPrint(){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 28/10/2026 às 19:40</span></div>
+<div id="page-footer"><span>última atualização · 28/10/2026 às 19:46</span></div>
 
 </div>
 

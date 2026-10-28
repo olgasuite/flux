@@ -4440,16 +4440,18 @@ html[data-theme="indexof"]:not([data-theme="win98"]) .module-icon{display:flex!i
   };
   window._olgaSessoes = {
     save: async function(id, data) {
-      var _av=_avSessaoPrep(id,data);
+      var _av=_avSessaoPrep(id,data), _mu=_mudPrep(id,data);
       await setDoc(doc(db,'sessoes',id),data,{merge:true});
       if(_av)_av();
+      if(_mu)_mu();
     },
     saveField: async function(id, partial) {
-      var _av=_avSessaoPrep(id,partial);
+      var _av=_avSessaoPrep(id,partial), _mu=_mudPrep(id,partial);
       await setDoc(doc(db,'sessoes',id),partial,{merge:true});
       if(_av)_av();
+      if(_mu)_mu();
     },
-    remove: async function(id) { var _av=_avSessaoPrep(id,null,'remove'); await deleteDoc(doc(db, 'sessoes', id)); if(_av)_av(); },
+    remove: async function(id) { var _av=_avSessaoPrep(id,null,'remove'), _mu=_mudPrep(id,null,'remove'); await deleteDoc(doc(db, 'sessoes', id)); if(_av)_av(); if(_mu)_mu(); },
     reload: async function() {
       // Quando o snapshot de sessoes está ativo, o estado já fica atualizado
       // automaticamente após cada save/remove — não há motivo para reler tudo.
@@ -6221,6 +6223,101 @@ html[data-theme="indexof"]:not([data-theme="win98"]) .module-icon{display:flex!i
     if(!ev||!_avEventoAtivo(ev))return null;
     return function(){ _avPush(ev,'filme_catalogo',{codigo:codigo,filmes:[data.title_pt||data.title||codigo]}); };
   }
+
+  // ── Mudanças de programação (SAI/ENTRA) ───────────────────────────
+  // A partir de _MUD_DIAS_ANTES dias antes do início do evento até o fim, cada sessão que cai,
+  // entra ou muda de data/hora/local/filmes vira um doc em `prog_mudancas` ({sai, entra}).
+  // Várias edições seguidas da mesma sessão nesta aba viram um registro só (SAI = estado
+  // original, ENTRA = o último); se voltar ao original, o registro some.
+  var _MUD_DIAS_ANTES = 2, _mudRecentes = {};
+  window._MUD_DIAS_ANTES = _MUD_DIAS_ANTES;
+  window._mudJanela = function(ev){
+    var e=(window._adminEventosFullCache||[]).find(function(x){return x.id===ev||(x.data&&x.data.nome)===ev;});
+    var ini=(e&&e.data&&e.data.data_inicio)||'', fim=(e&&e.data&&(e.data.data_fim||e.data.data_inicio))||'';
+    if(!ini)return null;
+    var d=new Date(ini+'T00:00:00'); d.setDate(d.getDate()-_MUD_DIAS_ANTES);
+    return {desde:_avIso(d), ini:ini, fim:fim};
+  };
+  function _mudAtivo(ev){ var j=window._mudJanela(ev), h=_avIso(_avHoje()); return !!j&&h>=j.desde&&(!j.fim||h<=j.fim); }
+  function _mudLado(n){
+    if(!n)return null;
+    return {session_id:n.nome||'',nome:n.name||'',data:n.date||'',hora:n.time||'',local:n.cinema||n.livre||'',
+      film_codes:(n.films||[]).slice(),filmes:(n.films||[]).map(_avFilmeTit)};
+  }
+  function _mudIgual(a,b){
+    if(!a||!b)return !a&&!b;
+    return a.data===b.data&&a.hora===b.hora&&a.local===b.local&&a.film_codes.join('|')===b.film_codes.join('|');
+  }
+  window._mudTipo = function(sai,entra){
+    if(!entra)return 'queda';
+    if(!sai)return 'entrada';
+    return sai.film_codes.slice().sort().join('|')===entra.film_codes.slice().sort().join('|')?'alteracao':'substituicao';
+  };
+  function _mudDataRef(sai,entra){ var ds=[sai&&sai.data,entra&&entra.data].filter(Boolean).sort(); return ds[0]||''; }
+  function _mudPrep(id, partial, op){
+    try{
+      var old=(sessoesArr||[]).find(function(s){return s._docId===id;})||(sessoesMap&&sessoesMap[id])||null;
+      var o=old?_avSessInfo(old):null, n=null;
+      if(op!=='remove'){
+        var p=partial||{}, has=function(k){return Object.prototype.hasOwnProperty.call(p,k);};
+        n={nome:p.session_id||(o&&o.nome)||id,name:has('name')?String(p.name||''):(o?o.name:''),
+          ev:p.event_name||(o&&o.ev)||'',
+          date:has('date')?_avNormData(p.date):(o?o.date:''),
+          time:has('time')?String(p.time||'').slice(0,5):(o?o.time:''),
+          cinema:has('venue_name')?String(p.venue_name||''):(o?o.cinema:''),
+          livre:has('venue_custom')?String(p.venue_custom||''):(o?o.livre:''),
+          films:Array.isArray(p.films)?p.films.map(String).filter(function(c){return c&&c!=='-';}):(o?o.films:[])};
+      }
+      var ev=(n&&n.ev)||(o&&o.ev)||'';
+      if(!ev||!_mudAtivo(ev))return null;
+      var sai=_mudLado(o), entra=_mudLado(n);
+      if(sai&&entra&&_mudIgual(sai,entra))return null;
+      return function(){ _mudGravar(ev,id,sai,entra); };
+    }catch(e){ console.warn('mudança prep:',e); return null; }
+  }
+  async function _mudGravar(ev,id,sai,entra){
+    var u=window._olgaUser; if(!u)return;
+    var r=_mudRecentes[id];
+    if(r&&Date.now()-r.ms<30*60000){ sai=r.sai; }
+    try{
+      if(r&&(!sai&&!entra||_mudIgual(sai,entra))){
+        delete _mudRecentes[id];
+        await deleteDoc(doc(db,'prog_mudancas',r.docId));
+        return;
+      }
+      var rec={event_id:ev,tipo:window._mudTipo(sai,entra),sai:sai,entra:entra,data_ref:_mudDataRef(sai,entra),
+        origem:'flux',user:(u.email||'').toLowerCase(),user_name:u.name||u.email||'',ts:serverTimestamp()};
+      if(r&&Date.now()-r.ms<30*60000){
+        await setDoc(doc(db,'prog_mudancas',r.docId),rec,{merge:true});
+        r.ms=Date.now();
+      }else{
+        rec.obs='';
+        var ref=await addDoc(collection(db,'prog_mudancas'),rec);
+        _mudRecentes[id]={docId:ref.id,sai:sai,ms:Date.now()};
+      }
+    }catch(e){ console.warn('mudança:',e); }
+  }
+  window._olgaMudancas = {
+    list: async function(ev){
+      var snap=await getDocs(query(collection(db,'prog_mudancas'),where('event_id','==',ev)));
+      var arr=[]; snap.forEach(function(d){ var r=d.data(); arr.push(Object.assign({_id:d.id,_ms:r.ts&&r.ts.toMillis?r.ts.toMillis():Date.now()},r)); });
+      return arr;
+    },
+    add: async function(ev,sai,entra,obs){
+      var u=window._olgaUser||{};
+      await addDoc(collection(db,'prog_mudancas'),{event_id:ev,tipo:window._mudTipo(sai,entra),sai:sai||null,entra:entra||null,
+        data_ref:_mudDataRef(sai,entra),obs:obs||'',origem:'manual',user:(u.email||'').toLowerCase(),user_name:u.name||u.email||'',ts:serverTimestamp()});
+    },
+    update: async function(id,partial){
+      if(partial.hasOwnProperty('sai')||partial.hasOwnProperty('entra')){
+        partial.tipo=window._mudTipo(partial.sai||null,partial.entra||null);
+        partial.data_ref=_mudDataRef(partial.sai,partial.entra);
+      }
+      await setDoc(doc(db,'prog_mudancas',id),partial,{merge:true});
+    },
+    remove: async function(id){ await deleteDoc(doc(db,'prog_mudancas',id)); },
+    lado: function(s){ return s?_mudLado(_avSessInfo(s)):null; }
+  };
 
   window._olgaAvisos = [];
   window._olgaAvisosListen = function(evFilter){
@@ -19585,7 +19682,7 @@ function renderDash(){
   html+=colBlock('legendagem','Legendagem',legBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 27/10/2026 às 12:42';
+  var sysUpdate='última atualização do sistema · 28/10/2026 às 17:02';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -19901,6 +19998,163 @@ function closeProgramadorVisual(){
   _pvState.pending={};
   _progView={level:'landing',programId:null,sessaoNome:null};
   _progRender();
+}
+// ── Mudanças de programação (SAI/ENTRA) — sub-view do módulo Programação ──
+// Registros em prog_mudancas: automáticos (ao salvar/apagar sessão, ver _mudPrep), da
+// sincronização com o site do festival (SCRIPTS\mostra_mudancas.py) ou manuais.
+var _mudState={ev:'',lista:[],sel:new Set(),futuras:false,loading:false};
+var _MUD_TIT={queda:'Queda',entrada:'Entrada',alteracao:'Alteração',substituicao:'Substituição'};
+async function openProgMudancas(ev){
+  var evs=_pvEventos();
+  if(ev)_mudState.ev=ev;
+  if(!_mudState.ev||evs.indexOf(_mudState.ev)<0)_mudState.ev=evs[0]||'';
+  _progView={level:'mud',programId:null,sessaoNome:null};
+  await _mudLoad();
+}
+async function _mudLoad(){
+  _mudState.loading=true;_mudState.sel.clear();_progRender();
+  try{_mudState.lista=_mudState.ev&&window._olgaMudancas?await window._olgaMudancas.list(_mudState.ev):[];}
+  catch(e){_mudState.lista=[];alert('Erro ao carregar mudanças: '+e.message);}
+  _mudState.loading=false;
+  if(_progView.level==='mud')_progRender();
+}
+function closeProgMudancas(){_progView={level:'landing',programId:null,sessaoNome:null};_progRender();}
+function _mudBr(iso){var m=/^(\d{4})-(\d{2})-(\d{2})$/.exec(iso||'');return m?m[3]+'/'+m[2]:(iso||'');}
+function _mudOrdenada(){
+  var hoje=_pvIso(new Date());
+  return _mudState.lista.filter(function(m){return !_mudState.futuras||!m.data_ref||[m.sai&&m.sai.data,m.entra&&m.entra.data].some(function(d){return d&&d>=hoje;});})
+    .sort(function(a,b){
+      var ka=(a.data_ref||'')+((a.sai||a.entra||{}).hora||''),kb=(b.data_ref||'')+((b.sai||b.entra||{}).hora||'');
+      return ka.localeCompare(kb)||a._ms-b._ms;
+    });
+}
+function _mudLadoTxt(x){
+  if(!x)return '';
+  return [_mudBr(x.data)+(x.hora?' '+x.hora:''),x.local,x.nome||x.session_id,(x.filmes||[]).join(' + ')].filter(Boolean).join(' · ');
+}
+function _mudLadoHtml(rot,x,cor){
+  var h='<div style="display:flex;gap:10px;align-items:flex-start;padding:6px 0;">'
+    +'<span style="flex:0 0 58px;font-family:var(--mono);font-size:11px;font-weight:700;letter-spacing:0.08em;color:'+cor+';">'+rot+':</span>';
+  if(!x)return h+'<span style="color:var(--text-muted);font-size:13px;">—</span></div>';
+  return h+'<div style="flex:1;min-width:0;">'
+    +'<div style="font-size:13px;color:var(--text);"><b>'+esc(_mudBr(x.data))+' '+esc(x.hora||'')+'</b> · '+esc(x.local||'—')+'</div>'
+    +'<div style="font-family:var(--mono);font-size:11px;color:var(--text-dim);margin-top:2px;">'+esc(x.nome||x.session_id||'')+(x.nome&&x.session_id?' <span style="color:var(--text-muted);">('+esc(x.session_id)+')</span>':'')+'</div>'
+    +'<div style="font-size:12px;color:var(--text-dim);margin-top:2px;">'+esc((x.filmes||[]).join(' + ')||'sem filmes')+'</div>'
+    +'</div></div>';
+}
+function _mudRender(){
+  var c=document.getElementById('programacao-container');if(!c)return;
+  var canEdit=!!(window._olgaCanEdit&&window._olgaCanEdit('programacao'));
+  var st=_mudState,evs=_pvEventos();
+  if(evs.indexOf(st.ev)<0&&(st.ev||evs.length)){st.ev=evs[0]||'';_mudLoad();return;}
+  var j=window._mudJanela?window._mudJanela(st.ev):null;
+  var h='<button class="prog-back-btn" onclick="closeProgMudancas()">← Programação</button>'
+    +'<div class="prog-prog-title" style="margin-top:14px;">Mudanças de programação</div>'
+    +'<div style="font-family:var(--mono);font-size:11px;color:var(--text-muted);margin-top:4px;">'
+    +(j?'Registro automático das edições de sessão de '+esc(_mudBr(j.desde))+' ('+(window._MUD_DIAS_ANTES||2)+' dias antes do início) até '+esc(_mudBr(j.fim))+'.':'Evento sem data de início cadastrada — sem registro automático.')+'</div>';
+  h+='<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:10px 0 18px;border-bottom:1px solid var(--border);margin-bottom:16px;">'
+    +'<select onchange="_mudState.ev=this.value;_mudLoad()" style="height:34px;padding:0 10px;border:1px solid var(--border);background:var(--surface);color:var(--text);font-family:var(--mono);font-size:13px;">'
+    +evs.map(function(ev){return'<option value="'+esc(ev)+'"'+(ev===st.ev?' selected':'')+'>'+esc(ev)+'</option>';}).join('')+'</select>'
+    +'<label style="display:flex;align-items:center;gap:6px;font-family:var(--mono);font-size:11px;color:var(--text-dim);cursor:pointer;"><input type="checkbox"'+(st.futuras?' checked':'')+' onchange="_mudState.futuras=this.checked;_mudRender()"> só de hoje em diante</label>'
+    +'<button class="print-btn" style="margin-left:auto;" onclick="_mudCopiar()">⧉ Copiar texto</button>';
+  if(canEdit){
+    if(st.sel.size===2)h+='<button class="print-btn" onclick="_mudJuntar()">⇄ Juntar SAI + ENTRA</button>';
+    if(st.sel.size)h+='<button class="print-btn" onclick="_mudExcluirSel()">× Excluir '+st.sel.size+'</button>';
+    h+='<button class="print-btn" style="background:var(--accent);color:#000;border-color:var(--accent);" onclick="_mudNovo()">+ Registrar mudança</button>';
+  }
+  h+='</div>';
+  var lista=_mudOrdenada();
+  if(st.loading)h+='<div style="padding:40px;text-align:center;color:var(--text-muted);font-family:var(--mono);font-size:12px;">Carregando…</div>';
+  else if(!lista.length)h+='<div style="padding:60px;text-align:center;color:var(--text-muted);font-size:14px;">Nenhuma mudança registrada.</div>';
+  else{
+    var cont={};lista.forEach(function(m){cont[m.tipo]=(cont[m.tipo]||0)+1;});
+    h+='<div style="font-family:var(--mono);font-size:11px;color:var(--text-dim);margin-bottom:12px;">'+lista.length+' mudança'+(lista.length>1?'s':'')+' · '
+      +Object.keys(_MUD_TIT).filter(function(k){return cont[k];}).map(function(k){return cont[k]+' '+_MUD_TIT[k].toLowerCase();}).join(' · ')+'</div>';
+    var hoje=_pvIso(new Date()),dia=null;
+    lista.forEach(function(m){
+      if(m.data_ref!==dia){
+        dia=m.data_ref;
+        h+='<div style="font-family:var(--mono);font-size:12px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:'+(dia&&dia<hoje?'var(--text-muted)':'var(--accent)')+';margin:18px 0 6px;">'+(dia?esc(_pvFmtDate(dia)):'sem data')+'</div>';
+      }
+      var dt=new Date(m._ms),sid=m._id.replace(/'/g,"\\'");
+      h+='<div style="border:1px solid var(--border);background:var(--surface);padding:8px 14px;margin-bottom:8px;'+(dia&&dia<hoje?'opacity:0.65;':'')+'">'
+        +'<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-family:var(--mono);font-size:10px;letter-spacing:0.08em;text-transform:uppercase;">'
+        +(canEdit?'<input type="checkbox"'+(st.sel.has(m._id)?' checked':'')+' onchange="_mudToggle(\''+sid+'\',this.checked)">':'')
+        +'<span style="color:var(--accent);font-weight:700;">'+esc(_MUD_TIT[m.tipo]||m.tipo||'')+'</span>'
+        +'<span style="color:var(--text-muted);text-transform:none;">'+esc(m.origem==='site'?'site do festival':m.origem==='manual'?'registro manual':'edição no Flux')+' · '+esc(m.user_name||m.user||'')+' · '+dt.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'})+' '+dt.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})+'</span>'
+        +(canEdit?'<span style="margin-left:auto;display:flex;gap:4px;"><button class="prog-btn-icon" title="Observação" onclick="_mudObs(\''+sid+'\')">✎</button><button class="prog-btn-icon prog-btn-del" title="Excluir" onclick="_mudExcluir(\''+sid+'\')">×</button></span>':'')
+        +'</div>'
+        +_mudLadoHtml('SAI',m.sai,'var(--warn)')+_mudLadoHtml('ENTRA',m.entra,'var(--ok)')
+        +(m.obs?'<div style="font-size:12px;color:var(--text-dim);border-top:1px dashed var(--border);padding-top:6px;margin-top:2px;">'+esc(m.obs)+'</div>':'')
+        +'</div>';
+    });
+  }
+  c.innerHTML=h;
+}
+function _mudToggle(id,on){if(on)_mudState.sel.add(id);else _mudState.sel.delete(id);_mudRender();}
+function _mudCopiar(){
+  var lista=_mudOrdenada(),t='MUDANÇAS DE PROGRAMAÇÃO — '+_mudState.ev+'\n',dia=null;
+  lista.forEach(function(m){
+    if(m.data_ref!==dia){dia=m.data_ref;t+='\n'+(dia?_pvFmtDate(dia).toUpperCase():'SEM DATA')+'\n';}
+    t+='SAI: '+_mudLadoTxt(m.sai)+'\nENTRA: '+_mudLadoTxt(m.entra)+'\n'+(m.obs?'Obs: '+m.obs+'\n':'')+'\n';
+  });
+  var ok=function(){alert('Texto de '+lista.length+' mudança(s) copiado.');};
+  if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(t).then(ok,function(){prompt('Copie:',t);});
+  else prompt('Copie:',t);
+}
+async function _mudObs(id){
+  var m=_mudState.lista.find(function(x){return x._id===id;});if(!m)return;
+  var v=prompt('Observação:',m.obs||'');if(v===null)return;
+  try{await window._olgaMudancas.update(id,{obs:v.trim()});m.obs=v.trim();_mudRender();}catch(e){alert('Erro: '+e.message);}
+}
+async function _mudExcluir(id){
+  if(!confirm('Excluir este registro de mudança? (a sessão não é alterada)'))return;
+  try{await window._olgaMudancas.remove(id);}catch(e){alert('Erro: '+e.message);return;}
+  _mudState.lista=_mudState.lista.filter(function(x){return x._id!==id;});_mudState.sel.delete(id);_mudRender();
+}
+async function _mudExcluirSel(){
+  var ids=Array.from(_mudState.sel);
+  if(!confirm('Excluir '+ids.length+' registro(s) de mudança? (as sessões não são alteradas)'))return;
+  for(var i=0;i<ids.length;i++){try{await window._olgaMudancas.remove(ids[i]);}catch(e){alert('Erro: '+e.message);break;}}
+  _mudLoad();
+}
+// Junta uma queda e uma entrada registradas separadas (ex.: sessão apagada e outra criada no lugar)
+async function _mudJuntar(){
+  var ms=_mudState.lista.filter(function(x){return _mudState.sel.has(x._id);});
+  var a=ms.find(function(x){return x.sai&&!x.entra;}),b=ms.find(function(x){return x!==a&&x.entra&&!x.sai;});
+  if(ms.length!==2||!a||!b){alert('Selecione uma mudança só com SAI e outra só com ENTRA.');return;}
+  try{
+    await window._olgaMudancas.update(a._id,{sai:a.sai,entra:b.entra,obs:[a.obs,b.obs].filter(Boolean).join(' · ')});
+    await window._olgaMudancas.remove(b._id);
+  }catch(e){alert('Erro: '+e.message);}
+  _mudLoad();
+}
+function _mudNovo(){
+  var ev=_mudState.ev;if(!ev)return;
+  var ss=(sessoesArr||[]).filter(function(s){return s.evento===ev;}).map(function(s){return{s:s,l:window._olgaMudancas.lado(s)};})
+    .sort(function(a,b){return(a.l.data+a.l.hora+a.l.local).localeCompare(b.l.data+b.l.hora+b.l.local);});
+  window._mudNovoSess=ss;
+  var opts='<option value="">— nenhuma —</option>'+ss.map(function(x,i){return'<option value="'+i+'">'+esc(_mudLadoTxt(x.l))+'</option>';}).join('');
+  var sel='width:100%;height:34px;padding:0 8px;border:1px solid var(--border);background:var(--surface);color:var(--text);font-size:12px;';
+  var el=document.createElement('div');el.id='mud-novo-pop';
+  el.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:600;overflow-y:auto;padding:20px;display:flex;';
+  el.innerHTML='<div style="background:var(--surface);border:1px solid var(--border);width:100%;max-width:720px;margin:auto;padding:18px 22px;display:flex;flex-direction:column;gap:12px;">'
+    +'<div style="font-family:var(--mono);font-size:11px;font-weight:600;letter-spacing:0.18em;text-transform:uppercase;color:var(--accent);">Registrar mudança · '+esc(ev)+'</div>'
+    +'<div style="font-size:12px;color:var(--text-dim);">Só registra — não altera as sessões. Edições feitas nas sessões já são registradas sozinhas.</div>'
+    +'<label style="font-family:var(--mono);font-size:11px;color:var(--warn);">SAI<select id="mud_sai" style="'+sel+'margin-top:4px;">'+opts+'</select></label>'
+    +'<label style="font-family:var(--mono);font-size:11px;color:var(--ok);">ENTRA<select id="mud_entra" style="'+sel+'margin-top:4px;">'+opts+'</select></label>'
+    +'<label style="font-family:var(--mono);font-size:11px;color:var(--text-dim);">Observação<input id="mud_obs" style="'+sel+'margin-top:4px;"></label>'
+    +'<div style="display:flex;justify-content:flex-end;gap:8px;"><button class="print-btn" onclick="document.getElementById(\'mud-novo-pop\').remove()">cancelar</button>'
+    +'<button class="print-btn" style="color:var(--accent);border-color:var(--accent);" onclick="_mudNovoSalvar()">salvar</button></div></div>';
+  document.body.appendChild(el);
+}
+async function _mudNovoSalvar(){
+  var ss=window._mudNovoSess||[],g=function(id){var v=document.getElementById(id).value;return v===''?null:ss[+v].l;};
+  var sai=g('mud_sai'),entra=g('mud_entra'),obs=document.getElementById('mud_obs').value.trim();
+  if(!sai&&!entra){alert('Escolha a sessão que sai e/ou a que entra.');return;}
+  try{await window._olgaMudancas.add(_mudState.ev,sai,entra,obs);}catch(e){alert('Erro: '+e.message);return;}
+  var el=document.getElementById('mud-novo-pop');if(el)el.remove();
+  _mudLoad();
 }
 async function _pvChangeEv(ev){
   if(!_pvConfirmDiscardPending()){_pvRender();return;}
@@ -20735,6 +20989,7 @@ function _progRender(){
   else if(_progView.level==='program')_progRenderProgram(_progView.programId);
   else if(_progView.level==='sessao')_progRenderSessao(_progView.sessaoNome);
   else if(_progView.level==='pv')_pvRender();
+  else if(_progView.level==='mud')_mudRender();
 }
 function _progBack(){
   _progBatchSelected.clear();_progBatchMode=false;_progBatchBumpers=[];
@@ -20841,7 +21096,7 @@ function _progRenderLanding(){
     bHtml+='</select><select id="progBarMostraSel" onchange="_progBarMostraChange()" style="min-width:180px;height:28px;padding:0 8px;border:1px solid var(--border);background:var(--surface);color:var(--text);font-family:var(--mono);font-size:10px;"><option value="">— selecionar mostra —</option>';
     _progData.programs.filter(function(p){return!p.data.auto&&activeEventsProgramacao.has(p.data.event_id);}).forEach(function(p){bHtml+='<option value="'+esc(p.id)+'">'+esc(p.data.name||p.id)+'</option>';});
     bHtml+='</select>';
-    document.getElementById('progBarDynamic').innerHTML=bHtml+'<button class="print-btn" style="margin-left:auto;" onclick="openShowsPanel()">⧉ Programas</button><button class="print-btn" onclick="openProgramadorVisual()">▦ Programador Visual</button><button class="print-btn" onclick="openGradePrintModal(\'prog\')">⎙ Tabela</button>';
+    document.getElementById('progBarDynamic').innerHTML=bHtml+'<button class="print-btn" style="margin-left:auto;" onclick="openShowsPanel()">⧉ Programas</button><button class="print-btn" onclick="openProgramadorVisual()">▦ Programador Visual</button><button class="print-btn" onclick="openProgMudancas()">⇄ Mudanças</button><button class="print-btn" onclick="openGradePrintModal(\'prog\')">⎙ Tabela</button>';
   })();
 }
 
@@ -29792,7 +30047,7 @@ function _sxcPrint(){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 27/10/2026 às 12:42</span></div>
+<div id="page-footer"><span>última atualização · 28/10/2026 às 17:02</span></div>
 
 </div>
 

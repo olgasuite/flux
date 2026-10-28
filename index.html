@@ -19722,7 +19722,7 @@ function renderDash(){
   html+=colBlock('legendagem','Legendagem',legBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 28/10/2026 às 20:06';
+  var sysUpdate='última atualização do sistema · 28/10/2026 às 20:10';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -20161,11 +20161,12 @@ function _mudTexto(lista,ev){
 }
 // ── Letreiro de mudanças (topo do conteúdo, acima das barras dos módulos) ──
 // Docs vêm do listener _olgaMudMarqueeListen; mostra hoje + 2 dias dos eventos selecionados.
-var _mudMqKey='',_mudMqRec=null;
-// recolhido vale para a sessão do navegador (sessionStorage), até o usuário mostrar de novo
-function _mudMqRecolhido(){
-  if(_mudMqRec===null){try{_mudMqRec=sessionStorage.getItem('olgaMudMqRecolhido')==='1';}catch(e){_mudMqRec=false;}}
-  return _mudMqRec;
+var _mudMqKey='',_mudMqOff=null;
+// desligado (a faixa fica, sem o texto rolando) vale para a sessão do navegador
+// (sessionStorage), até o usuário ligar de novo
+function _mudMqDesligado(){
+  if(_mudMqOff===null){try{_mudMqOff=sessionStorage.getItem('olgaMudMqDesligado')==='1';}catch(e){_mudMqOff=false;}}
+  return _mudMqOff;
 }
 // #main-content tem zoom e padding-top:52px (altura do header, que não tem zoom): o padding
 // cresce com o zoom e sobrava uma faixa acima do letreiro. Compensa para colar no header.
@@ -20175,9 +20176,9 @@ function _mudMqAjustaTopo(){
   var z=parseFloat(mc.style.zoom)||1;
   el.style.marginTop=(52/z-52)+'px';
 }
-function _mudMqRecolher(v){
-  _mudMqRec=!!v;
-  try{sessionStorage.setItem('olgaMudMqRecolhido',v?'1':'0');}catch(e){}
+function _mudMqDesligar(v){
+  _mudMqOff=!!v;
+  try{sessionStorage.setItem('olgaMudMqDesligado',v?'1':'0');}catch(e){}
   window._mudMarqueeRender();
 }
 window._mudMarqueeRender=function(){
@@ -20197,8 +20198,7 @@ window._mudMarqueeRender=function(){
         +'#olga-mud-marquee .mq-sai{color:var(--warn);font-weight:700;}#olga-mud-marquee .mq-ent{color:var(--ok);font-weight:700;}'
         +'#olga-mud-marquee .mq-btn{flex:0 0 auto;display:flex;align-items:center;padding:0 12px;background:none;border:none;border-left:1px solid var(--border);color:var(--text-dim);font-family:var(--mono);font-size:10px;letter-spacing:0.08em;text-transform:uppercase;cursor:pointer;}'
         +'#olga-mud-marquee .mq-btn:hover{color:var(--accent);}'
-        +'#olga-mud-marquee.mq-rec{height:22px;background:transparent;border-bottom:none;}'
-        +'#olga-mud-marquee.mq-rec .mq-lbl{font-size:9px;}'
+        +'#olga-mud-marquee.mq-off{border-bottom-color:transparent;}'
         // o win98 zera a duração de todas as animações (*{animation-duration:0.01ms!important}) — o letreiro precisa da sua
         +'[data-theme="win98"] #olga-mud-marquee .mq-track{animation-duration:var(--mq-dur,60s)!important;}'
         +'@keyframes olgaMq{from{transform:translateX(0);}to{transform:translateX(-50%);}}'
@@ -20229,17 +20229,16 @@ window._mudMarqueeRender=function(){
   }).join('');
   el.setAttribute('data-ev',lista[0].event_id);
   el.style.display='';
-  var rec=_mudMqRecolhido(),lbl='<div class="mq-lbl">⇄ Mudanças <span style="font-weight:400;opacity:.8;">('+lista.length+')</span></div>';
-  if(itens+rec===_mudMqKey)return;
-  _mudMqKey=itens+rec;
-  el.classList.toggle('mq-rec',rec);
-  if(rec){
-    el.title='Mudanças de programação — clique para abrir';
-    el.innerHTML=lbl+'<div style="flex:1;"></div><button class="mq-btn" onclick="event.stopPropagation();_mudMqRecolher(false)" title="Mostrar o letreiro">▾ mostrar</button>';
+  var off=_mudMqDesligado(),lbl='<div class="mq-lbl">⇄ Mudanças <span style="font-weight:400;opacity:.8;">('+lista.length+')</span></div>';
+  if(itens+off===_mudMqKey)return;
+  _mudMqKey=itens+off;
+  el.classList.toggle('mq-off',off);
+  if(off){
+    el.innerHTML=lbl+'<div class="mq-vp"></div><button class="mq-btn" onclick="event.stopPropagation();_mudMqDesligar(false)" title="Ligar o letreiro">● ligar</button>';
     return;
   }
   el.innerHTML=lbl+'<div class="mq-vp"><div class="mq-track"><span>'+itens+'</span><span>'+itens+'</span></div></div>'
-    +'<button class="mq-btn" onclick="event.stopPropagation();_mudMqRecolher(true)" title="Recolher o letreiro (fica recolhido nesta sessão)">▴ recolher</button>';
+    +'<button class="mq-btn" onclick="event.stopPropagation();_mudMqDesligar(true)" title="Desligar o letreiro (fica desligado nesta sessão)">○ desligar</button>';
   var vp=el.querySelector('.mq-vp'),tr=el.querySelector('.mq-track'),meia=tr&&tr.firstChild;
   if(!tr||!meia)return;
   // poucos itens: repete até cada metade cobrir a largura visível (o loop em -50% não deixa buraco)
@@ -30147,7 +30146,7 @@ function _sxcPrint(){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 28/10/2026 às 20:06</span></div>
+<div id="page-footer"><span>última atualização · 28/10/2026 às 20:10</span></div>
 
 </div>
 

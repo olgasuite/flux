@@ -5866,6 +5866,7 @@ html[data-theme="indexof"]:not([data-theme="win98"]) .module-icon{display:flex!i
       // fallback pro próprio id, e where('nome','in',...) nunca bate se o campo não existe.
       unsubs.push(onSnapshot(_evFilter ? query(collection(db,'eventos'),  where(documentId(),'in',_evFilter)) : collection(db,'eventos'),   _onSnap('eventos',     parseEventosSnap),     _onSnapErr('eventos')));
       unsubs.push(window._olgaAvisosListen(_evFilter));
+      unsubs.push(window._olgaMudMarqueeListen(_evFilter));
       unsubs.push(onSnapshot(_evFilter ? query(collection(db,'operacao'), where('event_id','in',_evFilter), where('kdm_recebido','==','erro')) : query(collection(db,'operacao'), where('kdm_recebido','==','erro')), function(snap){
         var m = {}; snap.forEach(function(d){ var r = d.data(); if (r.sessao) (m[r.sessao] = m[r.sessao] || []).push(r.codigo); });
         window._kdmErros = m;
@@ -6337,6 +6338,18 @@ html[data-theme="indexof"]:not([data-theme="win98"]) .module-icon{display:flex!i
       await setDoc(doc(db,'prog_mudancas',id),partial,{merge:true});
     },
     remove: async function(id){ await deleteDoc(doc(db,'prog_mudancas',id)); }
+  };
+  // Letreiro (marquee) do topo: mudanças de hoje e dos 2 dias seguintes. Usuário restrito
+  // escuta só os seus eventos (regra exige event_id); os demais, data_ref de hoje em diante.
+  window._olgaMudMarqueeListen = function(evFilter){
+    var q=evFilter?query(collection(db,'prog_mudancas'),where('event_id','in',evFilter))
+                  :query(collection(db,'prog_mudancas'),where('data_ref','>=',_avIso(_avHoje())));
+    return onSnapshot(q,function(snap){
+      var arr=[];
+      snap.forEach(function(d){ var r=d.data(); arr.push(Object.assign({_id:d.id,_ms:r.ts&&r.ts.toMillis?r.ts.toMillis():Date.now()},r)); });
+      window._mudMarqueeDocs=arr;
+      if(typeof window._mudMarqueeRender==='function')window._mudMarqueeRender();
+    },function(e){ console.warn('snapshot prog_mudancas:',e); });
   };
 
   window._olgaAvisos = [];
@@ -7534,6 +7547,7 @@ async function _persistEventColors(map){
 // Re-render do módulo ativo após uma atualização de snapshot.
 // Chamado pelos handlers do onSnapshot quando dados de uma coleção chegam.
 function _olgaRerenderActive(){
+  if(window._mudMarqueeRender)window._mudMarqueeRender();
   if(!dataLoaded||!currentMode)return;
   try{
     if(window._mobileActive){if(typeof olgaMobileRefresh==='function')olgaMobileRefresh();return;}
@@ -7989,6 +8003,7 @@ function goHome(){
 function moduleCardClick(mode){if(dataLoaded)switchMode(mode);}
 
 function switchMode(mode,noPush){
+  if(window._mudMarqueeRender)window._mudMarqueeRender();
   // Herdar pills do módulo atual (ou landing) antes de trocar
   var _prevMode=currentMode||'landing';
   if(_prevMode!==mode){
@@ -9164,6 +9179,8 @@ async function _gradeGerarPdfsSelecionadas(btn,ctx){
 
 function buildPills(container,evColors,activeSet,onToggle){
   window._lastPillCall={c:container,e:evColors,a:activeSet,o:onToggle};
+  // o letreiro de mudanças segue a seleção de eventos
+  var _onT=onToggle;onToggle=function(){var r=_onT&&_onT.apply(this,arguments);if(window._mudMarqueeRender)window._mudMarqueeRender();return r;};
   container.innerHTML='';if(!Object.keys(evColors).length)return;
   var events=Object.keys(evColors);
   var evLocked=!!(window._olgaHasRestricao&&window._olgaHasRestricao('eventos.locked'));
@@ -19702,7 +19719,7 @@ function renderDash(){
   html+=colBlock('legendagem','Legendagem',legBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 28/10/2026 às 19:18';
+  var sysUpdate='última atualização do sistema · 28/10/2026 às 19:30';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -20139,6 +20156,65 @@ function _mudTexto(lista,ev){
   });
   return t;
 }
+// ── Letreiro de mudanças (topo do conteúdo, acima das barras dos módulos) ──
+// Docs vêm do listener _olgaMudMarqueeListen; mostra hoje + 2 dias dos eventos selecionados.
+var _mudMqKey='';
+window._mudMarqueeRender=function(){
+  var mc=document.getElementById('main-content');if(!mc)return;
+  var el=document.getElementById('olga-mud-marquee');
+  if(!el){
+    if(!document.getElementById('olga-mud-marquee-css')){
+      var css=document.createElement('style');css.id='olga-mud-marquee-css';
+      css.textContent='#olga-mud-marquee{display:flex;align-items:stretch;height:30px;overflow:hidden;background:var(--surface);border-bottom:2px solid var(--accent);font-family:var(--mono);font-size:11px;cursor:pointer;}'
+        +'#olga-mud-marquee .mq-lbl{flex:0 0 auto;display:flex;align-items:center;gap:6px;padding:0 12px;background:var(--accent);color:var(--bg);font-weight:700;letter-spacing:0.1em;text-transform:uppercase;font-size:10px;}'
+        +'#olga-mud-marquee .mq-vp{flex:1;min-width:0;overflow:hidden;position:relative;display:flex;align-items:center;}'
+        +'#olga-mud-marquee .mq-track{display:inline-flex;white-space:nowrap;will-change:transform;animation:olgaMq var(--mq-dur,60s) linear infinite;}'
+        +'#olga-mud-marquee:hover .mq-track{animation-play-state:paused;}'
+        +'#olga-mud-marquee .mq-it{padding:0 28px 0 0;color:var(--text);}'
+        +'#olga-mud-marquee .mq-it::after{content:"◆";color:var(--accent);margin-left:28px;font-size:8px;vertical-align:middle;}'
+        +'#olga-mud-marquee .mq-dia{color:var(--accent);font-weight:700;}'
+        +'#olga-mud-marquee .mq-sai{color:var(--warn);font-weight:700;}#olga-mud-marquee .mq-ent{color:var(--ok);font-weight:700;}'
+        +'@keyframes olgaMq{from{transform:translateX(0);}to{transform:translateX(-50%);}}'
+        +'@media print{#olga-mud-marquee{display:none!important;}}';
+      document.head.appendChild(css);
+    }
+    el=document.createElement('div');el.id='olga-mud-marquee';el.style.display='none';
+    el.title='Mudanças de programação — clique para abrir';
+    el.onclick=function(){
+      var ev=el.getAttribute('data-ev')||'';
+      if(typeof switchMode==='function')switchMode('programacao');
+      openProgMudancas(ev);
+    };
+    mc.insertBefore(el,mc.firstChild);
+  }
+  var hj=new Date(),dias=[0,1,2].map(function(i){var d=new Date(hj.getFullYear(),hj.getMonth(),hj.getDate()+i);return _pvIso(d);});
+  var docs=(window._mudMarqueeDocs||[]).filter(function(m){return _userEvSel.has(m.event_id)&&dias.indexOf(m.data_ref)>=0;});
+  var lista=_mudOrdenada(docs,false);
+  if(!lista.length||window._mobileActive){el.style.display='none';_mudMqKey='';return;}
+  var multiEv=new Set(lista.map(function(m){return m.event_id;})).size>1;
+  var rot=function(iso){var i=dias.indexOf(iso);return i===0?'HOJE':i===1?'AMANHÃ':_pvFmtDate(iso).toUpperCase();};
+  var lado=function(x){return esc(x.hora||'')+' '+esc((x.filmes||[]).join(' + ')||x.nome||x.session_id||'');};
+  var itens=lista.map(function(m){
+    return '<span class="mq-it"><span class="mq-dia">'+rot(m.data_ref)+'</span> · '+(multiEv?esc(m.event_id)+' · ':'')+esc(_mudSala(m))+' · '
+      +(m.sai?'<span class="mq-sai">SAI</span> '+lado(m.sai):'')+(m.sai&&m.entra?' &nbsp;→&nbsp; ':'')
+      +(m.entra?'<span class="mq-ent">ENTRA</span> '+lado(m.entra):'')+'</span>';
+  }).join('');
+  el.setAttribute('data-ev',lista[0].event_id);
+  el.style.display='';
+  if(itens===_mudMqKey)return;
+  _mudMqKey=itens;
+  el.innerHTML='<div class="mq-lbl">⇄ Mudanças <span style="font-weight:400;opacity:.8;">('+lista.length+')</span></div>'
+    +'<div class="mq-vp"><div class="mq-track"><span>'+itens+'</span><span>'+itens+'</span></div></div>';
+  var vp=el.querySelector('.mq-vp'),tr=el.querySelector('.mq-track'),meia=tr&&tr.firstChild;
+  if(!tr||!meia)return;
+  // poucos itens: repete até cada metade cobrir a largura visível (o loop em -50% não deixa buraco)
+  var n=1;while(meia.offsetWidth*n<vp.offsetWidth&&n<20)n++;
+  if(n>1){var rep=new Array(n+1).join(itens);tr.innerHTML='<span>'+rep+'</span><span>'+rep+'</span>';}
+  // velocidade constante (~70 px/s) independente da quantidade de itens
+  tr.style.setProperty('--mq-dur',Math.max(15,Math.round(tr.scrollWidth/2/70))+'s');
+};
+// virada do dia: troca HOJE/AMANHÃ e tira o que passou
+setInterval(function(){if(window._mudMarqueeDocs)window._mudMarqueeRender();},10*60000);
 function _mudCopiar(lista,ev){
   var t=_mudTexto(lista,ev);
   var ok=function(){alert('Texto de '+lista.length+' mudança(s) copiado.');};
@@ -30036,7 +30112,7 @@ function _sxcPrint(){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 28/10/2026 às 19:18</span></div>
+<div id="page-footer"><span>última atualização · 28/10/2026 às 19:30</span></div>
 
 </div>
 

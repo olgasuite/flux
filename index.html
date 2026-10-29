@@ -571,6 +571,7 @@ tr.fmt-row td{padding-top:0!important;border-top:none!important;}
 .fmt-parecer{font-family:var(--mono);font-size:8px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;padding:1px 6px;border:1px solid currentColor;border-radius:3px;white-space:nowrap;}
 .fmt-parecer-ok{color:var(--ok);}.fmt-parecer-ress{color:var(--warn);}.fmt-parecer-nao{color:#d0574a;}
 .fmt-cond{flex-basis:100%;font-size:10px;line-height:1.45;color:var(--text-dim);display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;}
+.fmt-rolos{flex-basis:100%;font-size:10px;line-height:1.5;color:var(--text-dim);padding-top:5px;border-top:1px dashed var(--border);}
 .fmt-doc-btn{font-family:var(--mono);font-size:9px;color:var(--accent);background:none;border:1px dashed var(--border);border-radius:3px;padding:1px 6px;cursor:pointer;max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .fmt-cpl-sub{font-family:var(--mono);font-size:9px;color:var(--text-muted);margin-top:3px;}
 .fmt-ed{margin:4px 0 12px;padding:10px 12px;border:1px solid var(--border);border-left:3px solid var(--accent);border-radius:var(--r-sm);}
@@ -19970,7 +19971,7 @@ function renderDash(){
   html+=colBlock('legendagem','Legendagem',legBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 29/10/2026 às 12:32';
+  var sysUpdate='última atualização do sistema · 29/10/2026 às 12:34';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -27207,7 +27208,9 @@ var _FMT_CAMPOS={
     {k:'fmt_apta',l:'Parecer',opts:['apta para projeção','apta com ressalvas','não apta']},
     {k:'fmt_revisor',l:'Revisado por'},
     {k:'fmt_revisao_data',l:'Data da revisão',type:'date'},
-    {k:'fmt_condicao',l:'Condição geral da cópia',area:1,full:1}
+    {k:'fmt_solicitante',l:'Solicitante',ph:'Firula Filmes'},
+    {k:'fmt_condicao',l:'Condição geral da cópia',area:1,full:1},
+    {k:'fmt_obs_rolos',l:'Observações técnicas por rolo',area:1,full:1,ph:'Rolo 1: … · Metragem aproximada: 510 m'}
   ],
   arquivo:[
     {k:'fmt_codec',l:'Codec de vídeo',ph:'ProRes 422 HQ'},
@@ -27280,9 +27283,11 @@ function _fmtFichaCard(f){
       var cls=/não/i.test(fm.fmt_apta)?'nao':/ressalva/i.test(fm.fmt_apta)?'ress':'ok';
       h+='<span class="fmt-parecer fmt-parecer-'+cls+'">'+esc(fm.fmt_apta)+'</span>';
     }
-    var rev=[fm.fmt_revisor,_fmtDataBr(fm.fmt_revisao_data)].filter(Boolean).join(' · ');
+    var rev=[fm.fmt_revisor,_fmtDataBr(fm.fmt_revisao_data),fm.fmt_solicitante?'p/ '+fm.fmt_solicitante:''].filter(Boolean).join(' · ');
     h+=it('Revisão',rev);
     if(fm.fmt_condicao)h+='<span class="fmt-cond" title="'+esc(fm.fmt_condicao)+'">'+esc(fm.fmt_condicao)+'</span>';
+    // observações por rolo: uma linha por rolo, o projecionista precisa ver todas
+    if(fm.fmt_obs_rolos)h+='<span class="fmt-rolos">'+esc(fm.fmt_obs_rolos).replace(/\n+/g,'<br>')+'</span>';
   }else if(t==='arquivo'){
     tit='Arquivo';
     h+=it('Codec',fm.fmt_codec)+it('Container',fm.fmt_container)+it('Resolução',f.resolucao)+it('FPS',f.fps)
@@ -27326,7 +27331,7 @@ function _fmtEditHtml(fmtVal){
   function campo(c){
     var val=v[c.k]||'',id='ae_'+c.k,ctl;
     if(c.opts)ctl='<select class="cat-input" id="'+id+'"><option value="">—</option>'+c.opts.map(function(o){return'<option value="'+esc(o)+'"'+(o===val?' selected':'')+'>'+esc(o)+'</option>';}).join('')+'</select>';
-    else if(c.area)ctl='<textarea class="cat-textarea" id="'+id+'" rows="3">'+esc(val)+'</textarea>';
+    else if(c.area)ctl='<textarea class="cat-textarea" id="'+id+'" rows="3"'+(c.ph?' placeholder="'+esc(c.ph)+'"':'')+'>'+esc(val)+'</textarea>';
     else if(c.list)ctl='<input class="cat-input" id="'+id+'" list="'+id+'_dl" value="'+esc(val)+'" autocomplete="off"><datalist id="'+id+'_dl">'+c.list.map(function(o){return'<option value="'+esc(o)+'">';}).join('')+'</datalist>';
     else ctl='<input class="cat-input" id="'+id+'" type="'+(c.type||'text')+'" value="'+esc(val)+'"'+(c.ph?' placeholder="'+esc(c.ph)+'"':'')+'>';
     return'<div class="cat-field" style="margin-bottom:8px;'+(c.full?'grid-column:1/-1;':'')+'"><div class="cat-label">'+c.l+'</div><div class="cat-value">'+ctl+'</div></div>';
@@ -30906,7 +30911,7 @@ function _sxcPrint(){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 29/10/2026 às 12:32</span></div>
+<div id="page-footer"><span>última atualização · 29/10/2026 às 12:34</span></div>
 
 </div>
 

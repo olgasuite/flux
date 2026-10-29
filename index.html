@@ -2166,6 +2166,7 @@ mark{background:rgba(255,186,32,0.28);color:var(--accent);border-radius:2px;padd
 .rev-sinopse-text{font-family:'IBM Plex Sans',sans-serif;font-size:8.5px;font-weight:300;line-height:1.75;color:#222;margin-bottom:8px;}
 .rev-sinopse-info{font-family:'IBM Plex Mono',monospace;font-size:6px;font-weight:700;letter-spacing:0.18em;text-transform:uppercase;color:#bbb;margin-bottom:4px;}
 .rev-sala-cx{font-family:'IBM Plex Sans',sans-serif;font-size:12px;font-weight:700;line-height:1.15;color:#111;margin-bottom:2px;}
+.rev-sala-rede{font-family:'IBM Plex Mono',monospace;font-size:6.5px;color:#888;letter-spacing:0.1em;text-transform:uppercase;margin-bottom:2px;}
 .rev-sala-end{font-family:'IBM Plex Sans',sans-serif;font-size:8px;font-weight:300;color:#555;line-height:1.35;margin-bottom:5px;}
 .rev-sala-row{padding:3px 0 3px 8px;border-left:2px solid #e0dcd5;margin-top:4px;}
 .rev-sala-nome{font-family:'IBM Plex Sans',sans-serif;font-size:9px;font-weight:600;color:#222;line-height:1.3;}
@@ -15449,12 +15450,36 @@ function _revGetSalasItems(evName,salaParaComplexo){
     var cx=salaParaComplexo[sala]||sala;
     (porCx[cx]=porCx[cx]||[]).push(sala);
   });
-  return Object.keys(porCx).sort(function(a,b){return a.localeCompare(b,'pt-BR');}).map(function(cx){
+  // Complexo cujas salas ficam em endereços diferentes (ex.: Circuito SPCine) é uma REDE:
+  // vira um bloco por endereço, com o nome da rede embaixo do título
+  var grupos=[];
+  Object.keys(porCx).forEach(function(cx){
     var salas=porCx[cx].sort(function(a,b){return a.localeCompare(b,'pt-BR',{numeric:true});});
-    var end='';
-    (cinemasArr||[]).some(function(c){if((c.complexo||c.sala)===cx&&(c.endereco||'').trim()){end=c.endereco.trim();return true;}return false;});
-    if(!end)salas.some(function(sl){var c=cinPorSala[sl];if(c&&(c.endereco||'').trim()){end=c.endereco.trim();return true;}return false;});
-    return{complexo:cx,endereco:end,salas:salas.map(function(sl){
+    var endDe=function(sl){var c=cinPorSala[sl];return c?(c.endereco||'').trim():'';};
+    // mesmo lugar escrito de jeitos diferentes ("R. Augusta, 1475" / "Rua Augusta, 1475 - …, São Paulo")
+    // conta como um endereço só: compara a última palavra do logradouro + número
+    var endKey=function(e){
+      var n=e.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'');
+      var m=/([a-z]+)\W*,?\s*(?:n[ºo°.]*\s*)?(\d+)/.exec(n);
+      return m?m[1]+'|'+m[2]:n.split(' - ')[0].replace(/\W+/g,' ').trim();
+    };
+    var keys=[],maisLongo={};
+    salas.forEach(function(sl){var e=endDe(sl);if(!e)return;var k=endKey(e);if(keys.indexOf(k)<0)keys.push(k);if(!maisLongo[k]||e.length>maisLongo[k].length)maisLongo[k]=e;});
+    if(keys.length<=1){
+      var end=keys.length?maisLongo[keys[0]]:'';
+      if(!end)(cinemasArr||[]).some(function(c){if((c.complexo||c.sala)===cx&&(c.endereco||'').trim()){end=c.endereco.trim();return true;}return false;});
+      grupos.push({titulo:cx,rede:'',endereco:end,salas:salas});
+      return;
+    }
+    var porEnd={};
+    salas.forEach(function(sl){var e=endDe(sl),k=e?endKey(e):('\u0000'+sl);(porEnd[k]=porEnd[k]||[]).push(sl);});
+    Object.keys(porEnd).forEach(function(k){
+      var ss=porEnd[k];
+      grupos.push({titulo:ss.length===1?ss[0]:_revPrefixoComum(ss)||ss[0],rede:cx,endereco:maisLongo[k]||'',salas:ss});
+    });
+  });
+  return grupos.sort(function(a,b){return a.titulo.localeCompare(b.titulo,'pt-BR');}).map(function(g){
+    return{complexo:g.titulo,rede:g.rede,endereco:g.endereco,salas:g.salas.map(function(sl){
       var c=cinPorSala[sl]||{},ss=porSala[sl];
       var ac=[];ss.forEach(function(s){var a=_REV_ACESSO[(s.access_type||'').trim()];if(a&&ac.indexOf(a)<0)ac.push(a);});
       var ds=ss.map(function(s){return s.date;}).filter(Boolean).sort(function(a,b){return a-b;});
@@ -15463,12 +15488,19 @@ function _revGetSalasItems(evName,salaParaComplexo){
     })};
   });
 }
+// início comum (palavras inteiras) dos nomes das salas de um mesmo endereço: "Spcine Olido 1"/"Spcine Olido 2" → "Spcine Olido"
+function _revPrefixoComum(nomes){
+  var ps=nomes.map(function(n){return n.split(/\s+/);}),out=[];
+  for(var i=0;i<ps[0].length;i++){var w=ps[0][i];if(ps.every(function(p){return p[i]===w;}))out.push(w);else break;}
+  return out.join(' ').replace(/[\s\-–·,]+$/,'');
+}
 function _revSalasItemFns(items){
   return items.map(function(it){
     return function(){
       var el=document.createElement('div');el.className='rev-sinopse-entry rev-sala-entry';
       var unica=it.salas.length===1&&it.salas[0].sala===it.complexo;
       var h='<div class="rev-sala-cx"'+(unica?' data-link-cinema="'+_revEsc(it.complexo)+'"':'')+'>'+_revEsc(it.complexo)+'</div>';
+      if(it.rede)h+='<div class="rev-sala-rede">'+_revEsc(it.rede)+'</div>';
       if(it.endereco)h+='<div class="rev-sala-end">'+_revEsc(it.endereco)+'</div>';
       it.salas.forEach(function(s){
         var det=[];
@@ -19862,7 +19894,7 @@ function renderDash(){
   html+=colBlock('legendagem','Legendagem',legBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 28/10/2026 às 23:11';
+  var sysUpdate='última atualização do sistema · 28/10/2026 às 23:13';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -30289,7 +30321,7 @@ function _sxcPrint(){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 28/10/2026 às 23:11</span></div>
+<div id="page-footer"><span>última atualização · 28/10/2026 às 23:13</span></div>
 
 </div>
 

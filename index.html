@@ -574,13 +574,25 @@ tr.fmt-row td{padding-top:0!important;border-top:none!important;}
 .fmt-rolos{flex-basis:100%;font-size:10px;line-height:1.5;color:var(--text-dim);padding-top:5px;border-top:1px dashed var(--border);}
 .fmt-doc-btn{font-family:var(--mono);font-size:9px;color:var(--accent);background:none;border:1px dashed var(--border);border-radius:3px;padding:1px 6px;cursor:pointer;max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .fmt-cpl-sub{font-family:var(--mono);font-size:9px;color:var(--text-muted);margin-top:3px;}
-.fmt-ed{margin:4px 0 12px;padding:10px 12px;border:1px solid var(--border);border-left:3px solid var(--accent);border-radius:var(--r-sm);}
-.fmt-ed-tit{font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:var(--accent);margin-bottom:8px;}
+.fmt-ed{margin:6px 0 16px;padding:14px 18px 16px;border:1px solid var(--border);border-left:3px solid var(--accent);border-radius:var(--r-sm);background:var(--surface2);}
+.fmt-ed-tit{font-family:var(--mono);font-size:10px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:var(--accent);margin-bottom:4px;}
+.fmt-ed-sub{font-family:var(--mono);font-size:8px;font-weight:700;letter-spacing:0.16em;text-transform:uppercase;color:var(--text-dim);margin:16px 0 8px;padding-bottom:5px;border-bottom:1px solid var(--border);}
+.fmt-ed-sub span{font-weight:400;letter-spacing:0.06em;text-transform:none;color:var(--text-muted);margin-left:8px;}
+.fmt-ed-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:10px 18px;}
+.fmt-ed-grid .cat-field{margin:0;}
 .fmt-ed-hint{font-family:var(--sans);font-size:11px;color:var(--text-muted);line-height:1.5;}
-.fmt-ed .fmt-ed-hint{display:block;margin-bottom:8px;}
-.fmt-ed-danos{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:6px 10px;margin-bottom:6px;}
-.fmt-ed-danos label{display:flex;align-items:center;justify-content:space-between;gap:6px;font-size:11px;color:var(--text-dim);}
-.fmt-ed-danos select{width:58px;flex:none;}
+.fmt-ed .fmt-ed-hint{display:block;margin:4px 0 8px;}
+.fmt-ed-danos{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:2px 24px;}
+.fmt-ed-dano{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:4px 0;border-bottom:1px dashed var(--border);font-size:12px;color:var(--text-dim);}
+.fmt-ed-esc{display:inline-flex;flex:none;border:1px solid var(--border2);border-radius:3px;overflow:hidden;}
+.fmt-ed-esc button{width:28px;height:24px;font-family:var(--mono);font-size:11px;background:var(--bg);color:var(--text-muted);border:none;border-left:1px solid var(--border2);cursor:pointer;padding:0;}
+.fmt-ed-esc button:first-child{border-left:none;}
+.fmt-ed-esc button:hover{color:var(--text);}
+.fmt-ed-esc button.on{color:var(--on-accent,#000);font-weight:700;}
+.fmt-ed-esc button.n0{background:var(--text-muted);}
+.fmt-ed-esc button.n1{background:var(--ok);}
+.fmt-ed-esc button.n2{background:var(--warn);}
+.fmt-ed-esc button.n3{background:#d0574a;color:#fff;}
 .fmt-ed-doc{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:3px 0;}
 .fmt-ed-doc a{font-family:var(--mono);font-size:10px;color:var(--accent);}
 .fmt-ed-doc .fmt-ed-hint{display:inline;margin:0;}
@@ -19971,7 +19983,7 @@ function renderDash(){
   html+=colBlock('legendagem','Legendagem',legBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 29/10/2026 às 12:35';
+  var sysUpdate='última atualização do sistema · 29/10/2026 às 12:42';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -27193,7 +27205,7 @@ var _FMT_DANOS=[['fmt_dano_riscos_emulsao','Riscos de emulsão'],['fmt_dano_risc
   ['fmt_dano_fungos','Fungos/bolor'],['fmt_dano_metalizacao','Metalização'],['fmt_dano_umidade','Umidade']];
 var _FMT_CAMPOS={
   pelicula:[
-    {k:'fmt_rolos',l:'Nº de rolos',ph:'6'},
+    {k:'fmt_rolos',l:'Nº de rolos',ph:'6',g:'Material'},
     {k:'fmt_metragem',l:'Metragem estimada (m)',ph:'3065'},
     {k:'fmt_janela',l:'Formato de tela',list:['1.33:1','1.37:1','1.66:1','1.85:1','2.35:1','2.39:1']},
     {k:'fmt_velocidade',l:'Velocidade (q/s)',list:['24','25','18','16']},
@@ -27203,10 +27215,10 @@ var _FMT_CAMPOS={
     {k:'fmt_sistema_sonoro',l:'Sistema sonoro',list:['Óptico mono','Óptico AV dupla bilateral','Óptico estéreo (Dolby SR)','Dolby Digital','DTS','SDDS','Magnético']},
     {k:'fmt_cartelas',l:'Cartelas',ph:'Inglês'},
     {k:'fmt_intertitulos',l:'Intertítulos',ph:'—'},
-    {k:'fmt_emendas',l:'Nº total de emendas',ph:'1'},
+    {k:'fmt_emendas',l:'Nº total de emendas',ph:'1',g:'danos'},
     {k:'fmt_rasgos',l:'Nº de rasgos',ph:'0'},
     {k:'fmt_apta',l:'Parecer',opts:['apta para projeção','apta com ressalvas','não apta']},
-    {k:'fmt_revisor',l:'Revisado por'},
+    {k:'fmt_revisor',l:'Revisado por',g:'Revisão'},
     {k:'fmt_revisao_data',l:'Data da revisão',type:'date'},
     {k:'fmt_solicitante',l:'Solicitante',ph:'Firula Filmes'},
     {k:'fmt_condicao',l:'Condição geral da cópia',area:1,full:1},
@@ -27334,22 +27346,34 @@ function _fmtEditHtml(fmtVal){
     else if(c.area)ctl='<textarea class="cat-textarea" id="'+id+'" rows="3"'+(c.ph?' placeholder="'+esc(c.ph)+'"':'')+'>'+esc(val)+'</textarea>';
     else if(c.list)ctl='<input class="cat-input" id="'+id+'" list="'+id+'_dl" value="'+esc(val)+'" autocomplete="off"><datalist id="'+id+'_dl">'+c.list.map(function(o){return'<option value="'+esc(o)+'">';}).join('')+'</datalist>';
     else ctl='<input class="cat-input" id="'+id+'" type="'+(c.type||'text')+'" value="'+esc(val)+'"'+(c.ph?' placeholder="'+esc(c.ph)+'"':'')+'>';
-    return'<div class="cat-field" style="margin-bottom:8px;'+(c.full?'grid-column:1/-1;':'')+'"><div class="cat-label">'+c.l+'</div><div class="cat-value">'+ctl+'</div></div>';
+    return'<div class="cat-field"'+(c.full?' style="grid-column:1/-1;"':'')+'><div class="cat-label">'+c.l+'</div><div class="cat-value">'+ctl+'</div></div>';
+  }
+  // danos físicos: escala 0–3 em botões (um toque), valor guardado num input escondido
+  function danosHtml(){
+    return'<div class="fmt-ed-sub">Danos físicos <span>0 inexistente · 3 intenso</span></div><div class="fmt-ed-danos">'
+      +_FMT_DANOS.map(function(d){
+        var val=v[d[0]]===undefined?'':String(v[d[0]]);
+        return'<div class="fmt-ed-dano"><span>'+esc(d[1])+'</span><span class="fmt-ed-esc" data-k="'+d[0]+'">'
+          +['0','1','2','3'].map(function(o){return'<button type="button" class="'+(o===val?'on n'+o:'')+'" onclick="_aeFmtEsc(this,\''+o+'\')">'+o+'</button>';}).join('')
+          +'</span><input type="hidden" id="ae_'+d[0]+'" value="'+esc(val)+'"></div>';
+      }).join('')+'</div>';
   }
   var tit={pelicula:'Laudo da película · '+fmtVal,arquivo:'Ficha do arquivo',hdcam:'Ficha da fita',outro:'Outro formato'}[t];
   var h='<div class="fmt-ed"><div class="fmt-ed-tit">'+esc(tit)+'</div>';
   if(t==='outro')h+='<div class="fmt-ed-hint">Use os campos padrão. As <b>Observações do formato</b> aparecem na coluna CPL da ficha de projeção.</div>';
   if(t==='arquivo')h+='<div class="fmt-ed-hint">Nome do arquivo (campo CPL), resolução, FPS, duração, GB e bitrate ficam nos campos padrão. O botão de importar arquivo preenche tudo, inclusive codec, container, pixel e áudio.</div>';
-  if(_FMT_CAMPOS[t])h+='<div class="cat-grid">'+_FMT_CAMPOS[t].map(campo).join('')+'</div>';
-  if(t==='pelicula'){
-    h+='<div class="cat-label" style="margin:4px 0 6px;">Danos físicos · 0 inexistente a 3 intenso</div><div class="fmt-ed-danos">'
-      +_FMT_DANOS.map(function(d){
-        var val=v[d[0]]===undefined?'':String(v[d[0]]);
-        return'<label><span>'+esc(d[1])+'</span><select class="cat-input" id="ae_'+d[0]+'"><option value="">—</option>'
-          +['0','1','2','3'].map(function(o){return'<option value="'+o+'"'+(o===val?' selected':'')+'>'+o+'</option>';}).join('')+'</select></label>';
-      }).join('')+'</div>';
-  }
-  h+='<div class="cat-label" style="margin:10px 0 6px;">Documentos (laudo de revisão, relatório…)</div>'
+  // campos em blocos: cada g abre um bloco novo; g:'danos' põe a escala de danos antes do bloco
+  var grupos=[],atual=null;
+  (_FMT_CAMPOS[t]||[]).forEach(function(c){
+    if(!atual||c.g){atual={g:c.g||'',cs:[]};grupos.push(atual);}
+    atual.cs.push(c);
+  });
+  grupos.forEach(function(gr){
+    if(gr.g==='danos')h+=danosHtml()+'<div class="fmt-ed-sub">Reparos e parecer</div>';
+    else if(gr.g)h+='<div class="fmt-ed-sub">'+esc(gr.g)+'</div>';
+    h+='<div class="fmt-ed-grid">'+gr.cs.map(campo).join('')+'</div>';
+  });
+  h+='<div class="fmt-ed-sub">Documentos <span>laudo de revisão, relatório…</span></div>'
     +'<div id="ae_fmt_docs" class="fmt-ed-docs"><span class="fmt-ed-hint">carregando…</span></div>'
     +(_cfPodeEnviar()?'<label class="cxp-btn" style="display:inline-block;cursor:pointer;margin-top:6px;">⬆ Anexar documento<input type="file" accept=".pdf,.doc,.docx,.odt,.jpg,.jpeg,.png" style="display:none;" onchange="_cfUpload(this)"></label>':'')
     +'<span id="ae_fmt_docs_msg" class="fmt-ed-hint" style="margin-left:8px;"></span>';
@@ -27362,7 +27386,19 @@ function _aeFmtSecRender(fmtVal){
   var sec=document.getElementById('ae_fmt_sec');if(!sec)return;
   _aeFmtColeta();
   sec.innerHTML=_fmtEditHtml(fmtVal);
+  _aeFmtLargura(fmtVal);
   if(document.getElementById('ae_fmt_docs'))_cfRenderLista(_acervoEditCode);
+}
+// janela mais larga quando há ficha de formato (o laudo de película não cabe em 640px)
+function _aeFmtLargura(fmtVal){
+  var box=document.getElementById('acervoEditBox');
+  if(box)box.style.maxWidth=_fmtTipo({exhibition_format:fmtVal})==='dcp'?'640px':'920px';
+}
+function _aeFmtEsc(btn,v){
+  var wrap=btn.parentNode,inp=document.getElementById('ae_'+wrap.getAttribute('data-k'));
+  var novo=inp.value===v?'':v; // clicar de novo no mesmo valor limpa
+  inp.value=novo;
+  [].forEach.call(wrap.children,function(b){b.className=b.textContent===novo?'on n'+novo:'';});
 }
 
 // ── documentos da cópia (laudos): meta em copia_files, conteúdo em pedaços em copia_files_data ──
@@ -27542,6 +27578,7 @@ function _openAcervoEditCopia(f){
   _aeAcessRender();
   _aeHdTags=(f.hd||'').split(/[;,\n]+/).map(function(t){return t.trim();}).filter(Boolean);
   _aeHdRender();
+  _aeFmtLargura(f.exhibition_format||'');
   if(document.getElementById('ae_fmt_docs'))_cfRenderLista(f.codigo);
   _acervoOriginalData={
     festival_code:f.codigo,event_name:f.evento||'',
@@ -30749,7 +30786,7 @@ function _sxcPrint(){
 </div>
 
 <div id="acervoEditModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:500;overflow-y:auto;padding:20px;">
-  <div style="background:var(--surface);border:1px solid var(--border);width:100%;max-width:640px;margin:auto;display:flex;flex-direction:column;">
+  <div id="acervoEditBox" style="background:var(--surface);border:1px solid var(--border);width:100%;max-width:640px;margin:auto;display:flex;flex-direction:column;transition:max-width .15s;">
     <div style="padding:14px 22px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;gap:12px;">
       <span style="font-family:var(--mono);font-size:11px;font-weight:600;letter-spacing:0.18em;text-transform:uppercase;color:var(--accent);">Acervo Técnico · <span id="acervoEditCode"></span></span>
       <div style="display:flex;align-items:center;gap:8px;">
@@ -30911,7 +30948,7 @@ function _sxcPrint(){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 29/10/2026 às 12:35</span></div>
+<div id="page-footer"><span>última atualização · 29/10/2026 às 12:42</span></div>
 
 </div>
 

@@ -19991,7 +19991,7 @@ function renderDash(){
   html+=colBlock('legendagem','Legendagem',legBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 29/10/2026 às 14:12';
+  var sysUpdate='última atualização do sistema · 29/10/2026 às 14:18';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -20433,13 +20433,10 @@ function _mudTexto(lista,ev){
 }
 // ── Letreiro de mudanças (topo do conteúdo, acima das barras dos módulos) ──
 // Docs vêm do listener _olgaMudMarqueeListen; mostra hoje + 2 dias dos eventos selecionados.
-var _mudMqKey='',_mudMqOff=null;
-// desligado (a faixa fica, sem o texto rolando) vale para a sessão do navegador
-// (sessionStorage), até o usuário ligar de novo
-function _mudMqDesligado(){
-  if(_mudMqOff===null){try{_mudMqOff=sessionStorage.getItem('olgaMudMqDesligado')==='1';}catch(e){_mudMqOff=false;}}
-  return _mudMqOff;
-}
+var _mudMqKey='',_mudMqOff=false;
+// desligado (a faixa fica, sem o texto rolando) só vale enquanto a página está aberta:
+// não é gravado em lugar nenhum, então todo login (que recarrega a página) começa rodando
+function _mudMqDesligado(){return _mudMqOff;}
 // #main-content tem zoom e padding-top:52px (altura do header, que não tem zoom): o padding
 // cresce com o zoom e sobrava uma faixa acima do letreiro. Compensa para colar no header.
 function _mudMqAjustaTopo(){
@@ -20450,7 +20447,6 @@ function _mudMqAjustaTopo(){
 }
 function _mudMqDesligar(v){
   _mudMqOff=!!v;
-  try{sessionStorage.setItem('olgaMudMqDesligado',v?'1':'0');}catch(e){}
   window._mudMarqueeRender();
 }
 window._mudMarqueeRender=function(){
@@ -20510,7 +20506,7 @@ window._mudMarqueeRender=function(){
     return;
   }
   el.innerHTML=lbl+'<div class="mq-vp"><div class="mq-track"><span>'+itens+'</span><span>'+itens+'</span></div></div>'
-    +'<button class="mq-btn" onclick="event.stopPropagation();_mudMqDesligar(true)" title="Desligar o letreiro (fica desligado nesta sessão)">○ desligar</button>';
+    +'<button class="mq-btn" onclick="event.stopPropagation();_mudMqDesligar(true)" title="Desligar o letreiro (volta a rodar no próximo login)">○ desligar</button>';
   var vp=el.querySelector('.mq-vp'),tr=el.querySelector('.mq-track'),meia=tr&&tr.firstChild;
   if(!tr||!meia)return;
   // poucos itens: repete até cada metade cobrir a largura visível (o loop em -50% não deixa buraco)
@@ -31010,7 +31006,7 @@ function _sxcPrint(){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 29/10/2026 às 14:12</span></div>
+<div id="page-footer"><span>última atualização · 29/10/2026 às 14:18</span></div>
 
 </div>
 

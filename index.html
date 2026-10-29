@@ -19894,7 +19894,7 @@ function renderDash(){
   html+=colBlock('legendagem','Legendagem',legBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 28/10/2026 às 23:29';
+  var sysUpdate='última atualização do sistema · 29/10/2026 às 10:08';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -28478,9 +28478,10 @@ function _iuRenderStep1(){
       +'<input type="file" id="iuFile" accept=".xlsx,.xls,.csv" onchange="_iuReadFile(this)" style="font-family:var(--mono);font-size:11px;color:var(--text);">'
     +'</div>'
     +'<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:10px;border:1px dashed var(--border);border-radius:3px;">'
-      +'<button class="cxp-btn" onclick="_iuBaixarModelo()">⬇ Baixar planilha modelo</button>'
-      +'<span style="font-family:var(--sans);font-size:11px;color:var(--text-dim);line-height:1.5;flex:1;min-width:220px;">Planilha em branco com as colunas de <b>'+esc(IU_SCHEMAS[_iuState.module].label)+'</b> e instruções de preenchimento'
-      +(IU_SCHEMAS[_iuState.module].needsEv?(_iuState.event?' (com os valores que já existem em '+esc(_iuState.event)+')':' — escolha o evento antes para incluir as salas, mostras e filmes dele'):'')
+      +'<button class="cxp-btn" onclick="_iuBaixarModelo(false)">⬇ Modelo em branco</button>'
+      +(IU_SCHEMAS[_iuState.module].needsEv?'<button class="cxp-btn" onclick="_iuBaixarModelo(true)"'+(_iuState.event?'':' disabled title="Escolha o evento primeiro"')+'>⬇ Modelo com listas do evento</button>':'')
+      +'<span style="font-family:var(--sans);font-size:11px;color:var(--text-dim);line-height:1.5;flex:1;min-width:220px;">Planilha com as colunas de <b>'+esc(IU_SCHEMAS[_iuState.module].label)+'</b> e instruções de preenchimento'
+      +(IU_SCHEMAS[_iuState.module].needsEv?(_iuState.event?'. A versão <b>com listas</b> traz setas nas células para escolher salas, filmes, vinhetas, mostras… já cadastrados em '+esc(_iuState.event):' — escolha o evento para baixar a versão com listas (salas, filmes, mostras do evento)'):'')
       +'. Depois de preencher, é só importar aqui: as colunas são reconhecidas sozinhas.</span>'
     +'</div>':'')
     +IU_RULES_HTML
@@ -29107,10 +29108,15 @@ var _IU_NOTA_CAMPO={
   venue_name:'Escreva o nome da sala exatamente como no cadastro de Cinemas (veja a aba Referência).',
   program_id:'ID da mostra (não o nome) — veja a aba Referência.',subprogram_id:'ID da submostra (não o nome) — veja a aba Referência.',
   runtime:'Em minutos.',dcp_duration:'Formato H:MM:SS.',trailer:'Se houver mais de um link, um por linha dentro da célula.'};
-function _iuBaixarModelo(){
+async function _iuBaixarModelo(comListas){
   var sch=IU_SCHEMAS[_iuState.module];if(!sch)return;
   var ev=_iuState.event||'';
   var campos=sch.fields;
+  if(comListas&&(sch.coll==='flights'||sch.coll==='transfers')&&window._olgaGuests&&(!window._recepGuests||!window._recepGuests.length)){
+    try{window._recepGuests=await window._olgaGuests.list();}catch(e){}
+  }
+  // listas suspensas: valores fixos (opções, sim/não) sempre; valores do evento só com comListas
+  var listas=_iuModeloListas(_iuState.module,comListas&&ev?ev:'');
   // ── Dados: só o cabeçalho
   var wsD=XLSX.utils.aoa_to_sheet([campos.map(function(fd){return fd.l;})]);
   wsD['!cols']=campos.map(function(fd){return{wch:Math.max(12,Math.min(40,fd.l.length+4))};});
@@ -29126,17 +29132,19 @@ function _iuBaixarModelo(){
     ['4. Não deixe linhas em branco no meio dos dados.'],
     ['5. No OLGA Flux: Importação Universal → módulo "'+sch.label+'"'+(sch.needsEv?' → evento':'')+' → escolha este arquivo. As colunas são reconhecidas sozinhas; confira na tela de mapeamento e na pré-visualização antes de gravar.'],
     ['6. Registro que já existe (mesmo código/ID) é ATUALIZADO: célula vazia não apaga o que já está gravado; célula preenchida substitui.'],
+    campos.some(function(fd){return listas[fd.f]&&listas[fd.f].length;})&&['7. Colunas com "Valores aceitos" na tabela abaixo têm uma seta na célula para escolher o valor'+(comListas&&ev?' (salas, filmes, vinhetas, mostras… já cadastrados em '+ev+')':'')+'. Pode digitar também: valor fora da lista só gera um aviso. Em colunas de vários valores, escolha o primeiro e digite os outros depois de ; (ponto e vírgula).'],
     [''],
     ['COLUNAS'],
     ['Coluna','Obrigatório','Formato','Valores aceitos','Exemplo','Observação','Também reconhecido como']
-  ];
+  ].filter(Boolean);
   campos.forEach(function(fd){
     var evCampo=fd.f==='evento'||fd.f==='event_name'||fd.f==='event_id';
+    var lst=listas[fd.f];
     ins.push([
       fd.l,
       fd.req?(evCampo&&sch.needsEv?'sim (ou o evento da importação)':'SIM'):'',
       _IU_FMT[fd.t]||'texto',
-      fd.t==='e'?(fd.opts||[]).filter(Boolean).join(' | '):'',
+      fd.t==='e'?(fd.opts||[]).filter(Boolean).join(' | '):(lst&&lst.length?(lst.length<=8?lst.join(' | '):'lista na célula ('+lst.length+' valores)'):''),
       evCampo?(ev||''):(_IU_EX_CAMPO[fd.f]!==undefined?_IU_EX_CAMPO[fd.f]:(fd.t==='e'?((fd.opts||[]).filter(Boolean)[0]||''):(_IU_EX[fd.t]||''))),
       _IU_NOTA_CAMPO[fd.f]||'',
       fd.f.indexOf('_')===0?'':fd.f
@@ -29150,8 +29158,90 @@ function _iuBaixarModelo(){
   // ── Referência: valores que já existem no evento, para escrever igual
   var wsR=ev?_iuModeloReferencia(_iuState.module,ev):null;
   if(wsR)XLSX.utils.book_append_sheet(wb,wsR,'Referência');
-  var arq='modelo_'+_iuState.module+(ev?'_'+ev:'')+'.xlsx';
-  XLSX.writeFile(wb,arq.replace(/[^\w.\-]+/g,'_'));
+  var arq=('modelo_'+_iuState.module+(ev?'_'+ev:'')+(comListas&&ev?'_listas':'')+'.xlsx').replace(/[^\w.\-]+/g,'_');
+  // aba oculta "Listas": uma coluna por campo com lista; validação de dados aponta para ela
+  var colsL=[];
+  campos.forEach(function(fd,i){var l=listas[fd.f];if(l&&l.length)colsL.push({i:i,f:fd,v:l});});
+  if(!colsL.length||!XLSX.CFB){XLSX.writeFile(wb,arq);return;}
+  var aoaL=[colsL.map(function(c){return c.f.l;})];
+  var maxV=Math.max.apply(null,colsL.map(function(c){return c.v.length;}));
+  for(var r=0;r<maxV;r++)aoaL.push(colsL.map(function(c){return c.v[r]!==undefined?c.v[r]:'';}));
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(aoaL),'Listas');
+  wb.Workbook={Sheets:wb.SheetNames.map(function(n){return n==='Listas'?{Hidden:1}:{};})};
+  var dv=colsL.map(function(c,j){
+    var colD=XLSX.utils.encode_col(c.i),colL=XLSX.utils.encode_col(j);
+    var multi=c.f.t==='a';
+    return'<dataValidation type="list" allowBlank="1" showInputMessage="0" '
+      +(multi?'showErrorMessage="0"':'showErrorMessage="1" errorStyle="warning" errorTitle="Fora da lista" error="Este valor não está na lista. Confira antes de importar."')
+      +' sqref="'+colD+'2:'+colD+'5000"><formula1>Listas!$'+colL+'$2:$'+colL+'$'+(c.v.length+1)+'</formula1></dataValidation>';
+  });
+  var xml='<dataValidations count="'+dv.length+'">'+dv.join('')+'</dataValidations>';
+  try{
+    var cfb=XLSX.CFB.read(new Uint8Array(XLSX.write(wb,{type:'array',bookType:'xlsx'})),{type:'array'});
+    var ent=XLSX.CFB.find(cfb,'/xl/worksheets/sheet1.xml'); // Dados é a 1ª aba
+    var s=new TextDecoder().decode(new Uint8Array(ent.content));
+    var ini=s.indexOf('</sheetData>');
+    var m=/<(hyperlinks|printOptions|pageMargins|pageSetup|headerFooter|rowBreaks|colBreaks|customProperties|cellWatches|ignoredErrors|smartTags|drawing|legacyDrawing|tableParts|extLst)\b|<\/worksheet>/.exec(s.slice(ini));
+    var pos=ini+m.index;
+    ent.content=new TextEncoder().encode(s.slice(0,pos)+xml+s.slice(pos));
+    var out=XLSX.CFB.write(cfb,{type:'array',fileType:'zip',compression:true});
+    var a=document.createElement('a');
+    a.href=URL.createObjectURL(new Blob([out],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}));
+    a.download=arq;document.body.appendChild(a);a.click();
+    setTimeout(function(){URL.revokeObjectURL(a.href);a.remove();},2000);
+  }catch(e){console.warn('[modelo] sem listas suspensas:',e);XLSX.writeFile(wb,arq);}
+}
+/* Valores das listas suspensas por campo. ev vazio = só os fixos (opções e sim/não).
+   Os valores são escritos do jeito que a importação resolve (título/nome quando único, senão código). */
+function _iuModeloListas(mod,ev){
+  var L={},sch=IU_SCHEMAS[mod];
+  sch.fields.forEach(function(fd){
+    if(fd.t==='e')L[fd.f]=(fd.opts||[]).filter(Boolean);
+    else if(fd.t==='b')L[fd.f]=['sim','não'];
+  });
+  if(!ev)return L;
+  var ordena=function(a){return a.sort(function(x,y){return String(x).localeCompare(String(y),'pt-BR');});};
+  var unicos=function(pares){ // [[código,nome]] → nome se único (sem diferenciar maiúsculas), senão código
+    var cnt={};pares.forEach(function(p){var k=String(p[1]||'').toLowerCase().trim();if(k)cnt[k]=(cnt[k]||0)+1;});
+    return ordena(pares.map(function(p){var k=String(p[1]||'').toLowerCase().trim();return k&&cnt[k]===1?p[1]:p[0];}));
+  };
+  var evs=(typeof activeEventsLanding!=='undefined'&&activeEventsLanding&&activeEventsLanding.size)?Array.from(activeEventsLanding).sort():[];
+  evs=[ev].concat(evs.filter(function(e){return e!==ev;})); // evento escolhido primeiro
+  ['evento','event_name','event_id'].forEach(function(f){L[f]=evs;});
+  var progs=((window._progData&&_progData.programs)||[]).filter(function(p){return p.data&&p.data.event_id===ev&&!p.data.auto;});
+  var pIds=progs.map(function(p){return p.id;});
+  var subs=((window._progData&&_progData.subprograms)||[]).filter(function(s){return s.data&&pIds.indexOf(s.data.program_id)>=0;});
+  var fCods=Object.keys(catalogoFilmesMap||{}).filter(function(c){return(catalogoFilmesMap[c]||{}).evento===ev;});
+  var filmesPares=fCods.map(function(c){
+    var m=catalogoFilmesMap[c]||{},t=filmDisplayTitle(c);
+    var ts=[m.title,m.title_pt,m.original_title,m.english_title,m.system_name].filter(Boolean).map(function(x){return String(x).toLowerCase().trim();});
+    return[c,ts.indexOf(String(t).toLowerCase().trim())>=0?t:(m.title_pt||m.title||'')];
+  });
+  if(mod==='sessoes'){
+    var evData=(window._adminEventosFullCache||[]).find(function(e){return e.id===ev;});
+    var evNome=evData?((evData.data&&evData.data.nome)||evData.id):ev;
+    var salas={};
+    (sessoesArr||[]).forEach(function(s){if(s.evento===ev&&s.cinema)salas[s.cinema]=true;});
+    (cinemasArr||[]).forEach(function(c){if(c.sala&&(c.evento||'').split(';').map(function(x){return x.trim();}).indexOf(evNome)>=0)salas[c.sala]=true;});
+    L.venue_name=ordena(Object.keys(salas));
+    L.films=unicos(filmesPares);
+    L.bumpers=unicos((window.vinhetasArr||[]).filter(function(b){return b.evento===ev;}).map(function(b){return[b.codigo,b.nome||''];}));
+    L.program_id=ordena(pIds.slice());
+    L.subprogram_id=ordena(subs.map(function(s){return s.id;}));
+  }
+  if(mod==='subprograms')L.program_id=ordena(pIds.slice());
+  if(mod==='copias')L.festival_code=ordena(fCods.slice()); // cópia de um filme dos Selecionados usa o código dele
+  if(mod==='guests'){
+    L.mostras=ordena(pIds.slice());
+    L.submostras=ordena(subs.map(function(s){return s.data.name||'';}).filter(Boolean));
+    L.filmes=ordena(fCods.slice());
+  }
+  if(mod==='flights'||mod==='transfers'){
+    var gs=(window._recepGuests||[]).filter(function(g){return g.data&&g.data.event_id===ev&&g.data.name;});
+    L._guest_name=ordena(gs.map(function(g){return g.data.name;}));
+  }
+  Object.keys(L).forEach(function(k){L[k]=L[k].filter(function(v,i,a){return v!==''&&v!=null&&a.indexOf(v)===i;});});
+  return L;
 }
 function _iuModeloReferencia(mod,ev){
   var blocos=[];
@@ -30444,7 +30534,7 @@ function _sxcPrint(){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 28/10/2026 às 23:29</span></div>
+<div id="page-footer"><span>última atualização · 29/10/2026 às 10:08</span></div>
 
 </div>
 

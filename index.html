@@ -19894,7 +19894,7 @@ function renderDash(){
   html+=colBlock('legendagem','Legendagem',legBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 28/10/2026 às 23:13';
+  var sysUpdate='última atualização do sistema · 28/10/2026 às 23:29';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -28472,10 +28472,16 @@ function _iuRenderStep1(){
     +'</div>'
     +(_iuState.module&&IU_SCHEMAS[_iuState.module].needsEv?
       '<div><label style="font-family:var(--mono);font-size:10px;color:var(--text-muted);letter-spacing:0.1em;text-transform:uppercase;display:block;margin-bottom:6px;">Evento (padrão para a planilha — sobrescreve coluna se ausente)</label>'
-        +'<select id="iuEv" onchange="_iuState.event=this.value;" style="padding:6px 10px;background:var(--bg);border:1px solid var(--border);color:var(--text);font-family:var(--mono);font-size:11px;border-radius:3px;min-width:260px;">'+evOpts+'</select>'
+        +'<select id="iuEv" onchange="_iuState.event=this.value;_iuRenderStep1();"style="padding:6px 10px;background:var(--bg);border:1px solid var(--border);color:var(--text);font-family:var(--mono);font-size:11px;border-radius:3px;min-width:260px;">'+evOpts+'</select>'
       +'</div>':'')
     +(_iuState.module?'<div><label style="font-family:var(--mono);font-size:10px;color:var(--text-muted);letter-spacing:0.1em;text-transform:uppercase;display:block;margin-bottom:6px;">Planilha (.xlsx ou .csv)</label>'
       +'<input type="file" id="iuFile" accept=".xlsx,.xls,.csv" onchange="_iuReadFile(this)" style="font-family:var(--mono);font-size:11px;color:var(--text);">'
+    +'</div>'
+    +'<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:10px;border:1px dashed var(--border);border-radius:3px;">'
+      +'<button class="cxp-btn" onclick="_iuBaixarModelo()">⬇ Baixar planilha modelo</button>'
+      +'<span style="font-family:var(--sans);font-size:11px;color:var(--text-dim);line-height:1.5;flex:1;min-width:220px;">Planilha em branco com as colunas de <b>'+esc(IU_SCHEMAS[_iuState.module].label)+'</b> e instruções de preenchimento'
+      +(IU_SCHEMAS[_iuState.module].needsEv?(_iuState.event?' (com os valores que já existem em '+esc(_iuState.event)+')':' — escolha o evento antes para incluir as salas, mostras e filmes dele'):'')
+      +'. Depois de preencher, é só importar aqui: as colunas são reconhecidas sozinhas.</span>'
     +'</div>':'')
     +IU_RULES_HTML
     +'<div id="iuMsg" style="font-family:var(--mono);font-size:10px;color:var(--warn);"></div>'
@@ -28502,9 +28508,11 @@ function _iuReadFile(input){
         var json=XLSX.utils.sheet_to_json(ws,{raw:false,defval:'',dateNF:'yyyy-mm-dd'});
         return{name:nm,rows:json.length,cols:json.length?Object.keys(json[0]).length:0,_data:json};
       });
-      if(sheetNames.length===1){
-        // Só uma aba: vai direto pra mapping
-        _iuState.selectedSheet=sheetNames[0];
+      // planilha modelo do próprio Flux: a aba "Dados" é a que importa (Instruções/Referência são de apoio)
+      var _modelo=sheetNames.indexOf('Dados')>=0&&sheetNames.indexOf('Instruções')>=0;
+      if(sheetNames.length===1||_modelo){
+        // Só uma aba (ou planilha modelo): vai direto pra mapping
+        _iuState.selectedSheet=_modelo?'Dados':sheetNames[0];
         _iuApplySheets();
         msg.textContent=_iuState.rows.length+' linha(s) detectada(s) · '+_iuState.headers.length+' coluna(s).';
         _iuRenderStep2();
@@ -29067,6 +29075,121 @@ function _iuExportXLSX(headers,rows,filename){
   var ws=XLSX.utils.aoa_to_sheet(aoa);
   var wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'Dados');
   XLSX.writeFile(wb,filename);
+}
+
+/* ═══ PLANILHA MODELO DA IMPORTAÇÃO UNIVERSAL ═══
+   Aba "Dados": só o cabeçalho, com o RÓTULO de cada campo do módulo (é o que o mapeamento
+   automático reconhece). Aba "Instruções": como preencher + uma linha por coluna (obrigatório,
+   formato, valores aceitos, exemplo). Aba "Referência" (sessões/mostras/submostras/receptivo,
+   com evento escolhido): salas, mostras, submostras, filmes e vinhetas que já existem no evento,
+   escritos do jeito que a importação espera. Ao importar, a aba "Dados" é escolhida sozinha. */
+var _IU_FMT={s:'texto',a:'lista — vários valores separados por ; (ponto e vírgula)',n:'número inteiro',b:'sim / não',
+  d:'data — AAAA-MM-DD ou DD/MM/AAAA (célula de data do Excel também serve)',t:'hora — HH:MM (ex.: 19:30)',
+  e:'um dos valores da coluna "Valores aceitos"',dur:'duração em minutos (ex.: 95); aceita também H:MM:SS',
+  durHMS:'duração H:MM:SS (ex.: 1:35:00); aceita também minutos (ex.: 95)'};
+var _IU_EX={s:'',a:'valor 1; valor 2',n:'2025',b:'sim',d:'2026-10-15',t:'19:30',dur:'95',durHMS:'1:35:00'};
+var _IU_EX_CAMPO={festival_code:'código único do filme, ex.: FEST001',session_id:'código único da sessão, ex.: FESTS001',
+  bumper_code:'código único da vinheta, ex.: VIN01',__docid__:'código único, ex.: MOSTRACOMPETITIVA',
+  year:'2025',director:'Nome Sobrenome; Outra Pessoa',countries:'Brasil; Argentina',genre:'drama; documentário',
+  'crew.cast':'Atriz Um; Ator Dois',title:'Título do filme',title_pt:'Título em português',original_title:'Título original',
+  name:'',venue_name:'nome da sala, igual ao cadastro (ver aba Referência)',films:'código ou título; outro filme',
+  bumpers:'código ou nome da vinheta; outra',program_id:'ID da mostra (ver aba Referência)',
+  subprogram_id:'ID da submostra (ver aba Referência)',estados:'SP; RJ',roles:'diretor; produtor'};
+var _IU_NOTA_CAMPO={
+  festival_code:'Identifica o registro: se o código já existir, a linha ATUALIZA o que está lá (só os campos preenchidos). Não use barra /.',
+  session_id:'Identifica a sessão: se já existir, atualiza. Não use barra /. Uma linha por sessão; para pôr vários filmes na mesma sessão, liste-os na coluna Filmes separados por ;',
+  bumper_code:'Identifica a vinheta: se já existir, atualiza. Não use barra /.',
+  __docid__:'Identifica o registro: se já existir, atualiza. Não use barra /.',
+  evento:'Pode deixar em branco: vale o evento escolhido na importação.',event_name:'Pode deixar em branco: vale o evento escolhido na importação.',
+  event_id:'Pode deixar em branco: vale o evento escolhido na importação.',
+  films:'Use o código do filme ou o título exatamente como está nos Selecionados do evento. Filme que não existir pode ser criado na etapa de pré-visualização.',
+  bumpers:'Código ou nome da vinheta, como cadastrada no evento.',
+  venue_name:'Escreva o nome da sala exatamente como no cadastro de Cinemas (veja a aba Referência).',
+  program_id:'ID da mostra (não o nome) — veja a aba Referência.',subprogram_id:'ID da submostra (não o nome) — veja a aba Referência.',
+  runtime:'Em minutos.',dcp_duration:'Formato H:MM:SS.',trailer:'Se houver mais de um link, um por linha dentro da célula.'};
+function _iuBaixarModelo(){
+  var sch=IU_SCHEMAS[_iuState.module];if(!sch)return;
+  var ev=_iuState.event||'';
+  var campos=sch.fields;
+  // ── Dados: só o cabeçalho
+  var wsD=XLSX.utils.aoa_to_sheet([campos.map(function(fd){return fd.l;})]);
+  wsD['!cols']=campos.map(function(fd){return{wch:Math.max(12,Math.min(40,fd.l.length+4))};});
+  // ── Instruções
+  var ins=[
+    ['PLANILHA MODELO · '+sch.label.toUpperCase()+' · OLGA Flux'],
+    [ev&&sch.needsEv?'Evento: '+ev:''],
+    [''],
+    ['COMO USAR'],
+    ['1. Preencha a aba "Dados": uma linha por registro, a partir da linha 2. Não mude os nomes das colunas da linha 1.'],
+    ['2. Se você já tem uma planilha, pode copiar e colar as colunas dela embaixo dos cabeçalhos correspondentes — ou renomear os cabeçalhos da sua planilha com os nomes da linha 1 daqui.'],
+    ['3. Colunas que não usar podem ficar vazias ou ser apagadas. Só as marcadas como obrigatórias precisam de valor.'],
+    ['4. Não deixe linhas em branco no meio dos dados.'],
+    ['5. No OLGA Flux: Importação Universal → módulo "'+sch.label+'"'+(sch.needsEv?' → evento':'')+' → escolha este arquivo. As colunas são reconhecidas sozinhas; confira na tela de mapeamento e na pré-visualização antes de gravar.'],
+    ['6. Registro que já existe (mesmo código/ID) é ATUALIZADO: célula vazia não apaga o que já está gravado; célula preenchida substitui.'],
+    [''],
+    ['COLUNAS'],
+    ['Coluna','Obrigatório','Formato','Valores aceitos','Exemplo','Observação','Também reconhecido como']
+  ];
+  campos.forEach(function(fd){
+    var evCampo=fd.f==='evento'||fd.f==='event_name'||fd.f==='event_id';
+    ins.push([
+      fd.l,
+      fd.req?(evCampo&&sch.needsEv?'sim (ou o evento da importação)':'SIM'):'',
+      _IU_FMT[fd.t]||'texto',
+      fd.t==='e'?(fd.opts||[]).filter(Boolean).join(' | '):'',
+      evCampo?(ev||''):(_IU_EX_CAMPO[fd.f]!==undefined?_IU_EX_CAMPO[fd.f]:(fd.t==='e'?((fd.opts||[]).filter(Boolean)[0]||''):(_IU_EX[fd.t]||''))),
+      _IU_NOTA_CAMPO[fd.f]||'',
+      fd.f.indexOf('_')===0?'':fd.f
+    ]);
+  });
+  var wsI=XLSX.utils.aoa_to_sheet(ins);
+  wsI['!cols']=[{wch:34},{wch:14},{wch:40},{wch:40},{wch:34},{wch:60},{wch:24}];
+  var wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,wsD,'Dados');
+  XLSX.utils.book_append_sheet(wb,wsI,'Instruções');
+  // ── Referência: valores que já existem no evento, para escrever igual
+  var wsR=ev?_iuModeloReferencia(_iuState.module,ev):null;
+  if(wsR)XLSX.utils.book_append_sheet(wb,wsR,'Referência');
+  var arq='modelo_'+_iuState.module+(ev?'_'+ev:'')+'.xlsx';
+  XLSX.writeFile(wb,arq.replace(/[^\w.\-]+/g,'_'));
+}
+function _iuModeloReferencia(mod,ev){
+  var blocos=[];
+  var progs=((window._progData&&_progData.programs)||[]).filter(function(p){return p.data&&p.data.event_id===ev&&!p.data.auto;});
+  if(mod==='sessoes'){
+    var evData=(window._adminEventosFullCache||[]).find(function(e){return e.id===ev;});
+    var evNome=evData?((evData.data&&evData.data.nome)||evData.id):ev;
+    var salas={};
+    (sessoesArr||[]).forEach(function(s){if(s.evento===ev&&s.cinema)salas[s.cinema]=true;});
+    (cinemasArr||[]).forEach(function(c){if(c.sala&&(c.evento||'').split(';').map(function(x){return x.trim();}).indexOf(evNome)>=0)salas[c.sala]=true;});
+    blocos.push({tit:['Salas (Sala/cinema)'],linhas:Object.keys(salas).sort(function(a,b){return a.localeCompare(b,'pt-BR');}).map(function(x){return[x];})});
+    var fs=Object.keys(catalogoFilmesMap||{}).filter(function(c){return(catalogoFilmesMap[c]||{}).evento===ev;}).sort();
+    blocos.push({tit:['Filmes · código','Título'],linhas:fs.map(function(c){return[c,filmDisplayTitle(c)];})});
+    var vs=(window.vinhetasArr||[]).filter(function(b){return b.evento===ev;});
+    if(vs.length)blocos.push({tit:['Vinhetas · código','Nome'],linhas:vs.map(function(b){return[b.codigo,b.nome||''];})});
+  }
+  if(mod==='sessoes'||mod==='subprograms'||mod==='guests'){
+    blocos.push({tit:['Mostras · ID','Nome'],linhas:progs.map(function(p){return[p.id,p.data.name||''];})});
+  }
+  if(mod==='sessoes'){
+    var ids=progs.map(function(p){return p.id;});
+    var subs=((window._progData&&_progData.subprograms)||[]).filter(function(s){return s.data&&ids.indexOf(s.data.program_id)>=0;});
+    if(subs.length)blocos.push({tit:['Submostras · ID','Nome','Mostra'],linhas:subs.map(function(s){return[s.id,s.data.name||'',s.data.program_id];})});
+  }
+  blocos=blocos.filter(function(b){return b.linhas.length;});
+  if(!blocos.length)return null;
+  // blocos lado a lado, com uma coluna vazia entre eles
+  var aoa=[['Valores que já existem no evento '+ev+' — copie daqui para escrever igual na aba Dados'],[]],larg=[];
+  var cab=[],maxL=0;
+  blocos.forEach(function(b,i){if(i){cab.push('');larg.push({wch:3});}b.tit.forEach(function(t){cab.push(t);larg.push({wch:t.indexOf('Nome')===0||t==='Título'?40:26});});maxL=Math.max(maxL,b.linhas.length);});
+  aoa.push(cab);
+  for(var r=0;r<maxL;r++){
+    var row=[];
+    blocos.forEach(function(b,i){if(i)row.push('');var l=b.linhas[r]||[];b.tit.forEach(function(t,j){row.push(l[j]!==undefined?l[j]:'');});});
+    aoa.push(row);
+  }
+  var ws=XLSX.utils.aoa_to_sheet(aoa);ws['!cols']=larg;
+  return ws;
 }
 
 /* Adicionar XLSX no Catálogo · Exportar Especial */
@@ -30321,7 +30444,7 @@ function _sxcPrint(){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 28/10/2026 às 23:13</span></div>
+<div id="page-footer"><span>última atualização · 28/10/2026 às 23:29</span></div>
 
 </div>
 

@@ -8653,7 +8653,7 @@ function _fichaContentHTML(nome,s){
     var _fmtCard=_fmtFichaCard(f);
     // lente: DCP e arquivo usam a lente; película, fita e outros mostram o formato de tela
     var _tela=_fmtTela(f);
-    var _lenteHtml=(_ft==='dcp'||(_ft==='arquivo'&&lente))?lenteBadge(lente).replace('FLAT 200','FLAT<br>200').replace('FLAT (C)','FLAT<br>(C)'):(_tela?'<span class="cp cp-flat" title="formato de tela">'+esc(_tela)+'</span>':'<span style="color:var(--text-muted)">—</span>');
+    var _lenteHtml=(_ft==='dcp'||_ft==='arquivo')?lenteBadge(lente).replace('FLAT 200','FLAT<br>200').replace('FLAT (C)','FLAT<br>(C)'):(_tela?'<span class="cp cp-flat" title="formato de tela">'+esc(_tela)+'</span>':'<span style="color:var(--text-muted)">—</span>');
     if(_ft==='pelicula'&&!fps&&f.fmt&&f.fmt.fmt_velocidade)fpsgb='<div class="fps-gb"><span class="fps-val">'+esc(f.fmt.fmt_velocidade)+'</span></div>';
     var _durHtml=fmtDur(dur);
     if(_ft==='pelicula'&&!_parseDurSecs(dur)){var _est=_fmtDurPelicula(f);if(_est)_durHtml='<span title="estimada pela metragem">~'+_secsToHMS(_est)+'</span>';}
@@ -19991,7 +19991,7 @@ function renderDash(){
   html+=colBlock('legendagem','Legendagem',legBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 29/10/2026 às 13:11';
+  var sysUpdate='última atualização do sistema · 29/10/2026 às 13:34';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -27240,7 +27240,6 @@ var _FMT_CAMPOS={
   arquivo:[
     {k:'fmt_codec',l:'Codec de vídeo'},
     {k:'fmt_container',l:'Container'},
-    {k:'fmt_janela',l:'Formato de tela',list:_FMT_TELAS},
     {k:'fmt_par',l:'Proporção do pixel',list:_FMT_PAR.map(function(p){return p[0];})},
     {k:'fmt_varredura',l:'Varredura',opts:['progressiva','entrelaçada']},
     {k:'fmt_audio',l:'Áudio',full:1},
@@ -27257,8 +27256,8 @@ var _FMT_CAMPOS={
     {k:'fmt_deck',l:'Deck necessário'}
   ]
 };
-// formato de tela da cópia (coluna Lente da ficha para quem não é DCP)
-function _fmtTela(f){var fm=(f&&f.fmt)||{},t=_fmtTipo(f);return t==='hdcam'?(fm.fmt_proporcao||''):(t==='pelicula'||t==='arquivo')?(fm.fmt_janela||''):'';}
+// formato de tela da cópia (coluna Lente da ficha para película e fita; DCP e arquivo usam a lente)
+function _fmtTela(f){var fm=(f&&f.fmt)||{},t=_fmtTipo(f);return t==='hdcam'?(fm.fmt_proporcao||''):t==='pelicula'?(fm.fmt_janela||''):'';}
 // PAR numérico (mediainfo) → rótulo da lista
 function _fmtParRotulo(n){
   n=parseFloat(n);if(!(n>0))return'';
@@ -27329,7 +27328,7 @@ function _fmtFichaCard(f){
     if(fm.fmt_obs_rolos)h+='<span class="fmt-rolos">'+esc(fm.fmt_obs_rolos).replace(/\n+/g,'<br>')+'</span>';
   }else if(t==='arquivo'){
     tit='Arquivo';
-    h+=it('Codec',fm.fmt_codec)+it('Container',fm.fmt_container)+it('Resolução',f.resolucao)+it('Tela',fm.fmt_janela)
+    h+=it('Codec',fm.fmt_codec)+it('Container',fm.fmt_container)+it('Resolução',f.resolucao)
       +it('Pixel',fm.fmt_par)+it('FPS',f.fps)+it('Bitrate',f.bitrate?f.bitrate+' Mbps':'')+it('Tamanho',f.gb?f.gb+' GB':'')
       +it('Varredura',fm.fmt_varredura)+it('Áudio',fm.fmt_audio)+it('Legenda SRT',fm.fmt_srt);
   }else if(t==='hdcam'){
@@ -27968,7 +27967,7 @@ function _dcpApply(cpl,totalGB,tipo){
 
 function _dcpFieldLabel(id){
   var map={ae_creator:'DCP Creator',ae_cpl:'CPL (ContentTitle)',ae_cplOV:'CPL OV',ae_resolucao:'Resolução',ae_duracao:'Duração',ae_fps:'FPS',ae_uuid:'DCP UUID',ae_kdm:'KDM',ae_gb:'GB',ae_bitrate:'Bitrate (Mbps)',ae_exhibition_format:'Formato de exibição',
-    ae_fmt_codec:'Codec',ae_fmt_container:'Container',ae_fmt_par:'Proporção do pixel',ae_fmt_janela:'Formato de tela',ae_fmt_varredura:'Varredura',ae_fmt_audio:'Áudio'};
+    ae_fmt_codec:'Codec',ae_fmt_container:'Container',ae_fmt_par:'Proporção do pixel',ae_lente:'Lente',ae_fmt_varredura:'Varredura',ae_fmt_audio:'Áudio'};
   return map[id]||id;
 }
 
@@ -28146,7 +28145,9 @@ async function handleVideoFileSelect(input){
   }
   var _inc={ae_cpl:file.name,ae_resolucao:meta.resolution,ae_duracao:meta.duracao,ae_fps:meta.fps,ae_gb:meta.gb,ae_bitrate:meta.bitrate,ae_exhibition_format:'arquivo'};
   // campos da ficha do arquivo (só vêm do mediainfo; a leitura pelo <video> não traz)
-  [['codec','fmt_codec'],['container','fmt_container'],['par','fmt_par'],['tela','fmt_janela'],['varredura','fmt_varredura'],['audio','fmt_audio']].forEach(function(p){if(meta[p[0]])_inc['ae_'+p[1]]=meta[p[0]];});
+  [['codec','fmt_codec'],['container','fmt_container'],['par','fmt_par'],['varredura','fmt_varredura'],['audio','fmt_audio']].forEach(function(p){if(meta[p[0]])_inc['ae_'+p[1]]=meta[p[0]];});
+  // arquivo usa a lente: proporção da imagem a partir de 2.0 pede SCOPE, abaixo FLAT
+  var _dar=parseFloat(meta.tela||'');if(_dar>0)_inc.ae_lente=_dar>=2?'SCOPE':'FLAT';
   _videoFileApply(_inc);
 }
 function _videoFileApply(incoming){
@@ -30984,7 +30985,7 @@ function _sxcPrint(){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 29/10/2026 às 13:11</span></div>
+<div id="page-footer"><span>última atualização · 29/10/2026 às 13:34</span></div>
 
 </div>
 
@@ -31822,7 +31823,7 @@ function _mobRenderSessaoFicha(params){
     var rowS=function(lbl,val){if(!val||val==='-'||val==='—'||val==='')return'';return'<div style="display:flex;gap:8px;padding:3px 0;font-family:var(--mono);font-size:10px;border-bottom:1px solid var(--border);"><span style="color:var(--text-muted);width:72px;flex-shrink:0;">'+lbl+'</span><span style="color:var(--text-dim);">'+_mobEsc(String(val))+'</span></div>';};
     var _mft=_fmtTipo(f),_mDcp=_mft==='dcp';
     // lente em DCP e arquivo; película, fita e outros mostram o formato de tela. VF só existe em DCP
-    html+=(_mDcp||(_mft==='arquivo'&&f.lente))?rowS('Lente',f.lente):rowS('Tela',_fmtTela(f));
+    html+=(_mDcp||_mft==='arquivo')?rowS('Lente',f.lente):rowS('Tela',_fmtTela(f));
     html+=rowS('Som',f.som);
     html+=rowS('Idioma',f.idioma);
     html+=rowS('Legenda',_mDcp?(f.legenda||f.vf):f.legenda);

@@ -19991,7 +19991,7 @@ function renderDash(){
   html+=colBlock('legendagem','Legendagem',legBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 29/10/2026 às 14:10';
+  var sysUpdate='última atualização do sistema · 29/10/2026 às 14:12';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -29571,8 +29571,9 @@ var _IU_EX_CAMPO={festival_code:'código único do filme, ex.: FEST001',session_
   'crew.cast':'Atriz Um; Ator Dois',title:'Título do filme',title_pt:'Título em português',original_title:'Título original',
   name:'',venue_name:'nome da sala, igual ao cadastro (ver aba Referência)',films:'Título do filme (FEST001); Outro filme (FEST002)',
   bumpers:'Nome da vinheta (VIN01)',program_id:'Nome da mostra (MOSTRACOMPETITIVA)',
-  subprogram_id:'Nome da submostra (ID)',estados:'SP; RJ',roles:'diretor; produtor'};
+  subprogram_id:'Nome da submostra (ID)',estados:'SP; RJ',roles:'Realização; Mesa de debate'};
 var _IU_NOTA_CAMPO={
+  roles:'Escolha na lista as funções do Receptivo; para mais de uma, escolha a primeira e digite as outras separadas por ;',
   festival_code:'Identifica o registro: se o código já existir, a linha ATUALIZA o que está lá (só os campos preenchidos). Não use barra /.',
   session_id:'Identifica a sessão: se já existir, atualiza. Não use barra /. Uma linha por sessão; para pôr vários filmes na mesma sessão, liste-os na coluna Filmes separados por ;',
   bumper_code:'Identifica a vinheta: se já existir, atualiza. Não use barra /.',
@@ -29676,6 +29677,8 @@ function _iuModeloListas(mod,ev){
     if(fd.t==='e')L[fd.f]=(fd.opts||[]).filter(Boolean);
     else if(fd.t==='b')L[fd.f]=['sim','não'];
   });
+  // funções do Receptivo: as mesmas do sistema, não dependem do evento
+  if(mod==='guests'&&typeof _RECEP_ROLES!=='undefined')L.roles=_RECEP_ROLES.slice();
   if(!ev)return L;
   var ordena=function(a){return a.sort(function(x,y){return String(x).localeCompare(String(y),'pt-BR');});};
   var comId=function(pares){ // [[id,nome]] → "Nome (ID)"; sem nome, só o ID
@@ -31007,7 +31010,7 @@ function _sxcPrint(){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 29/10/2026 às 14:10</span></div>
+<div id="page-footer"><span>última atualização · 29/10/2026 às 14:12</span></div>
 
 </div>
 

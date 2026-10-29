@@ -2165,6 +2165,11 @@ mark{background:rgba(255,186,32,0.28);color:var(--accent);border-radius:2px;padd
 .rev-sinopse-credits{font-family:'IBM Plex Mono',monospace;font-size:7px;color:#888;letter-spacing:0.06em;margin-bottom:8px;}
 .rev-sinopse-text{font-family:'IBM Plex Sans',sans-serif;font-size:8.5px;font-weight:300;line-height:1.75;color:#222;margin-bottom:8px;}
 .rev-sinopse-info{font-family:'IBM Plex Mono',monospace;font-size:6px;font-weight:700;letter-spacing:0.18em;text-transform:uppercase;color:#bbb;margin-bottom:4px;}
+.rev-sala-cx{font-family:'IBM Plex Sans',sans-serif;font-size:12px;font-weight:700;line-height:1.15;color:#111;margin-bottom:2px;}
+.rev-sala-end{font-family:'IBM Plex Sans',sans-serif;font-size:8px;font-weight:300;color:#555;line-height:1.35;margin-bottom:5px;}
+.rev-sala-row{padding:3px 0 3px 8px;border-left:2px solid #e0dcd5;margin-top:4px;}
+.rev-sala-nome{font-family:'IBM Plex Sans',sans-serif;font-size:9px;font-weight:600;color:#222;line-height:1.3;}
+.rev-sala-det{font-family:'IBM Plex Mono',monospace;font-size:7px;color:#666;letter-spacing:0.04em;line-height:1.6;}
 .rev-sinopse-sess-row{font-family:'IBM Plex Mono',monospace;font-size:7px;color:#555;line-height:1.7;}
 .rev-sinopse-versoes{font-family:'IBM Plex Mono',monospace;font-size:7px;color:#444;letter-spacing:0.04em;line-height:1.6;margin-bottom:6px;}
 .rev-sinopse-versoes b{font-weight:700;color:#222;}
@@ -15427,6 +15432,63 @@ function _revSinopseItemFns(sinopseItems){
   });
 }
 
+// ── Guia de salas: só informação pública (complexo, endereço, sala, lugares, som, tipo de
+// ingresso, sessões e período). Nada técnico/interno (servidor, projetor, certificados,
+// e-mails, telefone, observações).
+var _REV_ACESSO={'pago':'ingressos pagos','gratuita':'entrada gratuita','gratuidade limitada':'gratuidade limitada'};
+function _revGetSalasItems(evName,salaParaComplexo){
+  var porSala={};
+  sessoesArr.forEach(function(s){
+    if(s.evento!==evName)return;
+    var loc=_sessaoLocal(s);if(!loc)return;
+    (porSala[loc]=porSala[loc]||[]).push(s);
+  });
+  var cinPorSala={};(cinemasArr||[]).forEach(function(c){if(c.sala)cinPorSala[c.sala]=c;});
+  var porCx={};
+  Object.keys(porSala).forEach(function(sala){
+    var cx=salaParaComplexo[sala]||sala;
+    (porCx[cx]=porCx[cx]||[]).push(sala);
+  });
+  return Object.keys(porCx).sort(function(a,b){return a.localeCompare(b,'pt-BR');}).map(function(cx){
+    var salas=porCx[cx].sort(function(a,b){return a.localeCompare(b,'pt-BR',{numeric:true});});
+    var end='';
+    (cinemasArr||[]).some(function(c){if((c.complexo||c.sala)===cx&&(c.endereco||'').trim()){end=c.endereco.trim();return true;}return false;});
+    if(!end)salas.some(function(sl){var c=cinPorSala[sl];if(c&&(c.endereco||'').trim()){end=c.endereco.trim();return true;}return false;});
+    return{complexo:cx,endereco:end,salas:salas.map(function(sl){
+      var c=cinPorSala[sl]||{},ss=porSala[sl];
+      var ac=[];ss.forEach(function(s){var a=_REV_ACESSO[(s.access_type||'').trim()];if(a&&ac.indexOf(a)<0)ac.push(a);});
+      var ds=ss.map(function(s){return s.date;}).filter(Boolean).sort(function(a,b){return a-b;});
+      var lug=parseInt(String(c.assentos||'').replace(/\D/g,''),10);
+      return{sala:sl,lugares:lug>0?lug:0,som:(c.som||'').trim(),acesso:ac,n:ss.length,ini:ds[0]||null,fim:ds[ds.length-1]||null};
+    })};
+  });
+}
+function _revSalasItemFns(items){
+  return items.map(function(it){
+    return function(){
+      var el=document.createElement('div');el.className='rev-sinopse-entry rev-sala-entry';
+      var unica=it.salas.length===1&&it.salas[0].sala===it.complexo;
+      var h='<div class="rev-sala-cx"'+(unica?' data-link-cinema="'+_revEsc(it.complexo)+'"':'')+'>'+_revEsc(it.complexo)+'</div>';
+      if(it.endereco)h+='<div class="rev-sala-end">'+_revEsc(it.endereco)+'</div>';
+      it.salas.forEach(function(s){
+        var det=[];
+        if(s.lugares)det.push(s.lugares+' lugares');
+        if(/^\d+\.\d$/.test(s.som))det.push('som '+s.som);
+        else if(s.som)det.push(s.som);
+        if(s.acesso.length)det.push(s.acesso.join(' / '));
+        var per=s.ini?(_revFmtDate(s.ini)+(s.fim&&s.fim-s.ini?' a '+_revFmtDate(s.fim):'')):'';
+        var ses=s.n+' '+(s.n===1?'sessão':'sessões')+(per?' · '+per:'');
+        // sala com o mesmo nome do complexo (sala única) não repete o nome; o nome leva à tabela da sala
+        h+='<div class="rev-sala-row">'
+          +(s.sala!==it.complexo?'<div class="rev-sala-nome" data-link-cinema="'+_revEsc(s.sala)+'">'+_revEsc(s.sala)+'</div>':'')
+          +(det.length?'<div class="rev-sala-det">'+_revEsc(det.join(' · '))+'</div>':'')
+          +'<div class="rev-sala-det">'+_revEsc(ses)+'</div>'
+          +'</div>';
+      });
+      el.innerHTML=h;return el;
+    };
+  });
+}
 function _revPaginateColumnsContent(itemFns,pageShellFn,startNum,msr){
   var pNum=startNum,pages=[],shells=[];
   var curShell=pageShellFn(pNum++);
@@ -16441,7 +16503,25 @@ function renderRevista(){
   pageNum=_revRenderTabelaPages(evName,evBg,evText,mostras,msr,allPages,pageNum);
 
   // Tabela de programação por dia
-  _revRenderTabelaDiaPages(evName,evBg,evText,mostras,msr,allPages,pageNum);
+  pageNum=_revRenderTabelaDiaPages(evName,evBg,evText,mostras,msr,allPages,pageNum);
+
+  // Guia de salas (só informação pública), em 3 colunas como as sinopses
+  var salasItems=_revGetSalasItems(evName,salaParaComplexo);
+  if(salasItems.length){
+    var _salasShell=function(pn){
+      var cols=[0,1,2].map(function(){var c=document.createElement('div');c.className='rev-sinopse-col';return c;});
+      var colsEl=document.createElement('div');colsEl.className='rev-sinopses-list';
+      cols.forEach(function(c){colsEl.appendChild(c);});
+      var page=document.createElement('div');page.className='rev-page';
+      page.dataset.isSalas='1';
+      page.innerHTML='<div class="rev-page-header"><div class="rev-evento-pill" style="background:'+evBg+';color:'+evText+'">'+_revEsc(_revEventoLabel(evName))+'</div><div class="rev-page-num">'+pn+'</div></div><div class="rev-mostra-label">guia de salas</div><hr class="rev-mostra-rule">';
+      page.appendChild(colsEl);
+      return{page:page,cols:cols};
+    };
+    var sgr=_revPaginateColumnsContent(_revSalasItemFns(salasItems),_salasShell,pageNum,msr);
+    sgr.pages.forEach(function(pg){allPages.push(pg);});
+    pageNum=sgr.nextNum;
+  }
 
   // Preencher índice com números de página corretos
   var _idxSections=[
@@ -16450,6 +16530,7 @@ function renderRevista(){
     {key:'grade',label:'Grade de programação',find:function(){return allPages.find(function(pg){return pg.dataset.gradeCinema;});}},
     {key:'tabelaCinema',label:'Tabela de programação (por cinemas)',find:function(){return allPages.find(function(pg){return pg.dataset.pageCinema;});}},
     {key:'tabelaDia',label:'Tabela de programação (por dia)',find:function(){return allPages.find(function(pg){return pg.dataset.pageDia;});}},
+    {key:'salas',label:'Guia de salas',find:function(){return allPages.find(function(pg){return pg.dataset.isSalas;});}},
   ];
   _idxSections.forEach(function(sec){
     var fp=sec.find();
@@ -16577,6 +16658,7 @@ function _revWireLinks(container){
     else if(key==='grade')target=revPages.find(function(pg){return pg.dataset.gradeCinema;});
     else if(key==='tabelaCinema')target=revPages.find(function(pg){return pg.dataset.pageCinema;});
     else if(key==='tabelaDia')target=revPages.find(function(pg){return pg.dataset.pageDia;});
+    else if(key==='salas')target=revPages.find(function(pg){return pg.dataset.isSalas;});
     if(target)wire(el,target);
   });
   var coverPage=revPages.find(function(pg){return pg.dataset.isCover;});
@@ -19759,7 +19841,7 @@ function renderDash(){
   html+=colBlock('legendagem','Legendagem',legBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 28/10/2026 às 21:45';
+  var sysUpdate='última atualização do sistema · 28/10/2026 às 21:48';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -20284,8 +20366,8 @@ window._mudMarqueeRender=function(){
   // poucos itens: repete até cada metade cobrir a largura visível (o loop em -50% não deixa buraco)
   var n=1;while(meia.offsetWidth*n<vp.offsetWidth&&n<20)n++;
   if(n>1){var rep=new Array(n+1).join(itens);tr.innerHTML='<span>'+rep+'</span><span>'+rep+'</span>';}
-  // velocidade constante (~45 px/s) independente da quantidade de itens
-  tr.style.setProperty('--mq-dur',Math.max(24,Math.round(tr.scrollWidth/2/45))+'s');
+  // velocidade constante (~36 px/s) independente da quantidade de itens
+  tr.style.setProperty('--mq-dur',Math.max(30,Math.round(tr.scrollWidth/2/36))+'s');
 };
 // virada do dia: troca HOJE/AMANHÃ e tira o que passou
 setInterval(function(){if(window._mudMarqueeDocs)window._mudMarqueeRender();},10*60000);
@@ -30186,7 +30268,7 @@ function _sxcPrint(){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 28/10/2026 às 21:45</span></div>
+<div id="page-footer"><span>última atualização · 28/10/2026 às 21:48</span></div>
 
 </div>
 

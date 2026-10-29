@@ -8386,7 +8386,13 @@ function _verFmt(f,pub){
   var m=_VER_FMT[x];return m?m[pub?1:0]:x;
 }
 function _verLegCod(v){v=String(v||'').trim();return /^(n[ãa]o|-+|x)$/i.test(v)?'':v;}
-function _verLangNome(code){var n=String(dcncToCldr(code)||code);return n.charAt(0).toLowerCase()+n.slice(1);}
+// nome da língua para a Revista: de código reconhecido sai só a língua ("QBP" → "português",
+// sem "(Brasil)"); texto que não é código fica como foi escrito
+function _verLangNome(code){
+  var n=String(dcncToCldr(code)||code);
+  if(n!==code)n=n.replace(/\s*\([^)]*\)\s*$/,'');
+  return n.charAt(0).toLowerCase()+n.slice(1);
+}
 function _verLeg(f,pub){
   var ex=(f.legenda_exibicao||'').trim().toUpperCase().normalize('NFD').replace(/[̀-ͯ]/g,'');
   if(ex.indexOf('ELETRONICA')===0){
@@ -19752,7 +19758,7 @@ function renderDash(){
   html+=colBlock('legendagem','Legendagem',legBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 28/10/2026 às 21:37';
+  var sysUpdate='última atualização do sistema · 28/10/2026 às 21:42';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -30179,7 +30185,7 @@ function _sxcPrint(){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 28/10/2026 às 21:37</span></div>
+<div id="page-footer"><span>última atualização · 28/10/2026 às 21:42</span></div>
 
 </div>
 

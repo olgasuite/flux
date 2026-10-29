@@ -2169,6 +2169,8 @@ mark{background:rgba(255,186,32,0.28);color:var(--accent);border-radius:2px;padd
 .rev-sinopse-versoes{font-family:'IBM Plex Mono',monospace;font-size:7px;color:#444;letter-spacing:0.04em;line-height:1.6;margin-bottom:6px;}
 .rev-sinopse-versoes b{font-weight:700;color:#222;}
 .rev-versao{font-style:italic;color:#666;margin-left:3px;}
+.rev-versao-unica{font-style:italic;color:#666;}
+.rev-grade-sess-ver{font-family:'IBM Plex Sans',sans-serif;font-size:6.5px;font-style:italic;color:#777;line-height:1.3;}
 .rev-cinema-pill{font-family:'IBM Plex Mono',monospace;font-size:6px;font-weight:600;letter-spacing:0.28em;text-transform:uppercase;padding:4px 9px;background:#444;color:#f8f7f4;display:inline-block;border-radius:9999px;}
 .rev-grade-cols{display:flex;gap:15px;flex:1;overflow:hidden;}
 .rev-grade-col{flex:1;min-width:0;display:flex;flex-direction:column;gap:0;}
@@ -2193,6 +2195,7 @@ mark{background:rgba(255,186,32,0.28);color:var(--accent);border-radius:2px;padd
 .rev-tabela-cell{font-size:10px;font-weight:400;color:#111;vertical-align:top;text-align:left;overflow:hidden;}
 .rev-tabela-cell-empty{background:#fafafa;}
 .rev-tabela-cell-noday{background:#dcdcdc;}
+.rev-tabela-cin-th{overflow-wrap:normal;word-break:normal;hyphens:none;overflow:hidden;}
 .rev-tabela-day-th-off{background:#c8c8c8 !important;color:#777 !important;}
 .rev-tabela-sess-name{display:block;font-family:'IBM Plex Sans',sans-serif;font-weight:600;line-height:1.3;word-break:break-word;}
 .rev-tabela-film{display:block;line-height:1.3;font-family:'IBM Plex Sans',sans-serif;word-break:break-word;}
@@ -8376,7 +8379,7 @@ function _versaoTagSessao(s,cod){
 // sessão com filme de várias versões sem escolha explícita (vale a principal)
 function _sessaoVersaoIndefinida(s,cod){return _versoesDoFilme(cod).length>1&&!(s&&s.versoes&&s.versoes[cod]&&copiaVersaoMap[s.versoes[cod]]);}
 // nome da versão: interno ("35mm · leg. EN") e de público, para a Revista ("cópia em 35mm, legendas em inglês")
-var _VER_FMT={'DCP':['DCP','cópia digital (DCP)'],'arquivo':['Arquivo','arquivo digital'],'35mm':['35mm','cópia em 35mm'],'16mm':['16mm','cópia em 16mm'],'Super 8mm':['Super 8','cópia em Super 8'],'HDCAM':['HDCAM','fita HDCAM']};
+var _VER_FMT={'DCP':['DCP','DCP'],'arquivo':['Arquivo','arquivo digital'],'35mm':['35mm','cópia em 35mm'],'16mm':['16mm','cópia em 16mm'],'Super 8mm':['Super 8','cópia em Super 8'],'HDCAM':['HDCAM','fita HDCAM']};
 function _verFmt(f,pub){
   var x=(f.exhibition_format||'').trim();if(!x)return'';
   if(x==='Outro')return(f.exhibition_format_notes||'').trim()||(pub?'outro formato':'Outro');
@@ -15171,8 +15174,11 @@ function _revSessionItemFns(sessionGroups){
       if(!a.date&&!b.date)return 0;if(!a.date)return 1;if(!b.date)return -1;
       var dd=a.date-b.date;return dd!==0?dd:(a.hora||'').localeCompare(b.hora||'');
     });
+    // versão igual em todos os horários: vai uma vez, acima das datas; se variar, fica em cada linha
+    var vers=ord.map(function(i){return i.versao||'';});
+    var unica=vers.every(function(v){return v===vers[0];})?vers[0]:'';
     var lines=ord.map(function(i){
-      var parts=[];
+      var parts=[],iv=unica?'':i.versao;
       if(i.date){
         var wk=['dom','seg','ter','qua','qui','sex','sáb'][i.date.getDay()];
         var dk=i.date.toISOString().slice(0,10);
@@ -15180,9 +15186,9 @@ function _revSessionItemFns(sessionGroups){
       }
       if(i.hora)parts.push(_revEsc(i.hora));
       if(i.cinema)parts.push('<span data-link-cinema="'+_revEsc(i.cinema)+'">'+_revEsc(i.cinema)+'</span>');
-      return '<div class="rev-sess-noflim-line">'+parts.join(' · ')+(i.versao?' <span class="rev-versao">('+_revEsc(i.versao)+')</span>':'')+'</div>';
+      return '<div class="rev-sess-noflim-line">'+parts.join(' · ')+(iv?' <span class="rev-versao">('+_revEsc(iv)+')</span>':'')+'</div>';
     });
-    return '<div class="rev-sess-noflim-info">'+lines.join('')+'</div>';
+    return '<div class="rev-sess-noflim-info">'+(unica?'<div class="rev-sess-noflim-line rev-versao-unica">'+_revEsc(unica)+'</div>':'')+lines.join('')+'</div>';
   }
   function _filmEntryEl(fl,opts){
     opts=opts||{};
@@ -15375,7 +15381,10 @@ function _revSinopseItemFns(sinopseItems){
         });
         html+='</div>';
       }
-      if(item.versoes&&item.versoes.length)html+='<div class="rev-sinopse-versoes"><b>'+(item.versoes.length>1?'Versões':'Versão')+':</b> '+item.versoes.map(_revEsc).join(' · ')+'</div>';
+      // uma versão só: aparece uma vez, sem rótulo, e sai dos horários; várias: "Versões:" e cada horário com a sua
+      var _verUnica=item.versoes&&item.versoes.length===1;
+      if(_verUnica)html+='<div class="rev-sinopse-versoes">'+_revEsc(item.versoes[0])+'</div>';
+      else if(item.versoes&&item.versoes.length)html+='<div class="rev-sinopse-versoes"><b>Versões:</b> '+item.versoes.map(_revEsc).join(' · ')+'</div>';
       var info=[];
       if(item.rating){
         var _rCfg={'L':{bg:'#2e9e3e'},'10':{bg:'#3d85c8'},'12':{bg:'#f4c430'},'14':{bg:'#e07820'},'16':{bg:'#cc2222'},'18':{bg:'#111'}};
@@ -15402,7 +15411,7 @@ function _revSinopseItemFns(sinopseItems){
           var _sb=(_hAcess?'<span class="rev-grade-acess-icon" title="'+_revEsc(s.acessibilidades)+'">'+_revAcessSvg+'</span>':'')
             +(_hDeb?'<span class="rev-grade-debate-badge" title="debate">'+_revDebateSvg+'</span>':'')
             +(_hConv?'<span class="rev-grade-convidados-badge" title="sessão para convidados">'+_revConvSvg+'</span>':'');
-          var _ver=versaoPublico(_copiaNaSessao(s,item.code));
+          var _ver=_verUnica?'':versaoPublico(_copiaNaSessao(s,item.code));
           html+='<div class="rev-sinopse-sess-row" style="display:flex;align-items:center;gap:3px;flex-wrap:wrap;">'+(datePart?datePart+'  ':'')+(horaPart?horaPart+'  ':'')+cinePart+'  '+_sb+(_ver?'<span class="rev-versao">('+_revEsc(_ver)+')</span>':'')+'</div>';
         });
         html+='</div>';
@@ -15603,8 +15612,10 @@ function _revRenderGradePages(evName,evBg,evText,msr,allPages,startPageNum){
           var f=_copiaNaSessao(s,cod)||{};
           var title=filmDisplayTitle(cod);
           var secs=_parseDurSecs(f.duracao||'');
-          return {code:cod,title:title,secs:secs,dur:_revFmtDur(f.duracao||'')};
+          return {code:cod,title:title,secs:secs,dur:_revFmtDur(f.duracao||''),ver:versaoPublico(f)};
         });
+        // versão (forma de público) logo abaixo do título do filme
+        function _verEl(fi){var v=document.createElement('div');v.className='rev-grade-sess-ver';v.textContent=fi.ver;return v;}
         var totalSecs=filmsData.reduce(function(acc,fi){return acc+fi.secs;},0);
         var durStr=totalSecs>0?(function(){var m=Math.round(totalSecs/60);return Math.floor(m/60)+'h'+String(m%60).padStart(2,'0');}()):'';
         var hasAcess=(s.acessibilidades||'').trim()&&!/^n[ãa]o$/i.test(s.acessibilidades||'');
@@ -15627,27 +15638,18 @@ function _revRenderGradePages(evName,evBg,evText,msr,allPages,startPageNum){
               fEl.dataset.filmCode=fi.code;
               fEl.textContent=fi.title+(fi.dur?' ('+fi.dur+')':'');
               cnt.appendChild(fEl);
+              if(fi.ver)cnt.appendChild(_verEl(fi));
             });
           }
-        } else if(filmsData.length===1){
-          var fi=filmsData[0];
-          var fEl=document.createElement('div');
-          fEl.className='rev-grade-sess-film2';
-          fEl.dataset.filmCode=fi.code;
-          fEl.innerHTML=_revEsc(fi.title+(fi.dur?' ('+fi.dur+')':''))+_indicH;
-          cnt.appendChild(fEl);
-        } else if(filmsData.length>1){
-          var variosEl=document.createElement('div');
-          variosEl.className='rev-grade-sess-label2';
-          variosEl.dataset.linkFilms=_revFilmsSig(s.filmes);
-          variosEl.innerHTML=_revEsc('VÁRIOS'+(durStr?' ('+durStr+')':''))+_indicH;
-          cnt.appendChild(variosEl);
-          filmsData.forEach(function(fi){
+        } else if(filmsData.length){
+          // sem nome de sessão: só os filmes (sem "VÁRIOS"), cada um com a sua versão; ícones no primeiro
+          filmsData.forEach(function(fi,i){
             var fEl=document.createElement('div');
-            fEl.className='rev-grade-sess-films2';
+            fEl.className='rev-grade-sess-film2';
             fEl.dataset.filmCode=fi.code;
-            fEl.textContent=fi.title+(fi.dur?' ('+fi.dur+')':'');
+            fEl.innerHTML=_revEsc(fi.title+(fi.dur?' ('+fi.dur+')':''))+(i?'':_indicH);
             cnt.appendChild(fEl);
+            if(fi.ver)cnt.appendChild(_verEl(fi));
           });
         } else {
           var codEl=document.createElement('div');
@@ -15728,9 +15730,21 @@ function _revBuildTabelaCell(td,sessions,mostraColor){
     var sn=document.createElement('span');sn.className='rev-tabela-sess-name';sn.dataset.linkSess=sessLabel;
     sn.textContent=sessLabel;td.appendChild(sn);
   }else if(nFilms>1){
-    var _sn2=document.createElement('span');_sn2.className='rev-tabela-sess-name';_sn2.textContent='VÁRIOS';
-    _sn2.dataset.linkFilms=_revFilmsSig(s.filmes);_sn2.title=s.filmes.map(function(c){return filmDisplayTitle(c);}).join(' / ');
-    td.appendChild(_sn2);
+    // sem nome de sessão: os títulos (nunca "VÁRIOS"); se passar do limite, "+ N filmes" no fim
+    var _tot=0,_n=0;
+    s.filmes.forEach(function(c,i){
+      var t=filmDisplayTitle(c);
+      if(i&&_tot+t.length>_REV_TABELA_MAX_TITULOS)return;
+      if(_n<i)return;
+      _tot+=t.length;_n++;
+      var fs=document.createElement('span');fs.className='rev-tabela-film';fs.dataset.filmCode=c;
+      fs.textContent=(i?'+ ':'')+t;td.appendChild(fs);
+    });
+    if(_n<nFilms){
+      var _mais=document.createElement('span');_mais.className='rev-tabela-film';
+      _mais.dataset.linkFilms=_revFilmsSig(s.filmes);_mais.title=s.filmes.map(function(c){return filmDisplayTitle(c);}).join(' / ');
+      _mais.textContent='+ '+(nFilms-_n)+' filme'+(nFilms-_n>1?'s':'');td.appendChild(_mais);
+    }
   }else{
     var _pn=_gradeProgName(s);
     var _dash=document.createElement('span');_dash.className=_pn?'rev-tabela-sess-name':'rev-tabela-film';_dash.textContent=_pn||'—';td.appendChild(_dash);
@@ -15754,6 +15768,14 @@ function _revBuildTabelaCell(td,sessions,mostraColor){
     indic.innerHTML=h;
     td.appendChild(indic);
   }
+}
+// nome do cinema no cabeçalho da tabela por dia: em vez de partir palavra ("CINESYSTE / M"),
+// diminui a fonte até a palavra mais longa caber na coluna (mínimo 5px)
+function _revFitCinemaThs(tbl){
+  tbl.querySelectorAll('th.rev-tabela-cin-th').forEach(function(th){
+    var fs=10;
+    while(fs>5&&th.scrollWidth>th.clientWidth){fs-=0.5;th.style.fontSize=fs+'px';}
+  });
 }
 function _revApplyTabelaScale(page,wrap){
   var _availW=wrap.clientWidth;
@@ -16014,7 +16036,7 @@ function _revRenderTabelaDiaPages(evName,evBg,evText,mostras,msr,allPages,startP
         var hrow=document.createElement('tr');
         var thTime=document.createElement('th');thTime.className='rev-tabela-time-th';hrow.appendChild(thTime);
         cinChunk.forEach(function(cin){
-          var th=document.createElement('th');th.className='rev-tabela-day-th';
+          var th=document.createElement('th');th.className='rev-tabela-day-th rev-tabela-cin-th';
           th.dataset.linkCinema=cin;th.textContent=cin;
           hrow.appendChild(th);
         });
@@ -16042,6 +16064,7 @@ function _revRenderTabelaDiaPages(evName,evBg,evText,mostras,msr,allPages,startP
         wrap.appendChild(tWrap);
         page.appendChild(wrap);
         msr.appendChild(page);
+        _revFitCinemaThs(tbl);
         _revApplyTabelaScale(page,wrap);
         allPages.push(page);
       }
@@ -19729,7 +19752,7 @@ function renderDash(){
   html+=colBlock('legendagem','Legendagem',legBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 28/10/2026 às 21:17';
+  var sysUpdate='última atualização do sistema · 28/10/2026 às 21:35';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -30156,7 +30179,7 @@ function _sxcPrint(){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 28/10/2026 às 21:17</span></div>
+<div id="page-footer"><span>última atualização · 28/10/2026 às 21:35</span></div>
 
 </div>
 

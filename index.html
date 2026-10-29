@@ -19991,7 +19991,7 @@ function renderDash(){
   html+=colBlock('legendagem','Legendagem',legBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 29/10/2026 às 14:01';
+  var sysUpdate='última atualização do sistema · 29/10/2026 às 14:10';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -29133,7 +29133,7 @@ function _iuTransform(row){
     var fd=sch.fields.find(function(x){return x.f===f;});
     if(!fd)return;
     var raw=row[h];
-    out[f]=_iuCoerce(raw,fd.t);
+    out[f]=_iuTiraId(f,_iuCoerce(raw,fd.t));
   });
   // defaults pra obrigatórios não mapeados
   var _idMapped=sch.idField&&!!_iuState.map[sch.idField];
@@ -29210,6 +29210,32 @@ function _iuGroupedRows(){
     });
   });
   return order.map(function(o){return o._solo?o.d:groups[o.k];});
+}
+/* As listas da planilha modelo escrevem "Nome (ID)". Na importação, se o que está entre
+   parênteses no fim for um ID/código conhecido (mostra, submostra, filme, vinheta), fica só ele.
+   Texto que não termina num ID conhecido passa intacto (ex.: título "Filme (2020)"). */
+var _IU_CAMPOS_ID={program_id:1,subprogram_id:1,films:1,bumpers:1,festival_code:1,mostras:1,filmes:1};
+var _iuIdsCache=null,_iuIdsCacheT=0;
+function _iuIdsConhecidos(){
+  // uma montagem serve à importação inteira (milhares de linhas × campos)
+  if(_iuIdsCache&&Date.now()-_iuIdsCacheT<10000)return _iuIdsCache;
+  var s={};_iuIdsCache=s;_iuIdsCacheT=Date.now();
+  var pd=window._progData||{};
+  (pd.programs||[]).forEach(function(p){s[p.id]=1;});
+  (pd.subprograms||[]).forEach(function(p){s[p.id]=1;});
+  [window.catalogoFilmesMap,window.filmesMap,window.triagemFilmesMap].forEach(function(m){if(m)Object.keys(m).forEach(function(k){s[k]=1;});});
+  (window.vinhetasArr||[]).forEach(function(b){if(b.codigo)s[b.codigo]=1;});
+  return s;
+}
+function _iuTiraId(f,v){
+  if(!_IU_CAMPOS_ID[f])return v;
+  var ids=null;
+  function um(x){
+    var m=/\(([^()]+)\)\s*$/.exec(String(x||''));if(!m)return x;
+    ids=ids||_iuIdsConhecidos();
+    var id=m[1].trim();return ids[id]?id:x;
+  }
+  return Array.isArray(v)?v.map(um):um(v);
 }
 function _iuCoerce(v,t){
   if(v===null||v===undefined)return '';
@@ -29543,9 +29569,9 @@ var _IU_EX_CAMPO={festival_code:'código único do filme, ex.: FEST001',session_
   bumper_code:'código único da vinheta, ex.: VIN01',__docid__:'código único, ex.: MOSTRACOMPETITIVA',
   year:'2025',director:'Nome Sobrenome; Outra Pessoa',countries:'Brasil; Argentina',genre:'drama; documentário',
   'crew.cast':'Atriz Um; Ator Dois',title:'Título do filme',title_pt:'Título em português',original_title:'Título original',
-  name:'',venue_name:'nome da sala, igual ao cadastro (ver aba Referência)',films:'código ou título; outro filme',
-  bumpers:'código ou nome da vinheta; outra',program_id:'ID da mostra (ver aba Referência)',
-  subprogram_id:'ID da submostra (ver aba Referência)',estados:'SP; RJ',roles:'diretor; produtor'};
+  name:'',venue_name:'nome da sala, igual ao cadastro (ver aba Referência)',films:'Título do filme (FEST001); Outro filme (FEST002)',
+  bumpers:'Nome da vinheta (VIN01)',program_id:'Nome da mostra (MOSTRACOMPETITIVA)',
+  subprogram_id:'Nome da submostra (ID)',estados:'SP; RJ',roles:'diretor; produtor'};
 var _IU_NOTA_CAMPO={
   festival_code:'Identifica o registro: se o código já existir, a linha ATUALIZA o que está lá (só os campos preenchidos). Não use barra /.',
   session_id:'Identifica a sessão: se já existir, atualiza. Não use barra /. Uma linha por sessão; para pôr vários filmes na mesma sessão, liste-os na coluna Filmes separados por ;',
@@ -29553,10 +29579,10 @@ var _IU_NOTA_CAMPO={
   __docid__:'Identifica o registro: se já existir, atualiza. Não use barra /.',
   evento:'Pode deixar em branco: vale o evento escolhido na importação.',event_name:'Pode deixar em branco: vale o evento escolhido na importação.',
   event_id:'Pode deixar em branco: vale o evento escolhido na importação.',
-  films:'Use o código do filme ou o título exatamente como está nos Selecionados do evento. Filme que não existir pode ser criado na etapa de pré-visualização.',
-  bumpers:'Código ou nome da vinheta, como cadastrada no evento.',
+  films:'Escolha na lista: "Título (código)" — a importação usa o código entre parênteses. Também aceita só o código ou o título exato dos Selecionados. Filme que não existir pode ser criado na pré-visualização.',
+  bumpers:'Escolha na lista: "Nome (código)". Também aceita só o código ou o nome da vinheta.',
   venue_name:'Escreva o nome da sala exatamente como no cadastro de Cinemas (veja a aba Referência).',
-  program_id:'ID da mostra (não o nome) — veja a aba Referência.',subprogram_id:'ID da submostra (não o nome) — veja a aba Referência.',
+  program_id:'Escolha na lista: "Nome (ID)" — a importação usa o ID entre parênteses. Também aceita só o ID.',subprogram_id:'Escolha na lista: "Nome (ID)" — a importação usa o ID entre parênteses. Também aceita só o ID.',
   runtime:'Em minutos.',dcp_duration:'Formato H:MM:SS.',trailer:'Se houver mais de um link, um por linha dentro da célula.'};
 async function _iuBaixarModelo(comListas){
   var sch=IU_SCHEMAS[_iuState.module];if(!sch)return;
@@ -29642,7 +29668,8 @@ async function _iuBaixarModelo(comListas){
   }catch(e){console.warn('[modelo] sem listas suspensas:',e);XLSX.writeFile(wb,arq);}
 }
 /* Valores das listas suspensas por campo. ev vazio = só os fixos (opções e sim/não).
-   Os valores são escritos do jeito que a importação resolve (título/nome quando único, senão código). */
+   Itens com ID vão como "Nome (ID)": o nome é o que a pessoa lê, e a importação usa o ID
+   entre parênteses (_iuTiraId). */
 function _iuModeloListas(mod,ev){
   var L={},sch=IU_SCHEMAS[mod];
   sch.fields.forEach(function(fd){
@@ -29651,9 +29678,8 @@ function _iuModeloListas(mod,ev){
   });
   if(!ev)return L;
   var ordena=function(a){return a.sort(function(x,y){return String(x).localeCompare(String(y),'pt-BR');});};
-  var unicos=function(pares){ // [[código,nome]] → nome se único (sem diferenciar maiúsculas), senão código
-    var cnt={};pares.forEach(function(p){var k=String(p[1]||'').toLowerCase().trim();if(k)cnt[k]=(cnt[k]||0)+1;});
-    return ordena(pares.map(function(p){var k=String(p[1]||'').toLowerCase().trim();return k&&cnt[k]===1?p[1]:p[0];}));
+  var comId=function(pares){ // [[id,nome]] → "Nome (ID)"; sem nome, só o ID
+    return ordena(pares.map(function(p){var n=String(p[1]||'').trim();return n&&n!==p[0]?n+' ('+p[0]+')':p[0];}));
   };
   var evs=(typeof activeEventsLanding!=='undefined'&&activeEventsLanding&&activeEventsLanding.size)?Array.from(activeEventsLanding).sort():[];
   evs=[ev].concat(evs.filter(function(e){return e!==ev;})); // evento escolhido primeiro
@@ -29662,11 +29688,8 @@ function _iuModeloListas(mod,ev){
   var pIds=progs.map(function(p){return p.id;});
   var subs=((window._progData&&_progData.subprograms)||[]).filter(function(s){return s.data&&pIds.indexOf(s.data.program_id)>=0;});
   var fCods=Object.keys(catalogoFilmesMap||{}).filter(function(c){return(catalogoFilmesMap[c]||{}).evento===ev;});
-  var filmesPares=fCods.map(function(c){
-    var m=catalogoFilmesMap[c]||{},t=filmDisplayTitle(c);
-    var ts=[m.title,m.title_pt,m.original_title,m.english_title,m.system_name].filter(Boolean).map(function(x){return String(x).toLowerCase().trim();});
-    return[c,ts.indexOf(String(t).toLowerCase().trim())>=0?t:(m.title_pt||m.title||'')];
-  });
+  var filmesPares=fCods.map(function(c){return[c,filmDisplayTitle(c)];});
+  var progPares=progs.map(function(p){return[p.id,p.data.name||''];});
   if(mod==='sessoes'){
     var evData=(window._adminEventosFullCache||[]).find(function(e){return e.id===ev;});
     var evNome=evData?((evData.data&&evData.data.nome)||evData.id):ev;
@@ -29674,17 +29697,17 @@ function _iuModeloListas(mod,ev){
     (sessoesArr||[]).forEach(function(s){if(s.evento===ev&&s.cinema)salas[s.cinema]=true;});
     (cinemasArr||[]).forEach(function(c){if(c.sala&&(c.evento||'').split(';').map(function(x){return x.trim();}).indexOf(evNome)>=0)salas[c.sala]=true;});
     L.venue_name=ordena(Object.keys(salas));
-    L.films=unicos(filmesPares);
-    L.bumpers=unicos((window.vinhetasArr||[]).filter(function(b){return b.evento===ev;}).map(function(b){return[b.codigo,b.nome||''];}));
-    L.program_id=ordena(pIds.slice());
-    L.subprogram_id=ordena(subs.map(function(s){return s.id;}));
+    L.films=comId(filmesPares);
+    L.bumpers=comId((window.vinhetasArr||[]).filter(function(b){return b.evento===ev;}).map(function(b){return[b.codigo,b.nome||''];}));
+    L.program_id=comId(progPares);
+    L.subprogram_id=comId(subs.map(function(s){return[s.id,s.data.name||''];}));
   }
-  if(mod==='subprograms')L.program_id=ordena(pIds.slice());
-  if(mod==='copias')L.festival_code=ordena(fCods.slice()); // cópia de um filme dos Selecionados usa o código dele
+  if(mod==='subprograms')L.program_id=comId(progPares);
+  if(mod==='copias')L.festival_code=comId(filmesPares); // cópia de um filme dos Selecionados usa o código dele
   if(mod==='guests'){
-    L.mostras=ordena(pIds.slice());
+    L.mostras=comId(progPares);
     L.submostras=ordena(subs.map(function(s){return s.data.name||'';}).filter(Boolean));
-    L.filmes=ordena(fCods.slice());
+    L.filmes=comId(filmesPares);
   }
   if(mod==='flights'||mod==='transfers'){
     var gs=(window._recepGuests||[]).filter(function(g){return g.data&&g.data.event_id===ev&&g.data.name;});
@@ -30984,7 +31007,7 @@ function _sxcPrint(){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 29/10/2026 às 14:01</span></div>
+<div id="page-footer"><span>última atualização · 29/10/2026 às 14:10</span></div>
 
 </div>
 

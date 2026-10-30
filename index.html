@@ -6561,7 +6561,7 @@ html.nav-collapsed .nav-tabs{width:var(--nav-sidebar-w-col);}
 .nav-tabs::-webkit-scrollbar{width:4px;}
 .nav-tab{height:40px;width:100%;flex-shrink:0;border-right:none;border-bottom:1px solid var(--border);border-top:none;justify-content:flex-start;}
 .nav-tab.active{border-bottom-color:var(--border);}
-#main-content{margin-left:var(--nav-sidebar-w);padding-top:52px;transition:margin-left 0.2s ease;}
+#main-content{margin-left:var(--nav-sidebar-w);padding-top:52px;padding-bottom:32px;transition:margin-left 0.2s ease;}/* folga para o #page-footer fixo (22px) não cobrir o fim do conteúdo */
 html.nav-collapsed #main-content{margin-left:var(--nav-sidebar-w-col);}
 html.nav-collapsed .nav-tabs .nav-tab{justify-content:center;padding:0;}
 html.nav-collapsed .nav-tabs .tab-icon{margin-right:0;}
@@ -6612,7 +6612,7 @@ header .zoom-level{font-size:13px;}
 ::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px;}
 ::-webkit-scrollbar-thumb:hover{background:var(--text-muted);}
 ::-webkit-scrollbar-corner{background:var(--surface);}
-@media print{.nav-tabs,.nav-collapse-bar{display:none!important;}#main-content{margin-left:0!important;}}
+@media print{.nav-tabs,.nav-collapse-bar{display:none!important;}#main-content{margin-left:0!important;padding-bottom:0!important;}}
 </style>
 <script>
 (function(){
@@ -19991,7 +19991,7 @@ function renderDash(){
   html+=colBlock('legendagem','Legendagem',legBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 29/10/2026 às 15:36';
+  var sysUpdate='última atualização do sistema · 30/10/2026 às 16:32';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -31006,7 +31006,7 @@ function _sxcPrint(){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 29/10/2026 às 15:36</span></div>
+<div id="page-footer"><span>última atualização · 30/10/2026 às 16:32</span></div>
 
 </div>
 

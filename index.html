@@ -7536,6 +7536,47 @@ function _dashSetPubMode(m){dashPubMode=m;renderDash();}
 // Dashboard (mostra sessões vinculadas ao clicar) — chave 'mostra_ID'/'sub_ID'/'show_ID'.
 var _dashProgRowExpand={};
 function _dashProgToggleRow(key){_dashProgRowExpand[key]=!_dashProgRowExpand[key];renderDash();}
+// Filtro por valor de acessibilidade nos cards de sessões acessíveis. Os valores são os que estão
+// preenchidos nas cópias das sessões mostradas (accessibility_features), do jeito que foram escritos,
+// separados por vírgula, ponto e vírgula, barra ou quebra de linha; maiúscula/minúscula não separa valores.
+var _dashAcessFiltro='';
+function _dashSetAcessFiltro(v){_dashAcessFiltro=_dashAcessFiltro===v?'':v;renderDash();}
+var _acessGrafia={}; // valor em minúsculas → primeira grafia vista, para "LSE" e "lse" contarem juntos
+function _dashSessAcessTipos(s){
+  var out=[];
+  (s.filmes||[]).forEach(function(c){
+    var f=_copiaNaSessao(s,c);if(!f||!f.acessibilidade)return;
+    f.acessibilidade.split(/[,;\/\n]+/).forEach(function(a){
+      var t=a.trim();if(!t)return;
+      var k=t.toLowerCase();if(!_acessGrafia[k])_acessGrafia[k]=t;
+      if(out.indexOf(_acessGrafia[k])<0)out.push(_acessGrafia[k]);
+    });
+  });
+  return out.length?out:['não especificado'];
+}
+// corpo do detalhe "Sessões acessíveis": chips de filtro com contagem + lista de sessões
+function _dashAcessDetailHtml(arr){
+  var cont={};
+  arr.forEach(function(s){_dashSessAcessTipos(s).forEach(function(t){cont[t]=(cont[t]||0)+1;});});
+  var tipos=Object.keys(cont).sort(function(a,b){return(a==='não especificado')-(b==='não especificado')||cont[b]-cont[a]||a.localeCompare(b,'pt-BR');});
+  if(_dashAcessFiltro&&!cont[_dashAcessFiltro])_dashAcessFiltro='';
+  var chip=function(v,lbl,n){
+    var on=_dashAcessFiltro===v;
+    return'<button class="bilh-rel-tipo-btn'+(on?' bilh-rel-tipo-active':'')+'" style="padding:2px 8px;" onclick="event.stopPropagation();_dashSetAcessFiltro(\''+esc(v.replace(/\\/g,'\\\\').replace(/'/g,"\\'"))+'\')">'+esc(lbl)+' <span style="opacity:.6;">'+n+'</span></button>';
+  };
+  var html=tipos.length?'<div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:8px;">'+chip('','Todos',arr.length)+tipos.map(function(t){return chip(t,t,cont[t]);}).join('')+'</div>':'';
+  arr.filter(function(s){return!_dashAcessFiltro||_dashSessAcessTipos(s).indexOf(_dashAcessFiltro)>=0;})
+    .sort(function(a,b){return a.date&&b.date?a.date-b.date||(a.time&&b.time?a.time.h*60+a.time.m-(b.time.h*60+b.time.m):0):0;})
+    .forEach(function(s){
+      var safe=s.nome.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+      html+='<div class="dsd-sess-row" style="cursor:pointer" onclick="goToFicha(\''+safe+'\')">'+
+        '<span class="dsd-date">'+s.dia+'</span><span class="dsd-time">'+s.hora+'</span>'+
+        _dashSessNome(s,_dashSessFilmes(s))+'<span class="dsd-cinema">'+s.cinema+'</span>'+
+        '<span class="dsd-extra"><svg width="14" height="14" viewBox="0 0 24 24" style="stroke:currentColor;stroke-width:1.75;fill:none;stroke-linecap:round;stroke-linejoin:round;" xmlns="http://www.w3.org/2000/svg"><circle cx="11" cy="4" r="1"/><path d="m11 9 2 7h5l-1.5 3"/><path d="M9 9H7l1 7"/><path d="M13.5 19a4.5 4.5 0 1 1-9 0 4.5 4.5 0 0 1 9 0z"/></svg> '+esc(_dashSessAcessTipos(s).join(' · '))+'</span>'+
+      '</div>';
+    });
+  return html;
+}
 // Títulos dos filmes da sessão (exceto `exceto`, quando a linha já está dentro do cartão do filme).
 function _dashSessFilmes(s,exceto){
   return (s.filmes||[]).filter(function(c){return c!==exceto;}).map(filmDisplayTitle).filter(Boolean).join(' · ');
@@ -19484,21 +19525,7 @@ function renderDash(){
 
     }else if(key==='acess'){
       title='Sessões acessíveis ('+cs.acessSessArr.length+')';
-      var sorted3=cs.acessSessArr.slice().sort(function(a,b){return a.date&&b.date?a.date-b.date:0;});
-      bodyHtml='';
-      sorted3.forEach(function(s){
-        var safe=s.nome.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
-        var filmTitles=s.filmes.map(filmDisplayTitle).filter(Boolean).join(' · ');
-        var acessSet=[];s.filmes.forEach(function(c){var f=_copiaNaSessao(s,c);if(f&&f.acessibilidade){f.acessibilidade.split(/[,;\/\n]+/).forEach(function(a){var t=a.trim();if(t&&acessSet.indexOf(t)<0)acessSet.push(t);});}});
-        var acessLabel=acessSet.length?acessSet.join(' · '):s.acessibilidades;
-        bodyHtml+='<div class="dsd-sess-row" style="cursor:pointer" onclick="goToFicha(\''+safe+'\')">'+
-          '<span class="dsd-date">'+s.dia+'</span>'+
-          '<span class="dsd-time">'+s.hora+'</span>'+
-          _dashSessNome(s,_dashSessFilmes(s))+
-          '<span class="dsd-cinema">'+s.cinema+'</span>'+
-          '<span class="dsd-extra"><svg width="14" height="14" viewBox="0 0 24 24" style="stroke:currentColor;stroke-width:1.75;fill:none;stroke-linecap:round;stroke-linejoin:round;" xmlns="http://www.w3.org/2000/svg"><circle cx="11" cy="4" r="1"/><path d="m11 9 2 7h5l-1.5 3"/><path d="M9 9H7l1 7"/><path d="M13.5 19a4.5 4.5 0 1 1-9 0 4.5 4.5 0 0 1 9 0z"/></svg> '+acessLabel+'</span>'+
-        '</div>';
-      });
+      bodyHtml=_dashAcessDetailHtml(cs.acessSessArr);
 
     }else if(key==='legelet'){
       title='Leg. eletrônica ('+cs.legSessArr.length+')';
@@ -19642,19 +19669,9 @@ function renderDash(){
           if(exp)g.codes.forEach(function(c){bodyHtml+=_ogFilmRow(c);});
         });
       }else if(key==='p_acess'){
-        var paArr=_progSessoes.filter(function(s){var _av=(s.acessibilidades||'').toString().trim();return _av!==''&&!/^n[ãa]o$/i.test(_av);}).sort(function(a,b){return a.date&&b.date?a.date-b.date:0;});
+        var paArr=_progSessoes.filter(function(s){var _av=(s.acessibilidades||'').toString().trim();return _av!==''&&!/^n[ãa]o$/i.test(_av);});
         title='Sessões acessíveis ('+paArr.length+')';
-        bodyHtml='';
-        paArr.forEach(function(s){
-          var safe=s.nome.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
-          var acessSet=[];s.filmes.forEach(function(c){var f=_copiaNaSessao(s,c);if(f&&f.acessibilidade){f.acessibilidade.split(/[,;\/\n]+/).forEach(function(a){var t=a.trim();if(t&&acessSet.indexOf(t)<0)acessSet.push(t);});}});
-          var acessLabel=acessSet.length?acessSet.join(' · '):s.acessibilidades;
-          bodyHtml+='<div class="dsd-sess-row" style="cursor:pointer" onclick="goToFicha(\''+safe+'\')">'+
-            '<span class="dsd-date">'+s.dia+'</span><span class="dsd-time">'+s.hora+'</span>'+
-            _dashSessNome(s,_dashSessFilmes(s))+'<span class="dsd-cinema">'+s.cinema+'</span>'+
-            '<span class="dsd-extra"><svg width="14" height="14" viewBox="0 0 24 24" style="stroke:currentColor;stroke-width:1.75;fill:none;stroke-linecap:round;stroke-linejoin:round;" xmlns="http://www.w3.org/2000/svg"><circle cx="11" cy="4" r="1"/><path d="m11 9 2 7h5l-1.5 3"/><path d="M9 9H7l1 7"/><path d="M13.5 19a4.5 4.5 0 1 1-9 0 4.5 4.5 0 0 1 9 0z"/></svg> '+acessLabel+'</span>'+
-          '</div>';
-        });
+        bodyHtml=_dashAcessDetailHtml(paArr);
       }
     }
 
@@ -20088,7 +20105,7 @@ function renderDash(){
   html+=colBlock('legendagem','Legendagem',legBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 02/11/2026 às 19:24';
+  var sysUpdate='última atualização do sistema · 02/11/2026 às 20:13';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -31229,7 +31246,7 @@ function _sxcPrint(){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 02/11/2026 às 19:24</span></div>
+<div id="page-footer"><span>última atualização · 02/11/2026 às 20:13</span></div>
 
 </div>
 

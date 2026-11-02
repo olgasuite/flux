@@ -6943,20 +6943,20 @@ window.addEventListener('DOMContentLoaded',function(){
           <div id="fpSubmostraGroup"></div>
         </div>
         <div class="fp-prog-section">
-          <div class="fp-section-title">Cinema</div>
-          <div id="fpComplexoGroup"></div>
-        </div>
-        <div class="fp-prog-section">
-          <div class="fp-section-title">Sala</div>
-          <div id="fpSalaGroup"></div>
+          <div class="fp-section-title">Sessão</div>
+          <div id="fpSessaoGroup"></div>
         </div>
         <div class="fp-prog-section">
           <div class="fp-section-title">Dia</div>
           <div id="fpDiaGroup"></div>
         </div>
         <div class="fp-prog-section">
-          <div class="fp-section-title">Sessão</div>
-          <div id="fpSessaoGroup"></div>
+          <div class="fp-section-title">Complexo</div>
+          <div id="fpComplexoGroup"></div>
+        </div>
+        <div class="fp-prog-section">
+          <div class="fp-section-title">Sala</div>
+          <div id="fpSalaGroup"></div>
         </div>
       </div>
     </div>
@@ -18262,7 +18262,7 @@ function buildSalaFilterSection(){
   var diaEl=document.getElementById('fpDiaGroup');
   if(diaEl)_buildCheckList(diaEl,_diasProgItems(activeEventsBusca),buscaFilters.dia,'fpdia_');
 }
-// Filtros de Programação "Cinema" (complexo das salas) e "Dia": a MESMA sessão precisa bater os dois.
+// Filtros de Programação "Complexo" (complexo das salas) e "Dia": a MESMA sessão precisa bater os dois.
 function _sessDiaKey(s){
   var d=s&&s.date;if(!(d instanceof Date)||isNaN(d))return'';
   return d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2)+'-'+('0'+d.getDate()).slice(-2);
@@ -20059,7 +20059,7 @@ function renderDash(){
   html+=colBlock('legendagem','Legendagem',legBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 02/11/2026 às 12:13';
+  var sysUpdate='última atualização do sistema · 02/11/2026 às 13:51';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -31152,7 +31152,7 @@ function _sxcPrint(){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 02/11/2026 às 12:13</span></div>
+<div id="page-footer"><span>última atualização · 02/11/2026 às 13:51</span></div>
 
 </div>
 

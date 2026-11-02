@@ -442,6 +442,11 @@ select:disabled{opacity:0.3;cursor:not-allowed;}
 .prog-country-flag{font-size:13px;margin-right:2px;}
 .prog-country-name{font-family:var(--mono);font-size:9px;font-weight:500;color:var(--text-muted);}
 .prog-country-plain{font-family:var(--mono);font-size:10px;font-weight:500;color:var(--text-dim);}
+.olga-flags{display:inline-flex;align-items:center;gap:3px;margin-left:6px;vertical-align:middle;white-space:nowrap;}
+.olga-flags-lg{gap:5px;margin-left:10px;}
+.olga-flag{display:inline-block;width:16px;height:12px;border-radius:1px;box-shadow:0 0 0 1px rgba(0,0,0,0.18);object-fit:cover;}
+.olga-flags-lg .olga-flag{width:24px;height:18px;border-radius:2px;}
+.olga-flag-txt{font-family:var(--mono);font-size:8px;font-weight:700;letter-spacing:0.04em;padding:1px 3px;border:1px solid var(--border);color:var(--text-muted);line-height:1;}
 .prog-vin-templates-section{background:var(--surface2);border:1px solid var(--border);border-radius:var(--r);padding:10px 12px;margin-bottom:16px;}
 .prog-section-label{font-family:var(--sans);font-size:8px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:var(--text-muted);margin-bottom:6px;}
 .prog-vin-template-row{display:flex;align-items:center;gap:8px;padding:4px 0;border-bottom:1px solid var(--border);}
@@ -19991,7 +19996,7 @@ function renderDash(){
   html+=colBlock('legendagem','Legendagem',legBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 30/10/2026 às 16:32';
+  var sysUpdate='última atualização do sistema · 02/11/2026 às 11:00';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -20062,38 +20067,79 @@ function goToBilhFromDash(sala){
 /* ═══════════════════════════════════════════════════════
    MÓDULO PROGRAMAÇÃO
 ═══════════════════════════════════════════════════════ */
-var COUNTRY_FLAGS={
-  'argentina':'🇦🇷','ar':'🇦🇷','bolivia':'🇧🇴','bo':'🇧🇴','brasil':'🇧🇷','brazil':'🇧🇷','br':'🇧🇷',
-  'chile':'🇨🇱','cl':'🇨🇱','colombia':'🇨🇴','co':'🇨🇴','cuba':'🇨🇺','cu':'🇨🇺',
-  'equador':'🇪🇨','ecuador':'🇪🇨','ec':'🇪🇨','mexico':'🇲🇽','méxico':'🇲🇽','mx':'🇲🇽',
-  'paraguai':'🇵🇾','paraguay':'🇵🇾','py':'🇵🇾','peru':'🇵🇪','pe':'🇵🇪',
-  'uruguai':'🇺🇾','uruguay':'🇺🇾','uy':'🇺🇾','venezuela':'🇻🇪','ve':'🇻🇪',
-  'costa rica':'🇨🇷','cr':'🇨🇷','el salvador':'🇸🇻','sv':'🇸🇻','guatemala':'🇬🇹','gt':'🇬🇹',
-  'haiti':'🇭🇹','ht':'🇭🇹','honduras':'🇭🇳','hn':'🇭🇳','nicaragua':'🇳🇮','ni':'🇳🇮',
-  'panama':'🇵🇦','panamá':'🇵🇦','pa':'🇵🇦','república dominicana':'🇩🇴','dominican republic':'🇩🇴',
-  'alemanha':'🇩🇪','germany':'🇩🇪','de':'🇩🇪','áustria':'🇦🇹','austria':'🇦🇹','at':'🇦🇹',
-  'bélgica':'🇧🇪','belgium':'🇧🇪','be':'🇧🇪','dinamarca':'🇩🇰','denmark':'🇩🇰','dk':'🇩🇰',
-  'espanha':'🇪🇸','spain':'🇪🇸','es':'🇪🇸','finlândia':'🇫🇮','finland':'🇫🇮','fi':'🇫🇮',
-  'frança':'🇫🇷','france':'🇫🇷','fr':'🇫🇷','grécia':'🇬🇷','greece':'🇬🇷','gr':'🇬🇷',
-  'hungria':'🇭🇺','hungary':'🇭🇺','hu':'🇭🇺','irlanda':'🇮🇪','ireland':'🇮🇪','ie':'🇮🇪',
-  'islândia':'🇮🇸','iceland':'🇮🇸','is':'🇮🇸','itália':'🇮🇹','italy':'🇮🇹','it':'🇮🇹',
-  'noruega':'🇳🇴','norway':'🇳🇴','no':'🇳🇴','países baixos':'🇳🇱','netherlands':'🇳🇱','holanda':'🇳🇱','nl':'🇳🇱',
-  'polônia':'🇵🇱','poland':'🇵🇱','pl':'🇵🇱','portugal':'🇵🇹','pt':'🇵🇹',
-  'reino unido':'🇬🇧','united kingdom':'🇬🇧','uk':'🇬🇧','gb':'🇬🇧',
-  'romênia':'🇷🇴','romania':'🇷🇴','ro':'🇷🇴','rússia':'🇷🇺','russia':'🇷🇺','ru':'🇷🇺',
-  'suécia':'🇸🇪','sweden':'🇸🇪','se':'🇸🇪','suíça':'🇨🇭','switzerland':'🇨🇭','ch':'🇨🇭',
-  'turquia':'🇹🇷','turkey':'🇹🇷','türkiye':'🇹🇷','tr':'🇹🇷',
-  'estados unidos':'🇺🇸','usa':'🇺🇸','eua':'🇺🇸','united states':'🇺🇸','us':'🇺🇸',
-  'canadá':'🇨🇦','canada':'🇨🇦','ca':'🇨🇦','japão':'🇯🇵','japan':'🇯🇵','jp':'🇯🇵',
-  'china':'🇨🇳','cn':'🇨🇳','coreia do sul':'🇰🇷','south korea':'🇰🇷','kr':'🇰🇷',
-  'hong kong':'🇭🇰','hk':'🇭🇰','taiwan':'🇹🇼','tw':'🇹🇼',
-  'índia':'🇮🇳','india':'🇮🇳','in':'🇮🇳','irã':'🇮🇷','iran':'🇮🇷','ir':'🇮🇷',
-  'israel':'🇮🇱','il':'🇮🇱','líbano':'🇱🇧','lebanon':'🇱🇧','lb':'🇱🇧',
-  'marrocos':'🇲🇦','morocco':'🇲🇦','ma':'🇲🇦','egito':'🇪🇬','egypt':'🇪🇬','eg':'🇪🇬',
-  'nigéria':'🇳🇬','nigeria':'🇳🇬','ng':'🇳🇬','senegal':'🇸🇳','sn':'🇸🇳',
-  'áfrica do sul':'🇿🇦','south africa':'🇿🇦','za':'🇿🇦',
-  'austrália':'🇦🇺','australia':'🇦🇺','au':'🇦🇺','nova zelândia':'🇳🇿','new zealand':'🇳🇿','nz':'🇳🇿'
-};
+// Bandeiras dos países do filme (imagens do flagcdn.com: o Windows não desenha bandeira em emoji).
+// Chave = nome sem acento em minúsculas (PT ou EN); valor = código ISO de 2 letras.
+var _PAIS_ISO=(function(){
+  var t={ar:'argentina',bo:'bolivia',br:'brasil|brazil|brasileiro',cl:'chile',co:'colombia',cu:'cuba',ec:'equador|ecuador',
+    mx:'mexico',py:'paraguai|paraguay',pe:'peru',uy:'uruguai|uruguay',ve:'venezuela',cr:'costa rica',sv:'el salvador',
+    gt:'guatemala',ht:'haiti',hn:'honduras',ni:'nicaragua',pa:'panama',"do":'republica dominicana|dominican republic',
+    pr:'porto rico|puerto rico',jm:'jamaica',tt:'trinidad e tobago|trinidad and tobago',gf:'guiana francesa|french guiana',
+    gy:'guiana|guyana',sr:'suriname',us:'estados unidos|eua|usa|united states|united states of america|americano',ca:'canada',
+    de:'alemanha|germany|alemanha ocidental|west germany|alemanha oriental|east germany',at:'austria',be:'belgica|belgium',
+    dk:'dinamarca|denmark',es:'espanha|spain',fi:'finlandia|finland',fr:'franca|france',gr:'grecia|greece',hu:'hungria|hungary',
+    ie:'irlanda|ireland',is:'islandia|iceland',it:'italia|italy',no:'noruega|norway',nl:'paises baixos|holanda|netherlands|the netherlands',
+    pl:'polonia|poland',pt:'portugal',gb:'reino unido|united kingdom|inglaterra|england|escocia|scotland|gra bretanha|great britain',
+    ro:'romenia|romania',ru:'russia|russian federation',se:'suecia|sweden',ch:'suica|switzerland',tr:'turquia|turkey|turkiye',
+    lu:'luxemburgo|luxembourg',cz:'republica tcheca|tchequia|czech republic|czechia|tchecoslovaquia|checoslovaquia|czechoslovakia',
+    sk:'eslovaquia|slovakia',si:'eslovenia|slovenia',hr:'croacia|croatia',rs:'servia|serbia',ba:'bosnia e herzegovina|bosnia and herzegovina|bosnia',
+    me:'montenegro',mk:'macedonia do norte|north macedonia|macedonia',al:'albania',xk:'kosovo',bg:'bulgaria',ua:'ucrania|ukraine',
+    by:'belarus|bielorrussia',md:'moldavia|moldova',lt:'lituania|lithuania',lv:'letonia|latvia',ee:'estonia',cy:'chipre|cyprus',
+    mt:'malta',ge:'georgia',am:'armenia',az:'azerbaijao|azerbaijan',kz:'cazaquistao|kazakhstan',kg:'quirguistao|kyrgyzstan',
+    uz:'uzbequistao|uzbekistan',tj:'tajiquistao|tajikistan',tm:'turcomenistao|turkmenistan',mn:'mongolia',
+    jp:'japao|japan',cn:'china',kr:'coreia do sul|south korea|korea|republic of korea|coreia',kp:'coreia do norte|north korea',
+    hk:'hong kong',tw:'taiwan',mo:'macau|macao',in:'india',pk:'paquistao|pakistan',bd:'bangladesh',np:'nepal',lk:'sri lanka',
+    af:'afeganistao|afghanistan',ir:'ira|iran',iq:'iraque|iraq',sy:'siria|syria',lb:'libano|lebanon',il:'israel',
+    ps:'palestina|palestine',jo:'jordania|jordan',sa:'arabia saudita|saudi arabia',qa:'catar|qatar',ae:'emirados arabes unidos|united arab emirates',
+    kw:'kuwait',ye:'iemen|yemen',om:'oma|oman',th:'tailandia|thailand',vn:'vietna|vietnam|viet nam',kh:'camboja|cambodia',
+    la:'laos',mm:'mianmar|myanmar|birmania',my:'malasia|malaysia',sg:'singapura|singapore',id:'indonesia',ph:'filipinas|philippines',
+    au:'australia',nz:'nova zelandia|new zealand',eg:'egito|egypt',ma:'marrocos|morocco',dz:'argelia|algeria',tn:'tunisia',
+    ly:'libia|libya',sd:'sudao|sudan',ss:'sudao do sul|south sudan',et:'etiopia|ethiopia',so:'somalia',ke:'quenia|kenya',
+    tz:'tanzania',ug:'uganda',rw:'ruanda|rwanda',cd:'republica democratica do congo|democratic republic of the congo|rd congo',
+    cg:'congo|republica do congo',cf:'republica centro africana|central african republic',cm:'camaroes|cameroon',ga:'gabao|gabon',
+    td:'chade|chad',ne:'niger',ng:'nigeria',gh:'gana|ghana',ci:'costa do marfim|ivory coast|cote d ivoire',bf:'burkina faso',
+    ml:'mali',sn:'senegal',gm:'gambia',gn:'guine|guinea',gw:'guine bissau|guinea bissau',cv:'cabo verde|cape verde',
+    mr:'mauritania',bj:'benim|benin',tg:'togo',ao:'angola',mz:'mocambique|mozambique',zw:'zimbabue|zimbabwe',zm:'zambia',
+    na:'namibia',bw:'botsuana|botswana',za:'africa do sul|south africa',mg:'madagascar',st:'sao tome e principe|sao tome and principe'};
+  var m={};
+  Object.keys(t).forEach(function(iso){t[iso].split('|').forEach(function(n){m[n]=iso;});});
+  return m;
+})();
+var _PAIS_ISO_SET=(function(){var s={};Object.keys(_PAIS_ISO).forEach(function(k){s[_PAIS_ISO[k]]=1;});return s;})();
+// países que não existem mais e não têm bandeira atual equivalente → sigla em texto
+var _PAIS_HIST={'uniao sovietica':'URSS','soviet union':'URSS','urss':'URSS','ussr':'URSS','iugoslavia':'IUG','yugoslavia':'IUG'};
+function _paisNorm(s){return String(s||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().replace(/[^a-z]+/g,' ').trim();}
+// aceita lista ou texto ("Brasil, Cuba", "França;Irã", "Haiti / France", "BR - IT", "BR-DE")
+function _paisesLista(v){
+  var out=[];
+  (Array.isArray(v)?v:(v?[v]:[])).forEach(function(x){
+    String(x||'').split(/\s*[,;\/]\s*|\s+-\s+/).forEach(function(t){
+      t=t.trim();if(!t)return;
+      if(/^[A-Za-z]{2}-[A-Za-z]{2}$/.test(t))t.split('-').forEach(function(p){out.push(p);});
+      else out.push(t);
+    });
+  });
+  return out;
+}
+function _paisIso(n){
+  var k=_paisNorm(n);
+  if(_PAIS_ISO[k])return _PAIS_ISO[k];
+  if(/^[a-z]{2}$/.test(k)&&_PAIS_ISO_SET[k])return k;
+  if(k==='uk')return'gb';
+  return'';
+}
+// bandeirinhas dos países (sem repetir); grande=true para o cabeçalho da ficha
+function _flagsHtml(countries,grande){
+  var vistos={},html='';
+  _paisesLista(countries).forEach(function(n){
+    var iso=_paisIso(n),hist=_PAIS_HIST[_paisNorm(n)];
+    var chave=iso||hist;if(!chave||vistos[chave])return;vistos[chave]=1;
+    if(hist){html+='<span class="olga-flag-txt" title="'+esc(n)+'">'+hist+'</span>';return;}
+    var w=grande?24:16,h=grande?18:12;
+    html+='<img class="olga-flag" src="https://flagcdn.com/'+w+'x'+h+'/'+iso+'.png" srcset="https://flagcdn.com/'+(w*2)+'x'+(h*2)+'/'+iso+'.png 2x" width="'+w+'" height="'+h+'" alt="'+iso.toUpperCase()+'" title="'+esc(n)+'" loading="lazy">';
+  });
+  return html?'<span class="olga-flags'+(grande?' olga-flags-lg':'')+'">'+html+'</span>':'';
+}
+function _filmFlags(cod){var cm=catalogoFilmesMap&&catalogoFilmesMap[cod];return cm?_flagsHtml(cm.countries):'';}
 function progCountryDisplay(name){
   if(!name)return'';
   return'<span class="prog-country-plain">'+esc(name)+'</span>';
@@ -21925,6 +21971,13 @@ function _progSessBadgesHtml(s){
 }
 function _progSessRowHtml(s,programId,canEdit,vinOnly){
   var filmTitles=s.filmes.map(filmDisplayTitle).filter(Boolean).join(' · ');
+  // títulos com bandeirinhas, cortando em ~150 caracteres de texto
+  var _ftLen=0,_ftCut=false,filmsHtml=s.filmes.filter(function(c){
+    if(_ftCut)return false;
+    var t=filmDisplayTitle(c);if(!t)return false;
+    if(_ftLen>150){_ftCut=true;return false;}
+    _ftLen+=t.length+3;return true;
+  }).map(function(c){return esc(filmDisplayTitle(c))+_filmFlags(c);}).join(' · ')+(_ftCut?' …':'');
   var safe=(s.nome||'').replace(/\\/g,'\\\\').replace(/'/g,"\\'");
   var safePid=(programId||'').replace(/\\/g,'\\\\').replace(/'/g,"\\'");
   var summ=_progSessSummary(s);
@@ -21941,7 +21994,7 @@ function _progSessRowHtml(s,programId,canEdit,vinOnly){
       +(s.name?'<span class="prog-sess-name">'+esc(s.name)+'</span>':'')
       +'<span class="prog-sess-id" title="'+esc(s.nome)+'">'+esc(stripEvPrefix(s.nome,s.evento))+'</span>'
       +'<span class="prog-sess-cinema">'+esc(s.cinema||s.local_livre||'—')+'</span>'
-      +(filmTitles?'<span class="prog-sess-films">'+esc(filmTitles.length>150?filmTitles.slice(0,150)+'…':filmTitles)+'</span>':'')
+      +(filmTitles?'<span class="prog-sess-films">'+filmsHtml+'</span>':'')
       +infoHtml
       +'</div>';
   }
@@ -21951,7 +22004,7 @@ function _progSessRowHtml(s,programId,canEdit,vinOnly){
     +(s.name?'<span class="prog-sess-name">'+esc(s.name)+'</span>':'')
     +'<span class="prog-sess-id" title="'+esc(s.nome)+'">'+esc(stripEvPrefix(s.nome,s.evento))+'</span>'
     +'<span class="prog-sess-cinema">'+esc(s.cinema||s.local_livre||'—')+'</span>'
-    +(filmTitles?'<span class="prog-sess-films">'+esc(filmTitles.length>150?filmTitles.slice(0,150)+'…':filmTitles)+'</span>':'')
+    +(filmTitles?'<span class="prog-sess-films">'+filmsHtml+'</span>':'')
     +infoHtml
     +((canEdit||vinOnly)?'<span class="prog-sess-actions" onclick="event.stopPropagation()">'
       +'<button class="prog-btn-icon" title="Editar" onclick="openProgSessaoModal(\''+safe+'\',\''+safePid+'\',null)">✎</button>'
@@ -22058,7 +22111,7 @@ function _progFichaContentHTML(sessaoNome,s,prog){
     var fRaw=_copiaNaSessao(s,f.codigo)||{};var fKdm=(fRaw.kdm||'').toLowerCase()==='sim';
     var kdmCell=fKdm?'<span class="badge badge-kdm-sim" style="font-size:8px;">KDM</span>':'<span style="color:var(--text-muted)">—</span>';
     return'<tr><td class="film-num">'+(idx+1)+'</td>'
-      +'<td><div class="film-title">'+esc(f.titulo_pt)+'</div>'+(f.titulo_pt!==f.titulo&&f.titulo?'<div class="film-sub" style="font-size:9px;color:var(--text-muted);">'+esc(f.titulo)+'</div>':'')+'</td>'
+      +'<td><div class="film-title">'+esc(f.titulo_pt)+_flagsHtml(f.countries)+'</div>'+(f.titulo_pt!==f.titulo&&f.titulo?'<div class="film-sub" style="font-size:9px;color:var(--text-muted);">'+esc(f.titulo)+'</div>':'')+'</td>'
       // formato da cópia que será exibida nesta sessão (versão escolhida)
       +'<td class="prog-fmt-cell">'+(f.exhibition_format?'<div class="prog-fmt-val">'+esc(f.exhibition_format==='Outro'&&f.exhibition_format_notes?f.exhibition_format_notes:f.exhibition_format)+'</div>':'<span style="color:var(--text-muted)">—</span>')+_versaoTagSessao(s,f.codigo)+'</td>'
       +'<td><div class="dur-text">'+fmtDur(f.duracao)+'</div></td>'
@@ -24688,7 +24741,7 @@ function _catBuildCards(films){
       +'<button class="cat-item cat-sel-grid'+(hasMeta?' has-meta':'')+'" data-cod="'+f.codigo.replace(/"/g,'&quot;')+'" onclick="openCatDetail(this.dataset.cod)">'
       +evSpan
       +'<span class="cat-item-code" title="'+f.codigo.replace(/"/g,'&quot;')+'">'+stripEvPrefix(f.codigo,f.evento)+'</span>'
-      +'<span class="cat-item-title"><span class="cat-exp-tg" title="Informações básicas" onclick="event.stopPropagation();_catToggleResExp('+_ci+',this)" style="display:inline-block;width:14px;color:var(--text-muted);cursor:pointer;font-size:9px;transition:transform .15s;">▶</span>'+(title||'')+'</span>'
+      +'<span class="cat-item-title"><span class="cat-exp-tg" title="Informações básicas" onclick="event.stopPropagation();_catToggleResExp('+_ci+',this)" style="display:inline-block;width:14px;color:var(--text-muted);cursor:pointer;font-size:9px;transition:transform .15s;">▶</span>'+(title||'')+_flagsHtml(meta.countries)+'</span>'
       +(dir?'<span class="cat-item-dir cc-dir">'+dir+'</span>':'<span class="cat-item-dir dim cc-dir">—</span>')
       +durSpan
       +ftypeSpan
@@ -25171,7 +25224,7 @@ function renderCatDetail(){
     html+=catFld('Direção',catTagInp('director',dirArr));
   }else{
     var _mainTitle=filmDisplayTitle(_catCode);
-    html+='<div class="cat-header-title">'+esc(_mainTitle)+'</div>';
+    html+='<div class="cat-header-title">'+esc(_mainTitle)+_flagsHtml(meta.countries,true)+'</div>';
     var _origSub=[meta.original_title,meta.english_title].filter(function(t){return t&&t!==_mainTitle;});
     if(_origSub.length)html+='<div class="cat-header-orig">'+esc(_origSub.join(' · '))+'</div>';
     if(dirDisplay)html+='<div class="cat-header-dir">dir. '+esc(dirDisplay)+'</div>';
@@ -31006,7 +31059,7 @@ function _sxcPrint(){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 30/10/2026 às 16:32</span></div>
+<div id="page-footer"><span>última atualização · 02/11/2026 às 11:00</span></div>
 
 </div>
 

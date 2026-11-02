@@ -20061,7 +20061,7 @@ function renderDash(){
   html+=colBlock('legendagem','Legendagem',legBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 02/11/2026 às 14:44';
+  var sysUpdate='última atualização do sistema · 02/11/2026 às 19:15';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -20212,7 +20212,7 @@ function _ufLista(v){
   });
   return out;
 }
-// bandeirinhas dos países (sem repetir) + do estado quando o filme é brasileiro; grande=true para o cabeçalho da ficha
+// bandeirinhas dos países (sem repetir); filme brasileiro com UF mostra só a do estado no lugar da do Brasil; grande=true para o cabeçalho da ficha
 function _flagsHtml(countries,grande,uf){
   var vistos={},html='';
   var ufs=_ufLista(uf),paises=_paisesLista(countries);
@@ -20221,11 +20221,14 @@ function _flagsHtml(countries,grande,uf){
     var iso=_paisIso(n),hist=_PAIS_HIST[_paisNorm(n)];
     var chave=iso||hist;if(!chave||vistos[chave])return;vistos[chave]=1;
     if(hist){html+='<span class="olga-flag-txt" title="'+esc(n)+'">'+hist+'</span>';return;}
+    if(iso==='br'&&ufs.length){
+      ufs.forEach(function(u){
+        html+='<img class="olga-flag olga-flag-uf" src="bandeiras/uf/'+u+'.png" srcset="bandeiras/uf/'+u+'@2x.png 2x" alt="'+u.toUpperCase()+'" title="'+esc(_UF_NOME[u])+', Brasil" loading="lazy">';
+      });
+      return;
+    }
     var w=grande?24:16,h=grande?18:12;
     html+='<img class="olga-flag" src="https://flagcdn.com/'+w+'x'+h+'/'+iso+'.png" srcset="https://flagcdn.com/'+(w*2)+'x'+(h*2)+'/'+iso+'.png 2x" width="'+w+'" height="'+h+'" alt="'+iso.toUpperCase()+'" title="'+esc(n)+'" loading="lazy">';
-    if(iso==='br')ufs.forEach(function(u){
-      html+='<img class="olga-flag olga-flag-uf" src="bandeiras/uf/'+u+'.png" srcset="bandeiras/uf/'+u+'@2x.png 2x" alt="'+u.toUpperCase()+'" title="'+esc(_UF_NOME[u])+'" loading="lazy">';
-    });
   });
   return html?'<span class="olga-flags'+(grande?' olga-flags-lg':'')+'">'+html+'</span>':'';
 }
@@ -31154,7 +31157,7 @@ function _sxcPrint(){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 02/11/2026 às 14:44</span></div>
+<div id="page-footer"><span>última atualização · 02/11/2026 às 19:15</span></div>
 
 </div>
 

@@ -1649,6 +1649,11 @@ mark{background:rgba(255,186,32,0.28);color:var(--accent);border-radius:2px;padd
 .dash-sess-link{font-family:var(--mono);font-size:9px;padding:2px 7px;border:1px solid var(--border);color:var(--text-dim);border-radius:2px;cursor:pointer;transition:all 0.12s;white-space:nowrap;background:none;display:inline-flex;align-items:center;gap:5px;}
 .dash-sess-link:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-dim);}
 .dash-sess-cinema{font-size:8px;color:var(--text-muted);opacity:0.75;}
+/* conteúdo do card não pode vazar para o card ao lado */
+.dash-film-card{min-width:0;overflow:hidden;}
+.dash-film-title{overflow-wrap:anywhere;}
+.dash-sess-link{max-width:100%;min-width:0;overflow:hidden;}
+.dash-sess-link>span{min-width:0;overflow:hidden;text-overflow:ellipsis;}
 
 .dash-salas-section{margin-bottom:22px;}
 .dash-salas-label{font-family:var(--mono);font-size:8px;font-weight:600;letter-spacing:0.16em;text-transform:uppercase;color:var(--text-muted);margin-bottom:8px;}
@@ -18717,7 +18722,7 @@ function renderBuscaResults(){
         '<div class="card-main">'+
           '<div class="card-top">'+
             '<span class="card-titulo-wrap" onclick="toggleExpand('+idx+')">'+
-              '<span class="card-titulo">'+hl(filmDisplayTitle(f.codigo),buscaQuery)+'</span>'+
+              '<span class="card-titulo">'+hl(filmDisplayTitle(f.codigo),buscaQuery)+'</span>'+_filmFlags(f.codigo)+
               '<span class="expand-toggle">▶</span>'+
             '</span>'+
             (f.evento&&col?'<span class="card-evento" style="background:'+col.bg+';color:'+col.text+'">'+f.evento+'</span>':'')+
@@ -19859,7 +19864,6 @@ function renderDash(){
           '<span class="dash-sess-cinema">'+esc(stripEvPrefix(s.nome,f.evento))+'</span>'+
           '<span class="dash-sess-cinema">'+esc(s.cinema)+'</span>'+
           (dt?'<span class="dash-sess-cinema">'+esc(dt)+'</span>':'')+
-          (_dashSessFilmes(s,f.codigo)?'<span class="dash-sess-cinema" style="font-family:var(--sans);">com '+esc(_dashSessFilmes(s,f.codigo))+'</span>':'')+
           '</button>';
       }).join('');
       var safeCodDash=String(f.codigo).replace(/\\/g,'\\\\').replace(/'/g,"\\'");
@@ -19996,7 +20000,7 @@ function renderDash(){
   html+=colBlock('legendagem','Legendagem',legBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 02/11/2026 às 11:00';
+  var sysUpdate='última atualização do sistema · 02/11/2026 às 11:08';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -31059,7 +31063,7 @@ function _sxcPrint(){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 02/11/2026 às 11:00</span></div>
+<div id="page-footer"><span>última atualização · 02/11/2026 às 11:08</span></div>
 
 </div>
 
@@ -31890,7 +31894,7 @@ function _mobRenderSessaoFicha(params){
     var banner=_mobStatusBanner(f);
     html+='<div style="background:var(--surface);border:1px solid var(--border);border-radius:4px;margin-bottom:10px;overflow:hidden;">';
     html+='<div style="padding:10px 12px;border-bottom:1px solid var(--border);">';
-    html+='<div class="mob-sessao-filme">'+_mobEsc(filmDisplayTitle(f.codigo))+_versaoTagSessao(s,f.codigo)+'</div>';
+    html+='<div class="mob-sessao-filme">'+_mobEsc(filmDisplayTitle(f.codigo))+_filmFlags(f.codigo)+_versaoTagSessao(s,f.codigo)+'</div>';
     html+='<div style="font-family:var(--mono);font-size:9px;color:var(--text-muted);margin-top:2px;">'+_mobEsc(f.codigo)+_trafEnvio(s,f.codigo).map(function(h){var o=_trafOrigem(h,f._copiaId||f.codigo);return' · '+_mobEsc(h.data.nome||'HD')+(o?' ← '+_mobEsc(o):'');}).join('')+'</div>';
     html+='</div>';
     html+='<div style="padding:8px 12px;">'+banner;
@@ -31959,7 +31963,7 @@ window._mobAcervoSearch=function(q){
   if(!hits.length){el.innerHTML='<div class="mob-empty">Nenhum resultado.</div>';return;}
   el.innerHTML='<div class="mob-ficha-results">'+hits.map(function(f){
     return'<div class="mob-ficha-result-item" onclick="_mobAbrirAcervoDetail(\''+_mobEsc(f.codigo)+'\')">'+
-      '<span style="color:var(--text-muted);font-size:9px;margin-right:8px;">'+_mobEsc(f.codigo)+'</span>'+_mobEsc(filmDisplayTitle(f.codigo))+
+      '<span style="color:var(--text-muted);font-size:9px;margin-right:8px;">'+_mobEsc(f.codigo)+'</span>'+_mobEsc(filmDisplayTitle(f.codigo))+_filmFlags(f.codigo)+
     '</div>';
   }).join('')+'</div>';
 };
@@ -32006,7 +32010,7 @@ function _mobRenderAcervoDetail(params){
   }
   _mobSetContent(
     '<div class="mob-ficha-block">'+evPill+
-    '<div class="mob-ficha-titulo">'+_mobEsc(filmDisplayTitle(cod))+'</div>'+
+    '<div class="mob-ficha-titulo">'+_mobEsc(filmDisplayTitle(cod))+_filmFlags(cod)+'</div>'+
     '<div class="mob-ficha-subtitulo">'+_mobEsc(cod)+(f.hd?' · '+_mobEsc(f.hd):'')+'</div>'+
     _mobStatusBanner(f)+
     row('Duração',typeof fmtDur==='function'?fmtDur(f.duracao):f.duracao)+
@@ -32667,7 +32671,7 @@ window._mobCatSearch=function(q){
     var cm=catalogoFilmesMap&&catalogoFilmesMap[f.codigo];
     var dir=cm&&cm.director?(Array.isArray(cm.director)?cm.director.join(', '):cm.director):'';
     return'<div class="mob-ficha-result-item" onclick="_mobAbrirCatalogoDetail(\''+_mobEsc(f.codigo)+'\')">'+
-      '<div style="color:var(--text-dim);">'+_mobEsc(filmDisplayTitle(f.codigo))+'</div>'+
+      '<div style="color:var(--text-dim);">'+_mobEsc(filmDisplayTitle(f.codigo))+_filmFlags(f.codigo)+'</div>'+
       (dir?'<div style="font-size:9px;color:var(--text-muted);margin-top:2px;">'+_mobEsc(dir)+'</div>':'')+
     '</div>';
   }).join('')+'</div>';
@@ -32690,7 +32694,7 @@ function _mobRenderCatalogoDetail(params){
   var _mobSub=[cm.original_title,cm.english_title].filter(function(t){return t&&t!==_mobMainTitle;})[0]||'';
   _mobSetContent(
     '<div class="mob-ficha-block">'+evPill+
-    '<div class="mob-ficha-titulo">'+_mobEsc(_mobMainTitle)+'</div>'+
+    '<div class="mob-ficha-titulo">'+_mobEsc(_mobMainTitle)+_flagsHtml(cm.countries,true)+'</div>'+
     (_mobSub?'<div class="mob-ficha-subtitulo">'+_mobEsc(_mobSub)+'</div>':'')+
     row('Direção',cm.director)+row('Ano',cm.year)+row('País',cm.countries)+
     row('Duração',f&&(typeof fmtDur==='function'?fmtDur(f.duracao):f.duracao))+
@@ -33189,7 +33193,7 @@ function _mobRenderProgSessao(params,noScroll){
   films.forEach(function(f){
     html+='<div style="background:var(--surface);border:1px solid var(--border);border-radius:4px;margin-bottom:10px;overflow:hidden;">';
     html+='<div style="padding:10px 12px;border-bottom:1px solid var(--border);">';
-    html+='<div class="mob-sessao-filme">'+_mobEsc(filmDisplayTitle(f.codigo))+_versaoTagSessao(s,f.codigo)+'</div>';
+    html+='<div class="mob-sessao-filme">'+_mobEsc(filmDisplayTitle(f.codigo))+_filmFlags(f.codigo)+_versaoTagSessao(s,f.codigo)+'</div>';
     html+='<div style="font-family:var(--mono);font-size:9px;color:var(--text-muted);margin-top:2px;">'+_mobEsc(f.codigo)+_trafEnvio(s,f.codigo).map(function(h){var o=_trafOrigem(h,f._copiaId||f.codigo);return' · '+_mobEsc(h.data.nome||'HD')+(o?' ← '+_mobEsc(o):'');}).join('')+'</div>';
     html+='</div><div style="padding:8px 12px;">';
     var rowP=function(lbl,val){if(!val||val==='-'||val==='—'||val==='')return'';return'<div style="display:flex;gap:8px;padding:3px 0;font-family:var(--mono);font-size:10px;border-bottom:1px solid var(--border);"><span style="color:var(--text-muted);width:72px;flex-shrink:0;">'+lbl+'</span><span style="color:var(--text-dim);">'+_mobEsc(String(val))+'</span></div>';};
@@ -33931,7 +33935,7 @@ function _trBuildCards(codes){
       +(cbEnabled?'<label class="batch-cb-wrap" onclick="event.stopPropagation()"><input type="checkbox" class="batch-cb" data-codigo="'+cod.replace(/"/g,'&quot;')+'" onclick="event.stopPropagation();_trToggleSel(this,event)"'+(_triagemBatchSel.has(cod)?' checked':'')+'/></label>':(canEdit?'<span class="batch-cb-wrap" style="opacity:0.2;"><input type="checkbox" disabled title="Importado para os Selecionados"></span>':''))
       +'<button class="cat-item has-meta" style="'+itemGrid+'" data-cod="'+cod.replace(/"/g,'&quot;')+'" onclick="openTriagemDetail(this.dataset.cod)">'
       +'<span class="cat-item-code">'+esc(cod)+'</span>'
-      +'<span class="cat-item-title">'+esc(title)+'</span>'
+      +'<span class="cat-item-title">'+esc(title)+_flagsHtml(meta.countries)+'</span>'
       +(dir?'<span class="cat-item-dir">'+esc(dir)+'</span>':'<span class="cat-item-dir dim">—</span>')
       +(pais?'<span style="font-family:var(--sans);font-size:11px;color:var(--text-dim);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+esc(pais)+'</span>':'<span style="color:var(--text-muted)">—</span>')
       +'<span style="text-align:center;font-family:var(--mono);font-size:9px;color:var(--text-muted);">'+esc(meta.import_source||'—')+'</span>'
@@ -33992,7 +33996,7 @@ function renderTriagemDetail(){
   html+='<div class="cat-header-code">'+esc(_triagemCode)+selBadge+importadoBadge+_evBadgeTr+'</div>';
   var _respArr=Array.isArray(meta.responsaveis)?meta.responsaveis:[];
   if(_respArr.length)html+='<div class="cat-header-resp" style="margin-top:6px;display:flex;flex-wrap:wrap;gap:6px;align-items:center;"><span style="font-family:var(--mono);font-size:9px;letter-spacing:0.12em;text-transform:uppercase;color:var(--text-muted);">resp.</span>'+respPills(_respArr,'padding:3px 10px;border-radius:10px;')+'</div>';
-  html+='<div class="cat-header-title">'+esc(title)+'</div>';
+  html+='<div class="cat-header-title">'+esc(title)+_flagsHtml(meta.countries,true)+'</div>';
   var _origSubTr=[meta.original_title,meta.english_title].filter(function(t){return t&&t!==title;});
   if(_origSubTr.length){
     html+='<div class="cat-header-orig">'+esc(_origSubTr.join(' · '))+'</div>';

@@ -446,6 +446,8 @@ select:disabled{opacity:0.3;cursor:not-allowed;}
 .olga-flags-lg{gap:5px;margin-left:10px;}
 .olga-flag{display:inline-block;width:16px;height:12px;border-radius:1px;box-shadow:0 0 0 1px rgba(0,0,0,0.18);object-fit:cover;}
 .olga-flags-lg .olga-flag{width:24px;height:18px;border-radius:2px;}
+.olga-flag.olga-flag-uf{width:auto;max-width:20px;object-fit:contain;}
+.olga-flags-lg .olga-flag.olga-flag-uf{width:auto;max-width:30px;}
 .olga-flag-txt{font-family:var(--mono);font-size:8px;font-weight:700;letter-spacing:0.04em;padding:1px 3px;border:1px solid var(--border);color:var(--text-muted);line-height:1;}
 .prog-vin-templates-section{background:var(--surface2);border:1px solid var(--border);border-radius:var(--r);padding:10px 12px;margin-bottom:16px;}
 .prog-section-label{font-family:var(--sans);font-size:8px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:var(--text-muted);margin-bottom:6px;}
@@ -20000,7 +20002,7 @@ function renderDash(){
   html+=colBlock('legendagem','Legendagem',legBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 02/11/2026 às 11:08';
+  var sysUpdate='última atualização do sistema · 02/11/2026 às 12:06';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -20131,19 +20133,44 @@ function _paisIso(n){
   if(k==='uk')return'gb';
   return'';
 }
-// bandeirinhas dos países (sem repetir); grande=true para o cabeçalho da ficha
-function _flagsHtml(countries,grande){
+// UF do filme brasileiro: "SP", "Rio de Janeiro (RJ)", "Bahia"; GB = Guanabara (bandeira histórica).
+// As imagens ficam no próprio repositório do Flux (bandeiras/uf/xx.png e xx@2x.png, do Wikimedia Commons).
+var _UF_NOME={ac:'Acre',al:'Alagoas',ap:'Amapá',am:'Amazonas',ba:'Bahia',ce:'Ceará',df:'Distrito Federal',es:'Espírito Santo',
+  go:'Goiás',ma:'Maranhão',mt:'Mato Grosso',ms:'Mato Grosso do Sul',mg:'Minas Gerais',pa:'Pará',pb:'Paraíba',pr:'Paraná',
+  pe:'Pernambuco',pi:'Piauí',rj:'Rio de Janeiro',rn:'Rio Grande do Norte',rs:'Rio Grande do Sul',ro:'Rondônia',rr:'Roraima',
+  sc:'Santa Catarina',sp:'São Paulo',se:'Sergipe',to:'Tocantins',gb:'Guanabara'};
+var _UF_POR_NOME=(function(){var m={};Object.keys(_UF_NOME).forEach(function(u){m[_paisNorm(_UF_NOME[u])]=u;});return m;})();
+function _ufLista(v){
+  var out=[];
+  (Array.isArray(v)?v:(v?[v]:[])).forEach(function(x){
+    String(x||'').split(/\s*[,;\/|]\s*|\s+-\s+/).forEach(function(t){
+      var m=t.match(/\(([A-Za-z]{2})\)/),u='';
+      if(m)u=m[1].toLowerCase();
+      else if(/^[A-Za-z]{2}$/.test(t.trim()))u=t.trim().toLowerCase();
+      else u=_UF_POR_NOME[_paisNorm(t)]||'';
+      if(u&&_UF_NOME[u]&&out.indexOf(u)<0)out.push(u);
+    });
+  });
+  return out;
+}
+// bandeirinhas dos países (sem repetir) + do estado quando o filme é brasileiro; grande=true para o cabeçalho da ficha
+function _flagsHtml(countries,grande,uf){
   var vistos={},html='';
-  _paisesLista(countries).forEach(function(n){
+  var ufs=_ufLista(uf),paises=_paisesLista(countries);
+  if(ufs.length&&!paises.length)paises=['Brasil'];
+  paises.forEach(function(n){
     var iso=_paisIso(n),hist=_PAIS_HIST[_paisNorm(n)];
     var chave=iso||hist;if(!chave||vistos[chave])return;vistos[chave]=1;
     if(hist){html+='<span class="olga-flag-txt" title="'+esc(n)+'">'+hist+'</span>';return;}
     var w=grande?24:16,h=grande?18:12;
     html+='<img class="olga-flag" src="https://flagcdn.com/'+w+'x'+h+'/'+iso+'.png" srcset="https://flagcdn.com/'+(w*2)+'x'+(h*2)+'/'+iso+'.png 2x" width="'+w+'" height="'+h+'" alt="'+iso.toUpperCase()+'" title="'+esc(n)+'" loading="lazy">';
+    if(iso==='br')ufs.forEach(function(u){
+      html+='<img class="olga-flag olga-flag-uf" src="bandeiras/uf/'+u+'.png" srcset="bandeiras/uf/'+u+'@2x.png 2x" alt="'+u.toUpperCase()+'" title="'+esc(_UF_NOME[u])+'" loading="lazy">';
+    });
   });
   return html?'<span class="olga-flags'+(grande?' olga-flags-lg':'')+'">'+html+'</span>':'';
 }
-function _filmFlags(cod){var cm=catalogoFilmesMap&&catalogoFilmesMap[cod];return cm?_flagsHtml(cm.countries):'';}
+function _filmFlags(cod){var cm=catalogoFilmesMap&&catalogoFilmesMap[cod];return cm?_flagsHtml(cm.countries,false,cm.uf):'';}
 function progCountryDisplay(name){
   if(!name)return'';
   return'<span class="prog-country-plain">'+esc(name)+'</span>';
@@ -22043,7 +22070,7 @@ function _progFichaContentHTML(sessaoNome,s,prog){
   var films=s.filmes.map(function(cd){
     var cm=(catalogoFilmesMap&&catalogoFilmesMap[cd])||{};
     var f=_filmeNaSessao(s,cd);
-    return{codigo:cd,titulo_pt:filmDisplayTitle(cd),titulo:f.titulo||cd,duracao:f.duracao||'',idioma:cm.original_language||f.idioma||'',legenda:f.legenda||'',vf:f.vf||'',acessibilidade:f.acessibilidade||'',countries:cm.countries||[],exhibition_format:f.exhibition_format||'',exhibition_format_notes:f.exhibition_format_notes||'',lente:f.lente||'',som:f.som||''};
+    return{codigo:cd,titulo_pt:filmDisplayTitle(cd),titulo:f.titulo||cd,duracao:f.duracao||'',idioma:cm.original_language||f.idioma||'',legenda:f.legenda||'',vf:f.vf||'',acessibilidade:f.acessibilidade||'',countries:cm.countries||[],uf:cm.uf||'',exhibition_format:f.exhibition_format||'',exhibition_format_notes:f.exhibition_format_notes||'',lente:f.lente||'',som:f.som||''};
   }).filter(function(f){return f.titulo_pt||f.codigo;});
   var totalMins=0;
   films.forEach(function(f){var d=f.duracao||'';if(/^\d{1,2}:\d{2}/.test(d)){var p=d.split(':').map(Number);totalMins+=p[0]*60+p[1];}});
@@ -22115,7 +22142,7 @@ function _progFichaContentHTML(sessaoNome,s,prog){
     var fRaw=_copiaNaSessao(s,f.codigo)||{};var fKdm=(fRaw.kdm||'').toLowerCase()==='sim';
     var kdmCell=fKdm?'<span class="badge badge-kdm-sim" style="font-size:8px;">KDM</span>':'<span style="color:var(--text-muted)">—</span>';
     return'<tr><td class="film-num">'+(idx+1)+'</td>'
-      +'<td><div class="film-title">'+esc(f.titulo_pt)+_flagsHtml(f.countries)+'</div>'+(f.titulo_pt!==f.titulo&&f.titulo?'<div class="film-sub" style="font-size:9px;color:var(--text-muted);">'+esc(f.titulo)+'</div>':'')+'</td>'
+      +'<td><div class="film-title">'+esc(f.titulo_pt)+_flagsHtml(f.countries,false,f.uf)+'</div>'+(f.titulo_pt!==f.titulo&&f.titulo?'<div class="film-sub" style="font-size:9px;color:var(--text-muted);">'+esc(f.titulo)+'</div>':'')+'</td>'
       // formato da cópia que será exibida nesta sessão (versão escolhida)
       +'<td class="prog-fmt-cell">'+(f.exhibition_format?'<div class="prog-fmt-val">'+esc(f.exhibition_format==='Outro'&&f.exhibition_format_notes?f.exhibition_format_notes:f.exhibition_format)+'</div>':'<span style="color:var(--text-muted)">—</span>')+_versaoTagSessao(s,f.codigo)+'</td>'
       +'<td><div class="dur-text">'+fmtDur(f.duracao)+'</div></td>'
@@ -24745,7 +24772,7 @@ function _catBuildCards(films){
       +'<button class="cat-item cat-sel-grid'+(hasMeta?' has-meta':'')+'" data-cod="'+f.codigo.replace(/"/g,'&quot;')+'" onclick="openCatDetail(this.dataset.cod)">'
       +evSpan
       +'<span class="cat-item-code" title="'+f.codigo.replace(/"/g,'&quot;')+'">'+stripEvPrefix(f.codigo,f.evento)+'</span>'
-      +'<span class="cat-item-title"><span class="cat-exp-tg" title="Informações básicas" onclick="event.stopPropagation();_catToggleResExp('+_ci+',this)" style="display:inline-block;width:14px;color:var(--text-muted);cursor:pointer;font-size:9px;transition:transform .15s;">▶</span>'+(title||'')+_flagsHtml(meta.countries)+'</span>'
+      +'<span class="cat-item-title"><span class="cat-exp-tg" title="Informações básicas" onclick="event.stopPropagation();_catToggleResExp('+_ci+',this)" style="display:inline-block;width:14px;color:var(--text-muted);cursor:pointer;font-size:9px;transition:transform .15s;">▶</span>'+(title||'')+_flagsHtml(meta.countries,false,meta.uf)+'</span>'
       +(dir?'<span class="cat-item-dir cc-dir">'+dir+'</span>':'<span class="cat-item-dir dim cc-dir">—</span>')
       +durSpan
       +ftypeSpan
@@ -25228,7 +25255,7 @@ function renderCatDetail(){
     html+=catFld('Direção',catTagInp('director',dirArr));
   }else{
     var _mainTitle=filmDisplayTitle(_catCode);
-    html+='<div class="cat-header-title">'+esc(_mainTitle)+_flagsHtml(meta.countries,true)+'</div>';
+    html+='<div class="cat-header-title">'+esc(_mainTitle)+_flagsHtml(meta.countries,true,meta.uf)+'</div>';
     var _origSub=[meta.original_title,meta.english_title].filter(function(t){return t&&t!==_mainTitle;});
     if(_origSub.length)html+='<div class="cat-header-orig">'+esc(_origSub.join(' · '))+'</div>';
     if(dirDisplay)html+='<div class="cat-header-dir">dir. '+esc(dirDisplay)+'</div>';
@@ -31063,7 +31090,7 @@ function _sxcPrint(){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 02/11/2026 às 11:08</span></div>
+<div id="page-footer"><span>última atualização · 02/11/2026 às 12:06</span></div>
 
 </div>
 
@@ -32694,7 +32721,7 @@ function _mobRenderCatalogoDetail(params){
   var _mobSub=[cm.original_title,cm.english_title].filter(function(t){return t&&t!==_mobMainTitle;})[0]||'';
   _mobSetContent(
     '<div class="mob-ficha-block">'+evPill+
-    '<div class="mob-ficha-titulo">'+_mobEsc(_mobMainTitle)+_flagsHtml(cm.countries,true)+'</div>'+
+    '<div class="mob-ficha-titulo">'+_mobEsc(_mobMainTitle)+_flagsHtml(cm.countries,true,cm.uf)+'</div>'+
     (_mobSub?'<div class="mob-ficha-subtitulo">'+_mobEsc(_mobSub)+'</div>':'')+
     row('Direção',cm.director)+row('Ano',cm.year)+row('País',cm.countries)+
     row('Duração',f&&(typeof fmtDur==='function'?fmtDur(f.duracao):f.duracao))+
@@ -33935,7 +33962,7 @@ function _trBuildCards(codes){
       +(cbEnabled?'<label class="batch-cb-wrap" onclick="event.stopPropagation()"><input type="checkbox" class="batch-cb" data-codigo="'+cod.replace(/"/g,'&quot;')+'" onclick="event.stopPropagation();_trToggleSel(this,event)"'+(_triagemBatchSel.has(cod)?' checked':'')+'/></label>':(canEdit?'<span class="batch-cb-wrap" style="opacity:0.2;"><input type="checkbox" disabled title="Importado para os Selecionados"></span>':''))
       +'<button class="cat-item has-meta" style="'+itemGrid+'" data-cod="'+cod.replace(/"/g,'&quot;')+'" onclick="openTriagemDetail(this.dataset.cod)">'
       +'<span class="cat-item-code">'+esc(cod)+'</span>'
-      +'<span class="cat-item-title">'+esc(title)+_flagsHtml(meta.countries)+'</span>'
+      +'<span class="cat-item-title">'+esc(title)+_flagsHtml(meta.countries,false,meta.uf)+'</span>'
       +(dir?'<span class="cat-item-dir">'+esc(dir)+'</span>':'<span class="cat-item-dir dim">—</span>')
       +(pais?'<span style="font-family:var(--sans);font-size:11px;color:var(--text-dim);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+esc(pais)+'</span>':'<span style="color:var(--text-muted)">—</span>')
       +'<span style="text-align:center;font-family:var(--mono);font-size:9px;color:var(--text-muted);">'+esc(meta.import_source||'—')+'</span>'
@@ -33996,7 +34023,7 @@ function renderTriagemDetail(){
   html+='<div class="cat-header-code">'+esc(_triagemCode)+selBadge+importadoBadge+_evBadgeTr+'</div>';
   var _respArr=Array.isArray(meta.responsaveis)?meta.responsaveis:[];
   if(_respArr.length)html+='<div class="cat-header-resp" style="margin-top:6px;display:flex;flex-wrap:wrap;gap:6px;align-items:center;"><span style="font-family:var(--mono);font-size:9px;letter-spacing:0.12em;text-transform:uppercase;color:var(--text-muted);">resp.</span>'+respPills(_respArr,'padding:3px 10px;border-radius:10px;')+'</div>';
-  html+='<div class="cat-header-title">'+esc(title)+_flagsHtml(meta.countries,true)+'</div>';
+  html+='<div class="cat-header-title">'+esc(title)+_flagsHtml(meta.countries,true,meta.uf)+'</div>';
   var _origSubTr=[meta.original_title,meta.english_title].filter(function(t){return t&&t!==title;});
   if(_origSubTr.length){
     html+='<div class="cat-header-orig">'+esc(_origSubTr.join(' · '))+'</div>';

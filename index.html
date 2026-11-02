@@ -19621,6 +19621,22 @@ function renderDash(){
           bodyHtml+='<div class="dsd-sala-row"><span class="dsd-sala-name" onclick="goToCinemaFromDash(\''+safeSala+'\')">'+sala+'</span><span class="dsd-sala-meta">'+salaSess.length+' sess'+(salaSess.length===1?'ão':'ões')+'</span></div>';
           bodyHtml+=_dashSessListHtml(salaSess);
         });
+      }else if(key.indexOf('p_orig_')===0){
+        var _og=_dashOrigemFilmes(sessoes)[key.slice(7)];
+        title=_og.titulo+' ('+_og.codes.length+')';
+        bodyHtml='';
+        var _ogFilmRow=function(c){
+          return'<div class="dsd-film-row" style="padding-left:18px;"><span class="dsd-film-title">'+esc(filmDisplayTitle(c))+_filmFlags(c)+'</span><span class="dsd-film-code">'+esc(c)+'</span></div>';
+        };
+        if(!_og.grupos.length)_og.codes.forEach(function(c){bodyHtml+=_ogFilmRow(c).replace('padding-left:18px;','');});
+        _og.grupos.forEach(function(g,i){
+          var rk='orig_'+key+'_'+i,exp=!!_dashProgRowExpand[rk];
+          bodyHtml+='<div class="dsd-film-row" style="cursor:pointer;" onclick="_dashProgToggleRow(\''+rk+'\')">'
+            +'<span class="dsd-film-title">'+(exp?'▾':'▸')+' '+g.flag+esc(g.nome)+'</span>'
+            +'<span class="dsd-film-sess">'+g.codes.length+' filme'+(g.codes.length===1?'':'s')+'</span>'
+            +'</div>';
+          if(exp)g.codes.forEach(function(c){bodyHtml+=_ogFilmRow(c);});
+        });
       }else if(key==='p_acess'){
         var paArr=_progSessoes.filter(function(s){var _av=(s.acessibilidades||'').toString().trim();return _av!==''&&!/^n[ãa]o$/i.test(_av);}).sort(function(a,b){return a.date&&b.date?a.date-b.date:0;});
         title='Sessões acessíveis ('+paArr.length+')';
@@ -19827,6 +19843,13 @@ function renderDash(){
   progBody+=statTile('p_sessoes','prog','<svg width="20" height="20" viewBox="0 0 24 24" style="stroke:currentColor;stroke-width:1.5;fill:none;stroke-linecap:round;stroke-linejoin:round;" xmlns="http://www.w3.org/2000/svg"><path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z"/><path d="M13 5v2"/><path d="M13 17v2"/><path d="M13 11v2"/></svg>',statsNum(_progSessoes.length),'sessões');
   progBody+=statTile('p_salas','prog','<svg width="20" height="20" viewBox="0 0 24 24" style="stroke:currentColor;stroke-width:1.5;fill:none;stroke-linecap:round;stroke-linejoin:round;" xmlns="http://www.w3.org/2000/svg"><path d="M20.2 6 3 11l-.9-2.4c-.3-1.1.3-2.2 1.3-2.5l13.5-4c1-.3 2.1.3 2.4 1.3Z"/><path d="m6.2 5.3 3.1 3.9"/><path d="m12.4 3.4 3.1 3.9"/><path d="M3 11h18v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z"/></svg>',statsNum(_pSalas.size),'salas');
   progBody+=statTile('p_acess','prog','<svg width="14" height="14" viewBox="0 0 24 24" style="stroke:currentColor;stroke-width:1.75;fill:none;stroke-linecap:round;stroke-linejoin:round;" xmlns="http://www.w3.org/2000/svg"><circle cx="11" cy="4" r="1"/><path d="m11 9 2 7h5l-1.5 3"/><path d="M9 9H7l1 7"/><path d="M13.5 19a4.5 4.5 0 1 1-9 0 4.5 4.5 0 0 1 9 0z"/></svg>',statsNum(_pAcess),'sessões acessíveis');
+  var _pOrig=_dashOrigemFilmes(_progSessoes);
+  var _icoGlobo='<svg width="20" height="20" viewBox="0 0 24 24" style="stroke:currentColor;stroke-width:1.5;fill:none;stroke-linecap:round;stroke-linejoin:round;" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="12" r="10"/><path d="M2 12h20"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>';
+  var _nGr=function(o){var n=o.grupos.length;return n+(o.rotuloGrupo==='estado'?(n===1?' estado':' estados'):(n===1?' país ou combinação':' países ou combinações'));};
+  progBody+=statTile('p_orig_br','prog',_icoGlobo,statsNum(_pOrig.br.codes.length),'filmes brasileiros',_nGr(_pOrig.br));
+  progBody+=statTile('p_orig_cop','prog',_icoGlobo,statsNum(_pOrig.cop.codes.length),'coproduções Brasil/exterior',_nGr(_pOrig.cop));
+  progBody+=statTile('p_orig_est','prog',_icoGlobo,statsNum(_pOrig.est.codes.length),'filmes estrangeiros',_nGr(_pOrig.est));
+  if(_pOrig.sem.codes.length)progBody+=statTile('p_orig_sem','prog',_icoGlobo,statsNum(_pOrig.sem.codes.length),'sem país informado','');
   progBody+='</div>';
   if(dashStatSelected&&dashStatSelected.scope==='prog'){progBody+=renderStatDetail(dashStatSelected.key,'prog',_progSessoes,{});}
   html+=colBlock('programacao',progLabel,progBody);
@@ -20061,7 +20084,7 @@ function renderDash(){
   html+=colBlock('legendagem','Legendagem',legBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 02/11/2026 às 19:15';
+  var sysUpdate='última atualização do sistema · 02/11/2026 às 19:21';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -20233,6 +20256,51 @@ function _flagsHtml(countries,grande,uf){
   return html?'<span class="olga-flags'+(grande?' olga-flags-lg':'')+'">'+html+'</span>':'';
 }
 function _filmFlags(cod){var cm=catalogoFilmesMap&&catalogoFilmesMap[cod];return cm?_flagsHtml(cm.countries,false,cm.uf):'';}
+// nome padronizado do país, para agrupar "France", "França" e "FR" juntos
+var _PAIS_HIST_NOME={URSS:'União Soviética',IUG:'Iugoslávia'};
+var _paisDN=null;try{_paisDN=new Intl.DisplayNames(['pt-BR'],{type:'region'});}catch(e){}
+function _paisNomePadrao(n){
+  var hist=_PAIS_HIST[_paisNorm(n)];if(hist)return{chave:hist,nome:_PAIS_HIST_NOME[hist]};
+  var iso=_paisIso(n);
+  if(!iso)return{chave:'?'+_paisNorm(n),nome:String(n).trim()};
+  var nome='';try{nome=_paisDN?_paisDN.of(iso.toUpperCase()):'';}catch(e){}
+  return{chave:iso,nome:nome&&nome!==iso.toUpperCase()?nome:String(n).trim()};
+}
+// Dashboard › Programação: filmes das sessões por origem. Brasileiros por UF; coproduções com o Brasil e
+// estrangeiros por combinação de países em ordem alfabética (França/Argentina e Argentina/França = Argentina/França)
+function _dashOrigemFilmes(sessoes){
+  var vistos={},r={
+    br:{titulo:'Filmes brasileiros por estado',rotuloGrupo:'estado',codes:[],mapa:{}},
+    cop:{titulo:'Coproduções Brasil/exterior',rotuloGrupo:'pais',codes:[],mapa:{}},
+    est:{titulo:'Filmes estrangeiros por país',rotuloGrupo:'pais',codes:[],mapa:{}},
+    sem:{titulo:'Filmes sem país informado',rotuloGrupo:'',codes:[],mapa:{}}
+  };
+  var cmp=function(a,b){return a.localeCompare(b,'pt-BR',{sensitivity:'base'});};
+  var add=function(o,chave,nome,flag,c){if(!o.mapa[chave])o.mapa[chave]={nome:nome,flag:flag,codes:[]};o.mapa[chave].codes.push(c);};
+  (sessoes||[]).forEach(function(s){(s.filmes||[]).forEach(function(c){
+    if(vistos[c])return;vistos[c]=1;
+    var cm=(catalogoFilmesMap&&catalogoFilmesMap[c])||{};
+    var ufs=_ufLista(cm.uf),ps={},temBr=false;
+    _paisesLista(cm.countries).forEach(function(n){var p=_paisNomePadrao(n);if(p.chave==='br')temBr=true;else ps[p.chave]=p;});
+    if(ufs.length&&!Object.keys(ps).length)temBr=true;
+    var outros=Object.keys(ps).map(function(k){return ps[k];}).sort(function(a,b){return cmp(a.nome,b.nome);});
+    var nomes=outros.map(function(p){return p.nome;});
+    var flags=_flagsHtml(nomes,false);
+    if(!temBr&&!outros.length){r.sem.codes.push(c);return;}
+    if(!temBr){r.est.codes.push(c);add(r.est,nomes.join('/'),nomes.join('/'),flags,c);return;}
+    if(outros.length){r.cop.codes.push(c);add(r.cop,nomes.join('/'),'Brasil/'+nomes.join('/'),_flagsHtml(['Brasil'],false)+flags,c);return;}
+    r.br.codes.push(c);
+    if(!ufs.length){add(r.br,'~','UF não informada',_flagsHtml(['Brasil'],false),c);return;}
+    ufs.forEach(function(u){add(r.br,u,_UF_NOME[u]+' ('+u.toUpperCase()+')',_flagsHtml(['Brasil'],false,[u]),c);});
+  });});
+  var byTit=function(a,b){return cmp(filmDisplayTitle(a),filmDisplayTitle(b));};
+  Object.keys(r).forEach(function(k){
+    var o=r[k];o.codes.sort(byTit);
+    o.grupos=Object.keys(o.mapa).map(function(g){o.mapa[g].codes.sort(byTit);o.mapa[g].chave=g;return o.mapa[g];})
+      .sort(function(a,b){return(a.chave==='~')-(b.chave==='~')||b.codes.length-a.codes.length||cmp(a.nome,b.nome);});
+  });
+  return r;
+}
 function progCountryDisplay(name){
   if(!name)return'';
   return'<span class="prog-country-plain">'+esc(name)+'</span>';
@@ -31157,7 +31225,7 @@ function _sxcPrint(){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 02/11/2026 às 19:15</span></div>
+<div id="page-footer"><span>última atualização · 02/11/2026 às 19:21</span></div>
 
 </div>
 

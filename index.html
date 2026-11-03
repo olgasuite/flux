@@ -4682,7 +4682,7 @@ html[data-theme="indexof"]:not([data-theme="win98"]) .module-icon{display:flex!i
       snap.forEach(function(d){
         var r=d.data(),cod=_fs(r['bumper_code']);if(!cod||cod==='-')return;
         var ev=_fs(r['event_name']);if(_ue&&ev&&!_ue.has(ev))return;
-        a2.push({evento:ev,codigo:cod,nome:_fs(r['title']),lente:_fs(r['projection_lens']),som:_fs(r['audio_format']),obs:_fs(r['notes']),cpl:_fs(r['cpl_id']),link:_fs(r['file_link']),duracao:_fs(r['duration'])});
+        a2.push({evento:ev,codigo:cod,nome:_fs(r['title']),lente:_fs(r['projection_lens']),som:_fs(r['audio_format']),obs:_fs(r['notes']),cpl:_fs(r['cpl_id']),link:_fs(r['file_link']),duracao:_fs(r['duration']),componentes:Array.isArray(r['components'])?r['components'].map(_fs).filter(Boolean):[]});
       });
       vinhetasArr=a2;
       var vr2={};sessoesArr.forEach(function(s){(s.vinhetas||[]).forEach(function(c){if(!vr2[c])vr2[c]=[];vr2[c].push(s.nome);});});
@@ -5724,7 +5724,9 @@ html[data-theme="indexof"]:not([data-theme="win98"]) .module-icon{display:flex!i
           nome: fs(r['title']), lente: fs(r['projection_lens']),
           som: fs(r['audio_format']), obs: fs(r['notes']),
           cpl: fs(r['cpl_id']), link: fs(r['file_link']),
-          duracao: fs(r['duration'])
+          duracao: fs(r['duration']),
+          // bloco/pacote: um DCP só com várias vinhetas dentro (códigos, na ordem)
+          componentes: Array.isArray(r['components']) ? r['components'].map(fs).filter(Boolean) : []
         });
       });
       vinhetasArr = arr;
@@ -16956,6 +16958,30 @@ function renderProjecao(){
 }
 
 /* VINHETAS */
+// Bloco (pacote) = uma vinheta com `componentes`: um DCP só com várias vinhetas dentro (ex. FR26 02MASTER_2026_F).
+// A sessão leva o bloco; nos controles de público cada vinheta de dentro conta individualmente.
+function _vinInfo(cod){return vinhetasArr.find(function(v){return v.codigo===cod;})||null;}
+// códigos da sessão + as vinhetas de dentro dos blocos, sem repetir
+function _vinExpandida(lista){
+  var out=[];
+  (lista||[]).forEach(function(cod){
+    if(out.indexOf(cod)<0)out.push(cod);
+    var v=_vinInfo(cod);
+    (v&&v.componentes||[]).forEach(function(c){if(out.indexOf(c)<0)out.push(c);});
+  });
+  return out;
+}
+// blocos que contêm a vinheta
+function _vinBlocosCom(cod){return vinhetasArr.filter(function(v){return(v.componentes||[]).indexOf(cod)>=0;});}
+function _vinPacoteHtml(cod){
+  var v=_vinInfo(cod),st='font-family:var(--mono);font-size:9px;color:var(--text-dim);margin-top:3px;';
+  if(v&&v.componentes&&v.componentes.length){
+    return'<div style="'+st+'">bloco · '+v.componentes.length+' vinheta'+(v.componentes.length===1?'':'s')+': '
+      +esc(v.componentes.map(function(c){var x=_vinInfo(c);return x?x.nome:c;}).join(' · '))+'</div>';
+  }
+  var bl=_vinBlocosCom(cod);
+  return bl.length?'<div style="'+st+'">dentro de '+bl.length+' bloco'+(bl.length===1?'':'s')+': '+esc(bl.map(function(b){return b.cpl||b.nome;}).join(', '))+'</div>':'';
+}
 function sessoesVinhetas(){
   return sessoesArr.filter(function(s){return!s.evento||activeEventsVinhetas.has(s.evento);});
 }
@@ -17060,10 +17086,11 @@ function renderVinhetas(){
   vd.style.display='none';
 
   // build index: codigo → {info, sessions[]}
+  // A sessão conta para o bloco (o DCP) e para cada vinheta de dentro dele (_vinExpandida).
   var sessoes=filteredSessoesForVinhetas();
   var idx={};var order=[];
   sessoes.forEach(function(s){
-    (s.vinhetas||[]).forEach(function(cod){
+    _vinExpandida(s.vinhetas).forEach(function(cod){
       if(!idx[cod]){
         idx[cod]={cod:cod,info:null,sessions:[]};
         order.push(cod);
@@ -17114,6 +17141,7 @@ function renderVinhetas(){
           '<div class="vinheta-card-name">'+nome+'</div>'+
           evPill+
           (info&&info.cpl?'<div class="vinheta-card-cpl">'+info.cpl+'</div>':'')+
+          _vinPacoteHtml(cod)+
         '</div>'+
         (badges?'<span class="vinheta-card-badges">'+badges+'</span>':'')+
         '<div class="vinheta-card-counts">'+
@@ -17153,8 +17181,9 @@ function openVinhetaDetail(cod){
   var nome=info?info.nome:cod;
 
   // all sessions (no filter) that have this vinheta code
+  // inclui as sessões em que a vinheta vai dentro de um bloco
   var allSessions=sessoesArr.filter(function(s){
-    return s.vinhetas&&s.vinhetas.indexOf(cod)!==-1&&
+    return s.vinhetas&&_vinExpandida(s.vinhetas).indexOf(cod)!==-1&&
            (!s.evento||activeEventsVinhetas.has(s.evento));
   }).sort(function(a,b){return a.date&&b.date?a.date-b.date||0:0;});
 
@@ -17184,6 +17213,7 @@ function openVinhetaDetail(cod){
     '<div class="vinheta-detail-header">'+
       '<div class="vinheta-detail-title">'+cod+' &nbsp;<span style="font-size:13px;font-weight:400;color:var(--text-dim);">'+nome+'</span></div>'+
       (metaHtml?'<div class="vinheta-detail-meta">'+metaHtml+'</div>':'')+
+      _vinPacoteHtml(cod)+
       (info&&info.obs?'<div class="vinheta-detail-obs">'+info.obs+'</div>':'')+
     '</div>'+
     '<div class="vinheta-sessions-table">'+
@@ -17221,6 +17251,7 @@ function openVinhetaModal(cod){
     +'<div class="prog-modal-field"><label class="prog-modal-label">Duração (H:MM:SS)</label><input class="prog-modal-input" id="vm_duracao" value="'+esc(v?v.duracao:'')+'" placeholder="Ex: 0:02:30"></div>'
     +'<div class="prog-modal-field"><label class="prog-modal-label">Link do arquivo</label><input class="prog-modal-input" id="vm_link" type="url" value="'+esc(v?v.link:'')+'"></div>'
     +'<div class="prog-modal-field"><label class="prog-modal-label">Observações</label><input class="prog-modal-input" id="vm_obs" value="'+esc(v?v.obs:'')+'"></div>'
+    +'<div class="prog-modal-field"><label class="prog-modal-label">Vinhetas dentro do bloco (códigos na ordem, separados por vírgula — vazio se não é bloco)</label><input class="prog-modal-input" id="vm_comp" value="'+esc(v?(v.componentes||[]).join(', '):'')+'" list="vm_comp_list"><datalist id="vm_comp_list">'+listOpts(vinhetasArr.map(function(x){return x.codigo;}))+'</datalist></div>'
     +'</div>';
   document.getElementById('vinhetaModalTitle').textContent=cod?'Editar vinheta · '+cod:'Nova vinheta';
   document.getElementById('vinhetaModalBody').innerHTML=body;
@@ -17248,8 +17279,11 @@ async function saveVinhetaModal(){
     cpl_id:(document.getElementById('vm_cpl').value||'').trim(),
     duration:(document.getElementById('vm_duracao').value||'').trim(),
     file_link:(document.getElementById('vm_link').value||'').trim(),
-    notes:(document.getElementById('vm_obs').value||'').trim()
+    notes:(document.getElementById('vm_obs').value||'').trim(),
+    components:(document.getElementById('vm_comp').value||'').split(/[,;\n]+/).map(function(x){return x.trim();}).filter(function(x){return x&&x!==code;})
   };
+  var _compFalta=data.components.filter(function(c){return!vinhetasArr.find(function(v){return v.codigo===c;});});
+  if(_compFalta.length){_vinhetaErr('Vinheta não cadastrada: '+_compFalta.join(', '));return;}
   var btn=document.getElementById('vinhetaModalSave');btn.disabled=true;btn.textContent='Salvando…';
   try{
     var _saveVin=data;
@@ -17259,9 +17293,9 @@ async function saveVinhetaModal(){
       if(_vPrev){
         var _vBase={event_name:_vPrev.evento||'',bumper_code:_vPrev.codigo||'',title:_vPrev.nome||'',
           projection_lens:_vPrev.lente||'',audio_format:_vPrev.som||'',cpl_id:_vPrev.cpl||'',
-          duration:_vPrev.duracao||'',file_link:_vPrev.link||'',notes:_vPrev.obs||''};
+          duration:_vPrev.duracao||'',file_link:_vPrev.link||'',notes:_vPrev.obs||'',components:_vPrev.componentes||[]};
         _saveVin={};
-        Object.keys(data).forEach(function(k){if(String(data[k]||'')!==String(_vBase[k]||''))_saveVin[k]=data[k];});
+        Object.keys(data).forEach(function(k){if(JSON.stringify(data[k]||'')!==JSON.stringify(_vBase[k]||''))_saveVin[k]=data[k];});
       }
     }
     if(Object.keys(_saveVin).length){
@@ -17294,7 +17328,7 @@ async function duplicateVinheta(cod){
     await window._olgaVinhetas.save(newCod,{
       event_name:v.evento,bumper_code:newCod,title:v.nome+' (cópia)',
       projection_lens:v.lente,audio_format:v.som,cpl_id:v.cpl,
-      duration:v.duracao,file_link:v.link,notes:v.obs
+      duration:v.duracao,file_link:v.link,notes:v.obs,components:v.componentes||[]
     });
     await window._olgaVinhetas.reload();renderVinhetas();
   }catch(e){alert('Erro: '+e.message);}
@@ -20105,7 +20139,7 @@ function renderDash(){
   html+=colBlock('legendagem','Legendagem',legBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 02/11/2026 às 20:13';
+  var sysUpdate='última atualização do sistema · 03/11/2026 às 18:54';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -31246,7 +31280,7 @@ function _sxcPrint(){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 02/11/2026 às 20:13</span></div>
+<div id="page-footer"><span>última atualização · 03/11/2026 às 18:54</span></div>
 
 </div>
 

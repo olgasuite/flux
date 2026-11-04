@@ -6070,7 +6070,8 @@ html[data-theme="indexof"]:not([data-theme="win98"]) .module-icon{display:flex!i
             restricoes: (d.restricoes && d.restricoes.length) ? d.restricoes : [],
             modulos_edicao: (d.modulos_edicao && d.modulos_edicao.length) ? d.modulos_edicao : [],
             role_template: d.role_template || null,
-            avisos_vistos_ate: d.avisos_vistos_ate || 0
+            avisos_vistos_ate: d.avisos_vistos_ate || 0,
+            avisos_vistos_ev: (d.avisos_vistos_ev && typeof d.avisos_vistos_ev === 'object') ? d.avisos_vistos_ev : {}
           };
         }
       } catch(e) {
@@ -6475,13 +6476,15 @@ html[data-theme="indexof"]:not([data-theme="win98"]) .module-icon{display:flex!i
     if(!as||a.tipo==='filme_catalogo')return a.itens||[];
     return (a.itens||[]).filter(function(it){return as.has(it.local);});
   }
+  // "ciente" por evento (avisos_vistos_ev[ev]); avisos_vistos_ate é o ciente geral antigo, que continua valendo como piso
+  function _avVistoAte(u,ev){ return Math.max(u.avisos_vistos_ate||0, (u.avisos_vistos_ev&&u.avisos_vistos_ev[ev])||0); }
   function _avPendentes(){
     var u=window._olgaUser; if(!u)return [];
-    var me=(u.email||'').toLowerCase(), visto=u.avisos_vistos_ate||0, hoje=_avIso(_avHoje());
+    var me=(u.email||'').toLowerCase(), hoje=_avIso(_avHoje());
     // só eventos ligados na barra de eventos (não basta o usuário ter acesso)
     var sel=typeof _userEvSel!=='undefined'?_userEvSel:null;
     return (window._olgaAvisos||[]).filter(function(a){
-      if(a.user===me||a._ms<=visto)return false;
+      if(a.user===me||a._ms<=_avVistoAte(u,a.event_id))return false;
       if(sel&&!sel.has(a.event_id))return false;
       if(a.tipo==='filme_catalogo')return true;
       return _avItensPermitidos(a).some(function(it){return !it.data||it.data>=hoje;});
@@ -6532,10 +6535,13 @@ html[data-theme="indexof"]:not([data-theme="win98"]) .module-icon{display:flex!i
   };
   window._olgaAvisosCiente = async function(){
     var u=window._olgaUser; if(!u)return;
-    var max=_avPendentes().reduce(function(m,a){return Math.max(m,a._ms);},u.avisos_vistos_ate||0);
-    u.avisos_vistos_ate=max;
+    // marca ciente só nos eventos dos avisos mostrados (os eventos desligados na barra continuam pendentes)
+    var porEv={};
+    _avPendentes().forEach(function(a){ porEv[a.event_id]=Math.max(porEv[a.event_id]||_avVistoAte(u,a.event_id), a._ms); });
+    if(!Object.keys(porEv).length)return;
+    u.avisos_vistos_ev=Object.assign({}, u.avisos_vistos_ev||{}, porEv);
     var el=document.getElementById('olga-avisos-pop'); if(el)el.remove();
-    try{ await setDoc(doc(db,'usuarios',u.email),{avisos_vistos_ate:max},{merge:true}); }catch(e){ console.warn('avisos ciente:',e); }
+    try{ await setDoc(doc(db,'usuarios',u.email),{avisos_vistos_ev:porEv},{merge:true}); }catch(e){ console.warn('avisos ciente:',e); }
   };
 
   window._queryLogs = async function(opts) {
@@ -20154,7 +20160,7 @@ function renderDash(){
   html+=colBlock('legendagem','Legendagem',legBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 03/11/2026 às 21:56';
+  var sysUpdate='última atualização do sistema · 03/11/2026 às 22:20';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -31295,7 +31301,7 @@ function _sxcPrint(){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 03/11/2026 às 21:56</span></div>
+<div id="page-footer"><span>última atualização · 03/11/2026 às 22:20</span></div>
 
 </div>
 

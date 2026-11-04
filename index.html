@@ -6478,8 +6478,11 @@ html[data-theme="indexof"]:not([data-theme="win98"]) .module-icon{display:flex!i
   function _avPendentes(){
     var u=window._olgaUser; if(!u)return [];
     var me=(u.email||'').toLowerCase(), visto=u.avisos_vistos_ate||0, hoje=_avIso(_avHoje());
+    // só eventos ligados na barra de eventos (não basta o usuário ter acesso)
+    var sel=typeof _userEvSel!=='undefined'?_userEvSel:null;
     return (window._olgaAvisos||[]).filter(function(a){
       if(a.user===me||a._ms<=visto)return false;
+      if(sel&&!sel.has(a.event_id))return false;
       if(a.tipo==='filme_catalogo')return true;
       return _avItensPermitidos(a).some(function(it){return !it.data||it.data>=hoje;});
     });
@@ -7800,6 +7803,7 @@ function _olgaEvSelAutoRecheck(){
   if(k===_evSelAuto)return;
   _userEvSel.clear();nova.forEach(function(e){_userEvSel.add(e);});_evSelAuto=k;
   if(currentMode)rebuildPillsForMode(currentMode);else if(typeof buildLandingPills==='function')buildLandingPills();
+  if(window._olgaAvisosCheck)window._olgaAvisosCheck();
   if(window._mobileActive&&typeof olgaMobileRefresh==='function')olgaMobileRefresh();
 }
 function applyParsedData(d,filename){
@@ -9359,7 +9363,8 @@ async function _gradeGerarPdfsSelecionadas(btn,ctx){
 function buildPills(container,evColors,activeSet,onToggle){
   window._lastPillCall={c:container,e:evColors,a:activeSet,o:onToggle};
   // o letreiro de mudanças segue a seleção de eventos
-  var _onT=onToggle;onToggle=function(){var r=_onT&&_onT.apply(this,arguments);if(window._mudMarqueeRender)window._mudMarqueeRender();return r;};
+  // e o aviso de mudanças também (só aparece para os eventos ligados na barra)
+  var _onT=onToggle;onToggle=function(){var r=_onT&&_onT.apply(this,arguments);if(window._mudMarqueeRender)window._mudMarqueeRender();if(window._olgaAvisosCheck)window._olgaAvisosCheck();return r;};
   container.innerHTML='';if(!Object.keys(evColors).length)return;
   var events=Object.keys(evColors);
   var evLocked=!!(window._olgaHasRestricao&&window._olgaHasRestricao('eventos.locked'));
@@ -20149,7 +20154,7 @@ function renderDash(){
   html+=colBlock('legendagem','Legendagem',legBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 03/11/2026 às 20:37';
+  var sysUpdate='última atualização do sistema · 03/11/2026 às 21:56';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -31290,7 +31295,7 @@ function _sxcPrint(){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 03/11/2026 às 20:37</span></div>
+<div id="page-footer"><span>última atualização · 03/11/2026 às 21:56</span></div>
 
 </div>
 

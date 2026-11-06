@@ -13581,7 +13581,7 @@ function buildBilheteriaFilters(){
 /* ═══════════════ LEGENDAGEM ELETRÔNICA ═══════════════ */
 // Status da cópia — lista ÚNICA do Acervo Técnico e do Print Traffic (campo copias.status, por versão).
 // '' = Não solicitado. Valor antigo fora da lista continua aparecendo no select até alguém trocar.
-var _COPIA_STATUS=['','Solicitado','Em trânsito','Recebido','Convertendo','AGUARDANDO LEGENDA','DCP OK','Arquivo OK','Revisão OK','REPROVADO','Devolvido'];
+var _COPIA_STATUS=['','Solicitado','Em trânsito','Recebido','Convertendo','AGUARDANDO LEGENDA','DCP OK','Arquivo OK','Revisão OK','REPROVADO','Devolvido','CAIU'];
 function _copiaStLabel(v){return v||'Não solicitado';}
 function _copiaStOpts(cur){var l=_COPIA_STATUS.slice();if(cur&&l.indexOf(cur)<0)l.push(cur);return l.map(function(v){return[v,_copiaStLabel(v)+(v&&_COPIA_STATUS.indexOf(v)<0?' (antigo)':'')];});}
 function _copiaStSelect(id,cls,cur,naoAlterar){
@@ -20200,7 +20200,7 @@ function renderDash(){
   html+=colBlock('legendagem','Legendagem',legBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 06/11/2026 às 11:08';
+  var sysUpdate='última atualização do sistema · 06/11/2026 às 11:17';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -31359,7 +31359,7 @@ function _sxcPrint(){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 06/11/2026 às 11:08</span></div>
+<div id="page-footer"><span>última atualização · 06/11/2026 às 11:17</span></div>
 
 </div>
 
@@ -35200,7 +35200,7 @@ function _ptCopiaSt(v){return((v&&v.status)||'').toString().trim();}
 // nível do status para a cor (0 = não iniciado, 1 = em andamento, 2 = concluído)
 function _ptNivel(g,v){
   if(g==='leg')return !v?0:v==='OK'?2:1;
-  if(g==='copia')return !v?0:(v==='Solicitado'||v==='Em trânsito'||v==='REPROVADO')?1:2;
+  if(g==='copia')return !v||v==='CAIU'?0:(v==='Solicitado'||v==='Em trânsito'||v==='REPROVADO')?1:2;
   if(!v||v==='nao_solicitado'||v==='pendente')return 0;
   return(g==='copia'&&(v==='recebido'||v==='devolvido'))||(g==='inv'&&v==='pago')||(g==='mat'&&v==='liberado')?2:1;
 }

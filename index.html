@@ -20200,7 +20200,7 @@ function renderDash(){
   html+=colBlock('legendagem','Legendagem',legBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 06/11/2026 às 11:24';
+  var sysUpdate='última atualização do sistema · 06/11/2026 às 12:05';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -31465,7 +31465,7 @@ function _sxcPrint(){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 06/11/2026 às 11:24</span></div>
+<div id="page-footer"><span>última atualização · 06/11/2026 às 12:05</span></div>
 
 </div>
 
@@ -35929,6 +35929,7 @@ function _trafRenderHd(cont,h){
     '<button class="print-btn" onclick="_trafHdSel=null;renderTrafego();">← HDs</button>'+
     (canEdit?'<input class="traf-input" style="font-size:15px;font-weight:700;width:200px;" value="'+esc(x.nome||'')+'" onchange="_trafSaveHd(\''+sid+'\',{nome:this.value.trim()})">':'<span style="font-family:var(--mono);font-size:15px;font-weight:700;">'+esc(x.nome||'HD')+'</span>')+
     '<button class="print-btn" onclick="_trafRelatorio(\''+sid+'\')">⎙ Relatório de ingest</button>'+
+    '<button class="print-btn" onclick="_trafValidaHd(\''+sid+'\')" title="Baixa a lista de CPLs deste HD para o OLGA Valida HD confrontar com o que está gravado (faltam / sobram)">⇩ Lista p/ Valida HD</button>'+
     (x.devolvido?'<span class="traf-badge traf-aus">devolvido'+(x.devolvido_em?' em '+esc(new Date(x.devolvido_em).toLocaleDateString('pt-BR')):'')+'</span>':'')+
     (canEdit?'<span style="margin-left:auto;display:flex;gap:6px;">'+
       (x.devolvido?'<button class="print-btn" onclick="_trafDevolvido(\''+sid+'\',false)">reativar</button>':
@@ -36138,6 +36139,48 @@ function _trafRelatorio(id){
   w.document.write('<!doctype html><html><head><meta charset="utf-8"><title>Exibição · relatório de ingest</title><style>@page{size:A4 landscape;margin:9mm;}body{font-family:sans-serif;font-size:11px;margin:0;}section+section{page-break-before:always;}h1{font-size:22px;margin:0 0 6px;}h2{font-size:12px;text-transform:uppercase;letter-spacing:.08em;margin:14px 0 5px;}.d{margin:3px 0;font-size:12px;}.m{color:#555;font-family:monospace;font-size:10px;}.ov{background:#ffe7a8;border:1px solid #d9a400;font-size:9px;font-weight:bold;padding:0 4px;white-space:nowrap;}.aus{color:#b00;}.av{border:2px solid #000;padding:9px 12px;margin:8px 0 10px;font-size:13px;line-height:1.5;}table{border-collapse:collapse;width:100%;font-size:11.5px;}th,td{border:1px solid #999;padding:5px 7px;text-align:left;vertical-align:top;}th{background:#222;color:#fff;font-size:10px;text-transform:uppercase;}td.n{text-align:right;white-space:nowrap;}td .m{word-break:break-all;}td.cpl{font-weight:bold;color:#000;}.rod{margin-top:10px;}</style></head><body>'+body+'</body></html>');
   w.document.close();
   setTimeout(function(){try{w.focus();w.print();}catch(_e){}},300);
+}
+
+/* ─── Integração com o OLGA Valida HD ───
+   Baixa {HD}.olgahd.json com os CPLs que DEVEM estar no HD (nome = ContentTitleText, como no
+   relatório de ingest: CPL principal + OV dos filmes OV+VF; vinhetas das sessões vão como
+   opcionais). O Valida HD carrega o arquivo (botão "Carregar lista do Flux" ou sozinho, se ele
+   estiver na raiz do HD), faz a conferência de sempre e confronta: faltam / sobram. */
+function _trafCplsDe(v){return String(v||'').split(/[\r\n;]+/).map(function(x){return x.trim();}).filter(function(x){return x&&x!=='-';});}
+function _trafValidaHd(id){
+  var h=_trafHdById(id);if(!h)return;
+  var x=h.data,r=_trafResumo(h),itens=[],vistos={};
+  function add(o){var k=(o.cpl||'').toUpperCase()+'|'+o.codigo+'|'+o.papel;if(vistos[k])return;vistos[k]=1;itens.push(o);}
+  r.presentes.forEach(function(it){
+    var f=_copiaPorId(it.c)||{};
+    var base={codigo:it.c,titulo:_trafTitulo(it.c),gb:_trafGB(it.c)||null,
+      sessoes:it.sessoes.map(function(s){return _trafBr(_trafIso(s.date))+' '+s.hora+' '+s.cinema;})};
+    var cpls=_trafCplsDe(f.cpl),ovs=_trafCplsDe(f.cplOV);
+    if(!cpls.length)add(Object.assign({},base,{cpl:'',papel:'principal'}));
+    cpls.forEach(function(c){add(Object.assign({},base,{cpl:c,papel:ovs.length?'VF':'principal'}));});
+    ovs.forEach(function(c){add(Object.assign({},base,{cpl:c,papel:'OV'}));});
+  });
+  // vinhetas das sessões do HD: opcionais (não contam como falta; se estiverem no HD não "sobram")
+  r.sessoes.forEach(function(s){
+    var bs=window._effectiveBumpers?_effectiveBumpers(s):(s.vinhetas||[]);
+    (bs||[]).forEach(function(cod){
+      var v=(typeof _vinInfo==='function')?_vinInfo(cod):null;if(!v)return;
+      _trafCplsDe(v.cpl).forEach(function(c){add({codigo:cod,titulo:v.nome||cod,cpl:c,papel:'vinheta',opcional:true,sessoes:[]});});
+    });
+  });
+  var semCpl=itens.filter(function(i){return !i.cpl;}).length;
+  var man={tipo:'olga-validahd-lista',versao:1,origem:'OLGA Flux',
+    evento:x.event_id||_trafEv,evento_nome:_trafEvNome(x.event_id||_trafEv),hd:x.nome||'HD',hd_id:h.id,
+    destinos:(x.destinos||[]).map(function(de){return{sala:de.sala,dias:(de.dias||[]).map(_trafBr)};}),
+    gerado_em:new Date().toISOString(),gerado_por:((window._olgaUser&&window._olgaUser.email)||'').toLowerCase(),
+    itens:itens};
+  var nome=('OLGA_ValidaHD_'+(man.evento||'')+'_'+(x.nome||'HD')).replace(/[^A-Za-z0-9_-]+/g,'_')+'.olgahd.json';
+  var url=URL.createObjectURL(new Blob([JSON.stringify(man,null,1)],{type:'application/json;charset=utf-8'}));
+  var a=document.createElement('a');a.href=url;a.download=nome;document.body.appendChild(a);a.click();a.remove();
+  setTimeout(function(){URL.revokeObjectURL(url);},3000);
+  var nCpl=itens.filter(function(i){return i.cpl&&!i.opcional;}).length;
+  alert('Lista para o Valida HD baixada: '+nome+'\n\n'+nCpl+' CPL(s) esperados'+(semCpl?' · '+semCpl+' filme(s) sem CPL cadastrada (não serão conferidos)':'')+
+    '\n\nCopie o arquivo para a RAIZ do HD (o Valida HD carrega sozinho) ou abra no Valida HD em "Carregar lista do Flux…".');
 }
 
 /* ─── Operação (projecionistas) ─── */

@@ -19660,7 +19660,6 @@ function renderDash(){
           bodyHtml+='<div class="dsd-film-row" style="cursor:pointer;flex-wrap:wrap;" onclick="_dashProgToggleRow(\''+rk+'\')">'
             +'<span class="dsd-film-title">'+(exp?'▾':'▸')+' '+esc(m.name)+'</span>'
             +'<span class="dsd-film-sess">'+_pCnt(m.sess)+'</span>'
-            +(m.subs.length?'<span class="dsd-extra" style="width:100%;color:var(--text-dim);">'+m.subs.length+' submostra'+(m.subs.length!==1?'s':'')+': '+esc(subNames.join(', '))+'</span>':'')
             +'</div>';
           if(exp)bodyHtml+=_dashSessListGroupedBySub(m.sess,m.subs);
         });
@@ -20192,7 +20191,7 @@ function renderDash(){
   html+=colBlock('legendagem','Legendagem',legBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 06/11/2026 às 00:25';
+  var sysUpdate='última atualização do sistema · 06/11/2026 às 00:26';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -31351,7 +31350,7 @@ function _sxcPrint(){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 06/11/2026 às 00:25</span></div>
+<div id="page-footer"><span>última atualização · 06/11/2026 às 00:26</span></div>
 
 </div>
 

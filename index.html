@@ -5186,14 +5186,13 @@ html[data-theme="indexof"]:not([data-theme="win98"]) .module-icon{display:flex!i
     if (senha.length < 6) { err.textContent = 'A senha precisa ter ao menos 6 caracteres.'; return; }
     if (senha !== senha2) { err.textContent = 'As senhas não conferem.'; return; }
     try {
+      // A solicitação de acesso é gravada pelo onAuthStateChanged (ramo "sem perfil"), que roda depois
+      // do recarregamento do primeiro login; a marca abaixo só troca a mensagem para "Conta criada!".
+      try { sessionStorage.setItem('olgaCadastroNovo', email.toLowerCase()); } catch(e3) {}
       await createUserWithEmailAndPassword(auth, email, senha);
-      try { await addDoc(collection(db, '_solicitacoes'), { email: email, provider: 'email', status: 'pendente', createdAt: serverTimestamp() }); } catch(e2) {}
-      await signOut(auth);
       window._olgaFecharCadastro();
-      var ae = document.getElementById('auth-error');
-      ae.style.color = 'var(--ok, #4ade80)';
-      ae.textContent = 'Conta criada! Aguarde a ativação pelo administrador.';
     } catch(e) {
+      try { sessionStorage.removeItem('olgaCadastroNovo'); } catch(e3) {}
       err.textContent = e.code === 'auth/email-already-in-use' ? 'Este email já tem uma conta. Faça login.' : 'Erro: ' + e.message;
     }
   };
@@ -6096,10 +6095,34 @@ html[data-theme="indexof"]:not([data-theme="win98"]) .module-icon{display:flex!i
       }
 
       if (!perfil) {
-        // Email não está na coleção usuarios
+        // Email não está na coleção usuarios → registra a solicitação de acesso (Google ou email/senha).
+        // Feito AQUI (e não no cadastro) porque o primeiro login num navegador limpa o cache e recarrega
+        // a página, o que derrubava a gravação feita logo após createUserWithEmailAndPassword.
+        // Doc id = email: tentativas repetidas não duplicam (2ª gravação vira update, negado pelas rules).
         loginScreen.style.display = 'flex';
         appWrap.style.display = 'none';
-        authError.textContent = 'Acesso não autorizado para ' + email + '. Entre em contato com o administrador.';
+        var _novoCad = false;
+        try { _novoCad = sessionStorage.getItem('olgaCadastroNovo') === email; sessionStorage.removeItem('olgaCadastroNovo'); } catch(e) {}
+        var _prov = (user.providerData && user.providerData[0] && user.providerData[0].providerId) || 'email';
+        var _solOk = false, _solJa = false;
+        try {
+          await setDoc(doc(db, '_solicitacoes', email), {
+            email: email, nome: user.displayName || '', provider: _prov === 'password' ? 'email' : _prov,
+            status: 'pendente', createdAt: serverTimestamp()
+          });
+          _solOk = true;
+        } catch(eS) {
+          if (eS && eS.code === 'permission-denied') _solJa = true; // já existe uma solicitação pendente
+          else console.warn('Erro ao registrar solicitação de acesso:', eS);
+        }
+        if (_solOk || _solJa) {
+          authError.style.color = 'var(--ok, #4ade80)';
+          authError.textContent = (_novoCad ? 'Conta criada! ' : 'Acesso ainda não liberado para ' + email + '. ') +
+            (_solJa && !_solOk ? 'Sua solicitação já foi enviada — aguarde a aprovação do administrador.' : 'Solicitação de acesso enviada — aguarde a aprovação do administrador.');
+        } else {
+          authError.style.color = '';
+          authError.textContent = 'Acesso não autorizado para ' + email + ' e não foi possível enviar a solicitação. Entre em contato com o administrador.';
+        }
         signOut(auth);
         return;
       }
@@ -20218,7 +20241,7 @@ function renderDash(){
   html+=colBlock('legendagem','Legendagem',legBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 06/11/2026 às 14:05';
+  var sysUpdate='última atualização do sistema · 06/11/2026 às 17:17';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -23272,16 +23295,46 @@ async function deleteProgSessao(nome){
   }catch(e){alert('Erro ao excluir: '+e.message);}
 }
 
+// Código sugerido para a duplicata: se o original segue "<prefixo><número>" (ex.: PP2026S008),
+// sugere o próximo número livre dessa sequência (PP2026S041, mesmo zero à esquerda); senão "<código>.N".
+// Livre = não está em sessoesMap nem no _registry (códigos já usados/apagados não voltam).
+function _dupSessSugerirId(nome){
+  var existing=_catCriaSessExistingIds();
+  var m=String(nome).replace(/\.\d+$/,'').match(/^(.*?)(\d+)$/);
+  if(m){
+    var pfx=m[1],w=m[2].length,max=0,re=new RegExp('^'+pfx.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+'(\\d+)$','i');
+    Object.keys(existing).forEach(function(k){var x=k.match(re);if(x)max=Math.max(max,parseInt(x[1],10));});
+    var n=max+1,id;
+    do{id=pfx+String(n).padStart(w,'0');n++;}while(existing[id.toLowerCase()]);
+    return id;
+  }
+  var base=String(nome).replace(/\.(\d+)$/,''),k=2;
+  while(existing[(base+'.'+k).toLowerCase()])k++;
+  return base+'.'+k;
+}
 async function duplicateProgSessao(nome){
   var s=sessoesMap[nome];if(!s)return;
-  var base=nome.replace(/\.(\d+)$/,'');
-  var n=2;while(sessoesMap[base+'.'+n])n++;
-  var newNome=_progPromptSuffix('Sufixo para o código da sessão duplicada',base,n);
+  var ev=s.evento||'';
+  var sug=_dupSessSugerirId(nome);
+  var inp=prompt('Código da sessão duplicada (sugestão — pode trocar por qualquer código livre).'+(ev?'\nSe não começar com '+ev+', o prefixo do evento é acrescentado.':''),sug);
+  if(inp===null)return;
+  var newNome=String(inp).trim().replace(/\s+/g,'');
   if(!newNome)return;
-  if(sessoesMap[newNome]){alert('Código já existe: '+newNome);return;}
-  var data={session_id:newNome,name:(s.name||nome),event_name:s.evento,date:s.date?s.date.toISOString().slice(0,10):'',time:s.time?s.time.str:'',venue_name:s.cinema,program_id:s.program_id||'',subprogram_id:s.subprogram_id||'',show_id:s.show_id||'',session_description:s.session_description||'',films:s.filmes.slice(),bumpers:s.vinhetas.slice(),guests:s.convidados||'',has_introduction:s.apresentacao||'Não',has_debate:s.col_ag||'Não',for_guests:s.para_convidados||'Não',has_electronic_subtitles:s.leg_eletronica||'Não',reserved_tickets:s.ingressos||'',available_accessibility:s.acessibilidades||''};
-  try{await window._olgaSessoes.save(newNome,data);await window._olgaSessoes.reload();if(typeof renderCatDetail==='function'&&document.getElementById('catalogo-container'))renderCatDetail();if(typeof _progRender==='function')_progRender();}
-  catch(e){alert('Erro ao duplicar: '+e.message);}
+  if(/[\/]/.test(newNome)){alert('O código não pode ter "/".');return;}
+  if(ev&&newNome.toUpperCase().indexOf(ev.toUpperCase())!==0)newNome=ev+newNome;
+  if(_catCriaSessExistingIds()[newNome.toLowerCase()]){alert('Código já existe ou já foi usado: '+newNome);return;}
+  // nome: o da original é só sugestão (pode apagar ou trocar); nunca usa o código como nome
+  var nomeSug=s.name||'';
+  var nomeInp=prompt('Nome da sessão duplicada (sugestão: o da original — pode trocar ou deixar em branco):',nomeSug);
+  if(nomeInp===null)return;
+  var data=_progSessionDocData(s,{session_id:newNome,name:String(nomeInp).trim(),show_id:s.show_id||'',
+    film_versions:_progVersoesLista(s.filmes||[],s.versoes||{}),ticket_url:s.ticket_url||'',access_type:s.access_type||''});
+  try{
+    await window._olgaSessoes.save(newNome,data);
+    if(window._olgaRegistry)await window._olgaRegistry.register('sessoes',newNome);
+    window._logFirestoreEdit&&window._logFirestoreEdit('individual',newNome,data,'programacao','sessoes');
+    await window._olgaSessoes.reload();if(typeof renderCatDetail==='function'&&document.getElementById('catalogo-container'))renderCatDetail();if(typeof _progRender==='function')_progRender();
+  }catch(e){alert('Erro ao duplicar: '+e.message);}
 }
 
 /* === Criação de sessão a partir do filme (Catálogo) ou de um programa === */
@@ -23910,7 +23963,8 @@ function renderEquipeTable(){
       var d=s.data;
       var ts=d.createdAt&&d.createdAt.toDate?d.createdAt.toDate().toLocaleString('pt-BR'):'—';
       return '<tr>'+
-        '<td style="padding:10px 12px;font-family:var(--mono);font-size:12px;color:var(--text);">'+esc(d.email||'—')+'</td>'+
+        '<td style="padding:10px 12px;font-family:var(--mono);font-size:12px;color:var(--text);">'+esc(d.email||'—')+
+          ((d.nome||d.provider)?'<div style="font-size:10px;color:var(--text-muted);margin-top:2px;">'+esc([d.nome,d.provider==='google.com'?'via Google':d.provider==='email'?'via e-mail e senha':d.provider].filter(Boolean).join(' · '))+'</div>':'')+'</td>'+
         '<td style="padding:10px 12px;font-family:var(--mono);font-size:10px;color:var(--text-muted);">'+esc(ts)+'</td>'+
         '<td style="padding:10px 12px;text-align:right;white-space:nowrap;">'+
           '<button onclick="aprovarSolicitacao(\''+esc(s.id)+'\',\''+esc(d.email||'')+'\')\" style="'+_equipeBtn('ok')+'">aprovar</button> '+
@@ -31490,7 +31544,7 @@ function _sxcPrint(){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 06/11/2026 às 14:05</span></div>
+<div id="page-footer"><span>última atualização · 06/11/2026 às 17:17</span></div>
 
 </div>
 

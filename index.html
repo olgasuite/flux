@@ -13579,6 +13579,15 @@ function buildBilheteriaFilters(){
 }
 
 /* ═══════════════ LEGENDAGEM ELETRÔNICA ═══════════════ */
+// Status da cópia — lista ÚNICA do Acervo Técnico e do Print Traffic (campo copias.status, por versão).
+// '' = Não solicitado. Valor antigo fora da lista continua aparecendo no select até alguém trocar.
+var _COPIA_STATUS=['','Solicitado','Em trânsito','Recebido','Convertendo','AGUARDANDO LEGENDA','DCP OK','Arquivo OK','Revisão OK','REPROVADO','Devolvido'];
+function _copiaStLabel(v){return v||'Não solicitado';}
+function _copiaStOpts(cur){var l=_COPIA_STATUS.slice();if(cur&&l.indexOf(cur)<0)l.push(cur);return l.map(function(v){return[v,_copiaStLabel(v)+(v&&_COPIA_STATUS.indexOf(v)<0?' (antigo)':'')];});}
+function _copiaStSelect(id,cls,cur,naoAlterar){
+  return'<select class="'+cls+'" id="'+id+'">'+(naoAlterar?'<option value="__nao_alterar__">— não alterar</option>':'')+
+    _copiaStOpts(cur).map(function(o){return'<option value="'+esc(o[0])+'"'+(!naoAlterar&&o[0]===(cur||'')?' selected':'')+'>'+esc(o[1])+'</option>';}).join('')+'</select>';
+}
 var _LEG_STATUS=['','OK','SRT traduzido','SRT para tradução','OK para legendagem eletrônica','em sincronização','em tradução','aguardando lista de diálogos','aguardando arquivo de vídeo'];
 var _LEG_STATUS_HIDE=['OK'];
 function buildLegendagemFilters(){
@@ -17524,7 +17533,7 @@ document.getElementById('searchInput').addEventListener('input',function(){busca
 document.getElementById('searchClear').addEventListener('click',function(){document.getElementById('searchInput').value='';buscaQuery='';this.style.display='none';renderBuscaResults();});
 
 function hl(str,q){if(!q||!str)return str||'';var re=new RegExp('('+q.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+')','gi');return str.replace(re,'<mark>$1</mark>');}
-function statusBadge(v){if(!v||v==='-')return'';var u=v.toUpperCase();if(u.includes('OK'))return'<span class="card-status status-ok">'+v+'</span>';if(u.includes('ERRO'))return'<span class="card-status status-err">'+v+'</span>';if(u.includes('CANCEL'))return'<span class="card-status status-cancel">'+v+'</span>';return'<span class="card-status status-other">'+v+'</span>';}
+function statusBadge(v){if(!v||v==='-')return'';var u=v.toUpperCase();if(u.includes('OK'))return'<span class="card-status status-ok">'+v+'</span>';if(u.includes('ERRO')||u.includes('REPROV'))return'<span class="card-status status-err">'+v+'</span>';if(u.includes('CANCEL'))return'<span class="card-status status-cancel">'+v+'</span>';return'<span class="card-status status-other">'+v+'</span>';}
 
 function toggleExpand(idx){
   var card=document.getElementById('bcard-'+idx);
@@ -18549,7 +18558,7 @@ function _buildBatchForm(){
     +inp('film_type','Metragem','curta / média / longa')
     +sel('content_rating','Classificação etária',['L','10','12','14','16','18'])
     +sel('selecao','Seleção',['FEST','NÃO FEST','SUPLENTE','CONVIDADO','VISIONAMENTO'])
-    +inpList('status_dcp','Status DCP','deixe vazio para não alterar',statusVals)
+    +sel('status_dcp','Status da cópia',_COPIA_STATUS.filter(Boolean))
     +ta('synopsis','Sinopse')
     +tagInp('production_company','Produtora',true)
     +tagInp('distribution_company','Distribuidora',true)
@@ -18687,7 +18696,7 @@ function _buildBatchCopiasForm(){
   }
   function ta(id,label){return'<div class="batch-fld batch-full"><div class="batch-fld-label">'+label+'</div><textarea class="batch-fld-inp batch-fld-ta" id="bfc_'+id+'" placeholder="deixe vazio para não alterar"></textarea></div>';}
   function legExibSel(){var opts=['ORIGINAL','ELETRÔNICA EM PORTUGUÊS','ELETRÔNICA EM INGLÊS','ELETRÔNICA LSE','PRODUZIR VF'];return'<div class="batch-fld"><div class="batch-fld-label">Legenda de exibição</div><select class="batch-fld-inp" id="bfc_legenda_exibicao"><option value="">— não alterar</option>'+opts.map(function(o){return'<option value="'+esc(o)+'">'+esc(o)+'</option>';}).join('')+'</select></div>';}
-  return inpDl('status','Status',statusVals)
+  return'<div class="batch-fld"><div class="batch-fld-label">Status</div><select class="batch-fld-inp" id="bfc_status"><option value="">— não alterar</option>'+_COPIA_STATUS.filter(Boolean).map(function(o){return'<option value="'+esc(o)+'">'+esc(o)+'</option>';}).join('')+'</select></div>'
     +kdmSel()
     +inpDl('lente','Lente',lentes)
     +inpDl('som','Som',sons)
@@ -18921,7 +18930,7 @@ function dashStatusClass(v){
   if(!v||v==='-')return'st-error';
   var u=v.toUpperCase();
   if(u.includes('OK')||u.includes('LG'))return'st-ok';
-  if(u.includes('ERRO')||u.includes('AGUARD'))return'st-error';
+  if(u.includes('ERRO')||u.includes('REPROV')||u.includes('AGUARD'))return'st-error';
   if(u.includes('CANCEL'))return'st-cancel';
   return'st-accent';
 }
@@ -19230,7 +19239,7 @@ function renderDash(){
       if(!s)return 5;
       var u=s.toUpperCase();
       if(u.includes('OK'))return 0;
-      if(u.includes('ERRO'))return 4;
+      if(u.includes('ERRO')||u.includes('REPROV'))return 4;
       if(u.includes('CANCEL'))return 3;
       return 1;
     }
@@ -20191,7 +20200,7 @@ function renderDash(){
   html+=colBlock('legendagem','Legendagem',legBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 06/11/2026 às 00:26';
+  var sysUpdate='última atualização do sistema · 06/11/2026 às 11:08';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -26113,7 +26122,7 @@ function renderCatCreate(){
     +'</div>'
     +'<div class="cat-grid">'
     +catFld('Duração','<input class="cat-input" id="catf_dcp_duration_min" type="number" min="0" placeholder="Em minutos ex: 95">')
-    +catFld('Status','<input class="cat-input" id="catf_status" list="catf_status_list"><datalist id="catf_status_list">'+listOpts(statusVals)+'</datalist>')
+    +catFld('Status',_copiaStSelect('catf_status','cat-input',''))
     +'</div>'
     +'<div class="cat-grid">'
     +catFld('HD / Storage','<input class="cat-input" id="catf_storage_location" placeholder="Ex: HD01">')
@@ -27911,7 +27920,7 @@ function _openAcervoEditCopia(f){
     +'</div>'
     +'<div id="ae_fmt_sec">'+(_aeFmtVals=Object.assign({},f.fmt||{}),_fmtEditHtml(f.exhibition_format||''))+'</div>'
     +'<div class="cat-grid">'
-    +aeRow('Status',aeDatalist('status',f.status,'status',listOpts(statusVals)))
+    +aeRow('Status',_copiaStSelect('ae_status','cat-input',f.status||''))
     +aeRow('KDM','<select class="cat-input" id="ae_kdm"><option value="Não"'+((!f.kdm||f.kdm.toLowerCase()!=='sim')?' selected':'')+'>Não</option><option value="Sim"'+((f.kdm&&f.kdm.toLowerCase()==='sim')?' selected':'')+'>Sim</option></select>')
     +'</div>'
     +'<div class="cat-grid">'
@@ -31350,7 +31359,7 @@ function _sxcPrint(){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 06/11/2026 às 00:26</span></div>
+<div id="page-footer"><span>última atualização · 06/11/2026 às 11:08</span></div>
 
 </div>
 
@@ -35179,17 +35188,19 @@ function _trafPrimeiroVisivel(pref){var ord=[pref,'interno','operacao'];for(var 
    da Legendagem) — mudar aqui muda lá e vice-versa. */
 var _ptEv='',_ptSel=null,_ptView='filmes',_ptDocs={},_ptSources={},_ptUnsub=null,_ptKey='',_ptSrcUnsub=null,_ptDirty=false,_ptChatFoco=false;
 var _ptFiltro={copia:'',invoice:'',legenda:''};
-var _PT_COPIA=[['nao_solicitado','Não solicitado'],['solicitado','Solicitado'],['em_transito','Em trânsito'],['recebido','Recebido'],['devolvido','Devolvido']];
+var _PT_COPIA=_copiaStOpts('');
 var _PT_INV=[['nao_solicitado','Não solicitado'],['solicitado','Solicitado'],['recebido','Recebido'],['encaminhado','Encaminhado'],['pago','Pago']];
 var _PT_MAT=[['pendente','Pendente'],['solicitado','Solicitado'],['recebido','Recebido'],['aprovado','Aprovado'],['liberado','Liberado']];
 var _PT_MATS=[['stills','Stills','S'],['diretor','Diretor','D'],['poster','Poster','P'],['pressbook','Press Book','PB'],['trailer','Trailer','T']];
 // status da legenda = lista do módulo Legendagem
 function _ptLegOpts(){return _LEG_STATUS.map(function(o){return[o,o||'—'];});}
-// cópia: valores da 1ª versão (pendente/enviado) lidos como os atuais
-function _ptCopiaSt(d){var v=d.copia_status||'nao_solicitado';return v==='pendente'?'nao_solicitado':v==='enviado'?'em_transito':v;}
+// status da cópia = copias.status da versão (o mesmo campo do Acervo Técnico; desde 06/11/2026
+// printtraffic.copia_status não é mais usado). v = objeto da cópia/versão.
+function _ptCopiaSt(v){return((v&&v.status)||'').toString().trim();}
 // nível do status para a cor (0 = não iniciado, 1 = em andamento, 2 = concluído)
 function _ptNivel(g,v){
   if(g==='leg')return !v?0:v==='OK'?2:1;
+  if(g==='copia')return !v?0:(v==='Solicitado'||v==='Em trânsito'||v==='REPROVADO')?1:2;
   if(!v||v==='nao_solicitado'||v==='pendente')return 0;
   return(g==='copia'&&(v==='recebido'||v==='devolvido'))||(g==='inv'&&v==='pago')||(g==='mat'&&v==='liberado')?2:1;
 }
@@ -35354,8 +35365,8 @@ function _ptListaHtml(){
   films.forEach(function(f){
     var d=_ptDoc(f.codigo);
     _versoesDoFilme(f.codigo).forEach(function(v){
-      var cs=_ptCopiaSt(_ptVD(f.codigo,v.codigo));nCopTot++;
-      if(cs==='recebido'||cs==='devolvido')nCop++;
+      var cs=_ptCopiaSt(v);nCopTot++;
+      if(_ptNivel('copia',cs)===2)nCop++;
       if((v.col_n||'').trim()==='OK')nLeg++;
     });
     if(d.invoice_status==='pago')nPago++;
@@ -35363,7 +35374,7 @@ function _ptListaHtml(){
   });
   var shown=films.filter(function(f){
     var d=_ptDoc(f.codigo),vers=_versoesDoFilme(f.codigo);
-    if(_ptFiltro.copia&&!vers.some(function(v){return _ptCopiaSt(_ptVD(f.codigo,v.codigo))===_ptFiltro.copia;}))return false;
+    if(_ptFiltro.copia&&!vers.some(function(v){return(_ptCopiaSt(v)||'__nao__')===_ptFiltro.copia;}))return false;
     if(_ptFiltro.invoice&&(d.invoice_status||'nao_solicitado')!==_ptFiltro.invoice)return false;
     if(_ptFiltro.legenda&&!vers.some(function(v){return((v.col_n||'').trim()||'—')===_ptFiltro.legenda;}))return false;
     return true;
@@ -35375,7 +35386,7 @@ function _ptListaHtml(){
   var h='<div class="pt-resumo">'+films.length+' filme(s) · cópias recebidas '+nCop+'/'+nCopTot+' · invoices pagas '+nPago+' · legendas OK '+nLeg+' · despesas '+esc(_ptFmtTotal(tot))+'</div>'+
     '<div class="traf-muted" style="font-size:10px;margin:2px 0 6px;">Materiais: '+_PT_MATS.map(function(x){return'<b>'+x[2]+'</b> '+esc(x[1]);}).join(' · ')+'</div>'+
     '<div class="traf-filtros"><input class="traf-input" style="min-width:220px;" placeholder="buscar filme, código ou fonte" oninput="_ptBusca(this.value)">'+
-    sel('copia',_PT_COPIA)+sel('invoice',_PT_INV)+sel('legenda',_LEG_STATUS.map(function(o){return[o||'—',o||'—'];}))+'</div>';
+    sel('copia',_PT_COPIA.map(function(o){return[o[0]||'__nao__',o[1]];}))+sel('invoice',_PT_INV)+sel('legenda',_LEG_STATUS.map(function(o){return[o||'—',o||'—'];}))+'</div>';
   h+='<div style="overflow-x:auto;"><table class="traf-table pt-table"><thead><tr><th>Filme</th><th>Fonte da cópia</th><th>Cópia</th><th>Invoice</th><th>Materiais</th><th>Legenda</th><th style="text-align:right;">Despesas</th><th>Histórico</th></tr></thead><tbody>';
   shown.forEach(function(f){
     var c=f.codigo,d=_ptDoc(c),ids=(d.sources||[]).filter(Boolean);
@@ -35386,7 +35397,7 @@ function _ptListaHtml(){
       '<td><b>'+esc(filmDisplayTitle(c))+'</b><div class="traf-muted">'+esc(stripEvPrefix(c,f.evento))+'</div></td>'+
       '<td>'+(pr?esc(pr.nome||''):'<span class="traf-muted">—</span>')+(ids.length>1?' <span class="traf-muted">+'+(ids.length-1)+'</span>':'')+'</td>'+
       '<td>'+_versoesDoFilme(c).map(function(v){
-        var vd=_ptVD(c,v.codigo),cs=_ptCopiaSt(vd);
+        var vd=_ptVD(c,v.codigo),cs=_ptCopiaSt(v);
         return'<div class="pt-ver-linha">'+(v.exhibition_format?'<b style="font-family:var(--mono);font-size:10px;margin-right:5px;">'+esc(v.exhibition_format)+'</b>':'')+_ptBadge(_PT_COPIA,cs,'copia')+
           (vd.copia_previsao&&_ptNivel('copia',cs)<2?'<div class="traf-muted">prev. '+esc(_trafBr(vd.copia_previsao))+'</div>':'')+(vd.copia_devolucao?'<div class="traf-muted">dev. '+esc(_trafBr(vd.copia_devolucao))+'</div>':'')+'</div>';
       }).join('')+'</td>'+
@@ -35424,7 +35435,7 @@ function _ptDetalheHtml(c){
     h+=(multi?'<div class="pt-ver-h">'+esc(_versaoRotulo(v))+(k===c&&versaoNome(v)?' <span class="traf-muted">(principal)</span>':'')+'</div>':'')+
       '<div class="pt-fs">'+
       fld('Formato',_ptDrop(k,'exhibition_format',[['','—']].concat(_PT_FORMATOS),vfmt,can,'_ptSetCopia'))+
-      fld('Status',_ptDrop(c,_ptVPath(c,k,'copia_status'),_PT_COPIA,_ptCopiaSt(vd),can,'','copia'))+
+      fld('Status',_ptDrop(k,'status',_copiaStOpts(_ptCopiaSt(v)),_ptCopiaSt(v),can,'_ptSetCopia','copia'))+
       fld('Previsão de chegada',vinp(_ptVPath(c,k,'copia_previsao'),vd.copia_previsao,'date'))+
       fld('Data de devolução',vinp(_ptVPath(c,k,'copia_devolucao'),vd.copia_devolucao,'date'))+'</div>'+
       (vfmt==='Outro'||v.exhibition_format_notes?'<div class="pt-lbl">Obs. do formato</div><input class="pt-in" value="'+esc(v.exhibition_format_notes||'')+'"'+(can?' onchange="_ptSetCopia(\''+vsc+'\',\'exhibition_format_notes\',this.value.trim())"':dis)+'>':'');
@@ -35557,7 +35568,7 @@ function _ptMobLista(q){
   if(!films.length)return'<div class="mob-empty">Nenhum filme.</div>';
   return films.map(function(f){
     var c=f.codigo,d=_ptDoc(c),pr=_ptSources[d.source_principal]||null;
-    var cop=_versoesDoFilme(c).map(function(v){return _ptBadge(_PT_COPIA,_ptCopiaSt(_ptVD(c,v.codigo)),'copia');}).join('');
+    var cop=_versoesDoFilme(c).map(function(v){return _ptBadge(_PT_COPIA,_ptCopiaSt(v),'copia');}).join('');
     return'<div class="mob-sessao-card" style="padding:10px 14px;cursor:pointer;" onclick="_ptMobAbrir(\''+_trafSafe(c)+'\')">'+
       '<div style="font-size:14px;font-weight:600;color:var(--text);">'+esc(filmDisplayTitle(c))+'</div>'+
       '<div class="traf-muted">'+esc(stripEvPrefix(c,f.evento))+(pr?' · '+esc(pr.nome||''):'')+'</div>'+
@@ -35594,7 +35605,7 @@ function _mobRenderPTFilme(p){
     var k=v.codigo,vd=_ptVD(c,k);
     html+=(multi?'<div class="pt-ver-h">'+esc(_versaoRotulo(v))+'</div>':'')+
       lbl('Formato')+sel(k,'exhibition_format',[['','—']].concat(_PT_FORMATOS),(v.exhibition_format||'').trim(),'_ptSetCopia')+
-      lbl('Status')+sel(c,_ptVPath(c,k,'copia_status'),_PT_COPIA,_ptCopiaSt(vd),'','copia')+
+      lbl('Status')+sel(k,'status',_copiaStOpts(_ptCopiaSt(v)),_ptCopiaSt(v),'_ptSetCopia','copia')+
       lbl('Previsão de chegada')+data(_ptVPath(c,k,'copia_previsao'),vd.copia_previsao)+
       lbl('Data de devolução')+data(_ptVPath(c,k,'copia_devolucao'),vd.copia_devolucao);
   });

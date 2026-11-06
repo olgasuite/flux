@@ -18800,6 +18800,11 @@ async function executeBatchCopiasSave(){
 
 function renderBuscaResults(){
   if(_showsCache===null){_ensureShowsLoaded().then(function(){if(currentMode==='busca')renderBuscaResults();});return;}
+  // nomes de mostras/submostras dos cards: carrega uma vez se ainda não veio
+  if(!(_progData.programs||[]).length&&!window._buscaProgTried&&typeof _ensureProgData==='function'){
+    window._buscaProgTried=true;
+    _ensureProgData().then(function(){if(currentMode==='busca'&&_progData.programs.length)renderBuscaResults();}).catch(function(){});
+  }
   var re=document.getElementById('busca-results'),be=document.getElementById('buscaEmpty');
   document.getElementById('buscaLoading').style.display='none';
   var q=normText(buscaQuery);
@@ -18866,8 +18871,9 @@ function renderBuscaResults(){
       var extra=so?[[so.dia,so.hora].filter(Boolean).join(' '),so.cinema].filter(Boolean).join(' · '):'';
       return'<span class="session-tag" onclick="goToFicha(\''+nome.replace(/'/g,"\\'")+'\')" title="Abrir ficha: '+nome.replace(/"/g,'&quot;')+'">'+esc(stripEvPrefix(nome,so&&so.evento))+(extra?' <span style="opacity:.6;">('+esc(extra)+')</span>':'')+'</span>';
     }).join('')+'</div>':'';
-    var progs=_filmProgramNames(f.codigo);
-    var progRow=progs.length?'<div class="card-sessions"><span class="sessions-label">Programas</span>'+progs.map(function(p){return'<span class="session-tag" style="cursor:default;">'+esc(p)+'</span>';}).join('')+'</div>':'';
+    var _msp=_filmMostrasSubsProgs(f.codigo,sess.map(function(nome){return sessoesMap[nome];}));
+    var _mspRow=function(lbl,arr){return arr.length?'<div class="card-sessions"><span class="sessions-label">'+lbl+(arr.length>1?'s':'')+'</span>'+arr.map(function(p){return'<span class="session-tag" style="cursor:default;">'+esc(p)+'</span>';}).join('')+'</div>':'';};
+    var progRow=_mspRow('Mostra',_msp.mostras)+_mspRow('Submostra',_msp.subs)+_mspRow('Programa',_msp.progs);
     var _vers=_versoesDoFilme(f.codigo);
     var verRow=_vers.length>1?'<div class="card-sessions"><span class="sessions-label">Versões</span>'+_vers.map(function(v,vi){
       return'<span class="session-tag" data-ver="'+esc(v.codigo)+'" onclick="event.stopPropagation();_acervoVerVersao(this.dataset.ver)" title="'+esc(v.codigo+' · Revista: '+(versaoPublico(v)||'—'))+'">'+esc(_versaoRotulo(v))+(vi||!versaoNome(v)?'':' <span style="opacity:.6;">(principal)</span>')+'</span>';
@@ -20047,15 +20053,11 @@ function renderDash(){
       var safeCodDash=String(f.codigo).replace(/\\/g,'\\\\').replace(/'/g,"\\'");
       var obsDash=clean(f.obs);
       // mostras / submostras / programas das sessões do filme (só aparecem quando existem)
-      var _mIds=[],_sIds=[],_pNames=_filmProgramNames(f.codigo).slice();
-      item.sessions.forEach(function(s){
-        if(s.program_id&&_mIds.indexOf(s.program_id)<0)_mIds.push(s.program_id);
-        if(s.subprogram_id&&_sIds.indexOf(s.subprogram_id)<0)_sIds.push(s.subprogram_id);
-        if(s.show_id){var _sh=(typeof _showById==='function')?_showById(s.show_id):null;var _nm=_sh&&_sh.data&&(_sh.data.name||_sh.data.code)||s.show_id;if(_pNames.indexOf(_nm)<0)_pNames.push(_nm);}
-      });
+      var _msp=_filmMostrasSubsProgs(f.codigo,item.sessions);
+      var _mIds=_msp.mostras,_sIds=_msp.subs,_pNames=_msp.progs;
       var _chip=function(p){return'<span class="dash-sess-link" style="cursor:default;">'+esc(p)+'</span>';};
-      var mostraLinks=_mIds.map(function(id){var p=_progData.programs.find(function(x){return x.id===id;});return(p&&p.data&&p.data.name)||id;}).sort(function(a,b){return a.localeCompare(b,'pt-BR');}).map(_chip).join('');
-      var subLinks=_sIds.map(function(id){var p=_progData.subprograms.find(function(x){return x.id===id;});return(p&&p.data&&p.data.name)||id;}).sort(function(a,b){return a.localeCompare(b,'pt-BR',{numeric:true});}).map(_chip).join('');
+      var mostraLinks=_mIds.map(_chip).join('');
+      var subLinks=_sIds.map(_chip).join('');
       var progLinks=_pNames.map(_chip).join('');
       ctrlBody+='<div class="dash-film-card dash-film-link" style="border-left-color:'+stColor+'" title="Ver no Acervo Técnico" onclick="goToBuscaCod(\''+safeCodDash+'\')">'+
         '<div class="dash-film-top">'+
@@ -20190,7 +20192,7 @@ function renderDash(){
   html+=colBlock('legendagem','Legendagem',legBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 05/11/2026 às 20:50';
+  var sysUpdate='última atualização do sistema · 06/11/2026 às 00:09';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -20440,6 +20442,23 @@ function _filmProgramNames(codigo){
   if(!codigo)return[];
   return(_showsCache||[]).filter(function(sh){return sh.data&&Array.isArray(sh.data.films)&&sh.data.films.indexOf(codigo)>=0;})
     .map(function(sh){return(sh.data&&(sh.data.name||sh.data.code))||sh.id;});
+}
+// Mostras, submostras e programas de um filme, a partir das sessões dele (objetos de sessão)
+// + programas (shows) que têm o filme na lista. Devolve nomes já ordenados, sem repetição.
+function _filmMostrasSubsProgs(codigo,sessions){
+  var mIds=[],sIds=[],progs=_filmProgramNames(codigo).slice();
+  (sessions||[]).forEach(function(s){
+    if(!s)return;
+    if(s.program_id&&mIds.indexOf(s.program_id)<0)mIds.push(s.program_id);
+    if(s.subprogram_id&&sIds.indexOf(s.subprogram_id)<0)sIds.push(s.subprogram_id);
+    if(s.show_id){var sh=(typeof _showById==='function')?_showById(s.show_id):null;var nm=sh&&sh.data&&(sh.data.name||sh.data.code)||s.show_id;if(progs.indexOf(nm)<0)progs.push(nm);}
+  });
+  var nome=function(list,id){var p=(list||[]).find(function(x){return x.id===id;});return(p&&p.data&&p.data.name)||id;};
+  return{
+    mostras:mIds.map(function(id){return nome(_progData.programs,id);}).sort(function(a,b){return a.localeCompare(b,'pt-BR');}),
+    subs:sIds.map(function(id){return nome(_progData.subprograms,id);}).sort(function(a,b){return a.localeCompare(b,'pt-BR',{numeric:true});}),
+    progs:progs
+  };
 }
 function _showsOfEvent(ev,evNome){
   return(_showsCache||[]).filter(function(x){var e=(x.data&&x.data.event_name)||'';return e===ev||(evNome&&e===evNome);})
@@ -31331,7 +31350,7 @@ function _sxcPrint(){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 05/11/2026 às 20:50</span></div>
+<div id="page-footer"><span>última atualização · 06/11/2026 às 00:09</span></div>
 
 </div>
 

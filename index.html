@@ -20192,7 +20192,7 @@ function renderDash(){
   html+=colBlock('legendagem','Legendagem',legBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 06/11/2026 às 00:09';
+  var sysUpdate='última atualização do sistema · 06/11/2026 às 00:10';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -23634,6 +23634,7 @@ var _EQUIPE_RESTRICOES=[
   {k:'vinhetas.templates',label:'Vinhetas · Ocultar atalho de templates de vinheta'},
   {k:'sessoes.somente_vinhetas',label:'Sessões · Edição restrita a vinhetas (sem criar, duplicar, deletar)'},
   {k:'acervo.sem_catalogo',label:'Acervo Técnico · Ocultar botão "Ver nos Selecionados"'},
+  {k:'versoes.sem_criar',label:'Versões de cópia · BLOQUEAR "+ Nova versão" (Acervo Técnico, Projeção, Selecionados e Print Traffic)'},
   {k:'catalogo.tmdb',label:'Base de Filmes · Selecionados · Ocultar importação do TMDB'},
   {k:'catalogo.batch_delete',label:'Base de Filmes · Selecionados · Ocultar botão "Excluir selecionados"'},
   {k:'catalogo.filmfreeway',label:'Base de Filmes · Selecionados · Ocultar bloco Curta Cinema'},
@@ -25479,7 +25480,7 @@ function renderCatDetail(){
   if(canEdit&&!_catEditing){
     var _tmdbDetailBtn=(!window._olgaHasRestricao||!window._olgaHasRestricao('catalogo.tmdb'))?'<button class="cat-edit-btn" onclick="importFromTMDB(\''+_catCode.replace(/'/g,"\\'")+'\',this)">↓ TMDB</button>':'';
     var _cinDetailBtn=(!window._olgaHasRestricao||!window._olgaHasRestricao('catalogo.cinemateca'))?'<button class="cat-edit-btn" onclick="importFromCinemateca(\''+_catCode.replace(/'/g,"\\'")+'\',this)">↓ Filmografia Brasileira</button>':'';
-    var _novaVerBtn=(filmesMap[_catCode]&&window._olgaCopias)?'<button class="cat-edit-btn" title="Outro material de exibição deste filme (ex.: 35mm + arquivo, outra legenda)" onclick="_novaVersao(\''+_catCode.replace(/'/g,"\\'")+'\')">+ Nova versão</button>':'';
+    var _novaVerBtn=(filmesMap[_catCode]&&window._olgaCopias&&_podeCriarVersao())?'<button class="cat-edit-btn" title="Outro material de exibição deste filme (ex.: 35mm + arquivo, outra legenda)" onclick="_novaVersao(\''+_catCode.replace(/'/g,"\\'")+'\')">+ Nova versão</button>':'';
     html+='<div class="cat-actions">'+acervoBtn+_tmdbDetailBtn+_cinDetailBtn+_novaVerBtn+'<button class="cat-edit-btn" onclick="duplicateCatFilm(\''+_catCode.replace(/\'/g,"\\\'")+'\')">⧉ Duplicar</button><button class="cat-edit-btn" onclick="startCatEdit()">✎ Editar</button><button class="cat-edit-btn" style="color:var(--warn);border-color:var(--warn);" onclick="deleteCatFilm(\''+_catCode.replace(/\'/g,"\\\'")+'\')">× Excluir</button></div>';
   }
   else if(_catEditing)
@@ -28053,7 +28054,7 @@ async function doSaveAcervoEdit(){
    Criam versão: editores do Acervo (projecao) e de quem cria filmes nos Selecionados
    (catalogo). A nova versão nasce com formato/legenda/duração escolhidos aqui; o resto
    do registro técnico é completado no Acervo. */
-function _podeCriarVersao(){return !!(window._olgaCanEdit&&(window._olgaCanEdit('projecao')||window._olgaCanEdit('catalogo')||window._olgaCanEdit('printtraffic')));}
+function _podeCriarVersao(){if(window._olgaHasRestricao&&window._olgaHasRestricao('versoes.sem_criar'))return false;return !!(window._olgaCanEdit&&(window._olgaCanEdit('projecao')||window._olgaCanEdit('catalogo')||window._olgaCanEdit('printtraffic')));}
 function _proxIdVersao(cod){var n=2;while(copiaVersaoMap[cod+'__v'+n]||filmesMap[cod+'__v'+n])n++;return cod+'__v'+n;}
 function _novaVersao(cod){
   var p=filmesMap[cod];if(!p){alert('Filme sem registro de cópia.');return;}
@@ -31350,7 +31351,7 @@ function _sxcPrint(){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 06/11/2026 às 00:09</span></div>
+<div id="page-footer"><span>última atualização · 06/11/2026 às 00:10</span></div>
 
 </div>
 

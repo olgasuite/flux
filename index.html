@@ -20200,7 +20200,7 @@ function renderDash(){
   html+=colBlock('legendagem','Legendagem',legBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 06/11/2026 às 11:17';
+  var sysUpdate='última atualização do sistema · 06/11/2026 às 11:24';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -26807,7 +26807,7 @@ async function _catBulkSaveAll(){
         title:catData.system_name||catData.title_pt||'',
         original_language:catData.original_language||'',
         dcp_subtitle_code:'',vf_subtitle_code:'',projection_lens:'',
-        audio_format:'',status:'Aguardando',notes:'',dcp_creator:'',
+        audio_format:'',status:'Solicitado',notes:'',dcp_creator:'',
         has_kdm:'Não',subtitle_status:'',cpl_id:'',ov_cpl_id:'',
         dcp_resolution:'',dcp_duration:catData.runtime?_catMinToHMMSS(catData.runtime):'',
         dcp_size:'',dcp_fps:'',storage_location:'',
@@ -28097,7 +28097,7 @@ async function _novaVersaoSalvar(cod){
   var data={festival_code:id,film_code:cod,event_name:p.evento||'',title:p.titulo||'',original_language:p.idioma||'',
     exhibition_format:v('vn_fmt'),exhibition_format_notes:v('vn_fmt_notes'),
     dcp_subtitle_code:v('vn_leg'),vf_subtitle_code:v('vn_vf'),legenda_exibicao:v('vn_lex')||'ORIGINAL',
-    dcp_duration:v('vn_dur'),versao_nome:v('vn_nome'),versao_publico:v('vn_pub'),status:'Aguardando'};
+    dcp_duration:v('vn_dur'),versao_nome:v('vn_nome'),versao_publico:v('vn_pub'),status:'Solicitado'};
   try{
     await window._olgaCopias.save(id,data);
     window._logFirestoreEdit&&window._logFirestoreEdit('individual',id,data,'acervo','copias');
@@ -29235,7 +29235,7 @@ var IU_SCHEMAS={
 var _iuState={module:'',event:'',rows:[],headers:[],map:{},defaults:{}};
 
 function openImportadorUniversal(){
-  _iuState={module:'',event:'',rows:[],headers:[],map:{},defaults:{},_loadedPersistedMap:false,selectedSheet:null,sheetInfo:null,workbook:null,conflictChoices:{},prefixId:true};
+  _iuState={module:'',event:'',rows:[],headers:[],map:{},defaults:{},_loadedPersistedMap:false,selectedSheet:null,sheetInfo:null,workbook:null,conflictChoices:{},prefixId:true,titleChoice:{},codAjustado:{}};
   document.getElementById('iuModal').style.display='flex';
   _iuRenderStep1();
 }
@@ -29504,7 +29504,89 @@ function _iuTransform(row){
   }
   return out;
 }
+/* ── Anti-duplicação de filmes na Importação Universal (Selecionados, Seleção, Acervo) ──
+   1) código "quase igual": compara sem hífen/espaço/acento/caixa e sem zeros à esquerda
+      (PP2026-LON2 = PP2026LON02) com os filmes do evento; se só um casar, usa o código gravado.
+   2) título: linha que seria filme NOVO e tem título igual/parecido a um filme do evento ganha
+      aviso na pré-visualização, com escolha "juntar com …" ou "criar novo" (_iuState.titleChoice). */
+function _iuIsFilmSch(sch){return !!sch&&(sch.coll==='filmes'||sch.coll==='copias'||sch.coll==='triagem');}
+function _iuNormCod(s){
+  return String(s||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toUpperCase().replace(/[^A-Z0-9]/g,'')
+    .replace(/\d+/g,function(m){return m.replace(/^0+(?=\d)/,'');});
+}
+function _iuNormTit(s){
+  return String(s||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();
+}
+// filmes de referência do evento: o que já está na coleção de destino + os Selecionados
+// (importar no Acervo um filme que já existe nos Selecionados não é duplicar)
+function _iuFilmRefs(sch){
+  var ev=_iuState.event||'',out={};
+  function add(map,evK){
+    Object.keys(map||{}).forEach(function(k){
+      var m=map[k]||{};if(ev&&m[evK]&&m[evK]!==ev)return;
+      var o=out[k]||(out[k]={id:k,tits:[]});
+      [m.system_name,m.title_pt,m.title,m.original_title,m.english_title,m.titulo].forEach(function(t){var n=_iuNormTit(t);if(n&&o.tits.indexOf(n)<0)o.tits.push(n);});
+    });
+  }
+  add(window.catalogoFilmesMap,'evento');
+  if(sch.coll==='copias')add(window.filmesMap,'evento');
+  if(sch.coll==='triagem')add(window.triagemFilmesMap,'evento');
+  return out;
+}
+function _iuNormIdx(refs){
+  var idx={};
+  Object.keys(refs).forEach(function(k){var n=_iuNormCod(k);if(!n)return;idx[n]=(n in idx&&idx[n]!==k)?null:k;});
+  return idx;
+}
+function _iuDice(a,b){
+  if(a===b)return 1;if(a.length<2||b.length<2)return 0;
+  var bg={},n=0,hit=0,i;
+  for(i=0;i<a.length-1;i++){var x=a.substr(i,2);bg[x]=(bg[x]||0)+1;n++;}
+  for(i=0;i<b.length-1;i++){var y=b.substr(i,2);if(bg[y]>0){bg[y]--;hit++;}n++;}
+  return 2*hit/n;
+}
+function _iuRowTitle(d){return d.system_name||d.title_pt||d.title||d.original_title||d.english_title||'';}
+// linhas que seriam filme novo e parecem um filme existente: [{id,titulo,alvo,alvoTit,tipo}]
+function _iuTitleMatches(){
+  var sch=IU_SCHEMAS[_iuState.module];if(!_iuIsFilmSch(sch))return[];
+  var refs=_iuFilmRefs(sch),out=[];
+  var tc=_iuState.titleChoice||(_iuState.titleChoice={});
+  _iuGroupedRowsBase().forEach(function(d){
+    var id=d[sch.idField];if(!id||refs[id])return;
+    var t=_iuNormTit(_iuRowTitle(d));if(t.length<3)return;
+    var best=null,bs=0;
+    Object.keys(refs).forEach(function(k){refs[k].tits.forEach(function(rt){var s=_iuDice(t,rt);if(s>bs){bs=s;best=k;}});});
+    if(!best||bs<0.85)return;
+    var tipo=bs===1?'igual':'parecido';
+    if(!(id in tc))tc[id]=tipo==='igual'?best:'';
+    out.push({id:id,titulo:_iuRowTitle(d),alvo:best,alvoTit:filmDisplayTitle(best),tipo:tipo});
+  });
+  return out;
+}
+function _iuTitleMatchesHtml(list){
+  if(!list.length)return'';
+  var tc=_iuState.titleChoice||{};
+  function esq(s){return String(s).replace(/\\/g,'\\\\').replace(/'/g,"\\'");}
+  var h='<div style="margin-top:12px;padding:10px;background:rgba(220,180,80,0.10);border:1px solid var(--warn);font-family:var(--mono);font-size:11px;">'
+    +'<div style="color:var(--warn);font-weight:600;margin-bottom:6px;">⚠ '+list.length+' filme(s) "novo(s)" parecem já existir no evento — escolha juntar ou criar</div>'
+    +'<div style="max-height:260px;overflow:auto;display:flex;flex-direction:column;gap:6px;">';
+  list.forEach(function(m){
+    var nm='iut_'+m.id.replace(/[^a-zA-Z0-9]/g,'_'),ch=tc[m.id]||'',iq=esq(m.id),aq=esq(m.alvo);
+    h+='<div style="border:1px solid var(--border);border-radius:3px;padding:6px 10px;background:var(--surface);">'
+      +'<div style="margin-bottom:3px;"><b>'+esc(m.titulo)+'</b> <span style="color:var(--text-muted);">· planilha: '+esc(m.id)+'</span></div>'
+      +'<label style="display:block;cursor:pointer;"><input type="radio" name="'+nm+'"'+(ch===m.alvo?' checked':'')+' onchange="_iuState.titleChoice[\''+iq+'\']=\''+aq+'\';_iuRenderStep3()"> juntar com <b>'+esc(m.alvo)+'</b> – '+esc(m.alvoTit)+' <span style="color:var(--text-muted);">(título '+m.tipo+')</span></label>'
+      +'<label style="display:block;cursor:pointer;"><input type="radio" name="'+nm+'"'+(ch===''?' checked':'')+' onchange="_iuState.titleChoice[\''+iq+'\']=\'\';_iuRenderStep3()"> criar filme novo</label>'
+      +'</div>';
+  });
+  return h+'</div></div>';
+}
 function _iuGroupedRows(){
+  var rows=_iuGroupedRowsBase(),sch=IU_SCHEMAS[_iuState.module],tc=_iuState.titleChoice||{};
+  if(!_iuIsFilmSch(sch))return rows;
+  rows.forEach(function(d){var id=d[sch.idField];if(id&&tc[id])d[sch.idField]=tc[id];});
+  return rows;
+}
+function _iuGroupedRowsBase(){
   // Pipeline: transform → postProcess → agrupar.
   // Chave de agrupamento: ID se mapeado; senão groupByFallback (ex: name) se mapeado.
   // IDs sequenciais são atribuídos por GRUPO (não por linha) quando ID veio só do default.
@@ -29522,7 +29604,18 @@ function _iuGroupedRows(){
   // Opcional: prefixar o ID mapeado com o evento (UPPERALNUM), pra casar com códigos já gravados (ex.: Kinoforum)
   var _pfx=(_iuState.prefixId&&sch.needsEv&&_iuState.event)?_iuState.event.toUpperCase().replace(/[^A-Z0-9]/g,''):'';
   if(_pfx&&idMapped){
-    raw.forEach(function(d){var idv=d[sch.idField];if(idv!=null&&idv!==''){idv=String(idv);if(idv.indexOf(_pfx)!==0)d[sch.idField]=_pfx+idv;}});
+    var _pfxN=_iuNormCod(_pfx);
+    raw.forEach(function(d){var idv=d[sch.idField];if(idv!=null&&idv!==''){idv=String(idv);if(_iuNormCod(idv).indexOf(_pfxN)!==0)d[sch.idField]=_pfx+idv;}});
+  }
+  // filmes: código "quase igual" a um já gravado no evento → usa o gravado
+  if(_iuIsFilmSch(sch)&&idMapped){
+    var _refs=_iuFilmRefs(sch),_nidx=_iuNormIdx(_refs);
+    raw.forEach(function(d){
+      var idv=d[sch.idField];if(idv==null||idv==='')return;idv=String(idv);
+      if(_refs[idv]||(existingMap&&existingMap[idv]))return;
+      var hit=_nidx[_iuNormCod(idv)];
+      if(hit){(_iuState.codAjustado||(_iuState.codAjustado={}))[hit]=idv;d[sch.idField]=hit;}
+    });
   }
   var seq=0;
   var evPrefix=sch.needsEv?(_iuState.event||''):'';
@@ -29719,6 +29812,9 @@ function _iuRenderConflictsHtml(conflicts){
 function _iuRenderStep3(){
   document.getElementById('iuStepLabel').textContent='3 · Pré-visualização';
   var sch=IU_SCHEMAS[_iuState.module];
+  // anti-duplicação de filmes: códigos ajustados + títulos parecidos (antes de agrupar com as escolhas)
+  _iuState.codAjustado={};
+  var _iuTM=_iuTitleMatches();
   // agrupa linhas com mesmo ID (ex: 1 linha por filme → 1 sessão com lista de filmes)
   var grouped=_iuGroupedRows();
   var sample=grouped.slice(0,8);
@@ -29746,6 +29842,16 @@ function _iuRenderStep3(){
     +'<span style="color:var(--ok);">novos: '+nw+'</span> · '
     +'<span style="color:var(--warn);">já existentes (MERGE): '+dup+'</span>'
     +(noId>0?' · <span style="color:var(--warn);">sem ID: '+noId+'</span>':'')
+    +(function(){
+      if(!_iuIsFilmSch(sch))return'';
+      var s='',aj=_iuState.codAjustado||{},ak=Object.keys(aj);
+      if(sch.coll!=='filmes'){
+        var jaSel=grouped.filter(function(t){var id=t[sch.idField];return id&&!(existingMap&&existingMap[id])&&window.catalogoFilmesMap&&catalogoFilmesMap[id];}).length;
+        if(jaSel)s+='<div style="margin-top:6px;color:var(--ok);">✓ '+jaSel+' dos novos já existem nos Selecionados com o mesmo código (não é duplicação)</div>';
+      }
+      if(ak.length)s+='<div style="margin-top:6px;color:var(--accent);">⚭ '+ak.length+' código(s) da planilha ajustados para o código já gravado: '+ak.slice(0,6).map(function(k){return esc(aj[k])+' → '+esc(k);}).join(' · ')+(ak.length>6?' …':'')+'</div>';
+      return s;
+    })()
     +'</div>';
   // Aviso de filmes não encontrados no catálogo (somente importação de sessões)
   var missing=_iuFindMissingFilms(grouped);
@@ -29768,7 +29874,7 @@ function _iuRenderStep3(){
   var conflictsHtml=_iuRenderConflictsHtml(_iuConflicts);
   document.getElementById('iuBody').innerHTML=
     '<div style="font-family:var(--mono);font-size:10px;color:var(--text-muted);margin-bottom:8px;">Mostrando '+Math.min(8,grouped.length)+' de '+grouped.length+' registro(s) processado(s)</div>'
-    +tableHtml+msg+prefixHtml+missingHtml+conflictsHtml;
+    +tableHtml+msg+prefixHtml+_iuTitleMatchesHtml(_iuTM)+missingHtml+conflictsHtml;
   document.getElementById('iuFoot').innerHTML='<button class="cxp-btn" onclick="_iuRenderStep2()">← Mapeamento</button><button class="cxp-btn primary" onclick="_iuExecute()">Importar '+grouped.length+' registro(s)</button>';
 }
 
@@ -29795,7 +29901,7 @@ async function _iuExecute(){
           var suf=(typeof _catSuggestCode==='function')?_catSuggestCode(_iuState.event):String(mi+1).padStart(5,'0');
           var cod=_iuState.event+suf;
           var catData={festival_code:cod,evento:_iuState.event,system_name:nm,title:nm,title_pt:nm,selecao:'FEST',forma_selecao:'importador'};
-          var copData={festival_code:cod,event_name:_iuState.event,title:nm,status:'Aguardando'};
+          var copData={festival_code:cod,event_name:_iuState.event,title:nm,status:'Solicitado'};
           if(window._olgaCatalogo)await window._olgaCatalogo.save(cod,catData);
           if(window._olgaCopias)try{await window._olgaCopias.save(cod,copData);}catch(_){}
           if(window.catalogoFilmesMap)catalogoFilmesMap[cod]=catData;
@@ -29869,7 +29975,7 @@ async function _iuExecute(){
             title:finalData.system_name||finalData.title_pt||finalData.title||'',
             original_language:finalData.original_language||'',
             dcp_duration:finalData.ff_duration||(finalData.runtime?(Math.floor(finalData.runtime/60)+':'+String(finalData.runtime%60).padStart(2,'0')+':00'):''),
-            status:'Aguardando',
+            status:'Solicitado',
             dcp_subtitle_code:'',vf_subtitle_code:'',projection_lens:'',audio_format:'',
             notes:'',dcp_creator:'',has_kdm:'',subtitle_status:'',cpl_id:'',ov_cpl_id:'',
             dcp_resolution:'',dcp_size:'',dcp_fps:'',storage_location:'',
@@ -31359,7 +31465,7 @@ function _sxcPrint(){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 06/11/2026 às 11:17</span></div>
+<div id="page-footer"><span>última atualização · 06/11/2026 às 11:24</span></div>
 
 </div>
 
@@ -34778,7 +34884,7 @@ async function importarDaTriagem(){
             original_language:catData.original_language||'',
             dcp_duration:catData.ff_duration||'',
             dcp_subtitle_code:'',vf_subtitle_code:'',projection_lens:'',
-            audio_format:'',status:'Aguardando',notes:'',dcp_creator:'',
+            audio_format:'',status:'Solicitado',notes:'',dcp_creator:'',
             has_kdm:'',subtitle_status:'',cpl_id:'',ov_cpl_id:'',
             dcp_resolution:'',dcp_size:'',dcp_fps:'',storage_location:'',
             dcp_uuid:'',accessibility_features:'',dcp_link:'',file_link:''

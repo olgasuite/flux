@@ -12732,7 +12732,8 @@ function _credEtiquetaData(d){
   }else{
     var mostras=(d.mostras||[]).map(function(mid){var p=(_progData.programs||[]).find(function(x){return x.id===mid;});return p&&p.data&&p.data.name?p.data.name:mid;});
     var subs=(d.submostras||[]).map(function(v){var s=(_progData.subprograms||[]).find(function(x){return x.id===v||(x.data&&x.data.name===v);});return s&&s.data&&s.data.name?s.data.name:v;});
-    assoc=[mostras.join(', '),subs.join(', ')].filter(Boolean).join(' - ');
+    // submostra é a informação mais específica (ex.: nome da oficina): quando existe, vai sozinha
+    assoc=subs.length?subs.join(' · '):mostras.join(', ');
   }
   return{name:d.name||'',roles:roles,ev:ev,assoc:assoc};
 }
@@ -12763,11 +12764,13 @@ function _credPrintLabels(items){
   var seq=items.length>1; // lote: tira contínua, sem quebra de página entre etiquetas
   var sheetH=seq?pageH*items.length:pageH;
   var labels=items.map(function(e){
-    var ref=e.assoc||'';if(ref.length>40)ref=ref.slice(0,40)+'…';
+    // texto longo quebra em linhas (fonte menor) em vez de ser cortado; só corta acima de 110 caracteres
+    var ref=e.assoc||'';if(ref.length>110)ref=ref.slice(0,110).replace(/\s+\S*$/,'')+'…';
+    var refCls=ref.length>40?' et-ref-long':'';
     return'<div class="et"><div class="et-inner">'+
     ((fl.ev!==false&&e.ev)?'<div class="et-ev">'+_re(e.ev)+'</div>':'')+
     '<div class="et-name">'+_re(e.name)+'</div>'+
-    ((fl.assoc!==false&&ref)?'<div class="et-ref">'+_re(ref)+'</div>':'')+
+    ((fl.assoc!==false&&ref)?'<div class="et-ref'+refCls+'">'+_re(ref)+'</div>':'')+
     ((fl.roles!==false&&e.roles)?'<div class="et-role">'+_re(e.roles)+'</div>':'')+
   '</div></div>';}).join('');
   var html='<!doctype html><html><head><meta charset="utf-8"><title>Etiqueta</title><style>'+
@@ -12779,7 +12782,8 @@ function _credPrintLabels(items){
     '.et-inner{position:absolute;top:50%;left:50%;width:'+innerW+'mm;height:'+innerH+'mm;transform:translate(-50%,-50%) rotate('+rot+'deg);padding:6mm 5mm;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;overflow:hidden;}'+
     '.et-ev{font-size:10pt;letter-spacing:0.08em;text-transform:uppercase;color:#444;margin-bottom:3mm;}'+
     '.et-name{font-size:22pt;font-weight:700;line-height:1.05;color:#000;}'+
-    '.et-ref{font-size:13pt;color:#222;margin-top:3mm;font-weight:600;}'+
+    '.et-ref{font-size:13pt;color:#222;margin-top:3mm;font-weight:600;line-height:1.15;overflow-wrap:break-word;max-width:100%;}'+
+    '.et-ref-long{font-size:10pt;}'+
     '.et-role{font-size:11pt;letter-spacing:0.1em;text-transform:uppercase;color:#000;margin-top:3mm;font-weight:700;}'+
     '</style></head><body>'+labels+'</body></html>';
   var w=window.open('','_blank','width=360,height=560');
@@ -20248,7 +20252,7 @@ function renderDash(){
   html+=colBlock('legendagem','Legendagem',legBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 07/11/2026 às 09:04';
+  var sysUpdate='última atualização do sistema · 07/11/2026 às 09:13';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -31551,7 +31555,7 @@ function _sxcPrint(){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 07/11/2026 às 09:04</span></div>
+<div id="page-footer"><span>última atualização · 07/11/2026 às 09:13</span></div>
 
 </div>
 

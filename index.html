@@ -11986,8 +11986,14 @@ function _ensureProgData(){
 /* ─── CONVIDADOS ─── */
 var _RECEP_ROLES=['Júri','Realização','Representante de filme','Mesa de debate','Ministrante','Participante','Colaboração artística','Equipe'];
 function _recepRoleSlug(r){return(r||'').toString().toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,'');}
-function _recepRoleBadges(roles){
-  return (roles||[]).map(function(r){return'<span class="recep-role-badge recep-role-'+_recepRoleSlug(r)+'">'+_re(r)+'</span>';}).join('');
+// Campo livre "juri" do convidado (qual júri a pessoa integra): o papel "Júri" passa a mostrar o nome do júri
+function _recepJuriLabel(r,juri){
+  juri=String(juri||'').trim();
+  if(r!=='Júri'||!juri)return r;
+  return /^j[úu]ri\b/i.test(juri)?juri:'Júri '+juri;
+}
+function _recepRoleBadges(roles,juri){
+  return (roles||[]).map(function(r){return'<span class="recep-role-badge recep-role-'+_recepRoleSlug(r)+'">'+_re(_recepJuriLabel(r,juri))+'</span>';}).join('');
 }
 var _RECEP_ROLE_MAP={jurado:'Júri',diretor:'Realização',debatedor:'Mesa de debate',convidado:'Representante de filme'};
 function _recepTemPapelAntigo(){return (_recepGuests||[]).some(function(g){return (g.data.roles||[]).some(function(r){return _RECEP_ROLE_MAP[r];});});}
@@ -12547,7 +12553,7 @@ function _renderConvidados(){
       '<td style="width:22px;text-align:center;"><input type="checkbox" class="recep-guest-chk" data-id="'+sid+'" onchange="_recepToggleGuestSel(\''+sid+'\')"'+(_recepGuestSel.has(g.id)?' checked':'')+'></td>'+
       '<td style="width:22px;text-align:center;">'+_guestStatusDot(d)+'</td>'+
       '<td><button style="background:none;border:none;font-family:var(--mono);font-size:10px;font-weight:600;color:var(--text);cursor:pointer;padding:0;text-align:left;" onclick="openGuestDetail(\''+sid+'\')">'+_re(d.name||'—')+'</button>'+(d.credenciado?' <span class="cred-mark" title="Credenciado">✓</span>':'')+'</td>'+
-      '<td>'+_recepRoleBadges(d.roles)+'</td>'+
+      '<td>'+_recepRoleBadges(d.roles,d.juri)+'</td>'+
       '<td>'+(d.event_id&&_recepEvLabel(d.event_id)?'<span style="display:inline-block;font-family:var(--sans);font-size:9px;font-weight:700;letter-spacing:0.04em;padding:2px 8px;border-radius:var(--r-pill);white-space:nowrap;background:'+(eventColors[d.event_id]?eventColors[d.event_id].bg:'var(--surface2)')+';color:'+(eventColors[d.event_id]?eventColors[d.event_id].text:'var(--text-muted)')+'">'+_re(_recepEvLabel(d.event_id))+'</span>':'—')+'</td>'+
       '<td>'+_re(bookMap[g.id]||'—')+'</td>'+
       '<td style="max-width:300px;">'+_recepGuestPills(d)+'</td>'+
@@ -12635,7 +12641,7 @@ function _renderCredenciamento(){
       '<td style="width:22px;text-align:center;"><input type="checkbox" class="cred-chk" data-id="'+sid+'" onchange="_credToggleSel(\''+sid+'\')"'+(_credSel.has(g.id)?' checked':'')+'></td>'+
       '<td style="width:130px;">'+statusCell+'</td>'+
       '<td style="color:var(--text);font-weight:600;">'+_re(d.name||'—')+'</td>'+
-      '<td>'+_recepRoleBadges(d.roles)+'</td>'+
+      '<td>'+_recepRoleBadges(d.roles,d.juri)+'</td>'+
       '<td style="max-width:260px;">'+_recepGuestPills(d)+'</td>'+
       '<td style="white-space:nowrap;text-align:right;">'+actions+'</td>'+
     '</tr>';
@@ -12715,7 +12721,7 @@ function _credAtividadeParalela(d){
   return nomes;
 }
 function _credEtiquetaData(d){
-  var roles=(d.roles||[]).join(' · ');
+  var roles=(d.roles||[]).map(function(r){return _recepJuriLabel(r,d.juri);}).join(' · ');
   var ev=_recepEvLabel(d.event_id)||'';
   var filmes=(d.filmes||[]).map(filmDisplayTitle);
   var assoc;
@@ -12925,6 +12931,7 @@ function openGuestModal(id,tmplData){
         '<div class="recep-field"><label class="recep-label">Check-out hotel</label><input id="g_checkout" type="date" class="recep-input" value="'+_re(d.hotel_checkout_date||'')+'"></div>'+
       '</div>'+
       '<div class="recep-field"><label class="recep-label">Papel</label><div class="recep-roles-row">'+_RECEP_ROLES.map(roleCheck).join('')+'</div></div>'+
+      '<div class="recep-field"><label class="recep-label">Júri (qual)</label><input id="g_juri" class="recep-input" placeholder="ex.: Júri Mercocidades, Júri Jovem…" value="'+_re(d.juri||'')+'"></div>'+
       '<div class="recep-field"><label class="recep-label">Mostra(s)</label><div class="prog-autocomplete-wrap"><div class="convidados-tag-wrap" id="g_mostras_wrap" onclick="var i=document.getElementById(\'g_mostra_inp\');if(i)i.focus()"></div><div id="g_mostra_res" class="prog-autocomplete-results"></div></div></div>'+
       '<div class="recep-field"><label class="recep-label">Sub-mostra(s)</label><div class="prog-autocomplete-wrap"><div class="convidados-tag-wrap" id="g_subs_wrap" onclick="var i=document.getElementById(\'g_sub_inp\');if(i)i.focus()"></div><div id="g_sub_res" class="prog-autocomplete-results"></div></div></div>'+
       '<div class="recep-field"><label class="recep-label">Filme(s)</label><div class="prog-autocomplete-wrap"><div class="convidados-tag-wrap" id="g_filmes_wrap" onclick="var i=document.getElementById(\'g_filme_inp\');if(i)i.focus()"></div><div id="g_filme_res" class="prog-autocomplete-results"></div></div></div>'+
@@ -12950,7 +12957,7 @@ window.saveGuest=async function(curBookId){
   if(!_gEv){var e=document.getElementById('recepMErr');e.textContent='Evento obrigatório.';e.style.display='block';return;}
   var hotelId=document.getElementById('g_hotel').value||'';
   var _gExisting=_recepEditId?_recepGuests.find(function(x){return x.id===_recepEditId;}):null;
-  var data={name:name,event_id:_gEv,roles:Array.from(document.querySelectorAll('input[name="g_role"]:checked')).map(function(x){return x.value;}),contact:{email:(document.getElementById('g_email').value||'').trim(),phone:(document.getElementById('g_phone').value||'').trim()},notes:(document.getElementById('g_notes').value||'').trim(),bio:((document.getElementById('g_bio')||{}).value||'').trim(),arrival_date:document.getElementById('g_arrival').value||'',departure_date:document.getElementById('g_departure').value||'',hotel_checkin_date:document.getElementById('g_checkin').value||'',hotel_checkout_date:document.getElementById('g_checkout').value||'',mostras:_gMostrasSel.map(function(m){return m.id;}),submostras:_gSubsSel.map(function(s){return s.name;}),filmes:_gFilmesSel.map(function(f){return f.codigo;}),credenciado:!!(_gExisting&&_gExisting.data.credenciado),credenciado_em:(_gExisting&&_gExisting.data.credenciado_em)||'',updated_at:_recepNow()};
+  var data={name:name,event_id:_gEv,roles:Array.from(document.querySelectorAll('input[name="g_role"]:checked')).map(function(x){return x.value;}),contact:{email:(document.getElementById('g_email').value||'').trim(),phone:(document.getElementById('g_phone').value||'').trim()},notes:(document.getElementById('g_notes').value||'').trim(),juri:((document.getElementById('g_juri')||{}).value||'').trim(),bio:((document.getElementById('g_bio')||{}).value||'').trim(),arrival_date:document.getElementById('g_arrival').value||'',departure_date:document.getElementById('g_departure').value||'',hotel_checkin_date:document.getElementById('g_checkin').value||'',hotel_checkout_date:document.getElementById('g_checkout').value||'',mostras:_gMostrasSel.map(function(m){return m.id;}),submostras:_gSubsSel.map(function(s){return s.name;}),filmes:_gFilmesSel.map(function(f){return f.codigo;}),credenciado:!!(_gExisting&&_gExisting.data.credenciado),credenciado_em:(_gExisting&&_gExisting.data.credenciado_em)||'',updated_at:_recepNow()};
   try{
     var guestId=await window._olgaGuests.save(_recepEditId,data);
     window._logFirestoreEdit&&window._logFirestoreEdit('individual',_recepEditId||guestId,data,'receptivo','convidados');
@@ -13075,7 +13082,7 @@ function _renderGuestDetail(guestId){
     '</div>'+
     '<div class="recep-detail-header">'+
       '<div class="recep-detail-name">'+_re(d.name||'—')+'</div>'+
-      '<div style="margin-top:6px;">'+_recepRoleBadges(d.roles)+'</div>'+
+      '<div style="margin-top:6px;">'+_recepRoleBadges(d.roles,d.juri)+'</div>'+
       '<div class="recep-detail-meta">'+
         '<span>Evento: '+_re(_recepEvLabel(d.event_id))+'</span>'+
         ((d.contact&&d.contact.email)?'<span>'+_re(d.contact.email)+'</span>':'')+
@@ -20241,7 +20248,7 @@ function renderDash(){
   html+=colBlock('legendagem','Legendagem',legBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 06/11/2026 às 17:17';
+  var sysUpdate='última atualização do sistema · 07/11/2026 às 09:04';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -31544,7 +31551,7 @@ function _sxcPrint(){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 06/11/2026 às 17:17</span></div>
+<div id="page-footer"><span>última atualização · 07/11/2026 às 09:04</span></div>
 
 </div>
 

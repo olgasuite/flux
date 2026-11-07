@@ -12721,7 +12721,10 @@ function _credAtividadeParalela(d){
   return nomes;
 }
 function _credEtiquetaData(d){
-  var roles=(d.roles||[]).map(function(r){return _recepJuriLabel(r,d.juri);}).join(' · ');
+  // papéis ligados a filme (Realização, Representante de filme) vêm primeiro: a linha de papéis fica logo abaixo dos filmes
+  var _rFilme={'Realização':1,'Representante de filme':1};
+  var _rOrd=(d.roles||[]).slice().sort(function(a,b){return(_rFilme[b]?1:0)-(_rFilme[a]?1:0);});
+  var roles=_rOrd.map(function(r){return _recepJuriLabel(r,d.juri);}).join(' · ');
   var ev=_recepEvLabel(d.event_id)||'';
   var filmes=(d.filmes||[]).map(filmDisplayTitle);
   var assoc;

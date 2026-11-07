@@ -20257,7 +20257,7 @@ function renderDash(){
   html+=colBlock('legendagem','Legendagem',legBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 07/11/2026 às 13:22';
+  var sysUpdate='última atualização do sistema · 07/11/2026 às 15:16';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -31560,7 +31560,7 @@ function _sxcPrint(){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 07/11/2026 às 13:22</span></div>
+<div id="page-footer"><span>última atualização · 07/11/2026 às 15:16</span></div>
 
 </div>
 
@@ -36248,7 +36248,7 @@ function _trafValidaHd(id){
   function add(o){var k=(o.cpl||'').toUpperCase()+'|'+o.codigo+'|'+o.papel;if(vistos[k])return;vistos[k]=1;itens.push(o);}
   r.presentes.forEach(function(it){
     var f=_copiaPorId(it.c)||{};
-    var base={codigo:it.c,titulo:_trafTitulo(it.c),gb:_trafGB(it.c)||null,
+    var base={codigo:it.c,titulo:_trafTitulo(it.c),gb:_trafGB(it.c)||null,origem:_trafOrigem(h,it.c)||'',
       sessoes:it.sessoes.map(function(s){return _trafBr(_trafIso(s.date))+' '+s.hora+' '+s.cinema;})};
     var cpls=_trafCplsDe(f.cpl),ovs=_trafCplsDe(f.cplOV);
     if(!cpls.length)add(Object.assign({},base,{cpl:'',papel:'principal'}));

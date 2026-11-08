@@ -4753,7 +4753,8 @@ html[data-theme="indexof"]:not([data-theme="win98"]) .module-icon{display:flex!i
   window._olgaGuests   = _recepApiOf('guests');
   window._olgaGuests.setFields = async function(id,fields){await setDoc(doc(db,'guests',id),fields,{merge:true});};
   window._olgaHotels   = _recepApiOf('hotels');
-  window._olgaBookings = _recepApiOf('hotel_bookings');
+  var _bookingsBase=_recepApiOf('hotel_bookings');
+  window._olgaBookings=Object.assign({},_bookingsBase,{saveField:async function(id,partial){await setDoc(doc(db,'hotel_bookings',id),partial,{merge:true});}});
   window._olgaFlights  = _recepApiOf('flights');
   window._olgaTransfers= _recepApiOf('transfers');
   var _pessoasBase=_recepApiOf('pessoas');
@@ -11914,6 +11915,7 @@ function _recepAllowedEvs(){
 
 // Edição por área do Receptivo. 'somente_credenciamento' trava tudo menos Credenciamento
 // (Etiquetas não grava nada, então segue livre). Vale para editor e viewer.
+function _recepDataBr(v){var m=/^(\d{4})-(\d{2})-(\d{2})(?:T(\d{2}:\d{2}))?/.exec(v||'');return m?m[3]+'/'+m[2]+'/'+m[1]+(m[4]?' '+m[4]:''):(v||'');}
 function _recepCanEditArea(area){
   if(!(window._olgaCanEdit&&window._olgaCanEdit('receptivo')))return false;
   if(window._olgaHasRestricao&&window._olgaHasRestricao('receptivo.somente_credenciamento'))return area==='credenciamento';
@@ -12531,7 +12533,16 @@ function _renderConvidados(){
   _recepSyncSelectedEvent();
   var canEdit=_recepCanEditArea('convidados');
   var hotelMap={};_recepHotels.forEach(function(h){hotelMap[h.id]=h.data.name||h.id;});
-  var bookMap={};_recepBookings.forEach(function(b){if(b.data.guest_id)bookMap[b.data.guest_id]=hotelMap[b.data.hotel_id]||'—';});
+  var bookMap={},guestBooks={};_recepBookings.forEach(function(b){if(b.data.guest_id){bookMap[b.data.guest_id]=hotelMap[b.data.hotel_id]||'—';(guestBooks[b.data.guest_id]=guestBooks[b.data.guest_id]||[]).push(b);}});
+  function hotelCell(g,sid){
+    var gb=guestBooks[g.id]||[];
+    if(!gb.length)return canEdit?'<button class="recep-row-btn" onclick="_recepBookingDaLista(null,\''+sid+'\')">+ hotel e quarto</button>':'—';
+    return gb.map(function(b){
+      var bd=b.data,q=bd.room_number?'nº '+_re(bd.room_number):_re(bd.room_type||'');
+      var txt=_re(hotelMap[bd.hotel_id]||'—')+' · '+(q||'<span style="color:var(--text-muted);">sem quarto</span>');
+      return canEdit?'<button title="Editar hotel, quarto e datas" style="display:block;background:none;border:none;font:inherit;color:inherit;cursor:pointer;padding:0;text-align:left;text-decoration:underline dotted;" onclick="_recepBookingDaLista(\''+_re(b.id)+'\',\''+sid+'\')">'+txt+'</button>':'<div>'+txt+'</div>';
+    }).join('');
+  }
   var filtered=_recepGuests.filter(function(g){
     var ev=g.data.event_id;
     if(!ev||ev!==_recepSelectedEvent)return false;
@@ -12557,7 +12568,7 @@ function _renderConvidados(){
       '<td><button style="background:none;border:none;font-family:var(--mono);font-size:10px;font-weight:600;color:var(--text);cursor:pointer;padding:0;text-align:left;" onclick="openGuestDetail(\''+sid+'\')">'+_re(d.name||'—')+'</button>'+(d.credenciado?' <span class="cred-mark" title="Credenciado">✓</span>':'')+'</td>'+
       '<td>'+_recepRoleBadges(d.roles,d.juri)+'</td>'+
       '<td>'+(d.event_id&&_recepEvLabel(d.event_id)?'<span style="display:inline-block;font-family:var(--sans);font-size:9px;font-weight:700;letter-spacing:0.04em;padding:2px 8px;border-radius:var(--r-pill);white-space:nowrap;background:'+(eventColors[d.event_id]?eventColors[d.event_id].bg:'var(--surface2)')+';color:'+(eventColors[d.event_id]?eventColors[d.event_id].text:'var(--text-muted)')+'">'+_re(_recepEvLabel(d.event_id))+'</span>':'—')+'</td>'+
-      '<td>'+_re(bookMap[g.id]||'—')+'</td>'+
+      '<td>'+hotelCell(g,sid)+'</td>'+
       '<td style="max-width:300px;">'+_recepGuestPills(d)+'</td>'+
       '<td>'+(canEdit?'<button class="recep-row-btn" onclick="openGuestModal(\''+sid+'\')">editar</button>':'')+'<button class="recep-row-btn" onclick="dupeGuest(\''+sid+'\')">duplicar</button></td>'+
     '</tr>';
@@ -12972,9 +12983,18 @@ window.saveGuest=async function(curBookId){
     window._logFirestoreEdit&&window._logFirestoreEdit('individual',_recepEditId||guestId,data,'receptivo','convidados');
     var resolvedId=_recepEditId||guestId;
     if(hotelId){
-      var bookData={guest_id:resolvedId,hotel_id:hotelId,status:'reservado',payment_type:'festival',updated_at:_recepNow()};
-      await window._olgaBookings.save(curBookId||null,bookData);
-      window._logFirestoreEdit&&window._logFirestoreEdit('individual',curBookId||null,bookData,'receptivo','reservas');
+      var _curBk=curBookId?_recepBookings.find(function(x){return x.id===curBookId;}):null;
+      if(_curBk){
+        if(_curBk.data.hotel_id!==hotelId){
+          var _bkPatch={hotel_id:hotelId,updated_at:_recepNow()};
+          await window._olgaBookings.saveField(curBookId,_bkPatch);
+          window._logFirestoreEdit&&window._logFirestoreEdit('individual',curBookId,_bkPatch,'receptivo','reservas');
+        }
+      }else{
+        var bookData={guest_id:resolvedId,hotel_id:hotelId,check_in_date:data.hotel_checkin_date,check_out_date:data.hotel_checkout_date,status:'reservado',payment_type:'festival',updated_at:_recepNow()};
+        var _novoBk=await window._olgaBookings.save(null,bookData);
+        window._logFirestoreEdit&&window._logFirestoreEdit('individual',_novoBk,bookData,'receptivo','reservas');
+      }
     }
     _recepCloseModal();openRecepSection('convidados');
   }
@@ -13028,7 +13048,7 @@ window._recepDeleteSelected=async function(){
 
 /* ─── GUEST DETAIL ─── */
 function openGuestDetail(guestId){
-  _recepParentId=guestId;_recepPush({view:'detail',guestId:guestId});_recepLoading();
+  _recepBookReturn='';_recepParentId=guestId;_recepPush({view:'detail',guestId:guestId});_recepLoading();
   _recepLoadEvs().then(function(){
     Promise.all([window._olgaGuests.list(),window._olgaFlights.list(),window._olgaBookings.list(),window._olgaHotels.list(),window._olgaTransfers.list()]).then(function(r){
       _recepGuests=r[0];_recepFlights=r[1];_recepBookings=r[2];_recepHotels=r[3];_recepTransfers=r[4];
@@ -13058,7 +13078,7 @@ function _renderGuestDetail(guestId){
     '<td>'+(fd.type==='chegada'?'↓ chegada':'↑ partida')+'</td>'+
     '<td>'+_recepFlightLink(fd.flight_number)+'</td>'+
     '<td>'+_re(fd.origin||'')+(fd.destination?' → '+_re(fd.destination):'')+'</td>'+
-    '<td>'+_re(fd.datetime?fd.datetime.replace('T',' '):'—')+'</td>'+
+    '<td>'+_re(fd.datetime?_recepDataBr(fd.datetime):'—')+'</td>'+
     '<td>'+(canEdit?'<button class="recep-row-btn" onclick="openVooModal(\''+fid+'\',\''+sid+'\')">editar</button><button class="recep-row-btn del" onclick="deleteVoo(\''+fid+'\',\''+sid+'\')">excluir</button>':'')+'<button class="recep-row-btn" onclick="dupeVoo(\''+fid+'\',\''+sid+'\')">duplicar</button></td>'+
   '</tr>';});
 
@@ -13067,7 +13087,7 @@ function _renderGuestDetail(guestId){
   var bookRows=gBooks.map(function(b){var bd=b.data,bid=_re(b.id);var hotel=_recepHotels.find(function(h){return h.id===bd.hotel_id;});return'<tr>'+
     '<td style="color:var(--text)">'+_re(hotel?(hotel.data.name||hotel.id):'—')+'</td>'+
     '<td>'+_re(bd.room_type||'—')+(bd.room_number?' · nº '+_re(bd.room_number):'')+'</td>'+
-    '<td>'+_re(bd.check_in_date||'—')+' → '+_re(bd.check_out_date||'—')+'</td>'+
+    '<td>'+_re(_recepDataBr(bd.check_in_date)||'—')+' → '+_re(_recepDataBr(bd.check_out_date)||'—')+'</td>'+
     '<td><span class="recep-status recep-status-'+_re((bd.status||'pendente').toLowerCase())+'">'+_re(bd.status||'pendente')+'</span></td>'+
     '<td>'+(canEdit?'<button class="recep-row-btn" onclick="openBookingModal(\''+bid+'\',\''+sid+'\')">editar</button><button class="recep-row-btn del" onclick="deleteBooking(\''+bid+'\',\''+sid+'\')">excluir</button>':'')+'<button class="recep-row-btn" onclick="dupeBooking(\''+bid+'\',\''+sid+'\')">duplicar</button></td>'+
   '</tr>';});
@@ -13078,7 +13098,7 @@ function _renderGuestDetail(guestId){
     '<td>'+(td.category==='chegada'?'↓ chegada':td.category==='partida'?'↑ partida':'↔ interno')+'</td>'+
     '<td>'+_re(_recepResolveLoc(td.origin,td.origin_ref))+((_recepResolveLoc(td.destination,td.destination_ref))?' '+_mapsRouteLink(_recepResolveLoc(td.origin,td.origin_ref),_recepResolveLoc(td.destination,td.destination_ref))+' '+_re(_recepResolveLoc(td.destination,td.destination_ref)):'')+'</td>'+
     '<td>'+_re(td.vehicle_type||'—')+'</td>'+
-    '<td>'+_re(td.datetime?td.datetime.replace('T',' '):'—')+'</td>'+
+    '<td>'+_re(td.datetime?_recepDataBr(td.datetime):'—')+'</td>'+
     '<td><span class="recep-status recep-status-'+_re((td.status||'pendente').toLowerCase())+'">'+_re(td.status||'pendente')+'</span></td>'+
     '<td>'+(canEdit?'<button class="recep-row-btn" onclick="openTransferModal(\''+tid+'\',\''+sid+'\')">editar</button><button class="recep-row-btn del" onclick="deleteTransfer(\''+tid+'\',\''+sid+'\')">excluir</button>':'')+'<button class="recep-row-btn" onclick="dupeTransfer(\''+tid+'\',\''+sid+'\')">duplicar</button></td>'+
   '</tr>';});
@@ -13108,7 +13128,7 @@ function _renderGuestDetail(guestId){
     '</div>'+
     '<div class="recep-section"><div class="recep-section-header"><span class="recep-section-title">Voos</span>'+(canEdit?'<button class="recep-add-btn" style="font-size:8px;padding:3px 10px;margin-left:0" onclick="openVooModal(null,\''+sid+'\')">+ Voo</button>':'')+'</div>'+
     secTable(['Tipo','Voo','Rota','Data/Hora',''],flightRows,'Nenhum voo registrado.')+'</div>'+
-    '<div class="recep-section"><div class="recep-section-header"><span class="recep-section-title">Hospedagem</span>'+(canEdit?'<button class="recep-add-btn" style="font-size:8px;padding:3px 10px;margin-left:0" onclick="openBookingModal(null,\''+sid+'\')">+ Reserva</button>':'')+'</div>'+
+    '<div class="recep-section"><div class="recep-section-header"><span class="recep-section-title">Hospedagem</span>'+(canEdit?'<button class="recep-add-btn" style="font-size:8px;padding:3px 10px;margin-left:0" onclick="openBookingModal(null,\''+sid+'\')">+ Hotel e quarto</button>':'')+'</div>'+
     secTable(['Hotel','Quarto','Período','Status',''],bookRows,'Nenhuma reserva registrada.')+'</div>'+
     '<div class="recep-section"><div class="recep-section-header"><span class="recep-section-title">Transporte</span>'+(canEdit?'<button class="recep-add-btn" style="font-size:8px;padding:3px 10px;margin-left:0" onclick="openTransferModal(null,\''+sid+'\')">+ Transfer</button>':'')+'</div>'+
     secTable(['Tipo','Rota','Veículo','Data/Hora','Status',''],transRows,'Nenhum transfer registrado.')+'</div>';
@@ -13188,14 +13208,18 @@ window.deleteHotel=async function(id){
 window.dupeHotel=function(id){var h=_recepHotels.find(function(x){return x.id===id;});if(h)openHotelModal(null,h.data);};
 
 /* ─── HOSPEDAGEM (Reservas) ─── */
+var _recepBookReturn='';
+window._recepBookingDaLista=function(id,guestId){openBookingModal(id,guestId);_recepBookReturn='convidados';};
 function openBookingModal(id,guestId,tmplData){
   if(!_recepCanEditArea('hoteis')){alert('Edição de hospedagem bloqueada para o seu perfil.');return;}
+  _recepBookReturn='';
   _recepEditId=id;_recepParentId=guestId||_recepParentId;
   var b=id?_recepBookings.find(function(x){return x.id===id;}):null;var d=tmplData||(b?b.data:{});
   var gid=guestId||d.guest_id||'';
   var guest=_recepGuests.find(function(g){return g.id===gid;});
   var gName=(guest||{data:{name:gid}}).data.name||gid;
   var gEvId=guest?guest.data.event_id:'';
+  var sugCi=(!d.check_in_date&&guest&&guest.data.hotel_checkin_date)||'',sugCo=(!d.check_out_date&&guest&&guest.data.hotel_checkout_date)||'';
   function selOpts(arr,cur){return arr.map(function(v){return'<option value="'+v+'"'+(v===cur?' selected':'')+'>'+v+'</option>';}).join('');}
   var hotelsFiltered=_recepHotels.filter(function(h){return!h.data.event_id||!gEvId||h.data.event_id===gEvId;});
   var hotelOpts=hotelsFiltered.map(function(h){return'<option value="'+_re(h.id)+'"'+(h.id===(d.hotel_id||'')?' selected':'')+'>'+_re(h.data.name||h.id)+'</option>';}).join('');
@@ -13208,13 +13232,14 @@ function openBookingModal(id,guestId,tmplData){
       '<div class="recep-field"><label class="recep-label">Convidado</label><input class="recep-input" disabled value="'+_re(gName)+'"></div>'+
       '<div class="recep-field"><label class="recep-label">Hotel</label><select id="b_hotel" class="recep-select"><option value="">— selecione —</option>'+hotelOpts+'</select></div>'+
       '<div class="recep-2col">'+
-        '<div class="recep-field"><label class="recep-label">Check-in</label><input id="b_ci_d" type="date" class="recep-input" value="'+_re(d.check_in_date||'')+'"></div>'+
+        '<div class="recep-field"><label class="recep-label">Check-in</label><input id="b_ci_d" type="date" class="recep-input" value="'+_re(d.check_in_date||sugCi)+'"></div>'+
         '<div class="recep-field"><label class="recep-label">Hora</label><input id="b_ci_t" type="time" class="recep-input" value="'+_re(d.check_in_time||'')+'"></div>'+
       '</div>'+
       '<div class="recep-2col">'+
-        '<div class="recep-field"><label class="recep-label">Check-out</label><input id="b_co_d" type="date" class="recep-input" value="'+_re(d.check_out_date||'')+'"></div>'+
+        '<div class="recep-field"><label class="recep-label">Check-out</label><input id="b_co_d" type="date" class="recep-input" value="'+_re(d.check_out_date||sugCo)+'"></div>'+
         '<div class="recep-field"><label class="recep-label">Hora</label><input id="b_co_t" type="time" class="recep-input" value="'+_re(d.check_out_time||'')+'"></div>'+
       '</div>'+
+      (sugCi||sugCo?'<div style="font-family:var(--mono);font-size:9px;color:var(--text-muted);margin:-4px 0 10px;">Datas sugeridas do cadastro do convidado. Ajuste se precisar.</div>':'')+
       '<div class="recep-2col">'+
         '<div class="recep-field"><label class="recep-label">Tipo de quarto</label><input id="b_rtype" class="recep-input" value="'+_re(d.room_type||'')+'"></div>'+
         '<div class="recep-field"><label class="recep-label">Número</label><input id="b_rnum" class="recep-input" value="'+_re(d.room_number||'')+'"></div>'+
@@ -13236,13 +13261,13 @@ function openBookingModal(id,guestId,tmplData){
 window.saveBooking=async function(){
   if(!_recepCanEditArea('hoteis'))return;
   var data={guest_id:_recepParentId||'',hotel_id:document.getElementById('b_hotel').value||'',check_in_date:document.getElementById('b_ci_d').value||'',check_in_time:document.getElementById('b_ci_t').value||'',check_out_date:document.getElementById('b_co_d').value||'',check_out_time:document.getElementById('b_co_t').value||'',room_type:(document.getElementById('b_rtype').value||'').trim(),room_number:(document.getElementById('b_rnum').value||'').trim(),status:document.getElementById('b_status').value,payment_type:document.getElementById('b_pay').value,confirmation_code:(document.getElementById('b_code').value||'').trim(),notes:(document.getElementById('b_notes').value||'').trim(),updated_at:_recepNow()};
-  try{await window._olgaBookings.save(_recepEditId,data);window._logFirestoreEdit&&window._logFirestoreEdit('individual',_recepEditId,data,'receptivo','reservas');_recepCloseModal();openGuestDetail(_recepParentId);}
+  try{await window._olgaBookings.save(_recepEditId,data);window._logFirestoreEdit&&window._logFirestoreEdit('individual',_recepEditId,data,'receptivo','reservas');_recepCloseModal();if(_recepBookReturn)openRecepSection(_recepBookReturn);else openGuestDetail(_recepParentId);}
   catch(err){var e=document.getElementById('recepMErr');e.textContent='Erro: '+err.message;e.style.display='block';}
 };
 window.deleteBooking=async function(id,guestId){
   if(!_recepCanEditArea('hoteis'))return;
   if(!confirm('Excluir esta reserva?'))return;
-  try{await window._olgaBookings.remove(id);window._logFirestoreEdit&&window._logFirestoreEdit('delete',id,{},'receptivo','reservas');_recepCloseModal();openGuestDetail(guestId||_recepParentId);}
+  try{await window._olgaBookings.remove(id);window._logFirestoreEdit&&window._logFirestoreEdit('delete',id,{},'receptivo','reservas');_recepCloseModal();if(_recepBookReturn)openRecepSection(_recepBookReturn);else openGuestDetail(guestId||_recepParentId);}
   catch(e){alert('Erro: '+e.message);}
 };
 window.dupeBooking=function(id,guestId){var b=_recepBookings.find(function(x){return x.id===id;});if(b)openBookingModal(null,guestId||b.data.guest_id,b.data);};
@@ -13260,7 +13285,7 @@ function _renderVoos(){
     '<td>'+(fd.type==='chegada'?'↓ chegada':'↑ partida')+'</td>'+
     '<td>'+_recepFlightLink(fd.flight_number)+'</td>'+
     '<td>'+_re(fd.origin||'')+(fd.destination?' → '+_re(fd.destination):'')+'</td>'+
-    '<td>'+_re(fd.datetime?fd.datetime.replace('T',' '):'—')+'</td>'+
+    '<td>'+_re(fd.datetime?_recepDataBr(fd.datetime):'—')+'</td>'+
     '<td>'+(canEdit?'<button class="recep-row-btn" onclick="openVooModal(\''+fid+'\',null)">editar</button><button class="recep-row-btn del" onclick="deleteVoo(\''+fid+'\',null)">excluir</button>':'')+'<button class="recep-row-btn" onclick="dupeVoo(\''+fid+'\',null)">duplicar</button></td>'+
   '</tr>';}).join('');
   document.getElementById('barReceptivo').innerHTML=
@@ -13347,7 +13372,7 @@ function _renderTransporte(){
     '<td>'+(td.category==='chegada'?'↓ chegada':td.category==='partida'?'↑ partida':'↔ interno')+'</td>'+
     '<td>'+_re(_recepResolveLoc(td.origin,td.origin_ref))+((_recepResolveLoc(td.destination,td.destination_ref))?' '+_mapsRouteLink(_recepResolveLoc(td.origin,td.origin_ref),_recepResolveLoc(td.destination,td.destination_ref))+' '+_re(_recepResolveLoc(td.destination,td.destination_ref)):'')+'</td>'+
     '<td>'+_re(td.vehicle_type||'—')+'</td>'+
-    '<td>'+_re(td.datetime?td.datetime.replace('T',' '):'—')+'</td>'+
+    '<td>'+_re(td.datetime?_recepDataBr(td.datetime):'—')+'</td>'+
     '<td><span class="'+sc+'">'+_re(td.status||'pendente')+'</span></td>'+
     '<td>'+(canEdit?'<button class="recep-row-btn" onclick="openTransferModal(\''+tid+'\',null)">editar</button><button class="recep-row-btn del" onclick="deleteTransfer(\''+tid+'\',null)">excluir</button>':'')+'<button class="recep-row-btn" onclick="dupeTransfer(\''+tid+'\',null)">duplicar</button></td>'+
   '</tr>';}).join('');
@@ -20257,7 +20282,7 @@ function renderDash(){
   html+=colBlock('legendagem','Legendagem',legBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 07/11/2026 às 15:16';
+  var sysUpdate='última atualização do sistema · 08/11/2026 às 08:17';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -31560,7 +31585,7 @@ function _sxcPrint(){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 07/11/2026 às 15:16</span></div>
+<div id="page-footer"><span>última atualização · 08/11/2026 às 08:17</span></div>
 
 </div>
 
@@ -32744,7 +32769,7 @@ function _mobRenderConvidadoDetalhe(params){
         html+='<div style="padding:10px 16px;border-bottom:1px solid var(--border);font-family:var(--mono);">'+
           '<div style="display:flex;align-items:center;gap:6px;margin-bottom:3px;">'+tipoPill+(fd.flight_number?'<span>'+flightLink(fd.flight_number)+'</span>':'')+'</div>'+
           (route?'<div style="font-size:9px;color:var(--text-muted);">'+route+'</div>':'')+
-          (fd.datetime?'<div style="font-size:9px;color:var(--text-muted);">'+_re(fd.datetime.replace('T',' '))+'</div>':'')+
+          (fd.datetime?'<div style="font-size:9px;color:var(--text-muted);">'+_re(_recepDataBr(fd.datetime))+'</div>':'')+
         '</div>';
       });
     } else {
@@ -32757,7 +32782,7 @@ function _mobRenderConvidadoDetalhe(params){
         html+='<div style="padding:10px 16px;border-bottom:1px solid var(--border);font-family:var(--mono);">'+
           '<div style="font-size:11px;font-weight:600;color:var(--text-dim);">'+_re(hMap[bd.hotel_id]||'—')+'</div>'+
           (bd.room_type||bd.room_number?'<div style="font-size:9px;color:var(--text-muted);margin-top:2px;">'+_re(bd.room_type||'')+(bd.room_number?' · nº '+_re(bd.room_number):'')+'</div>':'')+
-          (bd.check_in_date||bd.check_out_date?'<div style="font-size:9px;color:var(--text-muted);">'+_re(bd.check_in_date||'—')+' → '+_re(bd.check_out_date||'—')+'</div>':'')+
+          (bd.check_in_date||bd.check_out_date?'<div style="font-size:9px;color:var(--text-muted);">'+_re(_recepDataBr(bd.check_in_date)||'—')+' → '+_re(_recepDataBr(bd.check_out_date)||'—')+'</div>':'')+
         '</div>';
       });
     } else {
@@ -32772,7 +32797,7 @@ function _mobRenderConvidadoDetalhe(params){
         html+='<div style="padding:10px 16px;border-bottom:1px solid var(--border);font-family:var(--mono);">'+
           '<div style="display:flex;align-items:center;gap:6px;margin-bottom:3px;">'+tipoPill+(td.vehicle_type?'<span style="font-size:9px;color:var(--text-muted);">'+_re(td.vehicle_type)+'</span>':'')+'</div>'+
           (route?'<div style="font-size:9px;color:var(--text-muted);">'+route+'</div>':'')+
-          (td.datetime?'<div style="font-size:9px;color:var(--text-muted);">'+_re(td.datetime.replace('T',' '))+'</div>':'')+
+          (td.datetime?'<div style="font-size:9px;color:var(--text-muted);">'+_re(_recepDataBr(td.datetime))+'</div>':'')+
         '</div>';
       });
     } else {

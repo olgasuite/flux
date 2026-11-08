@@ -11893,10 +11893,19 @@ function _recepApplySort(arr,keyFn){
   return arr.slice().sort(function(a,b){var ka=keyFn(a)||'',kb=keyFn(b)||'';return ka.localeCompare(kb,undefined,{numeric:true,sensitivity:'base'})*d;});
 }
 
+function _recepAnoCompleto(i){
+  var m=/^(\d{4,6})-/.exec(i.value||'');if(!m)return;
+  var y=+m[1];if(y>=2000)return;
+  var ny=(y>=10&&y<100)?2000+y:new Date().getFullYear();
+  i.value=ny+i.value.slice(m[1].length);
+}
 function _recepShowModal(html){
   var old=document.getElementById('recepModal');if(old)old.remove();
   var d=document.createElement('div');d.id='recepModal';d.className='recep-modal-overlay';
   d.innerHTML=html;
+  d.querySelectorAll('input[type=date]').forEach(function(i){i.max='2099-12-31';});
+  d.querySelectorAll('input[type=datetime-local]').forEach(function(i){i.max='2099-12-31T23:59';});
+  d.addEventListener('focusout',function(e){var t=e.target;if(t&&(t.type==='date'||t.type==='datetime-local'))_recepAnoCompleto(t);});
   document.getElementById('olga-app').appendChild(d);
 }
 function _recepCloseModal(){var m=document.getElementById('recepModal');if(m)m.remove();}
@@ -13380,7 +13389,7 @@ function _renderTransporte(){
     '<button class="recep-back-btn" onclick="renderReceptivo()">← Receptivo</button>'+
     '<span class="recep-bar-title">Transporte</span>'+
     _recepEventBankSelect()+
-    '<input type="date" class="recep-input" style="width:130px;font-size:10px;padding:3px 7px;" value="'+_re(_recepTransDate)+'" onchange="_recepTransDate=this.value;_renderTransporte()" title="Filtrar por data">'+
+    '<input type="date" class="recep-input" style="width:130px;font-size:10px;padding:3px 7px;" max="2099-12-31" value="'+_re(_recepTransDate)+'" onchange="if(this.value&&+this.value.slice(0,4)<2000)return;_recepTransDate=this.value;_renderTransporte()" title="Filtrar por data">'+
     (function(){var vs=[...new Set(_recepTransfers.filter(function(t){return t.data.event_id===_recepSelectedEvent;}).map(function(t){return t.data.vehicle_type;}).filter(Boolean))].sort();return'<select class="recep-select" style="width:100px;font-size:10px;padding:3px 7px;" onchange="_recepTransVeh=this.value;_renderTransporte()"><option value="">Todos veículos</option>'+vs.map(function(v){return'<option value="'+_re(v)+'"'+(_recepTransVeh===v?' selected':'')+'>'+_re(v)+'</option>';}).join('')+'</select>';})()+
     '<button class="recep-print-btn" onclick="_recepPrint()">imprimir</button>'+
     (canEdit?'<button class="recep-add-btn" onclick="openTransferModal(null,null)">+ Transfer</button>':'');
@@ -20282,7 +20291,7 @@ function renderDash(){
   html+=colBlock('legendagem','Legendagem',legBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 08/11/2026 às 08:17';
+  var sysUpdate='última atualização do sistema · 08/11/2026 às 08:47';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -31585,7 +31594,7 @@ function _sxcPrint(){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 08/11/2026 às 08:17</span></div>
+<div id="page-footer"><span>última atualização · 08/11/2026 às 08:47</span></div>
 
 </div>
 

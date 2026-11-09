@@ -3753,6 +3753,109 @@ mark{background:rgba(255,186,32,0.28);color:var(--accent);border-radius:2px;padd
 .sess-extras{display:flex;align-items:center;gap:6px;flex-shrink:0;}
 .sess-dur{font-family:var(--mono);font-size:9px;color:var(--text-muted);white-space:nowrap;}
 .sess-ev-tag{font-family:var(--mono);font-size:8px;font-weight:600;letter-spacing:0.06em;padding:2px 7px;border-radius:2px;white-space:nowrap;}
+/* SESSÕES: colunas fixas, iguais em todas as linhas */
+.sess-row.sess-row-mod{grid-template-columns:52px 96px minmax(0,1fr) minmax(120px,210px) 230px;}
+.sess-row.sess-row-mod.sess-row-batch{grid-template-columns:18px 52px 96px minmax(0,1fr) minmax(120px,210px) 230px;}
+.sess-row-mod .sess-tit-linha{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.sess-sala-col{font-family:var(--mono);font-size:10px;color:var(--text-dim);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.sess-row-mod .sess-extras{justify-content:flex-end;min-width:0;}
+.sess-row-mod .sess-row-chk{margin-right:0;}
+/* VINHETAS */
+.vn-tabs{display:inline-flex;gap:2px;margin:0 10px;}
+.vn-tab{font-family:var(--mono);font-size:10px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;padding:6px 12px;background:none;border:none;border-bottom:2px solid transparent;color:var(--text-dim);cursor:pointer;white-space:nowrap;}
+.vn-tab:hover{color:var(--text);}
+.vn-tab.active{color:var(--accent);border-bottom-color:var(--accent);}
+.vn-toolbar{display:flex;align-items:flex-end;gap:12px;margin-bottom:12px;flex-wrap:wrap;}
+.vn-conta{font-family:var(--mono);font-size:10px;color:var(--text-muted);white-space:nowrap;}
+.vn-input{height:30px;width:100%;box-sizing:border-box;padding:0 8px;background:var(--bg);color:var(--text);border:1px solid var(--border2);font-family:var(--mono);font-size:11px;outline:none;}
+.vn-input:focus{border-color:var(--accent);}
+.vn-busca{width:320px;max-width:100%;}
+.vn-field{display:flex;flex-direction:column;gap:4px;min-width:0;}
+.vn-field-inline{min-width:240px;}
+.vn-label{font-family:var(--mono);font-size:9px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--text-muted);}
+.vn-sub{display:block;font-family:var(--mono);font-size:9px;color:var(--text-muted);overflow:hidden;text-overflow:ellipsis;}
+.vn-nome{font-family:var(--sans);font-size:12px;font-weight:600;color:var(--text);}
+.vn-vazio{padding:28px 16px;text-align:center;font-family:var(--mono);font-size:11px;color:var(--text-muted);}
+.vn-msg{font-family:var(--mono);font-size:10px;padding:8px 12px;margin:8px 0;border:1px solid var(--border);color:var(--ok);}
+.vn-msg-err{color:var(--warn);}
+.vn-aviso{font-family:var(--mono);font-size:10px;color:var(--warn);margin-top:12px;}
+.vn-tag{font-family:var(--mono);font-size:8px;font-weight:600;letter-spacing:.05em;padding:1px 5px;color:var(--accent);background:var(--accent-dim);white-space:nowrap;}
+.vn-tag-warn{color:var(--warn);background:none;border:1px solid var(--warn);}
+.vn-tabela{border:1px solid var(--border);background:var(--surface);}
+.vn-row{display:grid;grid-template-columns:minmax(110px,170px) minmax(0,1fr) 100px 130px 70px 60px 60px 72px 92px;column-gap:12px;align-items:center;padding:8px 14px;border-bottom:1px solid var(--border);cursor:pointer;}
+.vn-row-blo{grid-template-columns:minmax(110px,170px) minmax(0,1fr) 100px 70px 60px 92px;}
+.vn-row:last-child{border-bottom:none;}
+.vn-row:hover{background:var(--surface2);}
+.vn-head{cursor:default;font-family:var(--mono);font-size:9px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--text-muted);}
+.vn-head:hover{background:none;}
+.vn-cod{font-family:var(--mono);font-size:10px;color:var(--accent);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.vn-nome-cel{min-width:0;}
+.vn-badges{display:flex;gap:4px;flex-wrap:wrap;}
+.vn-num{font-family:var(--mono);font-size:10px;color:var(--text-dim);}
+.vn-acoes{display:flex;gap:4px;justify-content:flex-end;flex-shrink:0;}
+.vn-cadeia{display:flex;flex-wrap:wrap;align-items:center;gap:3px;margin-top:4px;}
+.vn-elo{font-family:var(--mono);font-size:9px;color:var(--text-dim);border:1px solid var(--border);padding:1px 5px;}
+.vn-seta{font-size:10px;color:var(--text-muted);}
+.vn-duas{display:grid;gap:14px;align-items:start;}
+.vn-duas-tpl{grid-template-columns:minmax(0,1fr) minmax(0,1fr);}
+.vn-duas-apl{grid-template-columns:minmax(0,1fr) 360px;}
+.vn-painel{border:1px solid var(--border);background:var(--surface);padding:14px;min-width:0;}
+.vn-painel-tit{font-family:var(--mono);font-size:10px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);margin-bottom:10px;}
+.vn-painel-foot{display:flex;justify-content:flex-end;gap:8px;margin-top:12px;}
+.vn-tpl{display:flex;align-items:flex-start;gap:10px;padding:10px;border:1px solid var(--border);margin-bottom:6px;cursor:pointer;}
+.vn-tpl:hover{background:var(--surface2);}
+.vn-tpl.on{border-color:var(--accent);}
+.vn-tpl-corpo{flex:1;min-width:0;}
+.vn-seq{border:1px solid var(--border);margin-top:4px;min-height:40px;}
+.vn-seq .vn-pick-nota{padding:12px;}
+.vn-seq-item{display:flex;align-items:center;gap:6px;padding:5px 8px;border-bottom:1px solid var(--border);}
+.vn-seq-n{font-family:var(--mono);font-size:9px;color:var(--text-muted);min-width:14px;}
+.vn-seq-nome{flex:1;min-width:0;font-family:var(--sans);font-size:11px;color:var(--text);}
+.vn-seq-total{display:flex;justify-content:space-between;padding:5px 8px;font-family:var(--mono);font-size:9px;color:var(--text-dim);}
+.vn-mini{background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:12px;padding:0 3px;line-height:1;}
+.vn-mini:hover:not(:disabled){color:var(--accent);}
+.vn-mini:disabled{opacity:.25;cursor:default;}
+.vn-mini-del:hover:not(:disabled){color:var(--warn);}
+.vn-pick{max-height:220px;overflow-y:auto;border:1px solid var(--border);border-top:none;}
+.vn-pick-grupo{font-family:var(--mono);font-size:8px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--text-muted);padding:6px 8px 3px;background:var(--surface2);}
+.vn-pick-item{display:flex;align-items:center;gap:8px;padding:4px 8px;cursor:pointer;}
+.vn-pick-item:hover{background:var(--accent-dim);}
+.vn-pick-item.usado{opacity:.35;cursor:default;background:none;}
+.vn-pick-nome{flex:1;min-width:0;font-family:var(--sans);font-size:11px;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.vn-pick-cod,.vn-pick-dur{font-family:var(--mono);font-size:9px;color:var(--text-muted);white-space:nowrap;}
+.vn-pick-nota{font-family:var(--mono);font-size:10px;color:var(--text-muted);padding:8px;}
+.vn-chips{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:10px;}
+.vn-chip{font-family:var(--mono);font-size:9px;padding:3px 8px;background:none;border:1px solid var(--border2);color:var(--text-dim);cursor:pointer;}
+.vn-chip.on{background:var(--accent);border-color:var(--accent);color:var(--on-accent);}
+.vn-filtros{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-bottom:12px;}
+.vn-marcar{display:flex;align-items:center;gap:8px;font-family:var(--mono);font-size:10px;color:var(--text-dim);padding:6px 0;cursor:pointer;}
+.vn-dia{display:flex;align-items:center;gap:8px;padding:6px 8px;margin-top:6px;background:var(--surface2);font-family:var(--mono);font-size:10px;font-weight:600;color:var(--text);cursor:pointer;text-transform:capitalize;}
+.vn-dia .vn-conta{margin-left:auto;font-weight:400;}
+.vn-sess{display:grid;grid-template-columns:16px 44px 130px minmax(0,1fr) minmax(0,1fr);column-gap:10px;align-items:center;padding:6px 8px;border-bottom:1px solid var(--border);cursor:pointer;}
+.vn-sess:hover{background:var(--surface2);}
+.vn-sess.on{background:var(--accent-dim);}
+.vn-sess input{pointer-events:none;margin:0;accent-color:var(--accent);}
+.vn-sess-hora{font-family:var(--mono);font-size:11px;font-weight:600;color:var(--text);}
+.vn-sess-sala{font-family:var(--mono);font-size:10px;color:var(--text-dim);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.vn-sess-tit{min-width:0;}
+.vn-sess-tit .vn-nome{display:block;font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.vn-sess-vin{font-family:var(--mono);font-size:9px;color:var(--text-dim);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.vn-apl-lado{position:sticky;top:8px;}
+.vn-radios{display:flex;flex-direction:column;gap:4px;margin-top:4px;}
+.vn-radio{font-family:var(--mono);font-size:10px;color:var(--text);cursor:pointer;}
+.vn-resumo{margin-top:12px;padding-top:10px;border-top:1px solid var(--border);}
+.vn-resumo-num{font-family:var(--mono);font-size:11px;color:var(--text);margin-bottom:4px;}
+.vn-modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:600;align-items:center;justify-content:center;padding:20px;}
+.vn-modal-box{background:var(--surface);border:1px solid var(--border);width:100%;max-width:860px;max-height:90vh;display:flex;flex-direction:column;}
+.vn-modal-head{display:flex;justify-content:space-between;align-items:center;padding:14px 20px;border-bottom:1px solid var(--border);font-family:var(--mono);font-size:11px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);}
+.vn-modal-body{padding:16px 20px;overflow-y:auto;grid-template-columns:minmax(0,1fr) minmax(0,1fr);}
+.vn-modal-err{display:none;font-family:var(--mono);font-size:10px;color:var(--warn);padding:8px 20px;}
+.vn-modal-foot{display:flex;justify-content:flex-end;gap:8px;padding:12px 20px;border-top:1px solid var(--border);}
+.vn-col{display:flex;flex-direction:column;gap:10px;min-width:0;}
+.vn-col .vn-seq{margin-top:-6px;}
+.vn-linha{display:flex;gap:10px;}
+.vn-prefixo{display:flex;align-items:center;gap:4px;font-family:var(--mono);font-size:11px;color:var(--text-muted);white-space:nowrap;}
+@media(max-width:1100px){.vn-duas-tpl,.vn-duas-apl,.vn-modal-body{grid-template-columns:minmax(0,1fr);}.vn-apl-lado{position:static;}.vn-filtros{grid-template-columns:repeat(2,minmax(0,1fr));}}
 /* EDIÇÃO EM LOTE */
 .batch-toolbar{grid-column:1/-1;display:flex;align-items:center;gap:8px;padding:8px 0 10px;flex-wrap:wrap;}
 .batch-toolbar-btn{font-family:var(--mono);font-size:9px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;padding:4px 12px;border:1px solid var(--border2);background:transparent;color:var(--text-dim);cursor:pointer;transition:all 0.12s;}
@@ -4344,7 +4447,7 @@ html[data-theme="indexof"]:not([data-theme="win98"]) .module-icon{display:flex!i
 <script type="module">
   import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
   import { getAuth, connectAuthEmulator, GoogleAuthProvider, GithubAuthProvider, signInWithPopup, signInWithEmailAndPassword, createUserWithEmailAndPassword, sendPasswordResetEmail, signOut, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
-  import { initializeFirestore, persistentLocalCache, persistentMultipleTabManager, connectFirestoreEmulator, collection, doc, getDoc, getDocs, setDoc, deleteDoc, addDoc, serverTimestamp, query, where, documentId, orderBy, onSnapshot, writeBatch, terminate, clearIndexedDbPersistence, arrayUnion } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+  import { initializeFirestore, persistentLocalCache, persistentMultipleTabManager, connectFirestoreEmulator, collection, doc, getDoc, getDocs, setDoc, deleteDoc, addDoc, serverTimestamp, query, where, documentId, orderBy, onSnapshot, writeBatch, runTransaction, terminate, clearIndexedDbPersistence, arrayUnion } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
 
   const firebaseConfig = {
     apiKey: "AIzaSyDIBhcsqlK3QebTmbWMNqsN_rPPybREj64",
@@ -4784,6 +4887,20 @@ html[data-theme="indexof"]:not([data-theme="win98"]) .module-icon{display:flex!i
     },
     save: async function(eventId, templates) {
       await setDoc(doc(db,'vin_templates',eventId),{event_id:eventId,templates:templates});
+    },
+    loadStrict: async function(eventId) {
+      var d=await getDoc(doc(db,'vin_templates',eventId));
+      return d.exists()?(d.data().templates||[]):[];
+    },
+    // lê a versão atual do documento e regrava numa transação: um array não aceita merge por item
+    mutate: async function(eventId, fn) {
+      var ref=doc(db,'vin_templates',eventId);
+      return await runTransaction(db,async function(tx){
+        var d=await tx.get(ref);
+        var next=fn(d.exists()?(d.data().templates||[]):[]);
+        tx.set(ref,{event_id:eventId,templates:next});
+        return next;
+      });
     }
   };
 
@@ -6943,6 +7060,17 @@ window.addEventListener('DOMContentLoaded',function(){
   <select id="sessoesProgramaSelect" style="min-width:160px;margin-left:4px;" onchange="_sessoesFiltroPrograma=this.value;renderSessoes();">
     <option value="">Todos os programas</option>
   </select>
+  <select id="sessoesMostraSelect" style="min-width:150px;margin-left:4px;" onchange="_sessoesFiltroMostra=this.value;_sessoesFiltroSub='';renderSessoes();">
+    <option value="">Todas as mostras</option>
+  </select>
+  <select id="sessoesSubmostraSelect" style="min-width:150px;margin-left:4px;" onchange="_sessoesFiltroSub=this.value;renderSessoes();">
+    <option value="">Todas as submostras</option>
+  </select>
+  <select id="sessoesTipoSelect" style="min-width:150px;margin-left:4px;" onchange="_sessoesFiltroTipo=this.value;renderSessoes();">
+    <option value="">Tudo</option>
+    <option value="filmes">Só sessões com filmes</option>
+    <option value="paralelas">Só atividades paralelas</option>
+  </select>
   <button class="print-btn" id="btnSessoesBatch" onclick="_sessoesBatchToggleMode()" style="margin-left:8px;display:none;">☑ Selecionar sessões</button>
   <button class="print-btn" id="btnSessoesProgramas" onclick="openShowsPanel()" style="margin-left:6px;">⧉ Programas</button>
   <button class="print-btn" id="btnSessoesExportCinemas" onclick="openSessoesExportCinemas()" style="margin-left:6px;">⤓ Exportar para cinemas</button>
@@ -7139,17 +7267,17 @@ window.addEventListener('DOMContentLoaded',function(){
 </div>
 <div class="mode-bar hidden" id="barVinhetas">
   <div class="event-filters" id="vinhetasEventFilters"></div>
-  <select id="vinhetasCinemaSelect" style="min-width:180px;margin-left:8px;" onchange="vinhetasCinemaFilter=this.value;rebuildVinhetasDaySelect();renderVinhetas();">
-    <option value="">Todos os cinemas</option>
-  </select>
-  <select id="vinhetasDaySelect" style="min-width:180px;margin-left:8px;" onchange="vinhetasDayFilter=this.value;rebuildVinhetasCinemaSelect();renderVinhetas();">
-    <option value="">Todos os dias</option>
-  </select>
-  <button class="print-btn" onclick="printVinhetas()" style="margin-left:8px;">⎙ Imprimir lista</button>
-  <button class="print-btn" id="btnVinhetasBlocos" onclick="_vinToggleBlocos()" style="margin-left:8px;display:none;">MOSTRAR BLOCOS</button>
-  <button class="cat-edit-btn" id="btnNovaVinheta" onclick="openVinhetaModal(null)" style="margin-left:8px;display:none;">+ Nova vinheta</button>
-  <button class="print-btn" id="btnVinhetasTemplates" onclick="openVinhetasTemplates()" style="margin-left:8px;display:none;">⊞ Templates de vinhetas</button>
-  <button class="print-btn" id="btnVinhetasBatchTpl" onclick="abrirSessoesBatchParaTemplates()" style="margin-left:8px;display:none;">+ ADICIONAR TEMPLATES EM MÚLTIPLAS SESSÕES</button>
+  <div class="vn-tabs" id="vinTabs"></div>
+  <span id="vinListaCtrls" style="display:inline-flex;align-items:center;gap:8px;">
+    <select id="vinhetasCinemaSelect" style="min-width:180px;" onchange="vinhetasCinemaFilter=this.value;rebuildVinhetasDaySelect();renderVinhetas();">
+      <option value="">Todos os cinemas</option>
+    </select>
+    <select id="vinhetasDaySelect" style="min-width:180px;" onchange="vinhetasDayFilter=this.value;rebuildVinhetasCinemaSelect();renderVinhetas();">
+      <option value="">Todos os dias</option>
+    </select>
+    <button class="print-btn" onclick="printVinhetas()">⎙ Imprimir lista</button>
+    <button class="cat-edit-btn" id="btnNovaVinheta" onclick="openVinhetaModal(null)" style="display:none;">+ Nova vinheta</button>
+  </span>
 </div>
 
 <div id="landing">
@@ -7583,7 +7711,7 @@ var kdmComplexoFilter='',kdmSalaFilter='',kdmStatusFilter='',kdmHdFilter='';
 var ingestDays=[],currentIngestDay=null,ingestCinemaFilter='',ingestCinemaComplexoFilter='',ingestHdFilter='',gradeCinemaFilter='',gradeCinemaComplexoFilter='';
 var _gradeSelMode={grade:false,grade2:false},_gradeSelSessions={grade:new Set(),grade2:new Set()};
 var grade2Days=[],grade2CurrentDay=null,grade2CinemaFilter='',grade2CinemaComplexoFilter='';
-var sessoesCinemaFilter='',_sessoesHidePast=true,_sessoesComplexo='',_sessoesFiltroTitulo='',_sessoesFiltroData='',_sessoesFiltroPrograma='';
+var sessoesCinemaFilter='',_sessoesHidePast=true,_sessoesComplexo='',_sessoesFiltroTitulo='',_sessoesFiltroData='',_sessoesFiltroPrograma='',_sessoesFiltroMostra='',_sessoesFiltroSub='',_sessoesFiltroTipo='',_sessProgPedido=false;
 var fichaCinemaFilter='',_fichaComplexo='',_fichaFiltroData='';
 var vinhetasCinemaFilter='',vinhetasDayFilter='';
 var dashCinemaFilter='__todos__',dashRespFilter='',dashDayFilter=new Set(),dashStatusSelected=null,dashStatSelected=null;
@@ -8244,7 +8372,7 @@ function switchMode(mode,noPush){
     // Cada módulo preserva sua própria seleção de eventos.
     // A inicialização com eventos prioritários acontece somente após o login (applyParsedData, primeira carga).
     if(currentMode==='sessoes'){
-      sessoesCinemaFilter='';_sessoesComplexo='';_sessoesFiltroTitulo='';_sessoesFiltroData='';_sessoesFiltroPrograma='';
+      sessoesCinemaFilter='';_sessoesComplexo='';_sessoesFiltroTitulo='';_sessoesFiltroData='';_sessoesFiltroPrograma='';_sessoesFiltroMostra='';_sessoesFiltroSub='';_sessoesFiltroTipo='';
       var _selCx=document.getElementById('sessoesComplexoSelect');if(_selCx)_selCx.value='';
       var _selCin=document.getElementById('sessoesCinemaSelect');if(_selCin)_selCin.value='';
       var _inpTit=document.getElementById('sessoesTituloInput');if(_inpTit)_inpTit.value='';
@@ -9717,6 +9845,43 @@ function rebuildSessoesProgramaSelect(){
   if(prev&&progs[prev])sel.value=prev;
   else{sel.value='';_sessoesFiltroPrograma='';}
 }
+// mostras / submostras presentes numa lista de sessões: [[id,nome],…]
+function _sessMostrasDe(lista){
+  var m={};
+  lista.forEach(function(s){
+    if(!s.program_id||m[s.program_id])return;
+    var p=(_progData.programs||[]).find(function(x){return x.id===s.program_id;});
+    if(p&&p.data&&!p.data.auto)m[s.program_id]=p.data.name||s.program_id;
+  });
+  return Object.keys(m).map(function(k){return[k,m[k]];}).sort(function(a,b){return a[1].localeCompare(b[1],'pt-BR',{sensitivity:'base'});});
+}
+function _sessSubmostrasDe(lista,mostra){
+  var m={};
+  lista.forEach(function(s){
+    if(!s.subprogram_id||m[s.subprogram_id]||(mostra&&s.program_id!==mostra))return;
+    var p=(_progData.subprograms||[]).find(function(x){return x.id===s.subprogram_id;});
+    m[s.subprogram_id]=(p&&p.data&&p.data.name)||s.subprogram_id;
+  });
+  return Object.keys(m).map(function(k){return[k,m[k]];}).sort(function(a,b){return a[1].localeCompare(b[1],'pt-BR',{sensitivity:'base'});});
+}
+function _sessPassaTipo(s,tipo){
+  if(tipo==='filmes')return s.filmes.length>0&&!_sessaoEParalela(s);
+  if(tipo==='paralelas')return _sessaoEParalela(s);
+  return true;
+}
+function rebuildSessoesMostraSelects(){
+  var as=allowedSalas(),base=sessoesSessoes().filter(function(s){return!as||!s.cinema||as.has(s.cinema);});
+  function enche(id,ph,opts,atual){
+    var sel=document.getElementById(id);if(!sel)return'';
+    sel.innerHTML='<option value="">'+ph+'</option>'+opts.map(function(o){return'<option value="'+esc(o[0])+'">'+esc(o[1])+'</option>';}).join('');
+    var ok=opts.some(function(o){return o[0]===atual;});
+    sel.value=ok?atual:'';
+    return ok?atual:'';
+  }
+  _sessoesFiltroMostra=enche('sessoesMostraSelect','Todas as mostras',_sessMostrasDe(base),_sessoesFiltroMostra);
+  _sessoesFiltroSub=enche('sessoesSubmostraSelect','Todas as submostras',_sessSubmostrasDe(base,_sessoesFiltroMostra),_sessoesFiltroSub);
+  var t=document.getElementById('sessoesTipoSelect');if(t)t.value=_sessoesFiltroTipo;
+}
 function buildSessoesFilters(){
   buildPills(document.getElementById('headerEventFilters'),eventColors,activeEventsSessoes,function(){
     rebuildSessoesComplexoSelect();
@@ -9748,6 +9913,9 @@ function _sessoesGetFiltered(){
     }
     if(_sessoesFiltroData){var dk=s.date?s.date.toISOString().slice(0,10):'';if(dk!==_sessoesFiltroData)return false;}
     if(_sessoesFiltroPrograma&&s.show_id!==_sessoesFiltroPrograma)return false;
+    if(_sessoesFiltroMostra&&s.program_id!==_sessoesFiltroMostra)return false;
+    if(_sessoesFiltroSub&&s.subprogram_id!==_sessoesFiltroSub)return false;
+    if(!_sessPassaTipo(s,_sessoesFiltroTipo))return false;
     return true;
   });
 }
@@ -10056,6 +10224,8 @@ function renderSessoes(){
   rebuildSessoesComplexoSelect();
   rebuildSessoesCinemaSelect();
   rebuildSessoesProgramaSelect();
+  if(!(_progData.programs||[]).length&&!_sessProgPedido){_sessProgPedido=true;_ensureProgData().then(function(){if(currentMode==='sessoes')renderSessoes();});}
+  rebuildSessoesMostraSelects();
   _sessoesRenderBatchBar();
   var se=document.getElementById('sessoesEmpty'),sc=document.getElementById('sessoes-container');
   var filtered=_sessoesGetFiltered();
@@ -10090,42 +10260,27 @@ function renderSessoes(){
     var _sessSumm=_progSessSummary(s);
     var badgesIcons=_progSessBadgesHtml(s);
     var ratingBadge=_sessSumm.ratingMax?_progSessRatingBadgeSmall(_sessSumm.ratingMax):'';
-    if(_sessoesBatchMode){
-      var isChk=_sessoesBatchSelected.has(s.nome);
-      return '<div class="sess-row sess-row-batch'+(isChk?' sess-row-checked':'')+'" onclick="_sessoesBatchToggleRow(\''+safe+'\',event)">'+
-        '<input type="checkbox" class="sess-row-chk"'+(isChk?' checked':'')+' onclick="event.stopPropagation();_sessoesBatchToggleRow(\''+safe+'\',event)">'+
-        '<span class="sess-time">'+(s.time?s.time.str:'—')+'</span>'+
-        '<span class="sess-name" title="'+s.nome.replace(/"/g,'&quot;')+'">'+stripEvPrefix(s.nome,s.evento)+'</span>'+
-        '<span class="sess-display-name">'+
-          '<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+(s.name||'')+'</span>'+
-          (s.cinema?'<span class="bilh-mostra-label">'+s.cinema+'</span>':'')+
-        '</span>'+
-        '<span class="sess-cinema">'+s.cinema+'</span>'+
-        '<span class="sess-films">'+(filmTitles||'')+'</span>'+
-        '<span class="sess-extras">'+
-          (durStr?'<span class="sess-dur">'+durStr+'</span>':'')+
-          badgesIcons+
-          ratingBadge+
-          (evTag||'')+
-        '</span>'+
-      '</div>';
-    }
-    return '<div class="sess-row" onclick="goToProgFichaFromGrade(\''+safe+'\')">'+
-      '<span class="sess-time">'+(s.time?s.time.str:'—')+'</span>'+
-      '<span class="sess-name" title="'+s.nome.replace(/"/g,'&quot;')+'">'+stripEvPrefix(s.nome,s.evento)+'</span>'+
+    var corpo=
+      '<span class="sess-time">'+esc(s.time?s.time.str:'—')+'</span>'+
+      '<span class="sess-name" title="'+esc(s.nome)+'">'+esc(stripEvPrefix(s.nome,s.evento))+'</span>'+
       '<span class="sess-display-name">'+
-        '<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+(s.name||'')+'</span>'+
-        (s.cinema?'<span class="bilh-mostra-label">'+s.cinema+'</span>':'')+
+        '<span class="sess-tit-linha" title="'+esc(_dashSessTitulo(s))+'">'+esc(_dashSessTitulo(s))+'</span>'+
+        (_dashSessTemNome(s)&&filmTitles?'<span class="sess-films" title="'+esc(filmTitles)+'">'+esc(filmTitles)+'</span>':'')+
       '</span>'+
-      '<span class="sess-cinema">'+s.cinema+'</span>'+
-      '<span class="sess-films">'+(filmTitles||'')+'</span>'+
+      '<span class="sess-sala-col" title="'+esc(s.cinema)+'">'+esc(s.cinema)+'</span>'+
       '<span class="sess-extras">'+
         (durStr?'<span class="sess-dur">'+durStr+'</span>':'')+
         badgesIcons+
         ratingBadge+
         (evTag||'')+
-      '</span>'+
-    '</div>';
+      '</span>';
+    if(_sessoesBatchMode){
+      var isChk=_sessoesBatchSelected.has(s.nome);
+      return '<div class="sess-row sess-row-mod sess-row-batch'+(isChk?' sess-row-checked':'')+'" onclick="_sessoesBatchToggleRow(\''+safe+'\',event)">'+
+        '<input type="checkbox" class="sess-row-chk"'+(isChk?' checked':'')+' onclick="event.stopPropagation();_sessoesBatchToggleRow(\''+safe+'\',event)">'+
+        corpo+'</div>';
+    }
+    return '<div class="sess-row sess-row-mod" onclick="goToProgFichaFromGrade(\''+safe+'\')">'+corpo+'</div>';
   }
 
   function dayGroupHtml(k,isToday){
@@ -17107,10 +17262,7 @@ function _vinExpandida(lista){
   });
   return out;
 }
-// blocos ficam ocultos na lista do módulo até clicar em MOSTRAR BLOCOS
-var _vinMostrarBlocos=false;
 function _vinEhBloco(cod){var v=_vinInfo(cod);return!!(v&&v.componentes&&v.componentes.length);}
-function _vinToggleBlocos(){_vinMostrarBlocos=!_vinMostrarBlocos;renderVinhetas();}
 // blocos que contêm a vinheta
 function _vinBlocosCom(cod){return vinhetasArr.filter(function(v){return(v.componentes||[]).indexOf(cod)>=0;});}
 function _vinPacoteHtml(cod){
@@ -17173,37 +17325,76 @@ function rebuildVinhetasDaySelect(){
   if(prev&&ds[prev])sel.value=prev;else{sel.value='';vinhetasDayFilter='';}
 }
 
+/* ═══ VINHETAS — módulo em abas: Vinhetas · Blocos · Templates · Aplicar em sessões ═══ */
+var _vinTab='lista',_vinEv='',_vinEvAuto=false,_vinDirty=false,_vinQ='',_vinListaD=null;
+var _vinSeq={tpl:[],apl:[],blo:[]};
+var _vinTplEd=null,_vinTplMsg=null,_vinTplLoaded='',_vinCarregando='',_vinErroLoad='';
+var _vinBlo=null;
+function _vinAplNovo(){return{dias:new Set(),complexo:'',sala:'',mostra:'',sub:'',tipo:'',situacao:'',contem:'',q:'',sel:new Set(),modo:'substituir',tplId:'',msg:null,last:null};}
+var _vinApl=_vinAplNovo();
+
+function _vinCanEdit(){return!!(window._olgaUser&&window._olgaCanEdit&&window._olgaCanEdit('vinhetas')&&window._olgaVinhetas);}
+function _vinCanTpl(){return!!(window._olgaUser&&!(window._olgaHasRestricao&&window._olgaHasRestricao('vinhetas.templates')));}
+function _vinCanApl(){return!!(window._olgaUser&&window._olgaCanEdit&&(window._olgaCanEdit('vinhetas')||window._olgaCanEdit('programacao')));}
+function _vinJs(x){return esc(String(x==null?'':x).replace(/\\/g,'\\\\').replace(/'/g,"\\'"));}
+function _vinMsgHtml(m){return m?'<div class="vn-msg'+(m.erro?' vn-msg-err':'')+'">'+esc(m.txt)+'</div>':'';}
+function _vinEvsAtivos(){return Object.keys(eventColors||{}).filter(function(e){return activeEventsVinhetas.has(e);}).sort(function(a,b){return a.localeCompare(b,'pt-BR');});}
+function _vinSoma(list){
+  var secs=0,falt=0;
+  (list||[]).forEach(function(c){var v=_vinInfo(c),d=v?_parseDurSecs(v.duracao):0;if(d>0)secs+=d;else falt++;});
+  return{secs:secs,falt:falt};
+}
+function _vinSomaTxt(list){
+  var r=_vinSoma(list);
+  return(r.secs?_secsToHMS(r.secs):'—')+(r.falt?' · '+r.falt+' sem duração':'');
+}
+function _vinResetEv(){_vinTplEd=null;_vinTplMsg=null;_vinSeq.tpl=[];_vinSeq.apl=[];_vinApl=_vinAplNovo();_vinTplLoaded='';_vinErroLoad='';}
+function _vinSyncEv(){
+  var list=_vinEvsAtivos(),antes=_vinEv;
+  if(list.length===1){_vinEv=list[0];_vinEvAuto=true;}
+  else if(_vinEvAuto){_vinEv='';_vinEvAuto=false;}
+  else if(list.indexOf(_vinEv)<0)_vinEv='';
+  if(_vinEv!==antes)_vinResetEv();
+}
+function _vinSetEv(v){_vinEv=v;_vinEvAuto=false;_vinResetEv();_vinRender();}
+function _vinEvSelectHtml(){
+  var list=_vinEvsAtivos();
+  return'<label class="vn-field vn-field-inline"><span class="vn-label">Evento</span><select class="vn-input" onchange="_vinSetEv(this.value)">'
+    +(list.length>1?'<option value=""'+(_vinEv?'':' selected')+' disabled>— selecionar evento —</option>':'')
+    +list.map(function(e){return'<option value="'+esc(e)+'"'+(e===_vinEv?' selected':'')+'>'+esc(e)+'</option>';}).join('')
+    +'</select></label>';
+}
+function _vinTabs(){
+  var t=[['lista','Vinhetas'],['blocos','Blocos']];
+  if(_vinCanTpl())t.push(['templates','Templates']);
+  if(_vinCanApl())t.push(['aplicar','Aplicar em sessões']);
+  return t;
+}
+function _vinRenderBar(){
+  var tabs=_vinTabs();
+  if(!tabs.some(function(t){return t[0]===_vinTab;}))_vinTab='lista';
+  var w=document.getElementById('vinTabs');
+  if(w)w.innerHTML=tabs.map(function(t){return'<button class="vn-tab'+(t[0]===_vinTab?' active':'')+'" onclick="_vinSetTab(\''+t[0]+'\')">'+t[1]+'</button>';}).join('');
+  var c=document.getElementById('vinListaCtrls');if(c)c.style.display=_vinTab==='lista'?'inline-flex':'none';
+  var b=document.getElementById('btnNovaVinheta');if(b)b.style.display=_vinTab==='lista'&&_vinCanEdit()?'':'none';
+}
+function _vinSetTab(t){
+  _vinTab=t;
+  if(t==='templates'||t==='aplicar')_vinTplLoaded='';
+  _vinRender();
+}
+function _vinBusy(){
+  var vc=document.getElementById('vinhetas-container'),a=document.activeElement;
+  return!!(vc&&a&&vc.contains(a)&&(a.tagName==='TEXTAREA'||(a.tagName==='INPUT'&&a.type==='text')));
+}
 function buildVinhetasFilters(){
   buildPills(document.getElementById('headerEventFilters'),eventColors,activeEventsVinhetas,function(){
     vinhetasCinemaFilter='';vinhetasDayFilter='';
     rebuildVinhetasCinemaSelect();rebuildVinhetasDaySelect();
-    _rebuildVinhetasTemplatesSel();
-    renderVinhetas();
+    _vinRender();
   });
   rebuildVinhetasCinemaSelect();rebuildVinhetasDaySelect();
-  var btn=document.getElementById('btnNovaVinheta');
-  if(btn)btn.style.display=(window._olgaUser&&window._olgaCanEdit('vinhetas')&&window._olgaVinhetas)?'':'none';
-  _rebuildVinhetasTemplatesSel();
   if(currentMode==='vinhetas')renderVinhetas();
-}
-function _rebuildVinhetasTemplatesSel(){
-  var canTmpl=window._olgaUser&&!window._olgaHasRestricao('vinhetas.templates')&&(window._olgaCanEdit('vinhetas')||window._olgaCanEdit('programacao'));
-  var btnT=document.getElementById('btnVinhetasTemplates');
-  if(btnT)btnT.style.display=canTmpl?'':'none';
-  var canBatch=window._olgaUser&&window._olgaCanEdit&&window._olgaCanEdit('programacao')&&!(window._olgaHasRestricao&&window._olgaHasRestricao('sessoes.somente_vinhetas'));
-  var btnB=document.getElementById('btnVinhetasBatchTpl');
-  if(btnB)btnB.style.display=canBatch?'':'none';
-}
-function openVinhetasTemplates(){
-  var ev=Array.from(activeEventsVinhetas)[0];
-  if(!ev){alert('Nenhum evento ativo.');return;}
-  openProgVinTemplatesModal(ev);
-}
-function abrirSessoesBatchParaTemplates(){
-  // activeEventsVinhetas e activeEventsSessoes são aliases do mesmo _userEvSel,
-  // então a seleção de eventos já é compartilhada — só trocar de módulo.
-  if(currentMode!=='sessoes')switchMode('sessoes');
-  _sessoesBatchToggleMode(true);
 }
 
 function filteredSessoesForVinhetas(){
@@ -17218,93 +17409,529 @@ function filteredSessoesForVinhetas(){
 }
 
 function renderVinhetas(){
-  currentVinhetaDetail=null;
-  rebuildVinhetasCinemaSelect();rebuildVinhetasDaySelect();
-  var ve=document.getElementById('vinhetasEmpty');
   var vc=document.getElementById('vinhetas-container');
-  var vd=document.getElementById('vinhetaDetailWrap');
+  if(vc&&!vc._vinHook){vc._vinHook=true;vc.addEventListener('focusout',function(){if(_vinDirty){_vinDirty=false;setTimeout(renderVinhetas,0);}});}
+  if(_vinBusy()){_vinDirty=true;return;}
+  _vinRender();
+}
+function _vinRender(){
+  currentVinhetaDetail=null;
+  _vinSyncEv();
+  _vinRenderBar();
+  var ve=document.getElementById('vinhetasEmpty'),vc=document.getElementById('vinhetas-container'),vd=document.getElementById('vinhetaDetailWrap');
   vd.style.display='none';
+  if(_vinTab==='lista'){_vinRenderLista();return;}
+  ve.style.display='none';vc.style.display='block';
+  if(_vinTab==='blocos'){_vinRenderBlocos();return;}
+  if(!_vinEv){
+    vc.innerHTML='<div class="vn-toolbar">'+_vinEvSelectHtml()+'</div><div class="vn-vazio">Selecione o evento para continuar.</div>';
+    return;
+  }
+  if(_vinTplLoaded!==_vinEv){
+    vc.innerHTML='<div class="vn-toolbar">'+_vinEvSelectHtml()+'</div><div class="vn-vazio">Carregando…</div>';
+    if(_vinCarregando===_vinEv)return;
+    var ev=_vinEv;_vinCarregando=ev;
+    Promise.all([_vinTplCarrega(ev),_ensureProgData()]).then(function(){_vinErroLoad='';},function(e){_vinErroLoad=e.message||String(e);}).then(function(){
+      _vinCarregando='';
+      if(_vinEv!==ev)return;
+      _vinTplLoaded=ev;
+      if(currentMode==='vinhetas')_vinRender();
+    });
+    return;
+  }
+  if(_vinErroLoad){
+    vc.innerHTML='<div class="vn-toolbar">'+_vinEvSelectHtml()+'</div>'+_vinMsgHtml({txt:'Não foi possível carregar os templates: '+_vinErroLoad,erro:true});
+    return;
+  }
+  if(_vinTab==='templates')_vinRenderTemplates();
+  else _vinRenderAplicar();
+}
 
-  // build index: codigo → {info, sessions[]}
-  // A sessão conta para o bloco (o DCP) e para cada vinheta de dentro dele (_vinExpandida).
-  var sessoes=filteredSessoesForVinhetas();
-  var idx={};var order=[];
+/* ── seletor de itens + sequência ordenada (templates, blocos, aplicação) ── */
+function _vinPickerHtml(ns,ph){
+  return'<input class="vn-input" type="text" id="vnq_'+ns+'" placeholder="'+esc(ph)+'" autocomplete="off" oninput="_vinPickRender(\''+ns+'\')"><div class="vn-pick" id="vnpick_'+ns+'"></div>';
+}
+function _vinSeqEv(ns){return ns==='blo'?(_vinBlo&&_vinBlo.ev||''):_vinEv;}
+function _vinPickRender(ns){
+  var box=document.getElementById('vnpick_'+ns);if(!box)return;
+  var inp=document.getElementById('vnq_'+ns),q=((inp&&inp.value)||'').trim().toLowerCase(),ev=_vinSeqEv(ns);
+  if(!ev){box.innerHTML='<div class="vn-pick-nota">Selecione o evento.</div>';return;}
+  var seq=_vinSeq[ns];
+  function casa(t){return!q||t.toLowerCase().indexOf(q)>=0;}
+  var doEv=vinhetasArr.filter(function(v){return(v.evento===ev||!v.evento)&&!(ns==='blo'&&_vinBlo&&v.codigo===_vinBlo.cod)&&casa(v.codigo+' '+(v.nome||'')+' '+(v.cpl||''));})
+    .sort(function(a,b){return(a.nome||a.codigo).localeCompare(b.nome||b.codigo,'pt-BR');});
+  function linha(v){
+    var usado=seq.indexOf(v.codigo)>=0;
+    return'<div class="vn-pick-item'+(usado?' usado':'')+'"'+(usado?'':' onclick="_vinSeqAdd(\''+ns+'\',\''+_vinJs(v.codigo)+'\')"')+'>'
+      +'<span class="vn-pick-nome">'+esc(v.nome||v.codigo)+'</span><span class="vn-pick-cod">'+esc(stripEvPrefix(v.codigo,v.evento))+'</span>'
+      +'<span class="vn-pick-dur">'+esc(v.duracao||'—')+'</span></div>';
+  }
+  var html='';
+  if(ns==='apl'&&_vinCanTpl()){
+    var tp=(_vinTemplatesCache[ev]||[]).filter(function(t){return casa(t.name||'');});
+    if(tp.length)html+='<div class="vn-pick-grupo">Templates</div>'+tp.map(function(t){
+      return'<div class="vn-pick-item" onclick="_vinPickTpl(\''+_vinJs(t.id)+'\')"><span class="vn-pick-nome">'+esc(t.name||'Template')+'</span><span class="vn-pick-cod">'+(t.bumpers||[]).length+' itens</span><span class="vn-pick-dur">'+esc(_vinSomaTxt(t.bumpers))+'</span></div>';
+    }).join('');
+  }
+  var bl=doEv.filter(function(v){return v.componentes&&v.componentes.length;}),ind=doEv.filter(function(v){return!(v.componentes&&v.componentes.length);});
+  if(ns!=='blo'&&bl.length)html+='<div class="vn-pick-grupo">Blocos</div>'+bl.map(linha).join('');
+  if(ind.length)html+='<div class="vn-pick-grupo">Vinhetas</div>'+ind.map(linha).join('');
+  box.innerHTML=html||'<div class="vn-pick-nota">Nada encontrado.</div>';
+}
+function _vinSeqRender(ns){
+  var box=document.getElementById('vnseq_'+ns);if(!box)return;
+  var seq=_vinSeq[ns];
+  if(!seq.length){box.innerHTML='<div class="vn-pick-nota">Clique nos itens da lista para montar a sequência.</div>';return;}
+  box.innerHTML=seq.map(function(cod,i){
+    var v=_vinInfo(cod),bloco=!!(v&&v.componentes&&v.componentes.length);
+    return'<div class="vn-seq-item"><span class="vn-seq-n">'+(i+1)+'</span>'
+      +'<span class="vn-seq-nome">'+esc(v?v.nome||cod:cod)+(bloco?' <span class="vn-tag">bloco</span>':'')+(v?'':' <span class="vn-tag vn-tag-warn">não cadastrada</span>')+'</span>'
+      +'<span class="vn-pick-dur">'+esc(v&&v.duracao||'—')+'</span>'
+      +'<button class="vn-mini" '+(i?'':'disabled ')+'title="Subir" onclick="_vinSeqMv(\''+ns+'\','+i+',-1)">↑</button>'
+      +'<button class="vn-mini" '+(i<seq.length-1?'':'disabled ')+'title="Descer" onclick="_vinSeqMv(\''+ns+'\','+i+',1)">↓</button>'
+      +'<button class="vn-mini vn-mini-del" title="Tirar" onclick="_vinSeqDel(\''+ns+'\','+i+')">×</button></div>';
+  }).join('')+'<div class="vn-seq-total"><span>Total</span><span>'+esc(_vinSomaTxt(seq))+'</span></div>';
+}
+function _vinSeqMudou(ns){
+  _vinSeqRender(ns);_vinPickRender(ns);
+  if(ns==='blo')_vinBloAtuDur();
+  if(ns==='apl')_vinAplResumo();
+}
+function _vinSeqAdd(ns,cod){if(_vinSeq[ns].indexOf(cod)<0)_vinSeq[ns].push(cod);_vinSeqMudou(ns);}
+function _vinSeqDel(ns,i){_vinSeq[ns].splice(i,1);_vinSeqMudou(ns);}
+function _vinSeqMv(ns,i,d){var a=_vinSeq[ns],j=i+d;if(j<0||j>=a.length)return;var t=a[i];a[i]=a[j];a[j]=t;_vinSeqMudou(ns);}
+
+/* ── aba Vinhetas ── */
+function _vinListaDados(){
+  var sessoes=filteredSessoesForVinhetas(),idx={},order=[];
   sessoes.forEach(function(s){
     _vinExpandida(s.vinhetas).forEach(function(cod){
-      if(!idx[cod]){
-        idx[cod]={cod:cod,info:null,sessions:[]};
-        order.push(cod);
-      }
+      if(!idx[cod]){idx[cod]={cod:cod,info:null,sessions:[]};order.push(cod);}
       idx[cod].sessions.push(s);
     });
   });
-  // attach sheet info + incluir vinhetas sem sessões
   vinhetasArr.forEach(function(v){
-    if(idx[v.codigo]){
-      idx[v.codigo].info=v;
-    } else if(!v.evento||activeEventsVinhetas.has(v.evento)){
-      // vinheta existe mas não tem sessões: incluir mesmo assim
-      idx[v.codigo]={cod:v.codigo,info:v,sessions:[]};
-      order.push(v.codigo);
-    }
+    if(idx[v.codigo])idx[v.codigo].info=v;
+    else if(!v.evento||activeEventsVinhetas.has(v.evento)){idx[v.codigo]={cod:v.codigo,info:v,sessions:[]};order.push(v.codigo);}
   });
-
-  var _bBtn=document.getElementById('btnVinhetasBlocos');
-  var _temBloco=order.some(_vinEhBloco);
-  if(_bBtn){_bBtn.style.display=_temBloco?'':'none';_bBtn.textContent=_vinMostrarBlocos?'OCULTAR BLOCOS':'MOSTRAR BLOCOS';}
-  if(!_vinMostrarBlocos)order=order.filter(function(c){return!_vinEhBloco(c);});
-
-  if(!order.length){vc.style.display='none';ve.style.display='flex';return;}
+  order=order.filter(function(c){return!_vinEhBloco(c);}).sort(function(a,b){
+    var x=idx[a].info,y=idx[b].info;return((x&&x.nome)||a).localeCompare((y&&y.nome)||b,'pt-BR');
+  });
+  return{idx:idx,order:order};
+}
+function _vinRenderLista(){
+  var ve=document.getElementById('vinhetasEmpty'),vc=document.getElementById('vinhetas-container');
+  rebuildVinhetasCinemaSelect();rebuildVinhetasDaySelect();
+  _vinListaD=_vinListaDados();
+  if(!_vinListaD.order.length){vc.style.display='none';ve.style.display='flex';return;}
   ve.style.display='none';vc.style.display='block';
-
-  var html='<div class="vinheta-list">';
-  order.forEach(function(cod){
-    var entry=idx[cod];
-    var info=entry.info;
-    var nome=info?info.nome:cod;
-    var sessions=entry.sessions;
-    // count per cinema
-    var byCinema={};
-    var pubTotal=0;var hasPubData=false;
-    sessions.forEach(function(s){
-      byCinema[s.cinema]=(byCinema[s.cinema]||0)+1;
-      var n=parseInt((s.publico||'').toString().replace(/\D/g,''));
-      if(!isNaN(n)){pubTotal+=n;hasPubData=true;}
-    });
-    var cinemaChips=Object.keys(byCinema).sort().map(function(c){
-      return'<span class="vinheta-cinema-chip">'+c+' <span class="vinheta-cinema-chip-count">×'+byCinema[c]+'</span></span>';
-    }).join('');
-    var badges=(info?lenteBadge(info.lente)+somBadge(info.som):'');
+  vc.innerHTML='<div class="vn-toolbar"><input class="vn-input vn-busca" type="text" id="vnBusca" placeholder="buscar por nome, código ou CPL…" value="'+esc(_vinQ)+'" oninput="_vinQ=this.value;_vinListaRows()"><span class="vn-conta" id="vnListaConta"></span></div>'
+    +'<div class="vn-tabela"><div class="vn-row vn-head"><span>Código</span><span>Vinheta</span><span>Evento</span><span>Formato</span><span>Duração</span><span>Sessões</span><span>Cinemas</span><span>Público</span><span></span></div><div id="vnListaRows"></div></div>';
+  _vinListaRows();
+}
+function _vinListaRows(){
+  var box=document.getElementById('vnListaRows');if(!box||!_vinListaD)return;
+  var d=_vinListaD,q=_vinQ.trim().toLowerCase(),canEd=_vinCanEdit();
+  function restr(k){return!!(window._olgaHasRestricao&&window._olgaHasRestricao(k));}
+  var vis=d.order.filter(function(cod){var i=d.idx[cod].info;return!q||(cod+' '+(i?(i.nome||'')+' '+(i.cpl||''):'')).toLowerCase().indexOf(q)>=0;});
+  box.innerHTML=vis.map(function(cod){
+    var e=d.idx[cod],info=e.info,cin={},pub=0,tem=false,safe=_vinJs(cod);
+    e.sessions.forEach(function(s){cin[s.cinema]=1;var n=parseInt((s.publico||'').toString().replace(/\D/g,''));if(!isNaN(n)){pub+=n;tem=true;}});
     var evC=info&&info.evento&&eventColors&&eventColors[info.evento]?getThemeBlockColor(eventColors[info.evento]):null;
-    var evPill=info&&info.evento?'<span class="vinheta-evento-pill"'+(evC?' style="background:'+evC.bg+';color:'+evC.text+';"':'')+'>'+esc(info.evento)+'</span>':'';
-    var canEditV=!!(window._olgaUser&&window._olgaCanEdit('vinhetas')&&window._olgaVinhetas);
-    var safeCod=cod.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
-    html+='<div class="vinheta-card" onclick="openVinhetaDetail(\''+safeCod+'\')">'+
-      '<div class="vinheta-card-top">'+
-        '<span class="vinheta-card-code">'+cod+'</span>'+
-        '<div style="flex:1;min-width:0;">'+
-          '<div class="vinheta-card-name">'+nome+'</div>'+
-          evPill+
-          (info&&info.cpl?'<div class="vinheta-card-cpl">'+info.cpl+'</div>':'')+
-          _vinPacoteHtml(cod)+
-        '</div>'+
-        (badges?'<span class="vinheta-card-badges">'+badges+'</span>':'')+
-        '<div class="vinheta-card-counts">'+
-          (!window._olgaHasRestricao('vinhetas.sessoes')?'<div class="vinheta-count-item"><span class="vinheta-count-num">'+sessions.length+'</span><span class="vinheta-count-label">sessões</span></div>':'')+
-          (!window._olgaHasRestricao('vinhetas.cinemas')?'<div class="vinheta-count-item"><span class="vinheta-count-num">'+Object.keys(byCinema).length+'</span><span class="vinheta-count-label">cinemas</span></div>':'')+
-          (!window._olgaHasRestricao('vinhetas.publico')&&hasPubData?'<div class="vinheta-count-item"><span class="vinheta-count-num">'+pubTotal.toLocaleString('pt-BR')+'</span><span class="vinheta-count-label">público</span></div>':'')+
-        '</div>'+
-        (canEditV?'<div onclick="event.stopPropagation()" style="display:flex;gap:4px;flex-shrink:0;margin-left:6px;">'
-          +'<button class="prog-btn-icon" title="Editar" onclick="openVinhetaModal(\''+safeCod+'\')">✎</button>'
-          +'<button class="prog-btn-icon" title="Duplicar" onclick="duplicateVinheta(\''+safeCod+'\')">⧉</button>'
-          +'<button class="prog-btn-icon" title="Excluir" style="color:var(--warn)" onclick="deleteVinheta(\''+safeCod+'\')">✕</button>'
-          +'</div>':'')
-      +'</div>'+
-      (cinemaChips?'<div class="vinheta-cinema-bar">'+cinemaChips+'</div>':'')+
-    '</div>';
+    return'<div class="vn-row" onclick="openVinhetaDetail(\''+safe+'\')">'
+      +'<span class="vn-cod" title="'+esc(cod)+'">'+esc(info?stripEvPrefix(cod,info.evento):cod)+'</span>'
+      +'<span class="vn-nome-cel"><span class="vn-nome">'+esc(info?info.nome||cod:cod)+(info?'':' <span class="vn-tag vn-tag-warn">não cadastrada</span>')+'</span>'+(info&&info.cpl?'<span class="vn-sub">'+esc(info.cpl)+'</span>':'')+_vinPacoteHtml(cod)+'</span>'
+      +'<span>'+(info&&info.evento?'<span class="vinheta-evento-pill"'+(evC?' style="background:'+evC.bg+';color:'+evC.text+';"':'')+'>'+esc(info.evento)+'</span>':'')+'</span>'
+      +'<span class="vn-badges">'+(info?lenteBadge(info.lente)+somBadge(info.som):'')+'</span>'
+      +'<span class="vn-num">'+esc(info&&info.duracao||'—')+'</span>'
+      +'<span class="vn-num">'+(restr('vinhetas.sessoes')?'':e.sessions.length)+'</span>'
+      +'<span class="vn-num">'+(restr('vinhetas.cinemas')?'':Object.keys(cin).length)+'</span>'
+      +'<span class="vn-num">'+(!restr('vinhetas.publico')&&tem?pub.toLocaleString('pt-BR'):'')+'</span>'
+      +'<span class="vn-acoes" onclick="event.stopPropagation()">'+(canEd&&info?'<button class="prog-btn-icon" title="Editar" onclick="openVinhetaModal(\''+safe+'\')">✎</button><button class="prog-btn-icon" title="Duplicar" onclick="duplicateVinheta(\''+safe+'\')">⧉</button><button class="prog-btn-icon" title="Excluir" style="color:var(--warn)" onclick="deleteVinheta(\''+safe+'\')">✕</button>':'')+'</span>'
+      +'</div>';
+  }).join('')||'<div class="vn-vazio">Nada encontrado.</div>';
+  var c=document.getElementById('vnListaConta');if(c)c.textContent=vis.length+' vinheta'+(vis.length===1?'':'s');
+}
+
+/* ── aba Blocos: bloco = uma vinheta com `components` (um DCP com várias vinhetas dentro) ── */
+function _vinRenderBlocos(){
+  var vc=document.getElementById('vinhetas-container'),canEd=_vinCanEdit();
+  var ativos=activeEventsVinhetas;
+  var lista=vinhetasArr.filter(function(v){return v.componentes&&v.componentes.length&&(!v.evento||ativos.has(v.evento));})
+    .sort(function(a,b){return(a.evento||'').localeCompare(b.evento||'','pt-BR')||(a.nome||a.codigo).localeCompare(b.nome||b.codigo,'pt-BR');});
+  var sess=sessoesVinhetas();
+  var html='<div class="vn-toolbar"><span class="vn-conta">'+lista.length+' bloco'+(lista.length===1?'':'s')+'</span>'
+    +(canEd?'<button class="cat-edit-btn" style="margin-left:auto;" onclick="openVinBloco(null)">+ Novo bloco</button>':'')+'</div>';
+  if(!lista.length){vc.innerHTML=html+'<div class="vn-vazio">Nenhum bloco nos eventos ativos. Um bloco é um DCP único com várias vinhetas dentro.</div>';return;}
+  html+='<div class="vn-tabela"><div class="vn-row vn-row-blo vn-head"><span>Código</span><span>Bloco e conteúdo</span><span>Evento</span><span>Duração</span><span>Sessões</span><span></span></div>';
+  lista.forEach(function(v){
+    var safe=_vinJs(v.codigo),n=sess.filter(function(s){return(s.vinhetas||[]).indexOf(v.codigo)>=0;}).length;
+    html+='<div class="vn-row vn-row-blo" onclick="openVinhetaDetail(\''+safe+'\')">'
+      +'<span class="vn-cod" title="'+esc(v.codigo)+'">'+esc(stripEvPrefix(v.codigo,v.evento))+'</span>'
+      +'<span class="vn-nome-cel"><span class="vn-nome">'+esc(v.nome||v.codigo)+'</span>'+(v.cpl?'<span class="vn-sub">'+esc(v.cpl)+'</span>':'')
+      +'<span class="vn-cadeia">'+v.componentes.map(function(c){var x=_vinInfo(c);return'<span class="vn-elo">'+esc(x?x.nome||c:c)+'</span>';}).join('<span class="vn-seta">›</span>')+'</span></span>'
+      +'<span>'+esc(v.evento)+'</span><span class="vn-num">'+esc(v.duracao||'—')+'</span><span class="vn-num">'+n+'</span>'
+      +'<span class="vn-acoes" onclick="event.stopPropagation()">'+(canEd?'<button class="prog-btn-icon" title="Editar" onclick="openVinBloco(\''+safe+'\')">✎</button><button class="prog-btn-icon" title="Duplicar" onclick="duplicateVinheta(\''+safe+'\')">⧉</button><button class="prog-btn-icon" title="Excluir" style="color:var(--warn)" onclick="deleteVinheta(\''+safe+'\')">✕</button>':'')+'</span>'
+      +'</div>';
   });
-  html+='</div>';
-  vc.innerHTML=html;
+  vc.innerHTML=html+'</div>';
+}
+function openVinBloco(cod){
+  var v=cod?_vinInfo(cod):null,evs=_vinEvsAtivos();
+  if(v&&v.evento&&evs.indexOf(v.evento)<0)evs.unshift(v.evento);
+  var ev=v?v.evento:_evPadrao('',evs);
+  _vinBlo={cod:cod||null,ev:ev};
+  _vinSeq.blo=v?v.componentes.slice():[];
+  var m=document.getElementById('vnBlocoModal');
+  if(!m){m=document.createElement('div');m.id='vnBlocoModal';m.className='vn-modal';document.body.appendChild(m);}
+  function f(lbl,inp,st){return'<label class="vn-field"'+(st?' style="'+st+'"':'')+'><span class="vn-label">'+lbl+'</span>'+inp+'</label>';}
+  function val(k){return esc(v?v[k]:'');}
+  m.innerHTML='<div class="vn-modal-box"><div class="vn-modal-head"><span>'+(cod?'Editar bloco · '+esc(cod):'Novo bloco')+'</span><button class="vn-mini" onclick="closeVinBloco()">×</button></div>'
+    +'<div class="vn-modal-body vn-duas"><div class="vn-col">'
+    +f('Evento *','<select class="vn-input" id="vb_event" onchange="_vinBloSetEv(this.value)">'+(evs.length>1?'<option value="">— selecionar —</option>':'')+evs.map(function(e){return'<option value="'+esc(e)+'"'+(e===ev?' selected':'')+'>'+esc(e)+'</option>';}).join('')+'</select>')
+    +f('Código'+(cod?'':' *'),cod?'<input class="vn-input" type="text" id="vb_code" value="'+esc(cod)+'" readonly style="opacity:.6">':'<span class="vn-prefixo"><span id="vb_prefix">'+esc(ev)+'</span><input class="vn-input" type="text" id="vb_code" autocomplete="off" placeholder="ex.: B02MASTER"></span>')
+    +f('Título *','<input class="vn-input" type="text" id="vb_nome" value="'+val('nome')+'">')
+    +f('CPL do bloco','<input class="vn-input" type="text" id="vb_cpl" value="'+val('cpl')+'">')
+    +'<div class="vn-linha">'+f('Lente','<input class="vn-input" type="text" id="vb_lente" value="'+val('lente')+'">','flex:1')+f('Som','<input class="vn-input" type="text" id="vb_som" value="'+val('som')+'">','flex:1')+'</div>'
+    +f('Duração (H:MM:SS)','<input class="vn-input" type="text" id="vb_dur" value="'+val('duracao')+'" placeholder="soma automática"><span class="vn-sub" id="vb_dur_hint"></span>')
+    +f('Link do arquivo','<input class="vn-input" type="text" id="vb_link" value="'+val('link')+'">')
+    +f('Observações','<input class="vn-input" type="text" id="vb_obs" value="'+val('obs')+'">')
+    +'</div><div class="vn-col"><div class="vn-label">Vinhetas dentro do bloco, na ordem *</div><div id="vnseq_blo" class="vn-seq"></div>'
+    +_vinPickerHtml('blo','buscar vinheta para incluir…')+'</div></div>'
+    +'<div id="vb_err" class="vn-modal-err"></div><div class="vn-modal-foot"><button class="print-btn" onclick="closeVinBloco()">Cancelar</button><button class="cat-edit-btn" id="vb_save" onclick="saveVinBloco()">Salvar bloco</button></div></div>';
+  m.style.display='flex';
+  _vinSeqRender('blo');_vinPickRender('blo');
+}
+function closeVinBloco(){var m=document.getElementById('vnBlocoModal');if(m)m.style.display='none';_vinBlo=null;}
+function _vinBloSetEv(v){
+  _vinBlo.ev=v;
+  var p=document.getElementById('vb_prefix');if(p)p.textContent=v;
+  _vinSeq.blo=_vinSeq.blo.filter(function(c){var x=_vinInfo(c);return x&&(!x.evento||x.evento===v);});
+  _vinSeqMudou('blo');
+}
+function _vinBloAtuDur(){
+  var r=_vinSoma(_vinSeq.blo),inp=document.getElementById('vb_dur'),h=document.getElementById('vb_dur_hint');
+  if(!inp)return;
+  if(!_vinSeq.blo.length){inp.value='';if(h)h.textContent='';return;}
+  if(r.falt){inp.value='';if(h)h.textContent=r.falt+' vinheta'+(r.falt===1?'':'s')+' sem duração: preencha à mão.';}
+  else{inp.value=_secsToHMS(r.secs);if(h)h.textContent='';}
+}
+async function saveVinBloco(){
+  var b=_vinBlo;if(!b||!window._olgaVinhetas)return;
+  function g(id){return(document.getElementById(id).value||'').trim();}
+  function err(m){var e=document.getElementById('vb_err');e.textContent=m;e.style.display=m?'block':'none';}
+  err('');
+  var ev=g('vb_event'),raw=g('vb_code'),code=b.cod?b.cod:(ev?ev+raw:raw),nome=g('vb_nome');
+  if(!ev){err('Selecione o evento.');return;}
+  if(!b.cod&&!raw){err('Código obrigatório.');return;}
+  if(!nome){err('Título obrigatório.');return;}
+  if(!_vinSeq.blo.length){err('Inclua pelo menos uma vinheta no bloco.');return;}
+  if(!b.cod&&vinhetasArr.some(function(v){return v.codigo===code;})){err('Código já existe: '+code);return;}
+  var data={event_name:ev,bumper_code:code,title:nome,projection_lens:g('vb_lente'),audio_format:g('vb_som'),cpl_id:g('vb_cpl'),duration:g('vb_dur'),file_link:g('vb_link'),notes:g('vb_obs'),components:_vinSeq.blo.slice()};
+  var salvar=data;
+  if(b.cod){
+    var p=_vinInfo(b.cod);
+    if(p){
+      var base={event_name:p.evento||'',bumper_code:p.codigo||'',title:p.nome||'',projection_lens:p.lente||'',audio_format:p.som||'',cpl_id:p.cpl||'',duration:p.duracao||'',file_link:p.link||'',notes:p.obs||'',components:p.componentes||[]};
+      salvar={};
+      Object.keys(data).forEach(function(k){if(JSON.stringify(data[k]||'')!==JSON.stringify(base[k]||''))salvar[k]=data[k];});
+    }
+  }
+  var btn=document.getElementById('vb_save');btn.disabled=true;btn.textContent='Salvando…';
+  try{
+    if(Object.keys(salvar).length){
+      if(b.cod)await window._olgaVinhetas.saveField(code,salvar);
+      else await window._olgaVinhetas.save(code,salvar);
+      window._logFirestoreEdit&&window._logFirestoreEdit('individual',code,salvar,'vinhetas','vinhetas');
+    }
+    await window._olgaVinhetas.reload();
+    closeVinBloco();_vinRender();
+  }catch(e){err('Erro: '+e.message);}
+  finally{btn.disabled=false;btn.textContent='Salvar bloco';}
+}
+
+/* ── aba Templates: cada ação grava na hora em vin_templates/{evento} ── */
+function _vinTplComIds(list){return(list||[]).filter(Boolean).map(function(t){return t.id?t:Object.assign({},t,{id:_newTmplId()});});}
+async function _vinTplCarrega(ev){
+  var api=window._olgaVinTemplates;if(!api)return[];
+  var list=await api.loadStrict(ev);
+  if(list.some(function(t){return t&&!t.id;})&&_vinCanEdit())list=await api.mutate(ev,_vinTplComIds);
+  else list=_vinTplComIds(list);
+  _vinTemplatesCache[ev]=list;
+  return list;
+}
+function _vinTplSessoes(ev,id){return(sessoesArr||[]).filter(function(s){return s.evento===ev&&s.template_id===id;});}
+function _vinRenderTemplates(){
+  var vc=document.getElementById('vinhetas-container'),ev=_vinEv,canEd=_vinCanEdit(),list=_vinTemplatesCache[ev]||[],ed=_vinTplEd;
+  var html='<div class="vn-toolbar">'+_vinEvSelectHtml()+'<span class="vn-conta">'+list.length+' template'+(list.length===1?'':'s')+'</span>'
+    +(canEd?'<button class="cat-edit-btn" style="margin-left:auto;" onclick="_vinTplNovo()">+ Novo template</button>':'')+'</div>'+_vinMsgHtml(_vinTplMsg);
+  html+='<div class="vn-duas vn-duas-tpl"><div class="vn-painel"><div class="vn-painel-tit">Templates do evento</div>';
+  if(!list.length)html+='<div class="vn-vazio">Nenhum template neste evento.</div>';
+  list.forEach(function(t){
+    var n=_vinTplSessoes(ev,t.id).length,safe=_vinJs(t.id);
+    html+='<div class="vn-tpl'+(ed&&ed.id===t.id?' on':'')+'"'+(canEd?' onclick="_vinTplEditar(\''+safe+'\')"':'')+'>'
+      +'<div class="vn-tpl-corpo"><div class="vn-nome">'+esc(t.name||'Template')+'</div>'
+      +'<div class="vn-cadeia">'+(t.bumpers||[]).map(function(c){var x=_vinInfo(c);return'<span class="vn-elo">'+esc(x?x.nome||c:c)+'</span>';}).join('<span class="vn-seta">›</span>')+'</div>'
+      +'<div class="vn-sub">'+(t.bumpers||[]).length+' ite'+((t.bumpers||[]).length===1?'m':'ns')+' · '+esc(_vinSomaTxt(t.bumpers))+' · '+n+' sess'+(n===1?'ão':'ões')+' vinculada'+(n===1?'':'s')+'</div></div>'
+      +(canEd?'<span class="vn-acoes" onclick="event.stopPropagation()"><button class="prog-btn-icon" title="Duplicar" onclick="_vinTplDuplicar(\''+safe+'\')">⧉</button><button class="prog-btn-icon" title="Excluir" style="color:var(--warn)" onclick="_vinTplExcluir(\''+safe+'\')">✕</button></span>':'')
+      +'</div>';
+  });
+  html+='</div><div class="vn-painel">';
+  if(ed){
+    var ln=ed.id?_vinTplSessoes(ev,ed.id).length:0;
+    html+='<div class="vn-painel-tit">'+(ed.id?'Editar template':'Novo template')+'</div>'
+      +'<label class="vn-field"><span class="vn-label">Nome *</span><input class="vn-input" type="text" id="vnTplNome" value="'+esc(ed.nome)+'" placeholder="ex.: Abertura, Sessão especial…" oninput="_vinTplEd.nome=this.value"></label>'
+      +'<div class="vn-label" style="margin-top:12px;">Sequência</div><div id="vnseq_tpl" class="vn-seq"></div>'
+      +'<div class="vn-label" style="margin-top:12px;">Incluir</div>'+_vinPickerHtml('tpl','buscar vinheta ou bloco…')
+      +(ln?'<div class="vn-aviso">Vinculado a '+ln+' sess'+(ln===1?'ão':'ões')+': ao salvar, todas recebem a nova sequência.</div>':'')
+      +'<div class="vn-painel-foot"><button class="print-btn" onclick="_vinTplCancelar()">Cancelar</button><button class="cat-edit-btn" id="vnTplSalvar" onclick="_vinTplSalvar()">Salvar template</button></div>';
+  }else{
+    html+='<div class="vn-vazio">'+(canEd?'Clique em um template para editar ou crie um novo. Cada template é salvo na hora.':'Somente leitura.')+'</div>';
+  }
+  vc.innerHTML=html+'</div></div>';
+  if(ed){_vinSeqRender('tpl');_vinPickRender('tpl');}
+}
+function _vinTplNovo(){_vinTplEd={id:'',nome:''};_vinSeq.tpl=[];_vinTplMsg=null;_vinRender();var n=document.getElementById('vnTplNome');if(n)n.focus();}
+function _vinTplEditar(id){
+  var t=(_vinTemplatesCache[_vinEv]||[]).find(function(x){return x.id===id;});if(!t)return;
+  _vinTplEd={id:id,nome:t.name||''};_vinSeq.tpl=(t.bumpers||[]).slice();_vinTplMsg=null;_vinRender();
+}
+function _vinTplCancelar(){_vinTplEd=null;_vinSeq.tpl=[];_vinRender();}
+// grava a sequência nova em todas as sessões vinculadas; devolve {ok,falhas}
+async function _vinTplPropagar(ev,id,bumpers){
+  var alvo=_vinTplSessoes(ev,id).filter(function(s){return JSON.stringify(s.vinhetas||[])!==JSON.stringify(bumpers);});
+  if(!alvo.length)return{ok:0,falhas:0};
+  _olgaPreBackup('vinhetas-template-propagar',alvo.map(function(s){return Object.assign({},s);}),'sessões vinculadas ao template '+id);
+  var ok=0,falhas=0;
+  for(var i=0;i<alvo.length;i+=20){
+    var parte=alvo.slice(i,i+20);
+    var res=await Promise.allSettled(parte.map(function(s){return window._olgaSessoes.saveField(s._docId||s.nome,{bumpers:bumpers.slice()});}));
+    res.forEach(function(r,j){if(r.status==='fulfilled'){parte[j].vinhetas=bumpers.slice();ok++;}else falhas++;});
+  }
+  if(window._olgaSessoes.reload)await window._olgaSessoes.reload();
+  return{ok:ok,falhas:falhas};
+}
+async function _vinTplSalvar(){
+  var ev=_vinEv,ed=_vinTplEd;if(!ed)return;
+  var nome=(ed.nome||'').trim(),seq=_vinSeq.tpl.slice();
+  function msg(t,e){_vinTplMsg={txt:t,erro:!!e};}
+  if(!nome){msg('Nome do template obrigatório.',true);_vinRender();return;}
+  if(!seq.length){msg('Inclua pelo menos um item na sequência.',true);_vinRender();return;}
+  if((_vinTemplatesCache[ev]||[]).some(function(t){return t.id!==ed.id&&(t.name||'').trim().toLowerCase()===nome.toLowerCase();})){msg('Já existe um template com esse nome neste evento.',true);_vinRender();return;}
+  var btn=document.getElementById('vnTplSalvar');if(btn){btn.disabled=true;btn.textContent='Salvando…';}
+  var id=ed.id||_newTmplId();
+  try{
+    var novo=await window._olgaVinTemplates.mutate(ev,function(list){
+      var out=_vinTplComIds(list),i=out.findIndex(function(x){return x.id===id;});
+      var item={id:id,name:nome,bumpers:seq};
+      if(i>=0)out[i]=Object.assign({},out[i],item);else out.push(item);
+      return out;
+    });
+    _vinTemplatesCache[ev]=novo;
+    var p=await _vinTplPropagar(ev,id,seq);
+    _vinTplEd=null;_vinSeq.tpl=[];
+    msg('Template "'+nome+'" salvo.'+(p.ok?' '+p.ok+' sess'+(p.ok===1?'ão atualizada':'ões atualizadas')+'.':'')+(p.falhas?' '+p.falhas+' sess'+(p.falhas===1?'ão não foi atualizada':'ões não foram atualizadas')+'.':''),p.falhas>0);
+  }catch(e){msg('Erro ao salvar: '+e.message,true);}
+  _vinRender();
+}
+async function _vinTplDuplicar(id){
+  var ev=_vinEv;
+  try{
+    _vinTemplatesCache[ev]=await window._olgaVinTemplates.mutate(ev,function(list){
+      var out=_vinTplComIds(list),i=out.findIndex(function(x){return x.id===id;});
+      if(i>=0)out.splice(i+1,0,{id:_newTmplId(),name:'Cópia de '+(out[i].name||''),bumpers:(out[i].bumpers||[]).slice()});
+      return out;
+    });
+    _vinTplMsg={txt:'Template duplicado.'};
+  }catch(e){_vinTplMsg={txt:'Erro: '+e.message,erro:true};}
+  _vinRender();
+}
+async function _vinTplExcluir(id){
+  var ev=_vinEv,t=(_vinTemplatesCache[ev]||[]).find(function(x){return x.id===id;});if(!t)return;
+  var n=_vinTplSessoes(ev,id).length;
+  if(!confirm('Excluir o template "'+(t.name||'')+'"?'+(n?'\n'+n+' sessão(ões) vinculada(s) mantêm as vinhetas atuais, sem vínculo.':'')))return;
+  try{
+    _vinTemplatesCache[ev]=await window._olgaVinTemplates.mutate(ev,function(list){return _vinTplComIds(list).filter(function(x){return x.id!==id;});});
+    if(_vinTplEd&&_vinTplEd.id===id){_vinTplEd=null;_vinSeq.tpl=[];}
+    _vinTplMsg={txt:'Template excluído.'};
+  }catch(e){_vinTplMsg={txt:'Erro: '+e.message,erro:true};}
+  _vinRender();
+}
+
+/* ── aba Aplicar em sessões ── */
+function _vinAplBase(){
+  var as=allowedSalas();
+  return(sessoesArr||[]).filter(function(s){return s.evento===_vinEv&&(!as||!s.cinema||as.has(s.cinema));});
+}
+function _vinAplFiltradas(){
+  var a=_vinApl,q=a.q.trim().toLowerCase();
+  return _vinAplBase().filter(function(s){
+    var k=s.date?s.date.toISOString().slice(0,10):'';
+    if(a.dias.size&&!a.dias.has(k))return false;
+    if(a.complexo&&_getSalaComplexo(s.cinema)!==a.complexo)return false;
+    if(a.sala&&s.cinema!==a.sala)return false;
+    if(a.mostra&&s.program_id!==a.mostra)return false;
+    if(a.sub&&s.subprogram_id!==a.sub)return false;
+    if(!_sessPassaTipo(s,a.tipo))return false;
+    var cur=window._effectiveBumpers(s);
+    if(a.situacao==='sem'&&cur.length)return false;
+    if(a.situacao==='com'&&!cur.length)return false;
+    if(a.situacao==='tpl'&&!s.template_id)return false;
+    if(a.situacao==='semtpl'&&s.template_id)return false;
+    if(a.contem&&_vinExpandida(cur).indexOf(a.contem)<0)return false;
+    if(q&&(s.nome+' '+(s.name||'')+' '+(s.cinema||'')+' '+s.filmes.map(filmDisplayTitle).join(' ')).toLowerCase().indexOf(q)<0)return false;
+    return true;
+  }).sort(function(x,y){return(x.date&&y.date?x.date-y.date:0)||((x.time?x.time.h*60+x.time.m:0)-(y.time?y.time.h*60+y.time.m:0))||(x.cinema||'').localeCompare(y.cinema||'','pt-BR');});
+}
+function _vinAplSel(lbl,campo,ph,opts){
+  var v=_vinApl[campo];
+  return'<label class="vn-field"><span class="vn-label">'+lbl+'</span><select class="vn-input" onchange="_vinAplFiltro(\''+campo+'\',this.value)"><option value="">'+esc(ph)+'</option>'
+    +opts.map(function(o){return'<option value="'+esc(o[0])+'"'+(o[0]===v?' selected':'')+'>'+esc(o[1])+'</option>';}).join('')+'</select></label>';
+}
+function _vinAplFiltrosRender(){
+  var box=document.getElementById('vnAplFiltros');if(!box)return;
+  var a=_vinApl,base=_vinAplBase(),dias={};
+  base.forEach(function(s){if(s.date)dias[s.date.toISOString().slice(0,10)]=s.date;});
+  var uniq=function(fn){var m={};base.forEach(function(s){var v=fn(s);if(v)m[v]=1;});return Object.keys(m).sort(function(x,y){return x.localeCompare(y,'pt-BR');}).map(function(x){return[x,x];});};
+  var usados={};base.forEach(function(s){_vinExpandida(window._effectiveBumpers(s)).forEach(function(c){usados[c]=1;});});
+  var contem=Object.keys(usados).map(function(c){var v=_vinInfo(c);return[c,v?v.nome||c:c];}).sort(function(x,y){return x[1].localeCompare(y[1],'pt-BR');});
+  if(a.contem&&!usados[a.contem])a.contem='';
+  var subs=_sessSubmostrasDe(base,a.mostra);
+  if(a.sub&&!subs.some(function(o){return o[0]===a.sub;}))a.sub='';
+  box.innerHTML='<div class="vn-chips">'+Object.keys(dias).sort().map(function(k){
+      return'<button class="vn-chip'+(a.dias.has(k)?' on':'')+'" onclick="_vinAplDiaFiltro(\''+k+'\')">'+esc(dias[k].toLocaleDateString('pt-BR',{weekday:'short',day:'2-digit',month:'2-digit'}))+'</button>';
+    }).join('')+'</div>'
+    +'<div class="vn-filtros">'
+    +_vinAplSel('Complexo','complexo','Todos',uniq(function(s){return _getSalaComplexo(s.cinema);}))
+    +_vinAplSel('Sala','sala','Todas',uniq(function(s){return(!a.complexo||_getSalaComplexo(s.cinema)===a.complexo)?s.cinema:'';}))
+    +_vinAplSel('Mostra','mostra','Todas',_sessMostrasDe(base))
+    +_vinAplSel('Submostra','sub','Todas',subs)
+    +_vinAplSel('Tipo','tipo','Tudo',[['filmes','Só sessões com filmes'],['paralelas','Só atividades paralelas']])
+    +_vinAplSel('Situação','situacao','Todas',[['sem','Sem vinheta'],['com','Com vinheta'],['tpl','Com template'],['semtpl','Sem template']])
+    +_vinAplSel('Contém','contem','Qualquer',contem)
+    +'<label class="vn-field"><span class="vn-label">Busca</span><input class="vn-input" type="text" placeholder="filme, sessão, sala…" value="'+esc(a.q)+'" oninput="_vinApl.q=this.value;_vinAplLista()"></label>'
+    +'</div>';
+}
+function _vinAplFiltro(c,v){_vinApl[c]=v;if(c==='mostra')_vinApl.sub='';if(c==='complexo')_vinApl.sala='';_vinAplFiltrosRender();_vinAplLista();}
+function _vinAplDiaFiltro(k){if(_vinApl.dias.has(k))_vinApl.dias.delete(k);else _vinApl.dias.add(k);_vinAplFiltrosRender();_vinAplLista();}
+function _vinAplLista(){
+  var box=document.getElementById('vnAplLista');if(!box)return;
+  var a=_vinApl,lista=_vinAplFiltradas();
+  a.visiveis=lista.map(function(s){return s.nome;});
+  var marcadas=lista.filter(function(s){return a.sel.has(s.nome);}).length;
+  var html='<label class="vn-marcar"><input type="checkbox"'+(lista.length&&marcadas===lista.length?' checked':'')+' onchange="_vinAplTodas(this.checked)"> Marcar as '+lista.length+' sessões filtradas</label>';
+  if(!lista.length){box.innerHTML=html+'<div class="vn-vazio">Nenhuma sessão com esses filtros.</div>';_vinAplResumo();return;}
+  var dia=null,tpls=_vinTemplatesCache[_vinEv]||[];
+  lista.forEach(function(s,i){
+    var k=s.date?s.date.toISOString().slice(0,10):'';
+    if(k!==dia){
+      dia=k;
+      var doDia=lista.filter(function(x){return(x.date?x.date.toISOString().slice(0,10):'')===k;});
+      var todas=doDia.every(function(x){return a.sel.has(x.nome);});
+      html+='<label class="vn-dia"><input type="checkbox"'+(todas?' checked':'')+' onchange="_vinAplDia(\''+k+'\',this.checked)"><span>'+esc(s.date?s.date.toLocaleDateString('pt-BR',{weekday:'long',day:'2-digit',month:'2-digit'}):'Sem data')+'</span><span class="vn-conta">'+doDia.length+'</span></label>';
+    }
+    var cur=window._effectiveBumpers(s),on=a.sel.has(s.nome),t=s.template_id?tpls.find(function(x){return x.id===s.template_id;}):null;
+    html+='<div class="vn-sess'+(on?' on':'')+'" onclick="_vinAplToggle('+i+',event)">'
+      +'<input type="checkbox"'+(on?' checked':'')+' tabindex="-1">'
+      +'<span class="vn-sess-hora">'+esc(s.time?s.time.str:'—')+'</span>'
+      +'<span class="vn-sess-sala" title="'+esc(s.cinema)+'">'+esc(s.cinema||s.local_livre||'—')+'</span>'
+      +'<span class="vn-sess-tit"><span class="vn-nome">'+esc(_dashSessTitulo(s))+'</span><span class="vn-sub">'+esc(stripEvPrefix(s.nome,s.evento))+'</span></span>'
+      +'<span class="vn-sess-vin">'+(t?'<span class="vn-tag" title="Template">'+esc(t.name||'template')+'</span> ':'')
+      +(cur.length?esc(cur.map(function(c){var v=_vinInfo(c);return v?v.nome||c:c;}).join(' · ')):'<span class="vn-sub">sem vinheta</span>')+'</span>'
+      +'</div>';
+  });
+  box.innerHTML=html;
+  _vinAplResumo();
+}
+function _vinAplToggle(i,ev){
+  var a=_vinApl,nome=a.visiveis[i];if(!nome)return;
+  var marcar=!a.sel.has(nome);
+  if(ev&&ev.shiftKey&&a.last!==null&&a.last!==undefined){
+    var x=Math.min(a.last,i),y=Math.max(a.last,i);
+    for(var j=x;j<=y;j++){if(marcar)a.sel.add(a.visiveis[j]);else a.sel.delete(a.visiveis[j]);}
+  }else{if(marcar)a.sel.add(nome);else a.sel.delete(nome);}
+  a.last=i;
+  _vinAplLista();
+}
+function _vinAplTodas(on){var a=_vinApl;(a.visiveis||[]).forEach(function(n){if(on)a.sel.add(n);else a.sel.delete(n);});_vinAplLista();}
+function _vinAplDia(k,on){
+  var a=_vinApl;
+  _vinAplFiltradas().forEach(function(s){if((s.date?s.date.toISOString().slice(0,10):'')===k){if(on)a.sel.add(s.nome);else a.sel.delete(s.nome);}});
+  _vinAplLista();
+}
+function _vinPickTpl(id){
+  var t=(_vinTemplatesCache[_vinEv]||[]).find(function(x){return x.id===id;});if(!t)return;
+  if(!_vinSeq.apl.length){_vinSeq.apl=(t.bumpers||[]).slice();_vinApl.tplId=id;}
+  else (t.bumpers||[]).forEach(function(c){if(_vinSeq.apl.indexOf(c)<0)_vinSeq.apl.push(c);});
+  _vinSeqMudou('apl');
+}
+// template ao qual a sequência corresponde exatamente: só nesse caso a sessão fica vinculada
+function _vinAplVinculo(){
+  var a=_vinApl;if(a.modo!=='substituir'||!a.tplId)return null;
+  var t=(_vinTemplatesCache[_vinEv]||[]).find(function(x){return x.id===a.tplId;});
+  return t&&JSON.stringify(t.bumpers||[])===JSON.stringify(_vinSeq.apl)?t:null;
+}
+function _vinAplCalc(s,seq,modo,linkId){
+  var cur=window._effectiveBumpers(s).slice(),prox;
+  if(modo==='substituir')prox=seq.slice();
+  else if(modo==='fim')prox=cur.concat(seq.filter(function(c){return cur.indexOf(c)<0;}));
+  else if(modo==='inicio')prox=seq.concat(cur.filter(function(c){return seq.indexOf(c)<0;}));
+  else prox=cur.filter(function(c){return seq.indexOf(c)<0;});
+  var igual=JSON.stringify(prox)===JSON.stringify(cur),tid=s.template_id||'';
+  var novoTid=modo==='substituir'?(linkId||''):(igual?tid:'');
+  return{muda:!igual||novoTid!==tid,data:{bumpers:prox,template_id:novoTid}};
+}
+function _vinAplModo(m){_vinApl.modo=m;_vinAplResumo();}
+function _vinAplAlvos(){
+  var a=_vinApl,t=_vinAplVinculo(),seq=_vinSeq.apl;
+  return Array.from(a.sel).map(function(n){return sessoesMap[n];}).filter(function(s){return s&&s.evento===_vinEv;})
+    .map(function(s){var c=_vinAplCalc(s,seq,a.modo,t?t.id:'');return{s:s,muda:c.muda,data:c.data};});
+}
+function _vinAplResumo(){
+  var box=document.getElementById('vnAplResumo');if(!box)return;
+  var a=_vinApl,seq=_vinSeq.apl,alvos=_vinAplAlvos(),muda=alvos.filter(function(x){return x.muda;}).length,t=_vinAplVinculo();
+  var vis=new Set(a.visiveis||[]),fora=alvos.filter(function(x){return!vis.has(x.s.nome);}).length;
+  var nota=a.modo==='substituir'?(t?'Vincula ao template "'+t.name+'": editar o template atualiza estas sessões.':'Sequência avulsa: as sessões ficam sem vínculo com template.'):'Sessões que mudarem perdem o vínculo com template.';
+  box.innerHTML='<div class="vn-resumo-num"><b>'+alvos.length+'</b> selecionada'+(alvos.length===1?'':'s')+(fora?' ('+fora+' fora do filtro)':'')+' · <b>'+muda+'</b> mudam</div>'
+    +'<div class="vn-sub">'+esc(nota)+'</div>'+_vinMsgHtml(a.msg)
+    +'<div class="vn-painel-foot"><button class="print-btn" onclick="_vinApl.sel.clear();_vinApl.last=null;_vinAplLista()">Limpar seleção</button>'
+    +'<button class="cat-edit-btn" id="vnAplBtn"'+(muda&&seq.length?'':' disabled')+' onclick="_vinAplExec()">Aplicar em '+muda+'</button></div>';
+}
+function _vinRenderAplicar(){
+  var vc=document.getElementById('vinhetas-container'),a=_vinApl;
+  function radio(v,l){return'<label class="vn-radio"><input type="radio" name="vnAplModo"'+(a.modo===v?' checked':'')+' onchange="_vinAplModo(\''+v+'\')"> '+l+'</label>';}
+  vc.innerHTML='<div class="vn-toolbar">'+_vinEvSelectHtml()+'</div>'
+    +'<div class="vn-duas vn-duas-apl"><div class="vn-painel"><div id="vnAplFiltros"></div><div id="vnAplLista"></div></div>'
+    +'<div class="vn-painel vn-apl-lado"><div class="vn-painel-tit">Sequência a aplicar</div><div id="vnseq_apl" class="vn-seq"></div>'
+    +'<div class="vn-label" style="margin-top:12px;">Incluir</div>'+_vinPickerHtml('apl','buscar template, bloco ou vinheta…')
+    +'<div class="vn-label" style="margin-top:12px;">Como aplicar</div><div class="vn-radios">'+radio('substituir','Substituir as vinhetas atuais')+radio('fim','Somar ao fim')+radio('inicio','Somar ao início')+radio('remover','Remover estas das sessões')+'</div>'
+    +'<div id="vnAplResumo" class="vn-resumo"></div></div></div>';
+  _vinAplFiltrosRender();_vinAplLista();_vinSeqRender('apl');_vinPickRender('apl');
+}
+async function _vinAplExec(){
+  var a=_vinApl,alvos=_vinAplAlvos().filter(function(x){return x.muda;});
+  if(!alvos.length||!_vinSeq.apl.length)return;
+  var nomes={substituir:'SUBSTITUIR as vinhetas de',fim:'SOMAR ao fim das vinhetas de',inicio:'SOMAR ao início das vinhetas de',remover:'REMOVER estas vinhetas de'};
+  if(!confirm(nomes[a.modo]+' '+alvos.length+' sessão(ões) do evento '+_vinEv+'?'))return;
+  _olgaPreBackup('vinhetas-aplicar-lote',alvos.map(function(x){return Object.assign({},x.s);}),'aplicação de vinhetas em lote: '+a.modo);
+  var btn=document.getElementById('vnAplBtn');if(btn)btn.disabled=true;
+  var ok=0,falhas=0,primeiroErro='';
+  for(var i=0;i<alvos.length;i+=20){
+    var parte=alvos.slice(i,i+20);
+    if(btn)btn.textContent='Gravando '+Math.min(i+20,alvos.length)+'/'+alvos.length+'…';
+    var res=await Promise.allSettled(parte.map(function(x){return window._olgaSessoes.saveField(x.s._docId||x.s.nome,x.data);}));
+    res.forEach(function(r,j){
+      var x=parte[j];
+      if(r.status==='fulfilled'){
+        x.s.vinhetas=x.data.bumpers.slice();x.s.template_id=x.data.template_id;a.sel.delete(x.s.nome);ok++;
+        window._logFirestoreEdit&&window._logFirestoreEdit('batch',x.s.nome,x.data,'vinhetas','sessoes');
+      }else{falhas++;if(!primeiroErro)primeiroErro=(r.reason&&r.reason.message)||'';}
+    });
+  }
+  try{if(window._olgaSessoes.reload)await window._olgaSessoes.reload();}catch(e){}
+  a.msg={txt:ok+' sess'+(ok===1?'ão atualizada':'ões atualizadas')+'.'+(falhas?' '+falhas+' falharam e continuam selecionadas: '+primeiroErro:''),erro:falhas>0};
+  a.last=null;
+  _vinAplFiltrosRender();_vinAplLista();
 }
 
 function openVinhetaDetail(cod){
@@ -17397,7 +18024,6 @@ function openVinhetaModal(cod){
     +'<div class="prog-modal-field"><label class="prog-modal-label">Duração (H:MM:SS)</label><input class="prog-modal-input" id="vm_duracao" value="'+esc(v?v.duracao:'')+'" placeholder="Ex: 0:02:30"></div>'
     +'<div class="prog-modal-field"><label class="prog-modal-label">Link do arquivo</label><input class="prog-modal-input" id="vm_link" type="url" value="'+esc(v?v.link:'')+'"></div>'
     +'<div class="prog-modal-field"><label class="prog-modal-label">Observações</label><input class="prog-modal-input" id="vm_obs" value="'+esc(v?v.obs:'')+'"></div>'
-    +'<div class="prog-modal-field"><label class="prog-modal-label">Vinhetas dentro do bloco (códigos na ordem, separados por vírgula — vazio se não é bloco)</label><input class="prog-modal-input" id="vm_comp" value="'+esc(v?(v.componentes||[]).join(', '):'')+'" list="vm_comp_list"><datalist id="vm_comp_list">'+listOpts(vinhetasArr.map(function(x){return x.codigo;}))+'</datalist></div>'
     +'</div>';
   document.getElementById('vinhetaModalTitle').textContent=cod?'Editar vinheta · '+cod:'Nova vinheta';
   document.getElementById('vinhetaModalBody').innerHTML=body;
@@ -17426,10 +18052,8 @@ async function saveVinhetaModal(){
     duration:(document.getElementById('vm_duracao').value||'').trim(),
     file_link:(document.getElementById('vm_link').value||'').trim(),
     notes:(document.getElementById('vm_obs').value||'').trim(),
-    components:(document.getElementById('vm_comp').value||'').split(/[,;\n]+/).map(function(x){return x.trim();}).filter(function(x){return x&&x!==code;})
+    components:_vinhetaEditCod?((_vinInfo(_vinhetaEditCod)||{}).componentes||[]):[]
   };
-  var _compFalta=data.components.filter(function(c){return!vinhetasArr.find(function(v){return v.codigo===c;});});
-  if(_compFalta.length){_vinhetaErr('Vinheta não cadastrada: '+_compFalta.join(', '));return;}
   var btn=document.getElementById('vinhetaModalSave');btn.disabled=true;btn.textContent='Salvando…';
   try{
     var _saveVin=data;
@@ -17458,7 +18082,8 @@ function _vinhetaErr(msg){var el=document.getElementById('vinhetaModalErr');el.t
 
 async function deleteVinheta(cod){
   var v=vinhetasArr.find(function(x){return x.codigo===cod;});if(!v)return;
-  if(!confirm('Excluir a vinheta "'+v.nome+'" ('+cod+')?\nEsta ação não pode ser desfeita.'))return;
+  var _nS=sessoesArr.filter(function(s){return(s.vinhetas||[]).indexOf(cod)>=0;}).length,_nB=_vinBlocosCom(cod).length;
+  if(!confirm('Excluir a vinheta "'+v.nome+'" ('+cod+')?'+(_nS?'\nEstá em '+_nS+' sessão(ões).':'')+(_nB?'\nEstá dentro de '+_nB+' bloco(s).':'')+'\nEsta ação não pode ser desfeita.'))return;
   try{
     await window._olgaVinhetas.remove(cod);
     await window._olgaVinhetas.reload();renderVinhetas();
@@ -20316,7 +20941,7 @@ function renderDash(){
   html+=colBlock('legendagem','Legendagem',legBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 09/11/2026 às 11:48';
+  var sysUpdate='última atualização do sistema · 09/11/2026 às 12:24';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -22717,7 +23342,6 @@ async function deleteProgVinTemplate(programId,idx){
 }
 
 /* ── Modal dedicado: Templates de Vinhetas (nível evento) ── */
-var _progVinTmplEventId=null,_progVinTmplList=[],_progVinTmplEditIdx=-1,_progVinTmplBumpers=[];
 // Cache de templates por evento: {eventId: [{name, bumpers}]}
 var _vinTemplatesCache={};
 function _newTmplId(){return't_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,8);}
@@ -22749,139 +23373,10 @@ window._ensureVinTemplatesLoaded=function(evId,onReady){
   _loadVinTemplates(evId).then(function(){if(typeof onReady==='function')onReady();}).catch(function(){});
 };
 
-async function openProgVinTemplatesModal(eventId){
-  _progVinTmplEventId=eventId;
-  var loaded=await _loadVinTemplates(eventId);
-  _progVinTmplList=JSON.parse(JSON.stringify(loaded));
-  var selM=document.getElementById('progVinTmplEventSel');
-  if(selM){
-    var evs=Array.from(activeEventsVinhetas);
-    selM.innerHTML=evs.map(function(e){return'<option value="'+esc(e)+'"'+(e===eventId?' selected':'')+'>'+esc(e)+'</option>';}).join('');
-    selM.style.display=evs.length<=1?'none':'';
-  }
-  document.getElementById('progVinTemplatesModalErr').style.display='none';
-  _progVinTmplEditIdx=-1;_progVinTmplBumpers=[];
-  _progRenderVinTmplList();
-  _progRenderVinTmplForm(false);
-  document.getElementById('progVinTemplatesModal').style.display='flex';
-}
-function closeProgVinTemplatesModal(){document.getElementById('progVinTemplatesModal').style.display='none';}
-
-function _progRenderVinTmplList(){
-  var ul=document.getElementById('progVinTmplList');if(!ul)return;
-  if(!_progVinTmplList.length){ul.innerHTML='<div style="font-family:var(--mono);font-size:10px;color:var(--text-muted);padding:8px 0;">Nenhum template cadastrado.</div>';return;}
-  var vMap={};vinhetasArr.forEach(function(v){vMap[v.codigo]=v;});
-  ul.innerHTML=_progVinTmplList.map(function(t,i){
-    var names=(t.bumpers||[]).map(function(b){var v=vMap[b];return esc(v&&v.nome?v.nome:b);}).join(' → ');
-    return'<div class="prog-vin-template-row">'
-      +'<div style="flex:1;">'
-      +'<div style="font-family:var(--mono);font-size:11px;font-weight:600;color:var(--text);">'+esc(t.name||'Template '+(i+1))+'</div>'
-      +'<div style="font-family:var(--mono);font-size:9px;color:var(--text-muted);margin-top:2px;">'+names+'</div>'
-      +'</div>'
-      +'<button class="prog-btn-icon" title="Editar" onclick="_progVinTmplEdit('+i+')">✎</button>'
-      +'<button class="prog-btn-icon" title="Duplicar" onclick="_progVinTmplDupe('+i+')">⧉</button>'
-      +'<button class="prog-btn-icon prog-btn-del" title="Excluir" onclick="_progVinTmplDelete('+i+')">×</button>'
-      +'</div>';
-  }).join('');
-}
-
-function _progVinTmplEdit(idx){
-  _progVinTmplEditIdx=idx;
-  var t=_progVinTmplList[idx];
-  _progVinTmplBumpers=(t.bumpers||[]).slice();
-  document.getElementById('progVinTmplName').value=t.name||'';
-  _progRenderVinTmplBumpersEdit();
-  _progRenderVinTmplForm(true);
-}
-function _progVinTmplDelete(idx){
-  _progVinTmplList.splice(idx,1);
-  if(_progVinTmplEditIdx===idx){_progVinTmplEditIdx=-1;_progVinTmplBumpers=[];_progRenderVinTmplForm(false);}
-  _progRenderVinTmplList();
-}
-function _progVinTmplNew(){
-  _progVinTmplEditIdx=-1;_progVinTmplBumpers=[];
-  document.getElementById('progVinTmplName').value='';
-  _progRenderVinTmplBumpersEdit();
-  _progRenderVinTmplForm(true);
-}
-function _progVinTmplDupe(idx){
-  var t=_progVinTmplList[idx];
-  _progVinTmplList.splice(idx+1,0,{name:'Cópia de '+t.name,bumpers:(t.bumpers||[]).slice()});
-  _progRenderVinTmplList();
-}
-function _progRenderVinTmplForm(show){
-  var f=document.getElementById('progVinTmplForm');if(f)f.style.display=show?'flex':'none';
-}
-function _progVinTmplSaveItem(){
-  var name=(document.getElementById('progVinTmplName').value||'').trim();
-  if(!name){alert('Nome do template obrigatório.');return;}
-  var item={name:name,bumpers:_progVinTmplBumpers.slice()};
-  if(_progVinTmplEditIdx>=0){
-    // preserva id ao editar
-    var prevId=_progVinTmplList[_progVinTmplEditIdx]&&_progVinTmplList[_progVinTmplEditIdx].id;
-    item.id=prevId||_newTmplId();
-    _progVinTmplList[_progVinTmplEditIdx]=item;
-  }
-  else{item.id=_newTmplId();_progVinTmplList.push(item);}
-  _progVinTmplEditIdx=-1;_progVinTmplBumpers=[];
-  _progRenderVinTmplList();_progRenderVinTmplForm(false);
-}
-function _progRenderVinTmplBumpersEdit(){
-  var c=document.getElementById('progVinTmplBumpersList');if(!c)return;
-  var vMap={};vinhetasArr.forEach(function(v){vMap[v.codigo]=v;});
-  if(!_progVinTmplBumpers.length){c.innerHTML='<span style="font-family:var(--mono);font-size:10px;color:var(--text-muted);">Nenhuma vinheta.</span>';return;}
-  c.innerHTML=_progVinTmplBumpers.map(function(cod,i){
-    var v=vMap[cod];var label=v?v.nome||cod:cod;
-    return'<div style="display:flex;align-items:center;gap:6px;padding:4px 0;border-bottom:1px solid var(--border);">'
-      +'<span style="font-family:var(--mono);font-size:9px;color:var(--text-muted);min-width:16px;">'+(i+1)+'</span>'
-      +'<span style="font-family:var(--sans);font-size:11px;flex:1;">'+esc(label)+'</span>'
-      +'<span style="font-family:var(--mono);font-size:9px;color:var(--text-muted);">'+esc(cod)+'</span>'
-      +(i>0?'<button style="background:none;border:none;cursor:pointer;color:var(--text-muted);padding:0 2px;" onclick="_progVinTmplBMv('+i+',-1)">↑</button>':'<span style="width:18px"></span>')
-      +(i<_progVinTmplBumpers.length-1?'<button style="background:none;border:none;cursor:pointer;color:var(--text-muted);padding:0 2px;" onclick="_progVinTmplBMv('+i+',1)">↓</button>':'<span style="width:18px"></span>')
-      +'<button style="background:none;border:none;cursor:pointer;color:var(--warn);font-size:14px;padding:0 2px;line-height:1;" onclick="_progVinTmplBumpers.splice('+i+',1);_progRenderVinTmplBumpersEdit()">×</button>'
-      +'</div>';
-  }).join('');
-}
-function _progVinTmplBMv(i,d){var a=_progVinTmplBumpers,j=i+d;if(j<0||j>=a.length)return;var t=a[i];a[i]=a[j];a[j]=t;_progRenderVinTmplBumpersEdit();}
-function _progVinTmplBumperAC(){
-  var q=(document.getElementById('progVinTmplBumperSearch').value||'').trim().toLowerCase();
-  var res=document.getElementById('progVinTmplBumperResults');
-  if(q.length<2){res.style.display='none';return;}
-  var ev=_progVinTmplEventId||'';
-  var matches=vinhetasArr.filter(function(v){return(!ev||v.evento===ev)&&(v.codigo.toLowerCase().includes(q)||(v.nome||'').toLowerCase().includes(q));}).slice(0,10);
-  if(!matches.length){res.innerHTML='<div class="prog-autocomplete-item" style="color:var(--text-muted);">Sem resultados.</div>';res.style.display='block';return;}
-  res.innerHTML=matches.map(function(v){return'<div class="prog-autocomplete-item" onmousedown="_progVinTmplAddB(\''+esc(v.codigo)+'\')">'+esc(v.nome||v.codigo)+' <span style="color:var(--text-muted);">'+esc(v.codigo)+'</span></div>';}).join('');
-  res.style.display='block';
-}
-function _progVinTmplAddB(cod){
-  _progVinTmplBumpers.push(cod);
-  document.getElementById('progVinTmplBumperSearch').value='';
-  document.getElementById('progVinTmplBumperResults').style.display='none';
-  _progRenderVinTmplBumpersEdit();
-}
-async function saveProgVinTemplatesModal(){
-  if(!window._olgaVinTemplates){var el=document.getElementById('progVinTemplatesModalErr');el.textContent='API não disponível.';el.style.display='block';return;}
-  var btn=document.getElementById('progVinTemplatesModalSave');btn.disabled=true;btn.textContent='Salvando…';
-  try{
-    await window._olgaVinTemplates.save(_progVinTmplEventId,_progVinTmplList);
-    _vinTemplatesCache[_progVinTmplEventId]=JSON.parse(JSON.stringify(_progVinTmplList));
-    // Propaga os templates atualizados pras sessões vinculadas (template_id) — grava
-    // as vinhetas atuais do template de volta em cada sessão, não só o vínculo vivo em memória.
-    var _tplLinked=(sessoesArr||[]).filter(function(s){return s.evento===_progVinTmplEventId&&s.template_id&&_progVinTmplList.some(function(t){return t.id===s.template_id;});});
-    if(_tplLinked.length){
-      btn.textContent='Atualizando '+_tplLinked.length+' sessão(ões) vinculada(s)…';
-      for(var _ti=0;_ti<_tplLinked.length;_ti++){
-        var _ts=_tplLinked[_ti];
-        var _tt=_progVinTmplList.find(function(t){return t.id===_ts.template_id;});
-        try{await window._olgaSessoes.saveField(_ts._docId||_ts.nome,{bumpers:(_tt.bumpers||[]).slice()});}catch(e){}
-      }
-      if(window._olgaSessoes&&window._olgaSessoes.reload)await window._olgaSessoes.reload();
-    }
-    closeProgVinTemplatesModal();_progRender();
-    // Re-renderiza a view ativa pra refletir o vínculo vivo (ficha de projeção etc.)
-    if(typeof _olgaRerenderActive==='function')_olgaRerenderActive();
-  }catch(e){var el=document.getElementById('progVinTemplatesModalErr');el.textContent='Erro: '+e.message;el.style.display='block';}
-  finally{btn.disabled=false;btn.textContent='Salvar templates';}
+function openProgVinTemplatesModal(eventId){
+  if(eventId&&eventId!==_vinEv){_vinEv=eventId;_vinEvAuto=false;_vinResetEv();}
+  _vinTab='templates';_vinTplLoaded='';
+  switchMode('vinhetas');
 }
 
 /* ── CRUD Subprograms ── */
@@ -31292,51 +31787,6 @@ function _sxcPrint(){
   </div>
 </div>
 
-<div id="progVinTemplatesModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:510;overflow-y:auto;padding:20px;">
-  <div style="background:var(--surface);border:1px solid var(--border);width:100%;max-width:760px;margin:auto;display:flex;flex-direction:column;">
-    <div style="padding:14px 22px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:14px;flex-shrink:0;">
-      <span style="font-family:var(--mono);font-size:11px;font-weight:600;letter-spacing:0.18em;text-transform:uppercase;color:var(--accent);flex-shrink:0;">Templates de vinhetas</span>
-      <select id="progVinTmplEventSel" style="font-family:var(--mono);font-size:10px;background:var(--bg);color:var(--text);border:1px solid var(--border2);padding:4px 8px;flex:1;max-width:260px;" onchange="openProgVinTemplatesModal(this.value)"></select>
-      <button onclick="closeProgVinTemplatesModal()" style="background:none;border:none;color:var(--text-muted);font-size:18px;cursor:pointer;line-height:1;margin-left:auto;flex-shrink:0;">×</button>
-    </div>
-    <div style="padding:20px 22px;display:flex;flex-direction:column;gap:16px;">
-      <!-- Lista de templates -->
-      <div>
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
-          <span class="prog-section-label" style="margin-bottom:0;">Templates cadastrados</span>
-          <button class="prog-btn-sm" onclick="_progVinTmplNew()">+ novo template</button>
-        </div>
-        <div id="progVinTmplList"></div>
-      </div>
-      <!-- Formulário de criação/edição de template -->
-      <div id="progVinTmplForm" style="display:none;flex-direction:column;gap:12px;border:1px solid var(--border);padding:14px;">
-        <div class="prog-section-label" style="margin-bottom:0;">Editar template</div>
-        <div class="prog-modal-field">
-          <label class="prog-modal-label">Nome do template <span style="color:var(--warn);">*</span></label>
-          <input id="progVinTmplName" type="text" class="prog-modal-input" placeholder="ex: Abertura, Sessão Especial, Encerramento…">
-        </div>
-        <div class="prog-modal-field">
-          <label class="prog-modal-label">Sequência de vinhetas (em ordem)</label>
-          <div class="prog-films-list" id="progVinTmplBumpersList" style="min-height:40px;"></div>
-          <div class="prog-autocomplete-wrap" style="margin-top:6px;">
-            <input id="progVinTmplBumperSearch" type="text" class="prog-modal-input" placeholder="Buscar vinheta por código ou nome…" oninput="_progVinTmplBumperAC()" onblur="setTimeout(function(){document.getElementById('progVinTmplBumperResults').style.display='none';},200)">
-            <div id="progVinTmplBumperResults" class="prog-autocomplete-results"></div>
-          </div>
-        </div>
-        <div style="display:flex;gap:8px;justify-content:flex-end;">
-          <button class="prog-btn-sm prog-btn-ghost" onclick="_progRenderVinTmplForm(false)">Cancelar</button>
-          <button class="prog-btn-sm" onclick="_progVinTmplSaveItem()">Adicionar à lista</button>
-        </div>
-      </div>
-    </div>
-    <div id="progVinTemplatesModalErr" style="display:none;font-family:var(--mono);font-size:10px;color:var(--warn);padding:8px 22px;background:rgba(255,180,171,0.06);border-top:1px solid rgba(255,180,171,0.15);flex-shrink:0;"></div>
-    <div style="padding:14px 22px;border-top:1px solid var(--border);display:flex;gap:10px;justify-content:flex-end;flex-shrink:0;">
-      <button onclick="closeProgVinTemplatesModal()" style="font-family:var(--mono);font-size:10px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;padding:7px 16px;background:transparent;color:var(--text-dim);border:1px solid var(--border);cursor:pointer;">Cancelar</button>
-      <button id="progVinTemplatesModalSave" onclick="saveProgVinTemplatesModal()" style="font-family:var(--mono);font-size:10px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;padding:7px 20px;background:var(--accent);color:var(--on-accent);border:none;cursor:pointer;">Salvar templates</button>
-    </div>
-  </div>
-</div>
-
 <div id="catCriaSessaoModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:500;overflow-y:auto;padding:20px;">
   <div style="background:var(--surface);border:1px solid var(--border);width:100%;max-width:640px;margin:auto;display:flex;flex-direction:column;">
     <div style="padding:14px 22px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;">
@@ -31594,7 +32044,6 @@ function _sxcPrint(){
   document.addEventListener('keydown',function(e){
     if(e.key!=='Escape')return;
     var modals=[
-      {id:'progVinTemplatesModal', fn:function(){if(typeof closeProgVinTemplatesModal==='function')closeProgVinTemplatesModal();}},
       {id:'tplModal',              fn:function(){var m=document.getElementById('tplModal');if(m)m.style.display='none';}},
       {id:'progSessaoModal',       fn:function(){if(typeof closeProgSessaoModal==='function')closeProgSessaoModal();}},
       {id:'catCriaSessaoModal',    fn:function(){if(typeof closeCatCriaSessao==='function')closeCatCriaSessao();}},
@@ -31620,7 +32069,7 @@ function _sxcPrint(){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 09/11/2026 às 11:48</span></div>
+<div id="page-footer"><span>última atualização · 09/11/2026 às 12:24</span></div>
 
 </div>
 

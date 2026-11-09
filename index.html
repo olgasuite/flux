@@ -4438,7 +4438,7 @@ html[data-theme="indexof"]:not([data-theme="win98"]) .module-icon{display:flex!i
 /* fichas/modais que abrem em janelas separadas (fora do #main-content) sobem na mesma escala */
 .recep-modal-overlay>.recep-modal-box,
 #acervoEditModal>div,#eventoModal>div,#cinemaEditOverlay>div,#vinhetaModal>div,
-#progProgramModal>div,#progSubprogramModal>div,#progSessaoModal>div,#progVinTemplatesModal>div,
+#progProgramModal>div,#progSubprogramModal>div,#progSessaoModal>div,#vnBlocoModal>div,
 #catCriaSessaoModal>div,#sessoesAplicarTemplateModal>div,#progBatchModal>div,
 #reservasModal>div,#equipeModal>div,#tplModal>div,#equipeDeleteModal>div,
 #iuModal>div,#sxcModal>div,#catExpModal>div,
@@ -10267,7 +10267,7 @@ function renderSessoes(){
         '<span class="sess-tit-linha" title="'+esc(_dashSessTitulo(s))+'">'+esc(_dashSessTitulo(s))+'</span>'+
         (_dashSessTemNome(s)&&filmTitles?'<span class="sess-films" title="'+esc(filmTitles)+'">'+esc(filmTitles)+'</span>':'')+
       '</span>'+
-      '<span class="sess-sala-col" title="'+esc(s.cinema)+'">'+esc(s.cinema)+'</span>'+
+      '<span class="sess-sala-col" title="'+esc(_sessaoLocal(s))+'">'+esc(_sessaoLocal(s))+'</span>'+
       '<span class="sess-extras">'+
         (durStr?'<span class="sess-dur">'+durStr+'</span>':'')+
         badgesIcons+
@@ -20941,7 +20941,7 @@ function renderDash(){
   html+=colBlock('legendagem','Legendagem',legBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 09/11/2026 às 12:24';
+  var sysUpdate='última atualização do sistema · 09/11/2026 às 12:31';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -31740,7 +31740,7 @@ function _sxcPrint(){
       <div class="prog-modal-field">
         <label class="prog-modal-label">Vinhetas</label>
         <select id="progVinTemplateApply" class="prog-modal-input" style="display:none;margin-bottom:6px;" onchange="_progApplyVinTemplate()"><option value="">— aplicar template de vinhetas —</option></select>
-        <div id="progVinTmplHint" style="font-family:var(--mono);font-size:9px;color:var(--text-muted);margin-bottom:6px;display:none;">Esta mostra não tem templates de vinhetas. Crie templates em <em>Gerenciar templates</em> na view da mostra.</div>
+        <div id="progVinTmplHint" style="font-family:var(--mono);font-size:9px;color:var(--text-muted);margin-bottom:6px;display:none;">Esta mostra não tem templates de vinhetas. Crie templates na aba <em>Templates</em> do módulo Vinhetas.</div>
         <div class="prog-films-list" id="progSessaoBumpersList"></div>
         <div class="prog-autocomplete-wrap" style="margin-top:6px;">
           <input id="progBumperSearch" type="text" class="prog-modal-input" placeholder="Buscar vinheta por código ou nome…" oninput="_progBumperAutocomplete()" onblur="setTimeout(function(){document.getElementById('progBumperResults').style.display='none';},200)">
@@ -32069,7 +32069,7 @@ function _sxcPrint(){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 09/11/2026 às 12:24</span></div>
+<div id="page-footer"><span>última atualização · 09/11/2026 às 12:31</span></div>
 
 </div>
 

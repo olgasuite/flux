@@ -7637,9 +7637,25 @@ function _dashAcessDetailHtml(arr){
 function _dashSessFilmes(s,exceto){
   return (s.filmes||[]).filter(function(c){return c!==exceto;}).map(filmDisplayTitle).filter(Boolean).join(' · ');
 }
-// Código da sessão com os filmes logo em seguida, na mesma linha.
+// Nome da sessão; sem nome, os títulos dos filmes pela regra da Revista (_revBuildTabelaCell).
+function _dashSessTemNome(s){var n=(s.name||'').trim();return!!n&&n!==s.nome;}
+function _dashSessTitulo(s){
+  if(_dashSessTemNome(s))return s.name.trim();
+  var cods=s.filmes||[];
+  if(!cods.length)return _gradeProgName(s)||stripEvPrefix(s.nome,s.evento);
+  var tot=0,tits=[];
+  for(var i=0;i<cods.length;i++){
+    var t=filmDisplayTitle(cods[i]);
+    if(i&&tot+t.length>_REV_TABELA_MAX_TITULOS)break;
+    tot+=t.length;tits.push(t);
+  }
+  var resto=cods.length-tits.length;
+  return tits.join(' + ')+(resto?' + '+resto+' filme'+(resto>1?'s':''):'');
+}
+// Nome da sessão com os filmes logo em seguida, na mesma linha; o código fica no tooltip.
 function _dashSessNome(s,films){
-  return'<span class="dsd-name" title="'+esc(s.nome)+'">'+esc(stripEvPrefix(s.nome,s.evento))+(films?'<span class="dsd-name-films"> · '+esc(films)+'</span>':'')+'</span>';
+  var temNome=_dashSessTemNome(s),tit=_dashSessTitulo(s);
+  return'<span class="dsd-name" title="'+esc(s.nome+(!temNome&&films?' · '+films:''))+'">'+esc(tit)+(temNome&&films&&films!==tit?'<span class="dsd-name-films"> · '+esc(films)+'</span>':'')+'</span>';
 }
 function _dashSessListHtml(sess,indent){
   indent=indent||20;
@@ -11422,7 +11438,7 @@ function openBorderoDashSessoes(scope,tipo){
               var pub=parsePub(s[tipo]);var hasPub=s[tipo]!==''&&s[tipo]!==null&&s[tipo]!==undefined;
               var safe=s.nome.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
               return'<div class="bts-cell-entry" style="cursor:pointer" onclick="closeBordero();goToFicha(\''+safe+'\')">'+
-                '<span class="bts-cell-nome" title="'+esc(s.nome)+'">'+esc(stripEvPrefix(s.nome,s.evento))+'</span>'+
+                '<span class="bts-cell-nome" title="'+esc(s.nome)+'">'+esc(_dashSessTitulo(s))+'</span>'+
                 '<span class="bts-cell-pub">'+(hasPub?fmtVal(parsePub(s[tipo])):'—')+'</span>'+
               '</div>';
             }).join('')+'</td>';
@@ -11462,7 +11478,7 @@ function openBorderoDashSessoes(scope,tipo){
               var pub=parsePub(s[tipo]);var hasPub=s[tipo]!==''&&s[tipo]!==null&&s[tipo]!==undefined;
               var safe=s.nome.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
               return'<div class="bts-cell-entry" style="cursor:pointer" onclick="closeBordero();goToFicha(\''+safe+'\')">'+
-                '<span class="bts-cell-nome" title="'+esc(s.nome)+'">'+esc(stripEvPrefix(s.nome,s.evento))+'</span>'+
+                '<span class="bts-cell-nome" title="'+esc(s.nome)+'">'+esc(_dashSessTitulo(s))+'</span>'+
                 '<span class="bts-cell-pub">'+(hasPub?fmtVal(parsePub(s[tipo])):'—')+'</span>'+
               '</div>';
             }).join('')+'</td>';
@@ -20144,7 +20160,7 @@ function renderDash(){
         var safe=s.nome.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
         var dt=[s.dia,s.hora].filter(Boolean).join(' ');
         return'<button class="dash-sess-link" onclick="event.stopPropagation();goToFicha(\''+safe+'\')" title="Abrir ficha: '+esc(s.nome)+'">'+
-          '<span class="dash-sess-cinema">'+esc(stripEvPrefix(s.nome,f.evento))+'</span>'+
+          '<span class="dash-sess-cinema">'+esc(_dashSessTitulo(s))+'</span>'+
           '<span class="dash-sess-cinema">'+esc(s.cinema)+'</span>'+
           (dt?'<span class="dash-sess-cinema">'+esc(dt)+'</span>':'')+
           '</button>';
@@ -20291,7 +20307,7 @@ function renderDash(){
   html+=colBlock('legendagem','Legendagem',legBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 08/11/2026 às 08:48';
+  var sysUpdate='última atualização do sistema · 09/11/2026 às 11:08';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -31594,7 +31610,7 @@ function _sxcPrint(){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 08/11/2026 às 08:48</span></div>
+<div id="page-footer"><span>última atualização · 09/11/2026 às 11:08</span></div>
 
 </div>
 

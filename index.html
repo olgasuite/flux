@@ -20941,7 +20941,7 @@ function renderDash(){
   html+=colBlock('legendagem','Legendagem',legBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 09/11/2026 às 12:31';
+  var sysUpdate='última atualização do sistema · 11/11/2026 13:10';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -32069,7 +32069,7 @@ function _sxcPrint(){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 09/11/2026 às 12:31</span></div>
+<div id="page-footer"><span>última atualização · 11/11/2026 13:10</span></div>
 
 </div>
 
@@ -35632,6 +35632,7 @@ async function ressincronizarDuracoes(){
 .traf-table td{padding:6px 8px;border-bottom:1px solid var(--border);vertical-align:top;color:var(--text);}
 .traf-table tr.traf-row-aus .traf-film-tit{text-decoration:line-through;opacity:.5;}
 .traf-input{font-family:var(--mono);font-size:11px;background:var(--bg);color:var(--text);border:1px solid var(--border2);padding:3px 6px;box-sizing:border-box;}
+.traf-input.traf-herdado{border-style:dashed;}.traf-input.traf-herdado::placeholder{color:var(--text);opacity:.7;font-style:italic;}select.traf-input.traf-herdado{font-style:italic;}
 .traf-chip{display:inline-block;font-family:var(--mono);font-size:9px;padding:1px 6px;margin:1px 3px 1px 0;border:1px solid var(--border2);border-radius:2px;color:var(--text-dim);white-space:nowrap;}
 .traf-day{display:inline-flex;align-items:center;gap:3px;font-family:var(--mono);font-size:10px;margin:2px 10px 2px 0;cursor:pointer;color:var(--text-dim);}
 .traf-dest{display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px;padding:8px 0;border-bottom:1px solid var(--border);}
@@ -36804,6 +36805,7 @@ async function _trafOpSave(nome,c,campo,val,el){
     _trafOpAtualizaProgresso();
   }
   if(el&&campo==='kdm_recebido'){var kb=el.parentNode.querySelector('.traf-kdmerro');if(kb)kb.style.display=val==='erro'?'':'none';}
+  if(campo==='volume'||campo==='lente'||campo==='obs')_trafHerdaRefresh(s,c);
   try{
     await window._olgaTrafego.saveOperacao(id,data);
     var lg={};lg[campo]=val;
@@ -36925,9 +36927,40 @@ function _trafLegNome(f){
 function _trafLangPrep(){if(typeof _langCache!=='undefined'&&!_langCache&&typeof _langEnsure==='function'&&!_trafLangPrep._p){_trafLangPrep._p=1;_langEnsure().then(function(){_trafRerender();});}}
 function _trafLegExib(f){var x=clean(f.legenda_exibicao);return x&&x.toUpperCase()!=='ORIGINAL'?x:'';}
 // lente da cabine: o que o operador registrou; sem registro, a lente do Acervo Técnico
-function _trafLenteOp(op,f){return op.lente||clean(f.lente)||'';}
-function _trafLenteOpts(op,f,vazio){
-  var cur=_trafLenteOp(op,f),lst=['FLAT','FLAT 200','FLAT (C)','SCOPE','FULL'];
+function _trafLenteOp(op,f,herd){return op.lente||herd||clean(f.lente)||'';}
+// anotação de cabine herdada: mesmo filme (mesma versão de cópia) na mesma sala; vale a sessão
+// anterior mais próxima com o campo preenchido, senão a seguinte. Só exibição, nada é gravado.
+function _trafOpHerda(s,c,campo){
+  var k=_trafKey(s,c),ant=null,pos=null;
+  _trafOpOutras(s,c).forEach(function(o){
+    if(_trafKey(o,c)!==k)return;
+    var v=String((_trafOpMap[_trafOpId(o,c)]||{})[campo]||'').trim();if(!v)return;
+    if(_trafSort(o,s)<0)ant={v:v,o:o};else if(!pos)pos={v:v,o:o};
+  });
+  var r=ant||pos;
+  return r?{v:r.v,de:_trafBr(_trafIso(r.o.date))+' '+r.o.hora}:null;
+}
+function _trafHerdaTit(h){return h?'anotado na sessão de '+h.de+' nesta sala (vale aqui enquanto não preencher)':'';}
+function _trafHerdaVal(s,c,campo,op){return String(op[campo]||'').trim()?null:_trafOpHerda(s,c,campo);}
+// atributos dos campos volume/obs/lente: data-hk identifica o campo; placeholder mostra o herdado
+function _trafHerdaAttr(s,c,campo,op,ph){
+  var h=_trafHerdaVal(s,c,campo,op);
+  return' data-hk="'+esc(s.nome+'|'+c+'|'+campo)+'" data-ph="'+esc(ph||'')+'"'+(campo!=='lente'&&(h||ph)?' placeholder="'+esc(h?h.v:ph)+'"':'')+(h?' title="'+esc(_trafHerdaTit(h))+'"':'');
+}
+// depois de gravar, atualiza os herdados das sessões do filme na sala (sem redesenhar a tela)
+function _trafHerdaRefresh(s,c){
+  var alvo={};alvo[s.nome]=s;_trafOpOutras(s,c).forEach(function(o){alvo[o.nome]=o;});
+  Array.prototype.forEach.call(document.querySelectorAll('[data-hk]'),function(el){
+    var p=el.getAttribute('data-hk').split('|');if(p.length!==3||p[1]!==c||!alvo[p[0]])return;
+    var o=alvo[p[0]],op=_trafOpMap[_trafOpId(o,c)]||{},campo=p[2],h=_trafHerdaVal(o,c,campo,op),ph=el.getAttribute('data-ph')||'';
+    if(campo==='lente'){if(!String(op.lente||'').trim()&&document.activeElement!==el)el.innerHTML=_trafLenteOpts(op,_copiaPorId(_trafKey(o,c))||{},ph,h&&h.v);}
+    else el.placeholder=h?h.v:ph;
+    if(h)el.title=_trafHerdaTit(h);else el.removeAttribute('title');
+    el.classList.toggle('traf-herdado',!!h);
+  });
+}
+function _trafLenteOpts(op,f,vazio,herd){
+  var cur=_trafLenteOp(op,f,herd),lst=['FLAT','FLAT 200','FLAT (C)','SCOPE','FULL'];
   if(cur&&lst.indexOf(cur)<0)lst.push(cur);
   return'<option value=""'+(cur?'':' selected')+'>'+vazio+'</option>'+lst.map(function(l){return'<option value="'+esc(l)+'"'+(l===cur?' selected':'')+'>'+esc(l)+'</option>';}).join('');
 }
@@ -37009,7 +37042,7 @@ function _trafOpImprimir(dia,opts){
           '<td>'+(_trafMin(f)?'<b class="du">'+e(_trafMin(f))+'</b><br>':'')+(spec||'—')+'</td>'+
           '<td>'+legCel+'</td>'+
           '<td class="m cpl">'+(clean(f.cpl)?'<span class="cb">'+e(clean(f.cpl))+'</span>':'—')+(clean(f.cplOV)?'<div class="co">OV: '+e(clean(f.cplOV))+'</div>':'')+'</td>'+
-          '<td>'+e(env||'—')+'</td><td class="c">'+(op.ingestado?'✓':'☐')+'</td><td>'+e(op.volume||'')+'</td><td>'+(_trafLenteOp(op,f)?'<span class="lt">'+(function(l){var u=l.toUpperCase().replace(/\s/g,'');return u.indexOf('FLAT')>=0&&u.indexOf('200')>=0?'FLAT<br>200':u.indexOf('FLAT')>=0&&u.indexOf('(C)')>=0?'FLAT<br>(C)':e(l);})(_trafLenteOp(op,f))+'</span>':'')+'</td><td>'+kdm+'</td><td>'+e(op.obs||'')+'</td></tr>';
+          '<td>'+e(env||'—')+'</td><td class="c">'+(op.ingestado?'✓':'☐')+'</td><td>'+e(op.volume||(_trafHerdaVal(s,c,'volume',op)||{}).v||'')+'</td><td>'+(_trafLenteOp(op,f,(_trafHerdaVal(s,c,'lente',op)||{}).v)?'<span class="lt">'+(function(l){var u=l.toUpperCase().replace(/\s/g,'');return u.indexOf('FLAT')>=0&&u.indexOf('200')>=0?'FLAT<br>200':u.indexOf('FLAT')>=0&&u.indexOf('(C)')>=0?'FLAT<br>(C)':e(l);})(_trafLenteOp(op,f,(_trafHerdaVal(s,c,'lente',op)||{}).v))+'</span>':'')+'</td><td>'+kdm+'</td><td>'+e(op.obs||(_trafHerdaVal(s,c,'obs',op)||{}).v||'')+'</td></tr>';
       });
       h+='</tbody></table>';
     });
@@ -37145,7 +37178,7 @@ function _trafOpSessHtml(s,canOp,hdSel){
       var oop=_trafOpMap[_trafOpId(o,c)]||{};
       return'<span class="traf-chip" title="'+esc(o.nome)+'">'+esc(_trafBr(_trafIso(o.date))+' '+o.hora)+(oop.ingestado?' ✓':'')+'</span>';
     }).join('');
-    var lenteOpts=_trafLenteOpts(op,f,'—');
+    var hLen=_trafHerdaVal(s,c,'lente',op),lenteOpts=_trafLenteOpts(op,f,'—',hLen&&hLen.v);
     html+='<tr>'+
       '<td class="film-num">'+(idx+1)+'</td>'+
       '<td><div class="film-title">'+esc(filmDisplayTitle(c))+_trafOvVfBadge(k)+_versaoTagSessao(s,c)+'</div><div class="film-sub">'+sub.join('')+'</div>'+
@@ -37157,11 +37190,11 @@ function _trafOpSessHtml(s,canOp,hdSel){
       '<td class="cpl-cell">'+(clean(f.cpl)?'<div class="cpl-text" style="min-width:160px;font-weight:700;">'+esc(clean(f.cpl))+'</div>':'<span style="color:var(--text-muted)">—</span>')+(clean(f.cplOV)?'<div class="cpl-ov-ficha"><span class="cpl-ov-ficha-label">CPL da OV:</span>'+esc(clean(f.cplOV))+'</div>':'')+'</td>'+
       '<td style="max-width:110px;">'+(_trafEnvioHtml(s,c)||'<span style="color:var(--text-muted)">—</span>')+'</td>'+
       '<td class="center"><label style="display:inline-flex;align-items:center;gap:6px;cursor:pointer;"><input type="checkbox" style="width:18px;height:18px;accent-color:var(--ok);"'+(op.ingestado?' checked':'')+dis+' onchange="_trafOpSave(\''+sn+'\',\''+sc+'\',\'ingestado\',this.checked,this)"><span class="traf-badge traf-ok traf-ing" style="margin:0;'+(op.ingestado?'':'display:none;')+'">OK</span></label></td>'+
-      '<td><input class="traf-input" style="width:64px;" value="'+esc(op.volume||'')+'"'+dis+' onchange="_trafOpSave(\''+sn+'\',\''+sc+'\',\'volume\',this.value.trim())"></td>'+
-      '<td><select class="traf-input" style="font-weight:700;font-size:12px;"'+dis+' onchange="_trafOpSave(\''+sn+'\',\''+sc+'\',\'lente\',this.value)">'+lenteOpts+'</select></td>'+
+      '<td><input class="traf-input'+(_trafHerdaVal(s,c,'volume',op)?' traf-herdado':'')+'" style="width:64px;" value="'+esc(op.volume||'')+'"'+_trafHerdaAttr(s,c,'volume',op,'')+dis+' onchange="_trafOpSave(\''+sn+'\',\''+sc+'\',\'volume\',this.value.trim())"></td>'+
+      '<td><select class="traf-input'+(hLen?' traf-herdado':'')+'" style="font-weight:700;font-size:12px;"'+_trafHerdaAttr(s,c,'lente',op,'—')+dis+' onchange="_trafOpSave(\''+sn+'\',\''+sc+'\',\'lente\',this.value)">'+lenteOpts+'</select></td>'+
       '<td>'+(precisaKdm?'<select class="traf-input"'+dis+' onchange="_trafOpSave(\''+sn+'\',\''+sc+'\',\'kdm_recebido\',this.value,this)">'+
         [['','—'],['sim','recebido'],['nao','não recebido'],['erro','com erro']].map(function(o){return'<option value="'+o[0]+'"'+((op.kdm_recebido||'')===o[0]?' selected':'')+'>'+o[1]+'</option>';}).join('')+'</select><span class="traf-badge traf-aus traf-kdmerro" style="'+(op.kdm_recebido==='erro'?'':'display:none;')+'">KDM com erro</span>':'<span style="color:var(--text-muted)">não exige</span>')+'</td>'+
-      '<td style="min-width:240px;"><input class="traf-input" style="width:100%;min-width:240px;" value="'+esc(op.obs||'')+'"'+dis+' onchange="_trafOpSave(\''+sn+'\',\''+sc+'\',\'obs\',this.value)"></td>'+
+      '<td style="min-width:240px;"><input class="traf-input'+(_trafHerdaVal(s,c,'obs',op)?' traf-herdado':'')+'" style="width:100%;min-width:240px;" value="'+esc(op.obs||'')+'"'+_trafHerdaAttr(s,c,'obs',op,'')+dis+' onchange="_trafOpSave(\''+sn+'\',\''+sc+'\',\'obs\',this.value)"></td>'+
     '</tr>';
   });
   return html+'</tbody></table></div></div>';
@@ -37390,12 +37423,12 @@ function _mobTrafSessHtml(s,canOp,hdSel){
         '<input type="checkbox" style="width:22px;height:22px;accent-color:var(--ok);"'+(op.ingestado?' checked':'')+dis+save('ingestado','this.checked')+'>'+
         '<span class="traf-ing" style="'+(op.ingestado?'color:var(--ok);font-weight:700;':'')+'">'+(op.ingestado?'ingestado':'ingestado?')+'</span></label>'+
       '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">'+
-        '<input class="traf-input" style="'+_TRAF_MOB_IN+'" placeholder="volume" inputmode="decimal" value="'+esc(op.volume||'')+'"'+dis+' onchange="_trafOpSave(\''+sn+'\',\''+sc+'\',\'volume\',this.value.trim())">'+
-        '<select class="traf-input" style="'+_TRAF_MOB_IN+'"'+dis+save('lente','this.value')+'>'+_trafLenteOpts(op,f,'lente')+'</select>'+
+        '<input class="traf-input'+(_trafHerdaVal(s,c,'volume',op)?' traf-herdado':'')+'" style="'+_TRAF_MOB_IN+'" inputmode="decimal" value="'+esc(op.volume||'')+'"'+_trafHerdaAttr(s,c,'volume',op,'volume')+dis+' onchange="_trafOpSave(\''+sn+'\',\''+sc+'\',\'volume\',this.value.trim())">'+
+        (function(){var hl=_trafHerdaVal(s,c,'lente',op);return'<select class="traf-input'+(hl?' traf-herdado':'')+'" style="'+_TRAF_MOB_IN+'"'+_trafHerdaAttr(s,c,'lente',op,'lente')+dis+save('lente','this.value')+'>'+_trafLenteOpts(op,f,'lente',hl&&hl.v)+'</select>';})()+
       '</div>'+
       (precisaKdm?'<select class="traf-input" style="'+_TRAF_MOB_IN+'margin-top:6px;"'+dis+save('kdm_recebido','this.value')+'>'+
         [['','KDM: —'],['sim','KDM recebido'],['nao','KDM não recebido'],['erro','KDM com erro']].map(function(o){return'<option value="'+o[0]+'"'+((op.kdm_recebido||'')===o[0]?' selected':'')+'>'+o[1]+'</option>';}).join('')+'</select><span class="traf-badge traf-aus traf-kdmerro" style="margin:4px 0 0;'+(op.kdm_recebido==='erro'?'':'display:none;')+'">KDM com erro</span>':'')+
-      '<textarea class="traf-input" style="'+_TRAF_MOB_IN+'margin-top:6px;min-height:44px;font-family:var(--sans);" placeholder="observações"'+dis+save('obs','this.value')+'>'+esc(op.obs||'')+'</textarea>'+
+      '<textarea class="traf-input'+(_trafHerdaVal(s,c,'obs',op)?' traf-herdado':'')+'" style="'+_TRAF_MOB_IN+'margin-top:6px;min-height:44px;font-family:var(--sans);"'+_trafHerdaAttr(s,c,'obs',op,'observações')+dis+save('obs','this.value')+'>'+esc(op.obs||'')+'</textarea>'+
       (outras?'<div style="margin-top:6px;"><span class="traf-muted">outras sessões nesta sala: </span>'+outras+'</div>':'')+
     '</div>';
   });

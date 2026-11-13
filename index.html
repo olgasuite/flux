@@ -20941,7 +20941,7 @@ function renderDash(){
   html+=colBlock('legendagem','Legendagem',legBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 11/11/2026 13:10';
+  var sysUpdate='última atualização do sistema · 13/11/2026 14:05';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -32069,7 +32069,7 @@ function _sxcPrint(){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 11/11/2026 13:10</span></div>
+<div id="page-footer"><span>última atualização · 13/11/2026 14:05</span></div>
 
 </div>
 
@@ -37422,9 +37422,9 @@ function _mobTrafSessHtml(s,canOp,hdSel){
       '<label style="display:flex;align-items:center;gap:10px;margin:10px 0 8px;font-family:var(--mono);font-size:13px;color:var(--text);">'+
         '<input type="checkbox" style="width:22px;height:22px;accent-color:var(--ok);"'+(op.ingestado?' checked':'')+dis+save('ingestado','this.checked')+'>'+
         '<span class="traf-ing" style="'+(op.ingestado?'color:var(--ok);font-weight:700;':'')+'">'+(op.ingestado?'ingestado':'ingestado?')+'</span></label>'+
-      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">'+
-        '<input class="traf-input'+(_trafHerdaVal(s,c,'volume',op)?' traf-herdado':'')+'" style="'+_TRAF_MOB_IN+'" inputmode="decimal" value="'+esc(op.volume||'')+'"'+_trafHerdaAttr(s,c,'volume',op,'volume')+dis+' onchange="_trafOpSave(\''+sn+'\',\''+sc+'\',\'volume\',this.value.trim())">'+
-        (function(){var hl=_trafHerdaVal(s,c,'lente',op);return'<select class="traf-input'+(hl?' traf-herdado':'')+'" style="'+_TRAF_MOB_IN+'"'+_trafHerdaAttr(s,c,'lente',op,'lente')+dis+save('lente','this.value')+'>'+_trafLenteOpts(op,f,'lente',hl&&hl.v)+'</select>';})()+
+      '<div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:6px;">'+  // minmax(0,…): select da lente com opção longa não espreme o volume
+        '<input class="traf-input'+(_trafHerdaVal(s,c,'volume',op)?' traf-herdado':'')+'" style="'+_TRAF_MOB_IN+'min-width:0;" inputmode="decimal" value="'+esc(op.volume||'')+'"'+_trafHerdaAttr(s,c,'volume',op,'volume')+dis+' onchange="_trafOpSave(\''+sn+'\',\''+sc+'\',\'volume\',this.value.trim())">'+
+        (function(){var hl=_trafHerdaVal(s,c,'lente',op);return'<select class="traf-input'+(hl?' traf-herdado':'')+'" style="'+_TRAF_MOB_IN+'min-width:0;"'+_trafHerdaAttr(s,c,'lente',op,'lente')+dis+save('lente','this.value')+'>'+_trafLenteOpts(op,f,'lente',hl&&hl.v)+'</select>';})()+
       '</div>'+
       (precisaKdm?'<select class="traf-input" style="'+_TRAF_MOB_IN+'margin-top:6px;"'+dis+save('kdm_recebido','this.value')+'>'+
         [['','KDM: —'],['sim','KDM recebido'],['nao','KDM não recebido'],['erro','KDM com erro']].map(function(o){return'<option value="'+o[0]+'"'+((op.kdm_recebido||'')===o[0]?' selected':'')+'>'+o[1]+'</option>';}).join('')+'</select><span class="traf-badge traf-aus traf-kdmerro" style="margin:4px 0 0;'+(op.kdm_recebido==='erro'?'':'display:none;')+'">KDM com erro</span>':'')+

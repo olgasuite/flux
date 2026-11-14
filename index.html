@@ -20942,7 +20942,7 @@ function renderDash(){
   html+=colBlock('legendagem','Legendagem',legBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 14/11/2026 16:08';
+  var sysUpdate='última atualização do sistema · 14/11/2026 16:23';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -28599,9 +28599,12 @@ function _openAcervoEditCopia(f){
     +aeRow('File Link',aeInp('file_link',f.file_link))
     +aeRow('Status Legenda',(function(){var cur=f.col_n||'';var opts=_LEG_STATUS.slice();if(cur&&opts.indexOf(cur)<0)opts.push(cur);return'<select class="cat-input" id="ae_col_n">'+opts.map(function(o){return'<option value="'+esc(o)+'"'+(o===cur?' selected':'')+'>'+(o?esc(o):'—')+'</option>';}).join('')+'</select>';})())
     +aeRow('Acessibilidade','<div class="convidados-tag-wrap" id="ae_acess_wrap" onclick="var i=document.getElementById(\'ae_acess_inp\');if(i)i.focus()"></div><input type="hidden" id="ae_acess">')
-    +aeRow('Observações','<textarea class="cat-textarea" id="ae_obs" rows="3">'+esc(f.obs||'')+'</textarea>');
+    +aeRow('Observações','<textarea class="cat-textarea" id="ae_obs" rows="3">'+esc(f.obs||'')+'</textarea>')
+    +aeRow('Análise de áudio (OLGA DCP Hub)','<div id="ae_audio_sec"></div>');
+  _aeAudioPend=null;
   document.getElementById('acervoEditCode').textContent=f.codigo+(f.evento?' · '+f.evento:'')+(_ehExtra?' · versão':'');
   document.getElementById('acervoEditBody').innerHTML=body;
+  _aeAudioRender();
   document.getElementById('acervoEditMsg').textContent='';
   document.getElementById('acervoEditModal').style.display='flex';
   var _aeCat=catalogoFilmesMap[_ehExtra?f.film_code:f.codigo];
@@ -28675,8 +28678,11 @@ async function doSaveAcervoEdit(){
   // campos do formato: os de outros formatos ficam como estavam (trocar o formato não apaga o laudo)
   _aeFmtColeta();
   _fmtChavesForm().forEach(function(k){data[k]=_aeFmtVals[k]!==undefined?_aeFmtVals[k]:((f.fmt||{})[k]||'');});
+  var _audioNovo=_aeAudioPend;
+  if(_audioNovo)data.audio=_audioNovo;
   try{
     await window._olgaCopias.save(f.codigo,data,_acervoOriginalData);
+    _aeAudioPend=null;
     window._logFirestoreEdit&&window._logFirestoreEdit('individual',f.codigo,data,'acervo','copias');
     // só a versão principal sincroniza idioma/duração com o filme nos Selecionados
     if(!_ehExtra&&window._olgaCatalogo&&catalogoFilmesMap[f.codigo]){
@@ -28702,6 +28708,7 @@ async function doSaveAcervoEdit(){
       m.fps=data.dcp_fps;m.hd=data.storage_location;m.dcp_uuid=data.dcp_uuid;
       m.acessibilidade=data.accessibility_features;m.dcp_link=data.dcp_link;m.file_link=data.file_link;
       m.exhibition_format=data.exhibition_format;m.exhibition_format_notes=data.exhibition_format_notes;
+      if(_audioNovo)m.audio=_audioNovo;
       var _fmNovo=Object.assign({},m.fmt||{});_fmtChavesForm().forEach(function(k){_fmNovo[k]=data[k];});m.fmt=_fmNovo;
     }
     closeAcervoEditModal();
@@ -28813,11 +28820,22 @@ async function handleDCPFolderSelect(files){
 
   // Total size
   var totalBytes=0;
-  var cplFiles=[];
+  var cplFiles=[],audioFiles=[];
   for(var i=0;i<files.length;i++){
-    totalBytes+=files[i].size;
     var n=files[i].name;
+    // análise de áudio do OLGA DCP Hub, gravada dentro da pasta do DCP (não conta no tamanho)
+    if(/\.olgaaudio\.json$/i.test(n)){audioFiles.push(files[i]);continue;}
+    totalBytes+=files[i].size;
     if(/CPL/i.test(n)&&n.toLowerCase().endsWith('.xml'))cplFiles.push(files[i]);
+  }
+  // vários DCPs na pasta escolhida: junta as entradas (data/REF do cabeçalho = a do primeiro arquivo)
+  panel._dcpAudio=null;
+  for(var ai=0;ai<audioFiles.length;ai++){
+    try{
+      var _aj=await _audioLerArquivo(audioFiles[ai]);
+      if(!panel._dcpAudio)panel._dcpAudio=_aj;
+      else panel._dcpAudio.dcps=panel._dcpAudio.dcps.concat(_aj.dcps);
+    }catch(e){console.warn('olgaaudio:',e);}
   }
   var totalGB=Math.ceil(totalBytes/(1024*1024*1024));
 
@@ -28907,6 +28925,7 @@ function _dcpOVVFPick(tipo){
 
 function _dcpApply(cpl,totalGB,tipo){
   var panel=document.getElementById('dcpImportPanel');
+  if(panel._dcpAudio)_aeAudioDaPasta(panel._dcpAudio,cpl);
   // Build map of fields to apply
   var incoming={};
   if(tipo==='OV') incoming.ae_creator=cpl.creator;
@@ -32070,7 +32089,7 @@ function _sxcPrint(){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 14/11/2026 16:08</span></div>
+<div id="page-footer"><span>última atualização · 14/11/2026 16:23</span></div>
 
 </div>
 
@@ -36948,6 +36967,67 @@ function _trafAudioHtml(f,mob){
 function _trafAudioPodeImportar(){return !!(window._olgaCanEdit&&window._olgaCanEdit('projecao'));}
 function _audNorm(t){return String(t||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toUpperCase().replace(/\s+/g,' ').trim();}
 function _audUuid(t){return String(t||'').toLowerCase().replace(/^urn:uuid:/,'').trim();}
+// entrada do .olgaaudio.json (d) + cabeçalho do arquivo (j) → campo copias.audio (sempre o mapa completo)
+function _audioObj(d,j){
+  var num=function(v){return typeof v==='number'&&isFinite(v)?v:null;},fl=Array.isArray(d.flags)?d.flags:(d.flags?[d.flags]:[]);
+  return{lufs:num(d.lufs),pior_minuto_lufs:num(d.pior_minuto_lufs),pior_minuto_inicio_s:num(d.pior_minuto_inicio_s),
+    pico_dbfs:num(d.pico_dbfs),clip_amostras:num(d.clip_amostras),flags:fl.map(String),aviso:String(d.aviso||'').trim(),
+    formato:String(d.formato||''),cpl_id:String(d.cpl_id||''),cpl_titulo:String(d.cpl_titulo||''),
+    ref_lufs:num(j.ref_lufs),medido_em:String(j.gerado||''),ferramenta:String(j.ferramenta||''),
+    importado_em:new Date().toISOString(),importado_por:((window._olgaUser&&window._olgaUser.email)||'').toLowerCase()};
+}
+async function _audioLerArquivo(file){
+  var j=JSON.parse((await _readFileText(file)).replace(/^﻿/,''));
+  if(!j||j.tipo!=='olga-audio')throw new Error(file.name+' não é um .olgaaudio.json do OLGA DCP Hub');
+  j.dcps=(Array.isArray(j.dcps)?j.dcps:(j.dcps?[j.dcps]:[])).filter(Boolean);
+  return j;
+}
+function _audioMedido(d){return d&&!d.criptografado&&typeof d.lufs==='number';}
+// entrada do arquivo que corresponde ao CPL: por UUID ou por título (sem acento/maiúsculas)
+function _audioEntradaDoCpl(j,uuid,titulos){
+  var u=_audUuid(uuid),ts=(titulos||[]).map(_audNorm).filter(Boolean);
+  return(j.dcps||[]).filter(_audioMedido).find(function(d){return(u&&_audUuid(d.cpl_id)===u)||ts.indexOf(_audNorm(d.cpl_titulo))>=0;})||null;
+}
+
+/* Acervo Técnico: análise de áudio na edição da cópia. Vem sozinha com "Importar DCP" quando a
+   pasta tem o .olgaaudio.json do Hub, ou pelo botão "Subir análise de áudio". Fica pendente
+   (_aeAudioPend) e só é gravada no Salvar, junto com o resto do formulário. */
+var _aeAudioPend=null;
+function _aeAudioRender(nota){
+  var el=document.getElementById('ae_audio_sec');if(!el)return;
+  var f=_copiaPorId(_acervoEditCode)||{},a=_aeAudioPend||f.audio,n=function(v){return v===null||v===undefined?'—':String(v).replace('.',',');};
+  var info=!a?'<span style="color:var(--text-muted);">Sem análise de áudio.</span>':
+    '<div>'+(_aeAudioPend?'<b style="color:var(--accent);">NOVA (grava ao salvar)</b> · ':'')+esc(a.cpl_titulo||'')+(a.medido_em?' · medido em '+esc(String(a.medido_em).slice(0,10).split('-').reverse().join('/')):'')+'</div>'+
+    '<div style="color:var(--text-muted);">LUFS '+n(a.lufs)+' · pior minuto '+n(a.pior_minuto_lufs)+' · pico '+n(a.pico_dbfs)+' dBFS'+(a.clip_amostras?' · clipping '+a.clip_amostras:'')+'</div>'+
+    (String(a.aviso||'').trim()?'<div class="traf-audio-av" style="margin-top:4px;cursor:default;"><b>⚠ Áudio:</b> '+esc(a.aviso)+'</div>':'<div style="color:var(--ok);margin-top:2px;">Dentro do comum: sem aviso para o projecionista.</div>');
+  el.innerHTML='<div style="font-family:var(--mono);font-size:10px;line-height:1.5;">'+info+(nota?'<div style="color:var(--warn);margin-top:4px;">'+esc(nota)+'</div>':'')+'</div>'+
+    '<label style="display:inline-block;margin-top:6px;font-family:var(--mono);font-size:9px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;padding:5px 12px;color:var(--accent);border:1px solid var(--accent);cursor:pointer;">↑ Subir análise de áudio<input type="file" accept=".json,application/json" style="display:none;" onchange="_aeAudioArquivo(this)"></label>';
+}
+function _aeAudioCplsForm(){
+  function v(id){var e=document.getElementById(id);return e?(e.value||'').trim():'';}
+  return{uuid:v('ae_uuid'),titulos:_trafCplsDe(v('ae_cpl')).concat(_trafCplsDe(v('ae_cplOV')))};
+}
+async function _aeAudioArquivo(input){
+  var file=input.files&&input.files[0];input.value='';if(!file)return;
+  try{
+    var j=await _audioLerArquivo(file),med=j.dcps.filter(_audioMedido),c=_aeAudioCplsForm();
+    var d=_audioEntradaDoCpl(j,c.uuid,c.titulos);
+    if(!d){
+      if(!med.length){_aeAudioRender('O arquivo não tem medição (DCP criptografado ou erro na análise).');return;}
+      if(med.length>1){_aeAudioRender('Nenhum CPL do arquivo corresponde ao CPL desta cópia: '+med.map(function(x){return x.cpl_titulo;}).join(' · '));return;}
+      if(!confirm('O CPL analisado ("'+(med[0].cpl_titulo||'?')+'") é diferente do CPL desta cópia.\n\nUsar esta análise mesmo assim?'))return;
+      d=med[0];
+    }
+    _aeAudioPend=_audioObj(d,j);_aeAudioRender();
+  }catch(e){_aeAudioRender('Erro ao ler o arquivo: '+e.message);}
+}
+// chamado pelo "Importar DCP" depois de escolher o CPL
+function _aeAudioDaPasta(j,cpl){
+  if(!j||!document.getElementById('ae_audio_sec'))return;
+  var d=_audioEntradaDoCpl(j,cpl&&cpl.uuid,[cpl&&cpl.title]);
+  if(d){_aeAudioPend=_audioObj(d,j);_aeAudioRender();}
+  else _aeAudioRender('A pasta tem análise de áudio, mas não deste CPL'+(cpl&&cpl.title?' ('+cpl.title+')':'')+'. Em VF sem o som na pasta, suba a análise da OV.');
+}
 async function _trafAudioImportar(input){
   var files=Array.prototype.slice.call(input.files||[]);input.value='';
   if(!files.length)return;
@@ -36988,15 +37068,9 @@ async function _trafAudioImportar(input){
   if(!confirm(msg+'\n\nGravar a análise em '+cods.length+' cópia(s)? '+comAviso.length+' com aviso de áudio:\n'+
     (comAviso.map(function(c){return'· '+(porCopia[c].f.titulo||c);}).join('\n')||'(nenhuma)')))return;
   _olgaPreBackup('audio-importar',cods.map(function(c){return{tipo:'copia',doc:Object.assign({},porCopia[c].f)};}),'análise de áudio importada do OLGA DCP Hub');
-  var num=function(v){return typeof v==='number'&&isFinite(v)?v:null;};
-  var quem=((window._olgaUser&&window._olgaUser.email)||'').toLowerCase(),ok=0,errs=[];
+  var ok=0,errs=[];
   for(var k=0;k<cods.length;k++){
-    var p=porCopia[cods[k]],d=p.d,fl=Array.isArray(d.flags)?d.flags:(d.flags?[d.flags]:[]);
-    var audio={lufs:num(d.lufs),pior_minuto_lufs:num(d.pior_minuto_lufs),pior_minuto_inicio_s:num(d.pior_minuto_inicio_s),
-      pico_dbfs:num(d.pico_dbfs),clip_amostras:num(d.clip_amostras),flags:fl.map(String),aviso:String(d.aviso||'').trim(),
-      formato:String(d.formato||''),cpl_id:String(d.cpl_id||''),cpl_titulo:String(d.cpl_titulo||''),
-      ref_lufs:num(p.j.ref_lufs),medido_em:String(p.j.gerado||''),ferramenta:String(p.j.ferramenta||''),
-      importado_em:new Date().toISOString(),importado_por:quem};
+    var p=porCopia[cods[k]],audio=_audioObj(p.d,p.j);
     try{await window._olgaCopias.save(cods[k],{audio:audio});ok++;}
     catch(e){errs.push(cods[k]+': '+e.message);}
   }

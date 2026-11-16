@@ -16101,7 +16101,7 @@ function _revRenderGradePages(evName,evBg,evText,msr,allPages,startPageNum){
   var cinMap={};
   sessoesArr.forEach(function(s){
     if(s.evento!==evName)return;
-    var cin=s.cinema||'(sem sala)';
+    var cin=_sessaoLocal(s)||'(sem sala)';
     if(!cinMap[cin])cinMap[cin]=[];
     cinMap[cin].push(s);
   });
@@ -16393,7 +16393,7 @@ function _revRenderTabelaPages(evName,evBg,evText,mostras,msr,allPages,startPage
   var cinMap={};
   sessoesArr.forEach(function(s){
     if(s.evento!==evName)return;
-    var cin=s.cinema||'(sem sala)';
+    var cin=_sessaoLocal(s)||'(sem sala)';
     if(!cinMap[cin])cinMap[cin]=[];
     cinMap[cin].push(s);
   });
@@ -16536,7 +16536,7 @@ function _revRenderTabelaDiaPages(evName,evBg,evText,mostras,msr,allPages,startP
   sessoesArr.forEach(function(s){
     if(s.evento!==evName||!s.date)return;
     var dk=s.date.toISOString().slice(0,10);
-    var cin=s.cinema||'(sem sala)';
+    var cin=_sessaoLocal(s)||'(sem sala)';
     if(!dayMap[dk])dayMap[dk]={date:s.date,cinMap:{}};
     if(!dayMap[dk].cinMap[cin])dayMap[dk].cinMap[cin]=[];
     dayMap[dk].cinMap[cin].push(s);
@@ -20942,7 +20942,7 @@ function renderDash(){
   html+=colBlock('legendagem','Legendagem',legBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 14/11/2026 16:23';
+  var sysUpdate='última atualização do sistema · 16/11/2026 às 01:30';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -32089,7 +32089,7 @@ function _sxcPrint(){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 14/11/2026 16:23</span></div>
+<div id="page-footer"><span>última atualização · 16/11/2026 às 01:30</span></div>
 
 </div>
 

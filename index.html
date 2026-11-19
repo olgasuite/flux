@@ -1367,6 +1367,8 @@ td.ficha-cpl-cell{vertical-align:top;}
 .ap-seal{display:inline-flex;align-items:center;gap:3px;font-family:var(--mono);font-size:7.5px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;background:#4f5fe0;color:#fff;border-radius:2px;padding:1px 4px;line-height:1.3;white-space:nowrap;flex-shrink:0;vertical-align:middle;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
 .block-head .ap-seal{margin-left:auto;position:relative;z-index:1;}
 .gpt-sess-entry .ap-seal{margin:2px 0;}
+/* Selo vermelho: filme programado em mais sessões que os screenings previstos no Print Traffic */
+.pt-excesso-seal{display:inline-flex;align-items:center;font-family:var(--mono);font-size:8.5px;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;background:#d32f2f;color:#fff;border-radius:2px;padding:1px 5px;line-height:1.35;white-space:nowrap;vertical-align:middle;cursor:help;flex-shrink:0;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
 /* Módulo Atividades Paralelas */
 .ap-toolbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:10px 0 16px;border-bottom:1px solid var(--border);margin-bottom:14px;}
 .ap-toolbar input,.ap-toolbar select{height:32px;padding:0 10px;border:1px solid var(--border);background:var(--surface);color:var(--text);font-family:var(--mono);font-size:12px;}
@@ -21410,7 +21412,7 @@ function renderDash(){
   html+=colBlock('legendagem','Legendagem',legBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 19/11/2026 às 12:29';
+  var sysUpdate='última atualização do sistema · 19/11/2026 às 12:45';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -22899,6 +22901,8 @@ function renderProgramacao(){
 }
 
 function _progRender(){
+  // screenings do Print Traffic (selo de excesso nos filmes) — listener compartilhado, só assina uma vez
+  if(typeof _ptEnsure==='function')_ptEnsure();
   // Cache de programas (shows) para as contagens dos cards — carrega em background na primeira vez
   if(_showsCache===null&&window._olgaShows&&!window._showsBgLoading){
     window._showsBgLoading=true;
@@ -23483,7 +23487,7 @@ function _progSessRowHtml(s,programId,canEdit,vinOnly){
     var t=filmDisplayTitle(c);if(!t)return false;
     if(_ftLen>150){_ftCut=true;return false;}
     _ftLen+=t.length+3;return true;
-  }).map(function(c){return esc(filmDisplayTitle(c))+_filmFlags(c);}).join(' · ')+(_ftCut?' …':'');
+  }).map(function(c){return esc(filmDisplayTitle(c))+_filmFlags(c)+_ptExcessoSelo(c);}).join(' · ')+(_ftCut?' …':'');
   var safe=(s.nome||'').replace(/\\/g,'\\\\').replace(/'/g,"\\'");
   var safePid=(programId||'').replace(/\\/g,'\\\\').replace(/'/g,"\\'");
   var summ=_progSessSummary(s);
@@ -24132,6 +24136,8 @@ function _progRenderFilmsEdit(){
     return'<div style="display:flex;align-items:center;gap:6px;padding:4px 0;border-bottom:1px solid var(--border);flex-wrap:wrap;">'
       +'<span style="font-family:var(--mono);font-size:9px;color:var(--text-muted);min-width:16px;">'+(i+1)+'</span>'
       +'<span style="font-family:var(--sans);font-size:11px;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="'+esc(label)+'">'+esc(label)+'</span>'
+      // selo: sessões já gravadas com o filme (fora esta) + esta sessão
+      +_ptExcessoSelo(cod,_filmSessoesCount(cod,_progSessaoEditNome)+1)
       +verSel
       +'<span style="font-family:var(--mono);font-size:9px;color:var(--text-muted);">'+esc(cod)+'</span>'
       +(_progSessaoVinOnly?'':
@@ -32565,7 +32571,7 @@ function _sxcPrint(){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 19/11/2026 às 12:29</span></div>
+<div id="page-footer"><span>última atualização · 19/11/2026 às 12:45</span></div>
 
 </div>
 
@@ -36444,8 +36450,25 @@ function _ptEnsure(){
   }
   if(!_ptSrcUnsub)_ptSrcUnsub=window._olgaPT.listenSources(function(m){_ptSources=m;_ptRerender();});
 }
+// ── Screenings contratados (Print Traffic) × sessões programadas ──
+// Limite = campo "Screenings" do printtraffic/{código}; vazio = sem limite. Conta toda sessão que tem o filme
+// (inclusive atividade paralela com exibição: screening é exibição). `exceto` tira uma sessão da conta (modal).
+function _ptScreeningsLimite(c){
+  var d=_ptDocs&&_ptDocs[c];if(!d||d.screenings===null||d.screenings===undefined||String(d.screenings).trim()==='')return null;
+  var n=Number(d.screenings);return isFinite(n)?n:null;
+}
+function _filmSessoesCount(c,exceto){
+  var n=0;(sessoesArr||[]).forEach(function(s){if(s.nome!==exceto&&(s.filmes||[]).indexOf(c)>=0)n++;});return n;
+}
+function _ptExcessoSelo(c,n){
+  var lim=_ptScreeningsLimite(c);if(lim===null)return'';
+  if(n===undefined)n=_filmSessoesCount(c);
+  if(n<=lim)return'';
+  return' <span class="pt-excesso-seal" title="Programado em '+n+' sessões, mas o Print Traffic prevê '+lim+' screening'+(lim===1?'':'s')+'. Rever a programação ou renegociar com a fonte da cópia.">⚠ '+n+'/'+lim+' screenings</span>';
+}
 function _ptRerender(){
   if(window._mobileActive){_ptMobRerender();return;}
+  if(currentMode==='programacao'&&typeof _progRender==='function'&&!_ptBusy('programacao-container'))_progRender();
   if(currentMode==='printtraffic')renderPrintTraffic();
   else if(currentMode==='legendagem'&&typeof renderLegendagem==='function'&&!_ptBusy('legendagem-container'))renderLegendagem();
 }
@@ -36606,7 +36629,7 @@ function _ptListaHtml(){
     var hist=d.historico||[],ult=hist.length?hist.reduce(function(a,b){return(b.em||'')>(a.em||'')?b:a;}):null;
     var busca=(filmDisplayTitle(c)+' '+c+' '+ids.map(function(i){return(_ptSources[i]||{}).nome||'';}).join(' ')).toLowerCase();
     h+='<tr class="pt-tr" data-busca="'+esc(busca)+'" onclick="_ptAbrir(\''+_trafSafe(c)+'\')">'+
-      '<td><b>'+esc(filmDisplayTitle(c))+'</b><div class="traf-muted">'+esc(stripEvPrefix(c,f.evento))+'</div></td>'+
+      '<td><b>'+esc(filmDisplayTitle(c))+'</b>'+_ptExcessoSelo(c)+'<div class="traf-muted">'+esc(stripEvPrefix(c,f.evento))+'</div></td>'+
       '<td>'+(pr?esc(pr.nome||''):'<span class="traf-muted">—</span>')+(ids.length>1?' <span class="traf-muted">+'+(ids.length-1)+'</span>':'')+'</td>'+
       '<td>'+_versoesDoFilme(c).map(function(v){
         var vd=_ptVD(c,v.codigo),cs=_ptCopiaSt(v);
@@ -36657,7 +36680,7 @@ function _ptDetalheHtml(c){
   // despesas
   function desp(lbl,km,kv){return'<div class="pt-d-lbl">'+lbl+'</div>'+_ptMoedaSel(c,km,d[km],can)+inp(kv,'num');}
   h+='<div class="pt-box"><div class="pt-box-h">Despesas</div><div class="pt-desp">'+
-    '<div class="pt-d-lbl">Screenings</div><span></span>'+inp('screenings','num')+
+    '<div class="pt-d-lbl">Screenings<div class="traf-muted" style="font-size:9px;text-transform:none;letter-spacing:0;">programado em '+_filmSessoesCount(c)+' sessão(ões)</div>'+_ptExcessoSelo(c)+'</div><span></span>'+inp('screenings','num')+
     '<span></span><div class="pt-d-h">Moeda</div><div class="pt-d-h">Valor</div>'+
     desp('Screening fee','fee_moeda','fee_valor')+
     desp('Cópia + material','dcp_moeda','dcp_valor')+

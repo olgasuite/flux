@@ -5410,7 +5410,7 @@ html[data-theme="indexof"]:not([data-theme="win98"]) .module-icon{display:flex!i
     // Receptivo: sub-áreas restringíveis individualmente (editor e viewer)
     var recepSubMap = {
       convidados:'navSubConvidados', credenciamento:'navSubCredenciamento',
-      hoteis:'navSubHoteis', voos:'navSubVoos', transporte:'navSubTransporte'
+      hoteis:'navSubHoteis', voos:'navSubVoos', onibus:'navSubOnibus', transporte:'navSubTransporte'
     };
     Object.keys(recepSubMap).forEach(function(sec){
       var el = document.getElementById(recepSubMap[sec]);
@@ -6997,7 +6997,8 @@ window.addEventListener('DOMContentLoaded',function(){
       <button class="nav-sub-tab" id="navSubCredenciamento" disabled onclick="_navToRecepSection('credenciamento')">Credenciamento</button>
       <button class="nav-sub-tab" id="navSubHoteis" disabled onclick="_navToRecepSection('hoteis')">Hotéis</button>
       <button class="nav-sub-tab" id="navSubVoos" disabled onclick="_navToRecepSection('voos')">Voos</button>
-      <button class="nav-sub-tab" id="navSubTransporte" disabled onclick="_navToRecepSection('transporte')">Transporte</button>
+      <button class="nav-sub-tab" id="navSubOnibus" disabled onclick="_navToRecepSection('onibus')">Ônibus</button>
+      <button class="nav-sub-tab" id="navSubTransporte" disabled onclick="_navToRecepSection('transporte')">Transfer</button>
     </div>
   </div>
   <button class="nav-tab" id="tabLegendagem" disabled onclick="switchMode('legendagem')" title="Legendagem"><span class="tab-icon"><i data-lucide="subtitles"></i></span><span class="nav-label"> Legendagem</span></button>
@@ -8102,7 +8103,7 @@ function applyParsedData(d,filename){
     Array.from(_userEvSel).forEach(function(ev){if(!evSet.has(ev))_userEvSel.delete(ev);});
   }
   dataLoaded=true;
-  ['tabProjecao','tabFicha','tabGrade','tabGrade2','tabSessoes','tabVinhetas','tabIngest','tabCinemas','tabKDM','tabDash','tabReceptivo','tabBilheteria','tabCatalogo','tabTriagem','tabProgramacao','tabParalelas','tabRevista','tabLegendagem','tabTrafego','tabPrinttraffic','tabBaseFilmes','navSubCuradoria','navSubSelecionados','navSubTrafInterno','navSubTrafOperacao','navSubProjOperacao','navSubFicha','navSubIngest','navSubGrade2','navSubAcervo','navSubConvidados','navSubCredenciamento','navSubHoteis','navSubVoos','navSubTransporte'].forEach(function(id){document.getElementById(id).disabled=false;});
+  ['tabProjecao','tabFicha','tabGrade','tabGrade2','tabSessoes','tabVinhetas','tabIngest','tabCinemas','tabKDM','tabDash','tabReceptivo','tabBilheteria','tabCatalogo','tabTriagem','tabProgramacao','tabParalelas','tabRevista','tabLegendagem','tabTrafego','tabPrinttraffic','tabBaseFilmes','navSubCuradoria','navSubSelecionados','navSubTrafInterno','navSubTrafOperacao','navSubProjOperacao','navSubFicha','navSubIngest','navSubGrade2','navSubAcervo','navSubConvidados','navSubCredenciamento','navSubHoteis','navSubVoos','navSubOnibus','navSubTransporte'].forEach(function(id){document.getElementById(id).disabled=false;});
   if(window._olgaUser&&window._olgaUser.role==='admin'){document.getElementById('tabEquipe').disabled=false;}
   ['modCardProjecao','modCardGrade','modCardSessoes','modCardVinhetas','modCardCinemas','modCardKDM','modCardDash','modCardReceptivo','modCardBilheteria','modCardCatalogo','modCardTriagem','modCardProgramacao','modCardParalelas','modCardRevista','modCardLegendagem','modCardTrafego','modCardPrinttraffic'].forEach(function(id){document.getElementById(id).classList.remove('disabled');});
   var _canImport=window._olgaUser&&(window._olgaUser.role==='admin'||window._olgaUser.role==='editor');
@@ -12353,7 +12354,7 @@ function _recepSetSort(sec,field){
   else{_recepSort={sec:sec,field:field,dir:1};}
   if(sec==='convidados')_renderConvidados();
   else if(sec==='hoteis')_renderHoteis();
-  else if(sec==='voos')_renderVoos();
+  else if(sec==='voos'||sec==='onibus')_renderVoos();
   else if(sec==='transporte')_renderTransporte();
 }
 function _recepApplySort(arr,keyFn){
@@ -12406,6 +12407,7 @@ function renderReceptivo(){
   var SVG_HOTEL='<svg width="26" height="26" viewBox="0 0 24 24" style="stroke:currentColor;stroke-width:1.5;fill:none;stroke-linecap:round;stroke-linejoin:round;"><path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z"/><path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2"/><path d="M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2"/><path d="M10 6h4"/><path d="M10 10h4"/><path d="M10 14h4"/><path d="M10 18h4"/></svg>';
   var SVG_FLIGHT='<svg width="26" height="26" viewBox="0 0 24 24" style="stroke:currentColor;stroke-width:1.5;fill:none;stroke-linecap:round;stroke-linejoin:round;"><path d="M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.5-.1 1 .3 1.3L9 12l-2 3H4l-1 1 3 2 2 3 1-1v-3l3-2 3.5 5.3c.3.4.8.5 1.3.3l.5-.2c.4-.3.6-.7.5-1.2z"/></svg>';
   var SVG_BUS='<svg width="26" height="26" viewBox="0 0 24 24" style="stroke:currentColor;stroke-width:1.5;fill:none;stroke-linecap:round;stroke-linejoin:round;"><path d="M8 6v6"/><path d="M15 6v6"/><path d="M2 12h19.6"/><path d="M18 18h3s.5-1.7.8-2.8c.1-.4.2-.8.2-1.2 0-.4-.1-.8-.2-1.2l-1.4-5C20.1 6.8 19.1 6 18 6H4a2 2 0 0 0-2 2v10h3"/><circle cx="7" cy="18" r="2"/><path d="M9 18h5"/><circle cx="16" cy="18" r="2"/></svg>';
+  var SVG_CAR='<svg width="26" height="26" viewBox="0 0 24 24" style="stroke:currentColor;stroke-width:1.5;fill:none;stroke-linecap:round;stroke-linejoin:round;"><path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1.1.4-1.4.9l-1.4 2.9A3.7 3.7 0 0 0 2 12v4c0 .6.4 1 1 1h2"/><circle cx="7" cy="17" r="2"/><path d="M9 17h6"/><circle cx="17" cy="17" r="2"/></svg>';
   var SVG_BADGE='<svg width="26" height="26" viewBox="0 0 24 24" style="stroke:currentColor;stroke-width:1.5;fill:none;stroke-linecap:round;stroke-linejoin:round;"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="2"/><path d="M7 16a3 3 0 0 1 4 0"/><line x1="14" y1="9" x2="18" y2="9"/><line x1="14" y1="13" x2="18" y2="13"/></svg>';
   var SVG_TAG='<svg width="26" height="26" viewBox="0 0 24 24" style="stroke:currentColor;stroke-width:1.5;fill:none;stroke-linecap:round;stroke-linejoin:round;"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>';
   function card(sec,icon,name,desc){
@@ -12427,7 +12429,8 @@ function renderReceptivo(){
       card('etiquetas',SVG_TAG,'Etiquetas','Gerador avulso de etiquetas de crachá para casos especiais (nome, papel e referência livres)')+
       card('hoteis',SVG_HOTEL,'Hotéis','Catálogo de hotéis e controle de reservas de hospedagem')+
       card('voos',SVG_FLIGHT,'Voos','Registro de chegadas e partidas por convidado e evento')+
-      card('transporte',SVG_BUS,'Transporte','Roteamento e agendamento de transfers e veículos')+
+      card('onibus',SVG_BUS,'Ônibus','Viagens intermunicipais e interestaduais de ônibus: chegadas e partidas por convidado')+
+      card('transporte',SVG_CAR,'Transfer','Locomoção na cidade: busca no aeroporto/rodoviária, hotel ↔ cinema, deslocamentos internos')+
     '</div></div>';
   _recepPush({view:'hub'});
 }
@@ -12443,7 +12446,7 @@ function openRecepSection(section){
     var proms=[window._olgaGuests.list()];
     if(section==='convidados')proms.push(window._olgaHotels.list(),window._olgaBookings.list());
     else if(section==='hoteis')proms.push(window._olgaHotels.list(),window._olgaBookings.list());
-    else if(section==='voos')proms.push(window._olgaFlights.list());
+    else if(section==='voos'||section==='onibus')proms.push(window._olgaFlights.list());
     else if(section==='transporte')proms.push(window._olgaTransfers.list());
     Promise.all(proms).then(function(r){
       _recepGuests=r[0];
@@ -12451,7 +12454,7 @@ function openRecepSection(section){
       else if(section==='credenciamento'){_ensureProgData().then(_renderCredenciamento);}
       else if(section==='etiquetas'){_renderEtiquetas();}
       else if(section==='hoteis'){_recepHotels=r[1];_recepBookings=r[2];_renderHoteis();}
-      else if(section==='voos'){_recepFlights=r[1];_renderVoos();}
+      else if(section==='voos'||section==='onibus'){_recepFlights=r[1];_renderVoos();}
       else if(section==='transporte'){_recepTransfers=r[1];_renderTransporte();}
     }).catch(_recepErr);
   }).catch(_recepErr);
@@ -12571,7 +12574,7 @@ window._recepOnEventChange=function(v){
   _recepTransVeh='';_recepTransDate='';_recepGuestSearch='';_credSearch='';_credFilter='';_credSel.clear();
   if(_recepRoleFilter&&_recepRoleFilter.clear)_recepRoleFilter.clear();
   if(_recepGuestSel&&_recepGuestSel.clear)_recepGuestSel.clear();
-  var map={convidados:_renderConvidados,credenciamento:_renderCredenciamento,hoteis:_renderHoteis,voos:_renderVoos,transporte:_renderTransporte};
+  var map={convidados:_renderConvidados,credenciamento:_renderCredenciamento,hoteis:_renderHoteis,voos:_renderVoos,onibus:_renderVoos,transporte:_renderTransporte};
   var fn=map[_recepSection];if(fn)fn();
 };
 function _recepSelectEventPrompt(){
@@ -13553,14 +13556,17 @@ function _renderGuestDetail(guestId){
   }
 
   // Voos
-  var gFlights=_recepFlights.filter(function(f){return f.data.guest_id===guestId;}).sort(function(a,b){return(a.data.datetime||'').localeCompare(b.data.datetime||'');});
-  var flightRows=gFlights.map(function(f){var fd=f.data,fid=_re(f.id);return'<tr>'+
+  var gViagens=_recepFlights.filter(function(f){return f.data.guest_id===guestId;}).sort(function(a,b){return(a.data.datetime||'').localeCompare(b.data.datetime||'');});
+  var _viagemRow=function(f){var fd=f.data,fid=_re(f.id);return'<tr>'+
     '<td>'+(fd.type==='chegada'?'↓ chegada':'↑ partida')+'</td>'+
-    '<td>'+_recepFlightLink(fd.flight_number)+'</td>'+
+    '<td>'+_recepViagemNum(fd)+'</td>'+
     '<td>'+_re(fd.origin||'')+(fd.destination?' → '+_re(fd.destination):'')+'</td>'+
     '<td>'+_re(fd.datetime?_recepDataBr(fd.datetime):'—')+'</td>'+
     '<td>'+(canEdit?'<button class="recep-row-btn" onclick="openVooModal(\''+fid+'\',\''+sid+'\')">editar</button><button class="recep-row-btn del" onclick="deleteVoo(\''+fid+'\',\''+sid+'\')">excluir</button>':'')+'<button class="recep-row-btn" onclick="dupeVoo(\''+fid+'\',\''+sid+'\')">duplicar</button></td>'+
-  '</tr>';});
+  '</tr>';};
+  var flightRows=gViagens.filter(function(f){return!_recepIsBus(f);}).map(_viagemRow);
+  var busRows=gViagens.filter(_recepIsBus).map(_viagemRow);
+  var _hideBus=!!(window._olgaHasRestricao&&window._olgaHasRestricao('receptivo.onibus'));
 
   // Hospedagem
   var gBooks=_recepBookings.filter(function(b){return b.data.guest_id===guestId;});
@@ -13606,11 +13612,13 @@ function _renderGuestDetail(guestId){
       '</div>'+
       (d.notes?'<div style="margin-top:8px;font-family:var(--mono);font-size:10px;color:var(--text-muted);">'+_re(d.notes)+'</div>':'')+
     '</div>'+
-    '<div class="recep-section"><div class="recep-section-header"><span class="recep-section-title">Voos</span>'+(canEdit?'<button class="recep-add-btn" style="font-size:8px;padding:3px 10px;margin-left:0" onclick="openVooModal(null,\''+sid+'\')">+ Voo</button>':'')+'</div>'+
+    '<div class="recep-section"><div class="recep-section-header"><span class="recep-section-title">Voos</span>'+(canEdit?'<button class="recep-add-btn" style="font-size:8px;padding:3px 10px;margin-left:0" onclick="openVooModal(null,\''+sid+'\',null,\'\')">+ Voo</button>':'')+'</div>'+
     secTable(['Tipo','Voo','Rota','Data/Hora',''],flightRows,'Nenhum voo registrado.')+'</div>'+
+    ((_hideBus&&!busRows.length)?'':'<div class="recep-section"><div class="recep-section-header"><span class="recep-section-title">Ônibus</span>'+(canEdit?'<button class="recep-add-btn" style="font-size:8px;padding:3px 10px;margin-left:0" onclick="openVooModal(null,\''+sid+'\',null,\'onibus\')">+ Viagem de ônibus</button>':'')+'</div>'+
+    secTable(['Tipo','Empresa / linha','Rota','Data/Hora',''],busRows,'Nenhuma viagem de ônibus registrada.')+'</div>')+
     '<div class="recep-section"><div class="recep-section-header"><span class="recep-section-title">Hospedagem</span>'+(canEdit?'<button class="recep-add-btn" style="font-size:8px;padding:3px 10px;margin-left:0" onclick="openBookingModal(null,\''+sid+'\')">+ Hotel e quarto</button>':'')+'</div>'+
     secTable(['Hotel','Quarto','Período','Status',''],bookRows,'Nenhuma reserva registrada.')+'</div>'+
-    '<div class="recep-section"><div class="recep-section-header"><span class="recep-section-title">Transporte</span>'+(canEdit?'<button class="recep-add-btn" style="font-size:8px;padding:3px 10px;margin-left:0" onclick="openTransferModal(null,\''+sid+'\')">+ Transfer</button>':'')+'</div>'+
+    '<div class="recep-section"><div class="recep-section-header"><span class="recep-section-title">Transfer</span>'+(canEdit?'<button class="recep-add-btn" style="font-size:8px;padding:3px 10px;margin-left:0" onclick="openTransferModal(null,\''+sid+'\')">+ Transfer</button>':'')+'</div>'+
     secTable(['Tipo','Rota','Veículo','Data/Hora','Status',''],transRows,'Nenhum transfer registrado.')+'</div>';
 }
 
@@ -13753,45 +13761,56 @@ window.deleteBooking=async function(id,guestId){
 window.dupeBooking=function(id,guestId){var b=_recepBookings.find(function(x){return x.id===id;});if(b)openBookingModal(null,guestId||b.data.guest_id,b.data);};
 
 /* ─── VOOS ─── */
+// Viagens: a coleção `flights` guarda voos e viagens de ônibus (mode:'onibus'; vazio = voo).
+// Os submódulos Voos e Ônibus são a mesma tela filtrada pelo modo.
+function _recepIsBus(f){return !!(f&&f.data&&f.data.mode==='onibus');}
+function _recepViagemNum(fd){
+  if(fd.mode!=='onibus')return _recepFlightLink(fd.flight_number);
+  var p=[fd.company,fd.flight_number?'linha '+fd.flight_number:'',fd.seat?'poltrona '+fd.seat:''].filter(Boolean);
+  return _re(p.join(' · ')||'—');
+}
 function _renderVoos(){
   _recepSyncSelectedEvent();
+  var bus=_recepSection==='onibus',sec=bus?'onibus':'voos';
   var canEdit=_recepCanEditArea('voos');
   var guestMap={};_recepGuests.forEach(function(g){guestMap[g.id]=g.data.name||g.id;});
-  var base=_recepFlights.filter(function(f){var ev=f.data.event_id;return!!ev&&ev===_recepSelectedEvent;});
-  var keyFns={convidado:function(f){return guestMap[f.data.guest_id]||'';},tipo:function(f){return f.data.type||'';},voo:function(f){return f.data.flight_number||'';},rota:function(f){return(f.data.origin||'')+(f.data.destination?'→'+f.data.destination:'');},data:function(f){return f.data.datetime||'';}};
-  var sorted=(_recepSort.sec==='voos'&&keyFns[_recepSort.field])?_recepApplySort(base,keyFns[_recepSort.field]):base.slice().sort(function(a,b){return(a.data.datetime||'').localeCompare(b.data.datetime||'');});
+  var base=_recepFlights.filter(function(f){var ev=f.data.event_id;return!!ev&&ev===_recepSelectedEvent&&_recepIsBus(f)===bus;});
+  var keyFns={convidado:function(f){return guestMap[f.data.guest_id]||'';},tipo:function(f){return f.data.type||'';},voo:function(f){return(f.data.company||'')+(f.data.flight_number||'');},rota:function(f){return(f.data.origin||'')+(f.data.destination?'→'+f.data.destination:'');},data:function(f){return f.data.datetime||'';}};
+  var sorted=(_recepSort.sec===sec&&keyFns[_recepSort.field])?_recepApplySort(base,keyFns[_recepSort.field]):base.slice().sort(function(a,b){return(a.data.datetime||'').localeCompare(b.data.datetime||'');});
   var rows=sorted.map(function(f){var fd=f.data,fid=_re(f.id);return'<tr>'+
     '<td style="color:var(--text)">'+_re(guestMap[fd.guest_id]||fd.guest_id||'—')+'</td>'+
     '<td>'+(fd.type==='chegada'?'↓ chegada':'↑ partida')+'</td>'+
-    '<td>'+_recepFlightLink(fd.flight_number)+'</td>'+
+    '<td>'+_recepViagemNum(fd)+'</td>'+
     '<td>'+_re(fd.origin||'')+(fd.destination?' → '+_re(fd.destination):'')+'</td>'+
     '<td>'+_re(fd.datetime?_recepDataBr(fd.datetime):'—')+'</td>'+
     '<td>'+(canEdit?'<button class="recep-row-btn" onclick="openVooModal(\''+fid+'\',null)">editar</button><button class="recep-row-btn del" onclick="deleteVoo(\''+fid+'\',null)">excluir</button>':'')+'<button class="recep-row-btn" onclick="dupeVoo(\''+fid+'\',null)">duplicar</button></td>'+
   '</tr>';}).join('');
   document.getElementById('barReceptivo').innerHTML=
     '<button class="recep-back-btn" onclick="renderReceptivo()">← Receptivo</button>'+
-    '<span class="recep-bar-title">Voos</span>'+
+    '<span class="recep-bar-title">'+(bus?'Ônibus':'Voos')+'</span>'+
     _recepEventBankSelect()+
     '<button class="recep-print-btn" onclick="_recepPrint()">imprimir</button>'+
-    (canEdit?'<button class="recep-add-btn" onclick="openVooModal(null,null)">+ Voo</button>':'');
+    (canEdit?'<button class="recep-add-btn" onclick="openVooModal(null,null,null,\''+(bus?'onibus':'')+'\')">+ '+(bus?'Viagem de ônibus':'Voo')+'</button>':'');
   document.getElementById('receptivo-container').innerHTML=_recepSelectedEvent?(
     '<table class="recep-table"><thead><tr>'+
-      _recepSortTh('Convidado','convidado','voos')+
-      _recepSortTh('Tipo','tipo','voos')+
-      _recepSortTh('Voo','voo','voos')+
-      _recepSortTh('Rota','rota','voos')+
-      _recepSortTh('Data/Hora','data','voos')+
+      _recepSortTh('Convidado','convidado',sec)+
+      _recepSortTh('Tipo','tipo',sec)+
+      _recepSortTh(bus?'Empresa / linha':'Voo','voo',sec)+
+      _recepSortTh('Rota','rota',sec)+
+      _recepSortTh('Data/Hora','data',sec)+
       '<th></th></tr></thead>'+
-    '<tbody>'+(rows||'<tr><td colspan="6" class="recep-empty">Nenhum voo registrado.</td></tr>')+'</tbody></table>'
+    '<tbody>'+(rows||'<tr><td colspan="6" class="recep-empty">'+(bus?'Nenhuma viagem de ônibus registrada.':'Nenhum voo registrado.')+'</td></tr>')+'</tbody></table>'
   ):_recepSelectEventPrompt();
   buildPills(document.getElementById('headerEventFilters'),eventColors,activeEventsReceptivo,function(){_renderVoos();});
 }
-function openVooModal(id,guestId,tmplData){
-  if(!_recepCanEditArea('voos')){alert('Edição de voos bloqueada para o seu perfil.');return;}
+function openVooModal(id,guestId,tmplData,mode){
+  if(!_recepCanEditArea('voos')){alert('Edição de viagens bloqueada para o seu perfil.');return;}
   _recepEditId=id;var parentGid=guestId||_recepParentId;
   var f=id?_recepFlights.find(function(x){return x.id===id;}):null;var d=tmplData||(f?f.data:{});
   var gid=guestId||(d.guest_id||'');
-  var title=id?'Editar Voo':tmplData?'Duplicar Voo':'Novo Voo';
+  var bus=(tmplData||f)?d.mode==='onibus':(mode==='onibus'||(mode===undefined&&_recepSection==='onibus'));
+  var _nm=bus?'Viagem de ônibus':'Voo';
+  var title=id?'Editar '+_nm:tmplData?'Duplicar '+_nm:(bus?'Nova ':'Novo ')+_nm;
   function selOpts(arr,cur){return arr.map(function(v){return'<option value="'+v+'"'+(v===cur?' selected':'')+'>'+v+'</option>';}).join('');}
   _recepShowModal(
     '<div class="recep-modal-box">'+
@@ -13802,13 +13821,18 @@ function openVooModal(id,guestId,tmplData){
       '<div class="recep-field"><label class="recep-label">Evento</label><select id="v_event" class="recep-select"><option value="">—</option>'+_recepEvSelect(d.event_id||_recepSelectedEvent||'')+'</select></div>'+
       '<div class="recep-2col">'+
         '<div class="recep-field"><label class="recep-label">Tipo</label><select id="v_type" class="recep-select">'+selOpts(['chegada','partida'],d.type||'chegada')+'</select></div>'+
-        '<div class="recep-field"><label class="recep-label">Número do voo</label><input id="v_num" class="recep-input" value="'+_re(d.flight_number||'')+'"></div>'+
+        '<div class="recep-field"><label class="recep-label">'+(bus?'Linha / nº do serviço':'Número do voo')+'</label><input id="v_num" class="recep-input" value="'+_re(d.flight_number||'')+'"></div>'+
       '</div>'+
+      '<input type="hidden" id="v_mode" value="'+(bus?'onibus':'')+'">'+
+      (bus?'<div class="recep-2col">'+
+        '<div class="recep-field"><label class="recep-label">Empresa (viação)</label><input id="v_company" class="recep-input" list="v_company_list" value="'+_re(d.company||'')+'"><datalist id="v_company_list">'+[...new Set(_recepFlights.map(function(x){return x.data.company;}).filter(Boolean))].sort().map(function(v){return'<option value="'+_re(v)+'"></option>';}).join('')+'</datalist></div>'+
+        '<div class="recep-field"><label class="recep-label">Poltrona</label><input id="v_seat" class="recep-input" value="'+_re(d.seat||'')+'"></div>'+
+      '</div>':'')+
       '<div class="recep-2col">'+
-        '<div class="recep-field"><label class="recep-label">Origem</label><input id="v_orig" class="recep-input" value="'+_re(d.origin||'')+'"></div>'+
-        '<div class="recep-field"><label class="recep-label">Destino</label><input id="v_dest" class="recep-input" value="'+_re(d.destination||'')+'"></div>'+
+        '<div class="recep-field"><label class="recep-label">Origem'+(bus?' (rodoviária / cidade)':'')+'</label><input id="v_orig" class="recep-input" value="'+_re(d.origin||'')+'"></div>'+
+        '<div class="recep-field"><label class="recep-label">Destino'+(bus?' (rodoviária / cidade)':'')+'</label><input id="v_dest" class="recep-input" value="'+_re(d.destination||'')+'"></div>'+
       '</div>'+
-      '<div class="recep-field"><label class="recep-label">Data e hora</label><input id="v_dt" type="datetime-local" class="recep-input" value="'+_re(d.datetime||'')+'"></div>'+
+      '<div class="recep-field"><label class="recep-label">Data e hora'+(bus?' (chegada ou partida, conforme o tipo)':'')+'</label><input id="v_dt" type="datetime-local" class="recep-input" value="'+_re(d.datetime||'')+'"></div>'+
       '<div class="recep-field"><label class="recep-label">Observações</label><textarea id="v_notes" class="recep-textarea">'+_re(d.notes||'')+'</textarea></div>'+
     '</div>'+
     '<div class="recep-modal-foot">'+
@@ -13823,13 +13847,16 @@ window.saveVoo=async function(parentGid){
   var _vEv=document.getElementById('v_event').value||'';
   if(!_vEv){var e=document.getElementById('recepMErr');e.textContent='Evento obrigatório.';e.style.display='block';return;}
   var data={guest_id:document.getElementById('v_guest').value||parentGid||'',event_id:_vEv,type:document.getElementById('v_type').value,flight_number:(document.getElementById('v_num').value||'').trim(),origin:(document.getElementById('v_orig').value||'').trim(),destination:(document.getElementById('v_dest').value||'').trim(),datetime:document.getElementById('v_dt').value,notes:(document.getElementById('v_notes').value||'').trim(),updated_at:_recepNow()};
-  try{await window._olgaFlights.save(_recepEditId,data);window._logFirestoreEdit&&window._logFirestoreEdit('individual',_recepEditId,data,'receptivo','voos');_recepCloseModal();if(parentGid)openGuestDetail(parentGid);else openRecepSection('voos');}
+  var _vBus=(document.getElementById('v_mode')||{}).value==='onibus';
+  if(_vBus){data.mode='onibus';data.company=(document.getElementById('v_company').value||'').trim();data.seat=(document.getElementById('v_seat').value||'').trim();}
+  try{await window._olgaFlights.save(_recepEditId,data);window._logFirestoreEdit&&window._logFirestoreEdit('individual',_recepEditId,data,'receptivo','voos');_recepCloseModal();if(parentGid)openGuestDetail(parentGid);else openRecepSection(_vBus?'onibus':'voos');}
   catch(err){var e=document.getElementById('recepMErr');e.textContent='Erro: '+err.message;e.style.display='block';}
 };
 window.deleteVoo=async function(id,parentGid){
   if(!_recepCanEditArea('voos'))return;
-  if(!confirm('Excluir este voo?'))return;
-  try{await window._olgaFlights.remove(id);window._logFirestoreEdit&&window._logFirestoreEdit('delete',id,{},'receptivo','voos');_recepCloseModal();if(parentGid)openGuestDetail(parentGid);else openRecepSection('voos');}
+  var _dBus=_recepIsBus(_recepFlights.find(function(x){return x.id===id;}));
+  if(!confirm(_dBus?'Excluir esta viagem de ônibus?':'Excluir este voo?'))return;
+  try{await window._olgaFlights.remove(id);window._logFirestoreEdit&&window._logFirestoreEdit('delete',id,{},'receptivo','voos');_recepCloseModal();if(parentGid)openGuestDetail(parentGid);else openRecepSection(_dBus?'onibus':'voos');}
   catch(e){alert('Erro: '+e.message);}
 };
 window.dupeVoo=function(id,guestId){var f=_recepFlights.find(function(x){return x.id===id;});if(f)openVooModal(null,guestId||f.data.guest_id,f.data);};
@@ -13858,7 +13885,7 @@ function _renderTransporte(){
   '</tr>';}).join('');
   document.getElementById('barReceptivo').innerHTML=
     '<button class="recep-back-btn" onclick="renderReceptivo()">← Receptivo</button>'+
-    '<span class="recep-bar-title">Transporte</span>'+
+    '<span class="recep-bar-title">Transfer</span>'+
     _recepEventBankSelect()+
     '<input type="date" class="recep-input" style="width:130px;font-size:10px;padding:3px 7px;" max="2099-12-31" value="'+_re(_recepTransDate)+'" onkeydown="if(event.keyCode!==13)return;if(this.value&&+this.value.slice(0,4)<2000)return;_recepTransDate=this.value;_renderTransporte()" title="Escolha a data e tecle Enter para filtrar">'+
     (function(){var vs=[...new Set(_recepTransfers.filter(function(t){return t.data.event_id===_recepSelectedEvent;}).map(function(t){return t.data.vehicle_type;}).filter(Boolean))].sort();return'<select class="recep-select" style="width:100px;font-size:10px;padding:3px 7px;" onchange="_recepTransVeh=this.value;_renderTransporte()"><option value="">Todos veículos</option>'+vs.map(function(v){return'<option value="'+_re(v)+'"'+(_recepTransVeh===v?' selected':'')+'>'+_re(v)+'</option>';}).join('')+'</select>';})()+
@@ -18673,7 +18700,7 @@ function buildReceptivoFilters(){
   // Mantém a barra de seleção de eventos no header (mesma seleção global dos outros módulos).
   buildPills(hef,eventColors,activeEventsReceptivo,function(){
     if(typeof _recepSyncSelectedEvent==='function')_recepSyncSelectedEvent();
-    var map={convidados:typeof _renderConvidados==='function'?_renderConvidados:null,hoteis:typeof _renderHoteis==='function'?_renderHoteis:null,voos:typeof _renderVoos==='function'?_renderVoos:null,transporte:typeof _renderTransporte==='function'?_renderTransporte:null};
+    var map={convidados:typeof _renderConvidados==='function'?_renderConvidados:null,hoteis:typeof _renderHoteis==='function'?_renderHoteis:null,voos:typeof _renderVoos==='function'?_renderVoos:null,onibus:typeof _renderVoos==='function'?_renderVoos:null,transporte:typeof _renderTransporte==='function'?_renderTransporte:null};
     var fn=_recepSection&&map[_recepSection];
     if(fn)fn();else if(typeof renderReceptivo==='function')renderReceptivo();
   });
@@ -21237,7 +21264,7 @@ function renderDash(){
   html+=colBlock('legendagem','Legendagem',legBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 19/11/2026 às 11:21';
+  var sysUpdate='última atualização do sistema · 19/11/2026 às 11:25';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -24610,7 +24637,8 @@ var _EQUIPE_RESTRICOES=[
   {k:'receptivo.etiquetas',label:'Receptivo · Ocultar área Etiquetas'},
   {k:'receptivo.hoteis',label:'Receptivo · Ocultar área Hotéis'},
   {k:'receptivo.voos',label:'Receptivo · Ocultar área Voos'},
-  {k:'receptivo.transporte',label:'Receptivo · Ocultar área Transporte'},
+  {k:'receptivo.onibus',label:'Receptivo · Ocultar área Ônibus'},
+  {k:'receptivo.transporte',label:'Receptivo · Ocultar área Transfer'},
   {k:'receptivo.somente_credenciamento',label:'Receptivo · Edição restrita a Credenciamento (não edita convidados, hotéis, voos nem transporte; etiquetas continuam liberadas)'}
 ];
 
@@ -32391,7 +32419,7 @@ function _sxcPrint(){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 19/11/2026 às 11:21</span></div>
+<div id="page-footer"><span>última atualização · 19/11/2026 às 11:25</span></div>
 
 </div>
 
@@ -33367,7 +33395,9 @@ function _mobRenderReceptivo(params){
      icon:'<path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z"/><path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2"/><path d="M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2"/><path d="M10 6h4"/><path d="M10 10h4"/><path d="M10 14h4"/><path d="M10 18h4"/>'},
     {nome:'Voos',sec:'voos',desc:'Registro de chegadas e partidas, companhias e horários de voo',
      icon:'<path d="M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.5-.1 1 .3 1.3L9 12l-2 3H4l-1 1 3 2 2 3 1-1v-3l3-2 3.5 5.3c.3.4.8.5 1.3.3l.5-.2c.4-.3.6-.7.5-1.2z"/>'},
-    {nome:'Transporte',sec:'transporte',desc:'Roteamento e agendamento de transfers, rotas e veículos',
+    {nome:'Ônibus',sec:'onibus',desc:'Viagens intermunicipais e interestaduais de ônibus',
+     icon:'<path d="M8 6v6"/><path d="M15 6v6"/><path d="M2 12h19.6"/><path d="M18 18h3s.5-1.7.8-2.8c.1-.4.2-.8.2-1.2 0-.4-.1-.8-.2-1.2l-1.4-5C20.1 6.8 19.1 6 18 6H4a2 2 0 0 0-2 2v10h3"/><circle cx="7" cy="18" r="2"/><path d="M9 18h5"/><circle cx="16" cy="18" r="2"/>'},
+    {nome:'Transfer',sec:'transporte',desc:'Locomoção na cidade: aeroporto/rodoviária, hotel ↔ cinema',
      icon:'<path d="M8 6v6"/><path d="M15 6v6"/><path d="M2 12h19.6"/><path d="M18 18h3s.5-1.7.8-2.8c.1-.4.2-.8.2-1.2 0-.4-.1-.8-.2-1.2l-1.4-5C20.1 6.8 19.1 6 18 6H4a2 2 0 0 0-2 2v10h3"/><circle cx="7" cy="18" r="2"/><path d="M9 18h5"/><circle cx="16" cy="18" r="2"/>'},
   ];
   var html=_mobEventFilterHtml(_filtroEvs);
@@ -33471,20 +33501,22 @@ window._mobReceptivoSection=function(sec,noPush){
         _mobSetContent(html);
       }).catch(function(e){_mobSetContent('<div class="mob-empty">Erro: '+_re2(e.message)+'</div>');});
     },
-    voos:function(){
+    onibus:function(){loadFns.voos(true);},
+    voos:function(bus){
+      bus=bus===true;
       Promise.all([window._olgaFlights.list(),window._olgaGuests.list()]).then(function(r){
         var fs=r[0],gs=r[1];
         var gMap={};gs.forEach(function(g){gMap[g.id]=g.data.name||g.id;});
         var evColors=eventColors||{};
-        var fs2=fs.filter(function(f){return _mobEvOk(f.data.event_id);}).sort(function(a,b){return(a.data.datetime||'').localeCompare(b.data.datetime||'');});
-        var html='<div class="mob-section-title">Voos · '+fs2.length+'</div>';
-        if(!fs2.length){html+='<div class="mob-empty">Nenhum voo encontrado.</div>';}
+        var fs2=fs.filter(function(f){return _mobEvOk(f.data.event_id)&&_recepIsBus(f)===bus;}).sort(function(a,b){return(a.data.datetime||'').localeCompare(b.data.datetime||'');});
+        var html='<div class="mob-section-title">'+(bus?'Ônibus':'Voos')+' · '+fs2.length+'</div>';
+        if(!fs2.length){html+='<div class="mob-empty">'+(bus?'Nenhuma viagem de ônibus encontrada.':'Nenhum voo encontrado.')+'</div>';}
         else{html+=fs2.map(function(f){
           var d=f.data;var isCh=d.type==='chegada';
           var tipoPill=pill(isCh?'↓ chegada':'↑ partida',isCh?'rgba(173,198,255,0.12)':'rgba(255,186,32,0.12)',isCh?'#adc6ff':'var(--accent)');
           var route=d.origin&&d.destination?_re2(d.origin)+' → '+_re2(d.destination):d.origin?_re2(d.origin):d.destination?'→ '+_re2(d.destination):'';
-          var _fnLink=d.flight_number?'<a href="https://www.flightaware.com/live/flight/'+d.flight_number.replace(/\s/g,'')+'" target="_blank" rel="noopener" style="color:var(--accent);text-decoration:none;font-weight:600;">'+_re2(d.flight_number)+'</a>':'';
-          var line1=d.flight_number&&route?_fnLink+' · '+route:d.flight_number?_fnLink:route||null;
+          var _fnLink=bus?(_recepViagemNum(d)==='—'?'':_recepViagemNum(d)):d.flight_number?'<a href="https://www.flightaware.com/live/flight/'+d.flight_number.replace(/\s/g,'')+'" target="_blank" rel="noopener" style="color:var(--accent);text-decoration:none;font-weight:600;">'+_re2(d.flight_number)+'</a>':'';
+          var line1=_fnLink&&route?_fnLink+' · '+route:_fnLink?_fnLink:route||null;
           var line2=d.datetime?(d.datetime||'').replace('T',' '):null;
           return card(_re2(gMap[d.guest_id]||'—'),tipoPill,[line1,line2]);
         }).join('');}
@@ -33497,7 +33529,7 @@ window._mobReceptivoSection=function(sec,noPush){
         var gMap={};gs.forEach(function(g){gMap[g.id]=g.data.name||g.id;});
         var evColors=eventColors||{};
         var ts2=ts.filter(function(t){return _mobEvOk(t.data.event_id);}).sort(function(a,b){return(a.data.datetime||'').localeCompare(b.data.datetime||'');});
-        var html='<div class="mob-section-title">Transporte · '+ts2.length+'</div>';
+        var html='<div class="mob-section-title">Transfer · '+ts2.length+'</div>';
         if(!ts2.length){html+='<div class="mob-empty">Nenhum transfer encontrado.</div>';}
         else{html+=ts2.map(function(t){
           var d=t.data;var isCh=d.category==='chegada',isPa=d.category==='partida';
@@ -33566,14 +33598,14 @@ function _mobRenderConvidadoDetalhe(params){
     if(meta.length)html+='<div style="font-family:var(--mono);font-size:9px;color:var(--text-muted);line-height:1.7;margin-top:8px;">'+meta.join('<br>')+'</div>';
     if(d.notes)html+='<div style="font-family:var(--mono);font-size:9px;color:var(--text-muted);font-style:italic;margin-top:8px;">'+_re(d.notes)+'</div>';
     html+='</div>';
-    html+='<div class="mob-section-title">Voos · '+gFlights.length+'</div>';
+    html+='<div class="mob-section-title">Voos e ônibus · '+gFlights.length+'</div>';
     if(gFlights.length){
       gFlights.forEach(function(f){
         var fd=f.data;var isCh=fd.type==='chegada';
         var tipoPill=pill(isCh?'↓ chegada':'↑ partida',isCh?'rgba(173,198,255,0.12)':'rgba(255,186,32,0.12)',isCh?'#adc6ff':'var(--accent)');
         var route=fd.origin&&fd.destination?_re(fd.origin)+' → '+_re(fd.destination):fd.origin?_re(fd.origin):fd.destination?'→ '+_re(fd.destination):'';
         html+='<div style="padding:10px 16px;border-bottom:1px solid var(--border);font-family:var(--mono);">'+
-          '<div style="display:flex;align-items:center;gap:6px;margin-bottom:3px;">'+tipoPill+(fd.flight_number?'<span>'+flightLink(fd.flight_number)+'</span>':'')+'</div>'+
+          '<div style="display:flex;align-items:center;gap:6px;margin-bottom:3px;">'+tipoPill+(fd.mode==='onibus'?'<span>🚌 '+_recepViagemNum(fd)+'</span>':(fd.flight_number?'<span>'+flightLink(fd.flight_number)+'</span>':''))+'</div>'+
           (route?'<div style="font-size:9px;color:var(--text-muted);">'+route+'</div>':'')+
           (fd.datetime?'<div style="font-size:9px;color:var(--text-muted);">'+_re(_recepDataBr(fd.datetime))+'</div>':'')+
         '</div>';
@@ -33594,7 +33626,7 @@ function _mobRenderConvidadoDetalhe(params){
     } else {
       html+='<div style="padding:10px 16px;font-family:var(--mono);font-size:9px;color:var(--text-muted);">Nenhuma hospedagem cadastrada.</div>';
     }
-    html+='<div class="mob-section-title">Transporte · '+gTrans.length+'</div>';
+    html+='<div class="mob-section-title">Transfer · '+gTrans.length+'</div>';
     if(gTrans.length){
       gTrans.forEach(function(t){
         var td=t.data;var isCh=td.category==='chegada',isPa=td.category==='partida';

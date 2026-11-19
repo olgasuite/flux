@@ -4667,7 +4667,7 @@ html[data-theme="indexof"]:not([data-theme="win98"]) .module-icon{display:flex!i
         if(Array.isArray(r['bumpers'])&&r['bumpers'].length){r['bumpers'].forEach(function(vc){var vcs=_fs(vc);if(vcs&&vcs!=='-'&&!/^=/.test(vcs))vin2.push(vcs);});}
         else{for(var vi=1;vi<=10;vi++){var vc=_fs(r['bumper_'+vi]);if(vc&&vc!=='-'&&!/^=/.test(vc))vin2.push(vc);}}
         var dv=_fs(r['date']),tv=_fs(r['time']);
-        var s={nome:nome,cinema:_fs(r['venue_name']),local_livre:_fs(r['venue_custom']),dia:_fd(dv),hora:tv?tv.slice(0,5):'—',filmes:codes,date:_pd(dv),time:_pt(tv),evento:evento,vinhetas:vin2,convidados:_fs(r['guests']),apresentacao:_fs(r['has_introduction']),publico:_fs(r['total_audience']),renda:_fs(r['total_revenue']),ingressos:_fs(r['reserved_tickets']),leg_eletronica:_fs(r['has_electronic_subtitles']),acessibilidades:_fs(r['available_accessibility']),col_ag:_fs(r['has_debate']),para_convidados:_fs(r['for_guests']),name:_fs(r['name']),program_id:_fs(r['program_id']),_docId:d.id,subprogram_id:_fs(r['subprogram_id']),session_description:_fs(r['session_description']),notes:_fs(r['notes']),operador:_parseOperadores(r['subtitle_operators']),template_id:_fs(r['template_id']),show_id:_fs(r['show_id']),slot_time:_fs(r['slot_time']),grid_col:_fs(r['grid_col']),grid_row:_fs(r['grid_row']),ticket_url:_fs(r['ticket_url']),access_type:_fs(r['access_type']),atividade:_fs(r['activity_type']),atividade_dur:_fs(r['activity_duration']),versoes:window._olgaParseFilmVersions(r['film_versions'])};
+        var s={nome:nome,cinema:_fs(r['venue_name']),local_livre:_fs(r['venue_custom']),dia:_fd(dv),hora:tv?tv.slice(0,5):'—',filmes:codes,date:_pd(dv),time:_pt(tv),evento:evento,vinhetas:vin2,convidados:_fs(r['guests']),apresentacao:_fs(r['has_introduction']),publico:_fs(r['total_audience']),renda:_fs(r['total_revenue']),ingressos:_fs(r['reserved_tickets']),leg_eletronica:_fs(r['has_electronic_subtitles']),acessibilidades:_fs(r['available_accessibility']),col_ag:_fs(r['has_debate']),para_convidados:_fs(r['for_guests']),name:_fs(r['name']),program_id:_fs(r['program_id']),_docId:d.id,subprogram_id:_fs(r['subprogram_id']),session_description:_fs(r['session_description']),notes:_fs(r['notes']),operador:_parseOperadores(r['subtitle_operators']),template_id:_fs(r['template_id']),show_id:_fs(r['show_id']),slot_time:_fs(r['slot_time']),grid_col:_fs(r['grid_col']),grid_row:_fs(r['grid_row']),ticket_url:_fs(r['ticket_url']),access_type:_fs(r['access_type']),atividade:_fs(r['activity_type']),atividade_dur:_fs(r['activity_duration']),name_en:_fs(r['name_en']),atividade_apos:_fs(r['activity_after']),atividade_img:_fs(r['activity_image']),classif:_fs(r['age_rating']),versoes:window._olgaParseFilmVersions(r['film_versions'])};
         a2.push(s);m2[nome]=s;
         codes.forEach(function(c){if(!r2[c])r2[c]=[];r2[c].push(nome);});
         vin2.forEach(function(c){if(!vr2[c])vr2[c]=[];vr2[c].push(nome);});
@@ -5810,6 +5810,8 @@ html[data-theme="indexof"]:not([data-theme="win98"]) .module-icon{display:flex!i
           ticket_url: fs(r['ticket_url']), access_type: fs(r['access_type']),
           // atividade paralela criada no módulo Atividades Paralelas (sessão sem filmes) + duração em minutos
           atividade: fs(r['activity_type']), atividade_dur: fs(r['activity_duration']),
+          // título em inglês, "acontece logo após a sessão X", imagem (URL) e classificação indicativa
+          name_en: fs(r['name_en']), atividade_apos: fs(r['activity_after']), atividade_img: fs(r['activity_image']), classif: fs(r['age_rating']),
           // versão escolhida por filme {código: id da cópia}; ausente = versão principal
           versoes: window._olgaParseFilmVersions(r['film_versions'])
         };
@@ -8508,7 +8510,8 @@ function _restSessDoc(s){
     reserved_tickets:s.ingressos||'',available_accessibility:s.acessibilidades||'',
     total_audience:s.publico||'',total_revenue:s.renda||'',notes:s.notes||'',slot_time:s.slot_time||'',
     grid_col:s.grid_col||'',grid_row:s.grid_row||'',ticket_url:s.ticket_url||'',access_type:s.access_type||'',
-    activity_type:s.atividade||'',activity_duration:s.atividade_dur||''};
+    activity_type:s.atividade||'',activity_duration:s.atividade_dur||'',name_en:s.name_en||'',
+    activity_after:s.atividade_apos||'',activity_image:s.atividade_img||'',age_rating:s.classif||''};
   if(s.date){var dt=new Date(s.date);if(!isNaN(dt))d.date=dt.getFullYear()+'-'+String(dt.getMonth()+1).padStart(2,'0')+'-'+String(dt.getDate()).padStart(2,'0');}
   if(s.time&&s.time.str&&s.time.str!=='?')d.time=s.time.str;
   if(Array.isArray(s.operador))d.subtitle_operators=s.operador;
@@ -9694,6 +9697,45 @@ function _apFim(s){
   if(!s||!s.time||s.time.str==='?')return'';var d=_apDur(s);if(!d)return'';
   var t=s.time.h*60+s.time.m+d;return String(Math.floor(t/60)%24).padStart(2,'0')+':'+String(t%60).padStart(2,'0');
 }
+// ── Vínculo "acontece logo após a sessão X" (debate pós-sessão, Kino Talks…) ──
+// Fim da sessão = início + duração das cópias (versão escolhida) + vinhetas. null se não der para calcular.
+function _apSessaoFim(s){
+  if(!s||!s.date||!s.time||s.time.str==='?')return null;
+  var secs=0;
+  (s.filmes||[]).forEach(function(c){var f=_copiaNaSessao(s,c);if(f)secs+=_parseDurSecs(f.duracao||'');});
+  var vMap={};(vinhetasArr||[]).forEach(function(v){vMap[v.codigo]=v;});
+  (s.vinhetas||[]).forEach(function(c){var v=vMap[c];if(v)secs+=_parseDurSecs(v.duracao||'');});
+  var fimMin=s.time.h*60+s.time.m+Math.ceil(secs/60);
+  var d=new Date(s.date.getTime());d.setDate(d.getDate()+Math.floor(fimMin/1440));fimMin%=1440;
+  return{date:d,min:fimMin,secs:secs};
+}
+// Horário sugerido para a atividade: fim da sessão arredondado para os próximos 5 min.
+function _apSugereApos(s){
+  var f=_apSessaoFim(s);if(!f)return null;
+  var m=Math.ceil(f.min/5)*5,d=new Date(f.date.getTime());if(m>=1440){m-=1440;d.setDate(d.getDate()+1);}
+  var p=function(n){return String(n).padStart(2,'0');};
+  return{date:d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate()),time:p(Math.floor(m/60))+':'+p(m%60),
+    fim:p(Math.floor(f.min/60))+':'+p(f.min%60),secs:f.secs,sala:s.cinema||'',local:s.local_livre||''};
+}
+function _apSessoesVinculo(ev){
+  return sessoesArr.filter(function(s){return s.evento===ev&&!_sessaoEParalela(s)&&s.date&&s.time&&s.time.str!=='?';})
+    .sort(function(a,b){return a.date-b.date||(a.time.h*60+a.time.m)-(b.time.h*60+b.time.m);});
+}
+function _apVinculoLabel(s){
+  return s.date.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'})+' '+s.time.str+' · '+_sessaoLocal(s)+' · '+(s.name||stripEvPrefix(s.nome,s.evento));
+}
+// Atividade vinculada cuja sessão mudou de horário/duração: devolve o horário sugerido novo (ou null se está em dia).
+function _apVinculoDesatualizado(s){
+  if(!s.atividade_apos)return null;var base=sessoesMap[s.atividade_apos];var sg=_apSugereApos(base);if(!sg)return null;
+  var dk=s.date?s.date.toISOString().slice(0,10):'',tm=s.time&&s.time.str!=='?'?s.time.str:'';
+  return(dk!==sg.date||tm!==sg.time)?sg:null;
+}
+async function _apAjustarVinculo(nome){
+  var s=sessoesMap[nome];if(!s||!_apCanEdit())return;var sg=_apVinculoDesatualizado(s);if(!sg)return;
+  var upd={date:sg.date,time:sg.time};
+  try{await window._olgaSessoes.saveField(s._docId||s.nome,upd);window._logFirestoreEdit&&window._logFirestoreEdit('individual',s.nome,upd,'programacao','sessoes');await window._olgaSessoes.reload();renderParalelas();}
+  catch(e){alert('Erro: '+e.message);}
+}
 function _apSessoes(){
   var as=allowedSalas();
   return sessoesArr.filter(function(s){return(!s.evento||_userEvSel.has(s.evento))&&_sessaoEParalela(s)&&(!as||!s.cinema||as.has(s.cinema));});
@@ -9709,7 +9751,7 @@ function renderParalelas(){
   var q=_apNorm(_apFiltro.q);
   var list=all.filter(function(s){
     if(_apFiltro.dia&&(!s.date||s.date.toISOString().slice(0,10)!==_apFiltro.dia))return false;
-    if(q){var hay=_apNorm([s.nome,s.name,_sessaoLocal(s),s.convidados,s.session_description,_gradeProgName(s)].join(' '));if(hay.indexOf(q)<0)return false;}
+    if(q){var hay=_apNorm([s.nome,s.name,s.name_en,_sessaoLocal(s),s.convidados,s.session_description,_gradeProgName(s)].join(' '));if(hay.indexOf(q)<0)return false;}
     return true;
   }).sort(function(a,b){
     var da=a.date?a.date.getTime():9e15,db=b.date?b.date.getTime():9e15;if(da!==db)return da-db;
@@ -9745,13 +9787,20 @@ function renderParalelas(){
       var pn=_gradeProgName(s);if(pn)meta.push('<span>'+esc(pn)+'</span>');
       if(s.convidados&&!_hideGuests())meta.push('<span>👤 '+esc(s.convidados)+'</span>');
       if(s.access_type)meta.push('<span>'+esc(s.access_type)+'</span>');
+      if(s.classif)meta.push('<span>'+esc(s.classif==='Livre'?'Livre':s.classif+' anos')+'</span>');
       if(s.filmes&&s.filmes.length)meta.push('<span>'+s.filmes.length+' filme'+(s.filmes.length>1?'s':'')+'</span>');
       meta.push('<span style="opacity:.6;">'+esc(code)+'</span>');
       var safe=_trafSafe(s.nome);
+      var base=s.atividade_apos?sessoesMap[s.atividade_apos]:null;
+      var desat=_apVinculoDesatualizado(s);
+      var vinc=s.atividade_apos?'<div class="ap-row-meta" style="color:var(--text-dim);">↳ logo após '+(base?esc(_apVinculoLabel(base)):'<span style="color:var(--warn);">sessão '+esc(s.atividade_apos)+' não encontrada</span>')
+        +(desat?' <span style="color:var(--warn);">⚠ a sessão mudou: sugerido '+esc(desat.date.split('-').reverse().slice(0,2).join('/')+' '+desat.time)+'</span>'+(canEdit?' <button class="print-btn" style="padding:1px 8px;font-size:9px;" onclick="event.stopPropagation();_apAjustarVinculo(\''+safe+'\')">ajustar</button>':''):'')+'</div>':'';
       h+='<div class="ap-row" onclick="openApModal(\''+safe+'\')">'
         +'<div class="ap-row-time">'+esc(s.time&&s.time.str!=='?'?s.time.str:'--:--')+(fim?'<small>até '+esc(fim)+'</small>':(dur?'<small>'+dur+' min</small>':''))+'</div>'
+        +(s.atividade_img?'<img src="'+esc(s.atividade_img)+'" alt="" loading="lazy" style="width:96px;height:54px;object-fit:cover;flex-shrink:0;border:1px solid var(--border);" onerror="this.style.display=\'none\'">':'')
         +'<div class="ap-row-main"><div class="ap-row-name">'+esc(s.name||code)+'</div>'
-        +'<div class="ap-row-meta">'+meta.join('')+'</div>'
+        +(s.name_en?'<div class="ap-row-meta" style="font-style:italic;margin-top:1px;">'+esc(s.name_en)+'</div>':'')
+        +'<div class="ap-row-meta">'+meta.join('')+'</div>'+vinc
         +(s.session_description?'<div class="ap-row-desc">'+esc(s.session_description)+'</div>':'')
         +'</div>'
         +(canEdit?'<div class="ap-row-acts"><button class="print-btn" title="Duplicar" onclick="event.stopPropagation();openApModal(null,\''+safe+'\')">⧉ duplicar</button></div>':'')
@@ -9787,6 +9836,33 @@ function _apProgOpts(ev,atual){
   progs.sort(function(a,b){var pa=a.data.tipo==='paralela'?0:1,pb=b.data.tipo==='paralela'?0:1;return pa-pb||String(a.data.name||a.id).localeCompare(String(b.data.name||b.id),'pt-BR');});
   return'<option value="">— nenhuma —</option>'+progs.map(function(p){return'<option value="'+esc(p.id)+'"'+(p.id===atual?' selected':'')+'>'+esc(p.data.name||p.id)+(p.data.tipo==='paralela'?' (paralela)':'')+'</option>';}).join('');
 }
+function _apSubOpts(pid,atual){
+  var subs=pid?(_progData.subprograms||[]).filter(function(x){return x.data&&x.data.program_id===pid;}):[];
+  subs.sort(function(a,b){return String(a.data.name||a.id).localeCompare(String(b.data.name||b.id),'pt-BR');});
+  return'<option value="">— nenhuma —</option>'+subs.map(function(x){return'<option value="'+esc(x.id)+'"'+(x.id===atual?' selected':'')+'>'+esc(x.data.name||x.id)+'</option>';}).join('');
+}
+function _apProgChanged(){
+  var pid=(document.getElementById('apProg')||{}).value||'';
+  var sub=document.getElementById('apSub');if(sub)sub.innerHTML=_apSubOpts(pid,'');
+  var w=document.getElementById('apSubWrap');if(w)w.style.opacity=pid?'':'0.4';
+}
+// fill=true: o usuário escolheu a sessão agora -> preenche data, início e local pelo fim dela
+function _apAposChanged(fill){
+  var sel=document.getElementById('apApos'),hint=document.getElementById('apAposHint');if(!sel)return;
+  var base=sel.value?sessoesMap[sel.value]:null,sg=_apSugereApos(base);
+  if(!sel.value){if(hint)hint.textContent='Debate depois da exibição, Kino Talks… Data, início e sala vêm do fim da sessão (filmes + vinhetas), arredondado para 5 min.';return;}
+  if(!sg){if(hint)hint.innerHTML='<span style="color:var(--warn);">Não consegui calcular o fim dessa sessão (sem data/hora).</span>';return;}
+  var mins=Math.round(sg.secs/60);
+  if(hint)hint.innerHTML='Sessão termina por volta de <strong>'+esc(sg.fim)+'</strong> ('+mins+' min de filmes e vinhetas) → atividade às <strong>'+esc(sg.time)+'</strong>'
+    +(sg.secs?'':' <span style="color:var(--warn);">· sessão sem duração cadastrada, conferir</span>');
+  if(fill){
+    var d=document.getElementById('apDate'),t=document.getElementById('apTime'),sa=document.getElementById('apSala'),lo=document.getElementById('apLocal');
+    if(d)d.value=sg.date;if(t)t.value=sg.time;
+    if(sa){sa.value=sg.sala||'';if(sg.sala&&sa.value!==sg.sala){sa.insertAdjacentHTML('beforeend','<option value="'+esc(sg.sala)+'">'+esc(sg.sala)+'</option>');sa.value=sg.sala;}}
+    if(lo&&!sg.sala)lo.value=sg.local||lo.value;
+    _apSalaChanged();
+  }
+}
 function openApModal(nome,copiaDe){
   if(!nome&&!_apCanEdit())return;
   var s=nome?sessoesMap[nome]:null;
@@ -9814,6 +9890,12 @@ function openApModal(nome,copiaDe){
        :'<div class="prog-modal-field" style="flex:1;">'+lbl('Código <span style="color:var(--warn);">*</span>')+'<div style="display:flex;align-items:center;gap:4px;"><span id="apIdPrefix" style="font-family:var(--mono);font-size:11px;color:var(--text-muted);">'+esc(ev)+'</span><input id="apId" class="prog-modal-input" value="'+esc(_apSugerirCodigo(ev))+'"></div></div>')
     +'</div>'
     +'<div class="prog-modal-field">'+lbl('Nome da atividade <span style="color:var(--warn);">*</span>')+'<input id="apName" class="prog-modal-input" placeholder="Ex.: Debate — O cinema brasileiro hoje"'+dis+' value="'+esc(src?(src.name||''):'')+'"></div>'
+    +'<div class="prog-modal-field">'+lbl('Título em inglês')+'<input id="apNameEn" class="prog-modal-input" placeholder="Ex.: Debate — Brazilian cinema today"'+dis+' value="'+esc(src?(src.name_en||''):'')+'"></div>'
+    +'<div class="prog-modal-field">'+lbl('Acontece logo após a sessão (opcional)')
+      +'<select id="apApos" class="prog-modal-input"'+dis+' onchange="_apAposChanged(true)"><option value="">— horário próprio —</option>'
+      +_apSessoesVinculo(ev).map(function(x){return'<option value="'+esc(x.nome)+'"'+(src&&src.atividade_apos===x.nome?' selected':'')+'>'+esc(_apVinculoLabel(x))+'</option>';}).join('')
+      +(src&&src.atividade_apos&&!sessoesMap[src.atividade_apos]?'<option value="'+esc(src.atividade_apos)+'" selected>'+esc(src.atividade_apos)+' (não encontrada)</option>':'')
+      +'</select><span id="apAposHint" style="font-family:var(--mono);font-size:9px;color:var(--text-muted);margin-top:3px;">Debate depois da exibição, Kino Talks… Data, início e sala vêm do fim da sessão (filmes + vinhetas), arredondado para 5 min.</span></div>'
     +'<div style="display:flex;gap:14px;">'
     +'<div class="prog-modal-field" style="flex:1;">'+lbl('Data')+'<input id="apDate" type="date" class="prog-modal-input"'+dis+' value="'+(src&&src.date?src.date.toISOString().slice(0,10):(_apFiltro.dia||''))+'"></div>'
     +'<div class="prog-modal-field" style="flex:1;">'+lbl('Início')+'<input id="apTime" type="time" class="prog-modal-input"'+dis+' value="'+(src&&src.time&&src.time.str!=='?'?src.time.str:'')+'"></div>'
@@ -9823,8 +9905,16 @@ function openApModal(nome,copiaDe){
     +'<div class="prog-modal-field" style="flex:1;">'+lbl('Sala')+'<select id="apSala" class="prog-modal-input"'+dis+' onchange="_apSalaChanged()">'+_apSalasDoEvento(ev,src?src.cinema:'')+'</select></div>'
     +'<div class="prog-modal-field" style="flex:1;" id="apLocalWrap">'+lbl('Local livre')+'<input id="apLocal" class="prog-modal-input" list="apLocalList" autocomplete="off" placeholder="Hall, Foyer, livraria…"'+dis+' value="'+esc(src?(src.local_livre||''):'')+'"><datalist id="apLocalList">'+locais.map(function(n){return'<option value="'+esc(n)+'">';}).join('')+'</datalist></div>'
     +'</div>'
-    +'<div class="prog-modal-field">'+lbl('Mostra (opcional)')+'<select id="apProg" class="prog-modal-input"'+dis+'>'+_apProgOpts(ev,src?src.program_id:'')+'</select></div>'
+    +'<div style="display:flex;gap:14px;">'
+    +'<div class="prog-modal-field" style="flex:1;">'+lbl('Mostra (opcional)')+'<select id="apProg" class="prog-modal-input"'+dis+' onchange="_apProgChanged()">'+_apProgOpts(ev,src?src.program_id:'')+'</select></div>'
+    +'<div class="prog-modal-field" style="flex:1;" id="apSubWrap">'+lbl('Submostra')+'<select id="apSub" class="prog-modal-input"'+dis+'>'+_apSubOpts(src?src.program_id:'',src?src.subprogram_id:'')+'</select></div>'
+    +'</div>'
     +'<div class="prog-modal-field">'+lbl('Descrição')+'<textarea id="apDesc" class="prog-modal-textarea" style="min-height:60px;"'+dis+' placeholder="Texto de apresentação da atividade">'+esc(src?(src.session_description||''):'')+'</textarea></div>'
+    +'<div style="display:flex;gap:14px;align-items:flex-start;">'
+    +'<div class="prog-modal-field" style="flex:3;">'+lbl('Imagem (link)')+'<input id="apImg" type="url" class="prog-modal-input" placeholder="https://…jpg"'+dis+' value="'+esc(src?(src.atividade_img||''):'')+'" oninput="var p=document.getElementById(\'apImgPrev\');if(p){p.src=this.value;p.style.display=this.value?\'\':\'none\';}">'
+      +'<img id="apImgPrev" alt="" src="'+esc(src?(src.atividade_img||''):'')+'" style="'+(src&&src.atividade_img?'':'display:none;')+'margin-top:6px;max-width:220px;max-height:124px;object-fit:cover;border:1px solid var(--border);" onerror="this.style.display=\'none\'"></div>'
+    +'<div class="prog-modal-field" style="flex:1;">'+lbl('Classificação')+'<select id="apClassif" class="prog-modal-input"'+dis+'>'+[['','—'],['Livre','Livre'],['10','10 anos'],['12','12 anos'],['14','14 anos'],['16','16 anos'],['18','18 anos']].map(function(o){return'<option value="'+o[0]+'"'+(src&&src.classif===o[0]?' selected':'')+'>'+o[1]+'</option>';}).join('')+'</select></div>'
+    +'</div>'
     +'<div class="prog-modal-field">'+lbl('Convidados / participantes (separados por vírgula)')+'<input id="apGuests" class="prog-modal-input" list="apGuestList" autocomplete="off"'+dis+' value="'+esc(src?(src.convidados||''):'')+'"><datalist id="apGuestList">'+guestNames.map(function(n){return'<option value="'+esc(n)+'">';}).join('')+'</datalist></div>'
     +'<div style="display:flex;gap:12px;">'
     +'<div class="prog-modal-field" style="flex:1;">'+lbl('Acesso')+'<select id="apAccess" class="prog-modal-input"'+dis+'>'+[['','—'],['pago','Pago'],['gratuita','Gratuita'],['gratuidade limitada','Gratuidade limitada']].map(function(o){return'<option value="'+o[0]+'"'+(src&&src.access_type===o[0]?' selected':'')+'>'+o[1]+'</option>';}).join('')+'</select></div>'
@@ -9845,7 +9935,8 @@ function openApModal(nome,copiaDe){
     +(ro?'':'<button class="print-btn" id="apSaveBtn" style="background:var(--accent);color:#000;border-color:var(--accent);" onclick="_apSave()">Salvar</button>')
     +'</div></div>';
   m.style.display='block';
-  _apSalaChanged();
+  _apSalaChanged();_apAposChanged(false);
+  var _sw=document.getElementById('apSubWrap');if(_sw)_sw.style.opacity=(src&&src.program_id)?'':'0.4';
   if(!(_recepGuests||[]).length&&window._olgaGuests&&!ro){window._olgaGuests.list().then(function(r){_recepGuests=r;}).catch(function(){});}
   setTimeout(function(){var n=document.getElementById('apName');if(n&&!ro)n.focus();},0);
 }
@@ -9860,6 +9951,9 @@ function _apEvChanged(){
   var id=document.getElementById('apId');if(id)id.value=_apSugerirCodigo(ev);
   var sala=document.getElementById('apSala');if(sala)sala.innerHTML=_apSalasDoEvento(ev,sala.value);
   var pr=document.getElementById('apProg');if(pr)pr.innerHTML=_apProgOpts(ev,'');
+  _apProgChanged();
+  var ap=document.getElementById('apApos');if(ap)ap.innerHTML='<option value="">— horário próprio —</option>'+_apSessoesVinculo(ev).map(function(x){return'<option value="'+esc(x.nome)+'">'+esc(_apVinculoLabel(x))+'</option>';}).join('');
+  _apAposChanged(false);
   _apSalaChanged();
 }
 function _apErr(msg){var e=document.getElementById('apErr');if(e){e.textContent=msg;e.style.display='block';}}
@@ -9883,7 +9977,8 @@ async function _apSave(){
   var data={
     session_id:sid,name:name,event_name:ev,date:val('apDate'),time:val('apTime'),
     venue_name:sala,venue_custom:sala?'':_progLocalCanonico(val('apLocal')),
-    program_id:val('apProg'),session_description:val('apDesc'),
+    program_id:val('apProg'),subprogram_id:val('apProg')?val('apSub'):'',session_description:val('apDesc'),
+    name_en:val('apNameEn'),activity_after:val('apApos'),activity_image:val('apImg'),age_rating:val('apClassif'),
     guests:val('apGuests').split(',').map(function(x){return x.trim();}).filter(Boolean).join(', '),
     access_type:val('apAccess'),ticket_url:val('apTicket'),reserved_tickets:val('apIngr'),
     available_accessibility:chk('apAcess'),for_guests:chk('apParaConv'),
@@ -9895,19 +9990,18 @@ async function _apSave(){
       // grava só o que mudou (não sobrescreve edições concorrentes de outros usuários)
       var base={session_id:ex.nome,name:ex.name||'',event_name:ex.evento||'',
         date:ex.date?ex.date.toISOString().slice(0,10):'',time:ex.time&&ex.time.str!=='?'?ex.time.str:'',
-        venue_name:ex.cinema||'',venue_custom:ex.local_livre||'',program_id:ex.program_id||'',
+        venue_name:ex.cinema||'',venue_custom:ex.local_livre||'',program_id:ex.program_id||'',subprogram_id:ex.subprogram_id||'',
+        name_en:ex.name_en||'',activity_after:ex.atividade_apos||'',activity_image:ex.atividade_img||'',age_rating:ex.classif||'',
         session_description:ex.session_description||'',guests:ex.convidados||'',access_type:ex.access_type||'',
         ticket_url:ex.ticket_url||'',reserved_tickets:ex.ingressos||'',available_accessibility:ex.acessibilidades||'',
         for_guests:ex.para_convidados||'',activity_type:ex.atividade||'',activity_duration:ex.atividade_dur||''};
       var diff={};Object.keys(data).forEach(function(k){if(String(data[k])!==String(base[k]))diff[k]=data[k];});
-      // mudou de mostra: a submostra antiga não vale mais
-      if('program_id' in diff&&ex.subprogram_id)diff.subprogram_id='';
       if(Object.keys(diff).length){
         await window._olgaSessoes.saveField(ex._docId||ex.nome,diff);
         window._logFirestoreEdit&&window._logFirestoreEdit('individual',ex.nome,diff,'programacao','sessoes');
       }
     }else{
-      Object.assign(data,{subprogram_id:'',films:[],bumpers:[],film_versions:[],template_id:'',show_id:'',
+      Object.assign(data,{films:[],bumpers:[],film_versions:[],template_id:'',show_id:'',
         has_introduction:'Não',has_debate:'Não',has_electronic_subtitles:'Não',total_audience:'',total_revenue:'',notes:''});
       await window._olgaSessoes.save(sid,data);
       window._logFirestoreEdit&&window._logFirestoreEdit('individual',sid,data,'programacao','sessoes');
@@ -21300,7 +21394,7 @@ function renderDash(){
   html+=colBlock('legendagem','Legendagem',legBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 19/11/2026 às 12:11';
+  var sysUpdate='última atualização do sistema · 19/11/2026 às 12:20';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -32455,7 +32549,7 @@ function _sxcPrint(){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 19/11/2026 às 12:11</span></div>
+<div id="page-footer"><span>última atualização · 19/11/2026 às 12:20</span></div>
 
 </div>
 

@@ -20463,17 +20463,21 @@ function renderDash(){
       (sub?'<div class="dash-stat-sub">'+sub+'</div>':'')+
     '</div>';
   }
-  function calcStats(sessoes){
+  function calcStats(todas){
+    // "sessão" = sessão de filmes; atividades paralelas contam à parte (card próprio). Público soma tudo.
+    var parArr=todas.filter(_sessaoEParalela);
+    var sessoes=todas.filter(function(s){return !_sessaoEParalela(s);});
     var filmSet=new Set();sessoes.forEach(function(s){s.filmes.forEach(function(c){filmSet.add(c);});});
     var salaSet=new Set();sessoes.forEach(function(s){if(s.cinema)salaSet.add(s.cinema);});
-    var pub=sessoes.reduce(function(acc,s){return acc+parsePubDash(s.publico);},0);
-    var hasPubData=sessoes.some(function(s){return s.publico&&s.publico.toString().trim()!=='';});
+    var pub=todas.reduce(function(acc,s){return acc+parsePubDash(s.publico);},0);
+    var hasPubData=todas.some(function(s){return s.publico&&s.publico.toString().trim()!=='';});
     var acessSess=sessoes.filter(function(s){var _av=(s.acessibilidades||'').toString().trim();return _av!==''&&!/^n[ãa]o$/i.test(_av);});
     var acessFilmSet=new Set();acessSess.forEach(function(s){s.filmes.forEach(function(c){acessFilmSet.add(c);});});
     var legSess=sessoes.filter(function(s){return(s.leg_eletronica||'').toString().trim().toUpperCase()==='SIM';});
     return{filmes:filmSet.size,sessoes:sessoes.length,salas:salaSet.size,pub:pub,hasPubData:hasPubData,
            acessSess:acessSess.length,acessFilmes:acessFilmSet.size,legSess:legSess.length,
-           filmSet:filmSet,salaSet:salaSet,acessSessArr:acessSess,legSessArr:legSess,raw:sessoes};
+           filmSet:filmSet,salaSet:salaSet,acessSessArr:acessSess,legSessArr:legSess,raw:sessoes,
+           paralelas:parArr.length,parArr:parArr};
   }
 
   function renderStatDetail(key,scope,sessoes,cs){
@@ -20508,7 +20512,17 @@ function renderDash(){
       });
       title+=' ('+codes.length+')';
 
+    }else if(key==='paralelas'){
+      title='Atividades paralelas ('+cs.parArr.length+')';
+      bodyHtml='';
+      cs.parArr.slice().sort(function(a,b){var da=a.date?a.date.getTime():9e15,db=b.date?b.date.getTime():9e15;return da-db||((a.time&&a.time.str!=='?'?a.time.h*60+a.time.m:9999)-(b.time&&b.time.str!=='?'?b.time.h*60+b.time.m:9999));}).forEach(function(s){
+        bodyHtml+='<div class="dsd-sess-row" style="cursor:pointer" onclick="switchMode(\'paralelas\');openApModal(\''+_trafSafe(s.nome)+'\')">'
+          +'<span class="dsd-date">'+(s.date?s.dia:'sem data')+'</span><span class="dsd-time">'+(s.time&&s.time.str!=='?'?s.time.str:'--:--')+'</span>'
+          +'<span style="flex:1;min-width:0;">'+esc(s.name||stripEvPrefix(s.nome,s.evento))+'</span>'
+          +'<span class="dsd-cinema">'+esc(_sessaoLocal(s)||'—')+'</span></div>';
+      });
     }else if(key==='sessoes'){
+      sessoes=sessoes.filter(function(s){return !_sessaoEParalela(s);});
       title='Sessões ('+sessoes.length+')';
       var sorted=sessoes.slice().sort(function(a,b){return a.date&&b.date?a.date-b.date||(a.time&&b.time?a.time.h*60+a.time.m-(b.time.h*60+b.time.m):0):0;});
       var borderoBtn=(function(){var sp=!window._olgaHasRestricao('dashboard.publico'),sr=!window._olgaHasRestricao('dashboard.renda');if(!sp&&!sr)return'';return'<span style="display:flex;gap:4px;margin-left:8px;">'+(sp?'<button class="bordero-btn" style="font-size:9px;padding:3px 10px;" onclick="openBorderoDashSessoes(\''+scope+'\')">Público</button>':'')+(sr?'<button class="bordero-btn" style="font-size:9px;padding:3px 10px;" onclick="openBorderoDashSessoes(\''+scope+'\',\'renda\')">Renda</button>':'')+'</span>';})();
@@ -20962,7 +20976,8 @@ function renderDash(){
 
   var globalBody=globalEvFilter+'<div class="dash-stats-grid">';
   globalBody+=statTile('filmes','global','<svg width="20" height="20" viewBox="0 0 24 24" style=\"stroke:currentColor;stroke-width:1.5;fill:none;stroke-linecap:round;stroke-linejoin:round;\" xmlns=\"http://www.w3.org/2000/svg\"><rect x="2" y="2" width="20" height="20" rx="2.18" ry="2.18"/><line x1="7" y1="2" x2="7" y2="22"/><line x1="17" y1="2" x2="17" y2="22"/><line x1="2" y1="12" x2="22" y2="12"/><line x1="2" y1="7" x2="7" y2="7"/><line x1="2" y1="17" x2="7" y2="17"/><line x1="17" y1="17" x2="22" y2="17"/><line x1="17" y1="7" x2="22" y2="7"/></svg>',statsNum(gs.filmes),'filmes exibidos','títulos únicos nas sessões','dash-stat-accent');
-  globalBody+=statTile('sessoes','global','<svg width="20" height="20" viewBox="0 0 24 24" style=\"stroke:currentColor;stroke-width:1.5;fill:none;stroke-linecap:round;stroke-linejoin:round;\" xmlns=\"http://www.w3.org/2000/svg\"><path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z"/><path d="M13 5v2"/><path d="M13 17v2"/><path d="M13 11v2"/></svg>',statsNum(gs.sessoes),'sessões','programadas no evento');
+  globalBody+=statTile('sessoes','global','<svg width="20" height="20" viewBox="0 0 24 24" style=\"stroke:currentColor;stroke-width:1.5;fill:none;stroke-linecap:round;stroke-linejoin:round;\" xmlns=\"http://www.w3.org/2000/svg\"><path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z"/><path d="M13 5v2"/><path d="M13 17v2"/><path d="M13 11v2"/></svg>',statsNum(gs.sessoes),'sessões','sessões de filmes no evento');
+  if(gs.paralelas)globalBody+=statTile('paralelas','global','<svg width="20" height="20" viewBox="0 0 24 24" style="stroke:currentColor;stroke-width:1.5;fill:none;stroke-linecap:round;stroke-linejoin:round;" xmlns="http://www.w3.org/2000/svg"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="22"/></svg>',statsNum(gs.paralelas),'atividades paralelas','debates, encontros e outras atividades');
   globalBody+=statTile('salas','global','<svg width="20" height="20" viewBox="0 0 24 24" style=\"stroke:currentColor;stroke-width:1.5;fill:none;stroke-linecap:round;stroke-linejoin:round;\" xmlns=\"http://www.w3.org/2000/svg\"><path d="M20.2 6 3 11l-.9-2.4c-.3-1.1.3-2.2 1.3-2.5l13.5-4c1-.3 2.1.3 2.4 1.3Z"/><path d="m6.2 5.3 3.1 3.9"/><path d="m12.4 3.4 3.1 3.9"/><path d="M3 11h18v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z"/></svg>',statsNum(gs.salas),'salas','com sessões nos eventos ativos');
   if(!window._olgaHasRestricao('dashboard.publico_total'))globalBody+=statTile('publico','global','<svg width="20" height="20" viewBox="0 0 24 24" style=\"stroke:currentColor;stroke-width:1.5;fill:none;stroke-linecap:round;stroke-linejoin:round;\" xmlns=\"http://www.w3.org/2000/svg\"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>',gs.hasPubData?statsNum(gs.pub):'—','público total',gs.hasPubData?'ingressos registrados':'aguardando dados','dash-stat-ok');
   globalBody+=statTile('acess','global','<svg width="14" height="14" viewBox="0 0 24 24" style="stroke:currentColor;stroke-width:1.75;fill:none;stroke-linecap:round;stroke-linejoin:round;" xmlns="http://www.w3.org/2000/svg"><circle cx="11" cy="4" r="1"/><path d="m11 9 2 7h5l-1.5 3"/><path d="M9 9H7l1 7"/><path d="M13.5 19a4.5 4.5 0 1 1-9 0 4.5 4.5 0 0 1 9 0z"/></svg>',statsNum(gs.acessSess),'sessões acessíveis',statsNum(gs.acessFilmes)+' filme'+(gs.acessFilmes!==1?'s':'')+' com acessibilidade');
@@ -21029,7 +21044,8 @@ function renderDash(){
     var daysLabel=dashDayFilter.size===1?dayLabels[0]:dayLabels.length<=4?dayLabels.join(' · '):(dayLabels.slice(0,3).join(' · ')+' +mais '+(dayLabels.length-3));
     var daysBody='<div class="dash-stats-grid">';
     daysBody+=statTile('filmes','days','<svg width="20" height="20" viewBox="0 0 24 24" style=\"stroke:currentColor;stroke-width:1.5;fill:none;stroke-linecap:round;stroke-linejoin:round;\" xmlns=\"http://www.w3.org/2000/svg\"><rect x="2" y="2" width="20" height="20" rx="2.18" ry="2.18"/><line x1="7" y1="2" x2="7" y2="22"/><line x1="17" y1="2" x2="17" y2="22"/><line x1="2" y1="12" x2="22" y2="12"/><line x1="2" y1="7" x2="7" y2="7"/><line x1="2" y1="17" x2="7" y2="17"/><line x1="17" y1="17" x2="22" y2="17"/><line x1="17" y1="7" x2="22" y2="7"/></svg>',statsNum(ds.filmes),'filmes','títulos únicos nesses dias');
-    daysBody+=statTile('sessoes','days','<svg width="20" height="20" viewBox="0 0 24 24" style=\"stroke:currentColor;stroke-width:1.5;fill:none;stroke-linecap:round;stroke-linejoin:round;\" xmlns=\"http://www.w3.org/2000/svg\"><path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z"/><path d="M13 5v2"/><path d="M13 17v2"/><path d="M13 11v2"/></svg>',statsNum(ds.sessoes),'sessões','nesses dias');
+    daysBody+=statTile('sessoes','days','<svg width="20" height="20" viewBox="0 0 24 24" style=\"stroke:currentColor;stroke-width:1.5;fill:none;stroke-linecap:round;stroke-linejoin:round;\" xmlns=\"http://www.w3.org/2000/svg\"><path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z"/><path d="M13 5v2"/><path d="M13 17v2"/><path d="M13 11v2"/></svg>',statsNum(ds.sessoes),'sessões','sessões de filmes nesses dias');
+    if(ds.paralelas)daysBody+=statTile('paralelas','days','<svg width="20" height="20" viewBox="0 0 24 24" style="stroke:currentColor;stroke-width:1.5;fill:none;stroke-linecap:round;stroke-linejoin:round;" xmlns="http://www.w3.org/2000/svg"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="22"/></svg>',statsNum(ds.paralelas),'atividades paralelas','nesses dias');
     daysBody+=statTile('salas','days','<svg width="20" height="20" viewBox="0 0 24 24" style=\"stroke:currentColor;stroke-width:1.5;fill:none;stroke-linecap:round;stroke-linejoin:round;\" xmlns=\"http://www.w3.org/2000/svg\"><path d="M20.2 6 3 11l-.9-2.4c-.3-1.1.3-2.2 1.3-2.5l13.5-4c1-.3 2.1.3 2.4 1.3Z"/><path d="m6.2 5.3 3.1 3.9"/><path d="m12.4 3.4 3.1 3.9"/><path d="M3 11h18v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z"/></svg>',statsNum(ds.salas),'salas','ativas nesses dias');
     if(!window._olgaHasRestricao('dashboard.publico_dias'))daysBody+=statTile('publico','days','<svg width="20" height="20" viewBox="0 0 24 24" style=\"stroke:currentColor;stroke-width:1.5;fill:none;stroke-linecap:round;stroke-linejoin:round;\" xmlns=\"http://www.w3.org/2000/svg\"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>',ds.hasPubData?statsNum(ds.pub):'—','público',ds.hasPubData?'ingressos nos dias selecionados':'aguardando dados','dash-stat-ok');
     if(ds.acessSess>0)daysBody+=statTile('acess','days','<svg width="14" height="14" viewBox="0 0 24 24" style="stroke:currentColor;stroke-width:1.75;fill:none;stroke-linecap:round;stroke-linejoin:round;" xmlns="http://www.w3.org/2000/svg"><circle cx="11" cy="4" r="1"/><path d="m11 9 2 7h5l-1.5 3"/><path d="M9 9H7l1 7"/><path d="M13.5 19a4.5 4.5 0 1 1-9 0 4.5 4.5 0 0 1 9 0z"/></svg>',statsNum(ds.acessSess),'sessões acessíveis',statsNum(ds.acessFilmes)+' filme'+(ds.acessFilmes!==1?'s':'')+' com acessibilidade');
@@ -21394,7 +21410,7 @@ function renderDash(){
   html+=colBlock('legendagem','Legendagem',legBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 19/11/2026 às 12:20';
+  var sysUpdate='última atualização do sistema · 19/11/2026 às 12:29';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -32549,7 +32565,7 @@ function _sxcPrint(){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 19/11/2026 às 12:20</span></div>
+<div id="page-footer"><span>última atualização · 19/11/2026 às 12:29</span></div>
 
 </div>
 

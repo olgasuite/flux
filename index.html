@@ -21121,26 +21121,9 @@ function renderDash(){
     if(s.cinema)_pSalas.add(s.cinema);
     var _av=(s.acessibilidades||'').toString().trim();if(_av!==''&&!/^n[ãa]o$/i.test(_av))_pAcess++;
   });
-  var progLabel='Programação'+(_parSessoes.length?' <span style="font-weight:400;opacity:.6;text-transform:none;letter-spacing:0;">· sem atividades paralelas</span>':'')+(dashDayFilter.size>0?' <span class="dash-days-badge">dias selecionados</span>':'');
-  var progBody='<div class="dash-stats-grid">';
-  progBody+=statTile('p_mostras','prog','<svg width="20" height="20" viewBox="0 0 24 24" style="stroke:currentColor;stroke-width:1.5;fill:none;stroke-linecap:round;stroke-linejoin:round;" xmlns="http://www.w3.org/2000/svg"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>',statsNum(_pMostras.size),'mostras');
-  progBody+=statTile('p_sub','prog','<svg width="20" height="20" viewBox="0 0 24 24" style="stroke:currentColor;stroke-width:1.5;fill:none;stroke-linecap:round;stroke-linejoin:round;" xmlns="http://www.w3.org/2000/svg"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>',statsNum(_pSubs.size),'submostras');
-  progBody+=statTile('p_programas','prog','<svg width="20" height="20" viewBox="0 0 24 24" style="stroke:currentColor;stroke-width:1.5;fill:none;stroke-linecap:round;stroke-linejoin:round;" xmlns="http://www.w3.org/2000/svg"><path d="m12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83Z"/><path d="m22 17.65-9.17 4.16a2 2 0 0 1-1.66 0L2 17.65"/><path d="m22 12.65-9.17 4.16a2 2 0 0 1-1.66 0L2 12.65"/></svg>',statsNum(_pProgs.size),'programas');
-  progBody+=statTile('p_sessoes','prog','<svg width="20" height="20" viewBox="0 0 24 24" style="stroke:currentColor;stroke-width:1.5;fill:none;stroke-linecap:round;stroke-linejoin:round;" xmlns="http://www.w3.org/2000/svg"><path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z"/><path d="M13 5v2"/><path d="M13 17v2"/><path d="M13 11v2"/></svg>',statsNum(_progSessoes.length),'sessões');
-  progBody+=statTile('p_salas','prog','<svg width="20" height="20" viewBox="0 0 24 24" style="stroke:currentColor;stroke-width:1.5;fill:none;stroke-linecap:round;stroke-linejoin:round;" xmlns="http://www.w3.org/2000/svg"><path d="M20.2 6 3 11l-.9-2.4c-.3-1.1.3-2.2 1.3-2.5l13.5-4c1-.3 2.1.3 2.4 1.3Z"/><path d="m6.2 5.3 3.1 3.9"/><path d="m12.4 3.4 3.1 3.9"/><path d="M3 11h18v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z"/></svg>',statsNum(_pSalas.size),'salas');
-  progBody+=statTile('p_acess','prog','<svg width="14" height="14" viewBox="0 0 24 24" style="stroke:currentColor;stroke-width:1.75;fill:none;stroke-linecap:round;stroke-linejoin:round;" xmlns="http://www.w3.org/2000/svg"><circle cx="11" cy="4" r="1"/><path d="m11 9 2 7h5l-1.5 3"/><path d="M9 9H7l1 7"/><path d="M13.5 19a4.5 4.5 0 1 1-9 0 4.5 4.5 0 0 1 9 0z"/></svg>',statsNum(_pAcess),'sessões acessíveis');
-  var _pOrig=_dashOrigemFilmes(_progSessoes);
-  var _icoGlobo='<svg width="20" height="20" viewBox="0 0 24 24" style="stroke:currentColor;stroke-width:1.5;fill:none;stroke-linecap:round;stroke-linejoin:round;" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="12" r="10"/><path d="M2 12h20"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>';
-  var _nGr=function(o){var n=o.grupos.length;return n+(o.rotuloGrupo==='estado'?(n===1?' estado':' estados'):(n===1?' país ou combinação':' países ou combinações'));};
-  progBody+=statTile('p_orig_br','prog',_icoGlobo,statsNum(_pOrig.br.codes.length),'filmes brasileiros',_nGr(_pOrig.br));
-  progBody+=statTile('p_orig_cop','prog',_icoGlobo,statsNum(_pOrig.cop.codes.length),'coproduções Brasil/exterior',_nGr(_pOrig.cop));
-  progBody+=statTile('p_orig_est','prog',_icoGlobo,statsNum(_pOrig.est.codes.length),'filmes estrangeiros',_nGr(_pOrig.est));
-  if(_pOrig.sem.codes.length)progBody+=statTile('p_orig_sem','prog',_icoGlobo,statsNum(_pOrig.sem.codes.length),'sem país informado','');
-  progBody+='</div>';
-  if(dashStatSelected&&dashStatSelected.scope==='prog'){progBody+=renderStatDetail(dashStatSelected.key,'prog',_progSessoes,{});}
-  html+=colBlock('programacao',progLabel,progBody);
-
-  // ── BLOCO: Atividades paralelas ─────────────────────────────────
+  var progLabel='Programação'+(dashDayFilter.size>0?' <span class="dash-days-badge">dias selecionados</span>':'');
+  // Atividades paralelas: card próprio dentro do bloco Programação; o detalhe (números + lista) abre ao clicar
+  var parBody='';
   if(_parSessoes.length){
     var _apDias=new Set(),_apLocais=new Set(),_apConv=new Set(),_apSemData=0,_apSemLocal=0,_apHoras=0;
     _parSessoes.forEach(function(s){
@@ -21150,7 +21133,7 @@ function renderDash(){
       _apHoras+=_apDur(s)||(s.filmes.length?0:60);
     });
     var _apIco=function(d){return'<svg width="20" height="20" viewBox="0 0 24 24" style="stroke:currentColor;stroke-width:1.5;fill:none;stroke-linecap:round;stroke-linejoin:round;" xmlns="http://www.w3.org/2000/svg">'+d+'</svg>';};
-    var parBody='<div class="dash-stats-grid">';
+    parBody='<div class="dash-stats-grid">';
     parBody+=staticTile(_apIco('<path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="22"/>'),statsNum(_parSessoes.length),'atividades',_apSemData?_apSemData+' sem data':'debates, encontros, mercado…','dash-stat-accent');
     parBody+=staticTile(_apIco('<rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>'),statsNum(_apDias.size),'dias com atividade','');
     parBody+=staticTile(_apIco('<path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/>'),statsNum(_apLocais.size),'locais',_apSemLocal?_apSemLocal+' sem local':'salas e espaços livres');
@@ -21159,7 +21142,7 @@ function renderDash(){
     parBody+='</div>';
     var _apOrd=_parSessoes.slice().sort(function(a,b){var da=a.date?a.date.getTime():9e15,db=b.date?b.date.getTime():9e15;return da-db||((a.time&&a.time.str!=='?'?a.time.h*60+a.time.m:9999)-(b.time&&b.time.str!=='?'?b.time.h*60+b.time.m:9999));});
     var _apLast=null;
-    parBody+='<div style="margin-top:12px;">';
+    parBody='<div style="margin-top:14px;font-family:var(--mono);font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--text-muted);">Atividades paralelas</div>'+parBody+'<div style="margin-top:12px;">';
     _apOrd.forEach(function(s){
       var dk=s.date?s.date.toISOString().slice(0,10):'';
       if(dk!==_apLast){_apLast=dk;parBody+='<div style="font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);margin:10px 0 4px;">'+(s.date?esc(s.date.toLocaleDateString('pt-BR',{weekday:'short',day:'2-digit',month:'2-digit'})):'Sem data')+'</div>';}
@@ -21171,8 +21154,26 @@ function renderDash(){
         +'</div>';
     });
     parBody+='</div>';
-    html+=colBlock('paralelas','Atividades paralelas'+(dashDayFilter.size>0?' <span class="dash-days-badge">dias selecionados</span>':''),parBody);
   }
+
+  var progBody='<div class="dash-stats-grid">';
+  progBody+=statTile('p_mostras','prog','<svg width="20" height="20" viewBox="0 0 24 24" style="stroke:currentColor;stroke-width:1.5;fill:none;stroke-linecap:round;stroke-linejoin:round;" xmlns="http://www.w3.org/2000/svg"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>',statsNum(_pMostras.size),'mostras');
+  progBody+=statTile('p_sub','prog','<svg width="20" height="20" viewBox="0 0 24 24" style="stroke:currentColor;stroke-width:1.5;fill:none;stroke-linecap:round;stroke-linejoin:round;" xmlns="http://www.w3.org/2000/svg"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>',statsNum(_pSubs.size),'submostras');
+  progBody+=statTile('p_programas','prog','<svg width="20" height="20" viewBox="0 0 24 24" style="stroke:currentColor;stroke-width:1.5;fill:none;stroke-linecap:round;stroke-linejoin:round;" xmlns="http://www.w3.org/2000/svg"><path d="m12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83Z"/><path d="m22 17.65-9.17 4.16a2 2 0 0 1-1.66 0L2 17.65"/><path d="m22 12.65-9.17 4.16a2 2 0 0 1-1.66 0L2 12.65"/></svg>',statsNum(_pProgs.size),'programas');
+  progBody+=statTile('p_sessoes','prog','<svg width="20" height="20" viewBox="0 0 24 24" style="stroke:currentColor;stroke-width:1.5;fill:none;stroke-linecap:round;stroke-linejoin:round;" xmlns="http://www.w3.org/2000/svg"><path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z"/><path d="M13 5v2"/><path d="M13 17v2"/><path d="M13 11v2"/></svg>',statsNum(_progSessoes.length),'sessões');
+  if(_parSessoes.length)progBody+=statTile('p_paralelas','prog','<svg width="20" height="20" viewBox="0 0 24 24" style="stroke:currentColor;stroke-width:1.5;fill:none;stroke-linecap:round;stroke-linejoin:round;" xmlns="http://www.w3.org/2000/svg"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="22"/></svg>',statsNum(_parSessoes.length),'atividades paralelas');
+  progBody+=statTile('p_salas','prog','<svg width="20" height="20" viewBox="0 0 24 24" style="stroke:currentColor;stroke-width:1.5;fill:none;stroke-linecap:round;stroke-linejoin:round;" xmlns="http://www.w3.org/2000/svg"><path d="M20.2 6 3 11l-.9-2.4c-.3-1.1.3-2.2 1.3-2.5l13.5-4c1-.3 2.1.3 2.4 1.3Z"/><path d="m6.2 5.3 3.1 3.9"/><path d="m12.4 3.4 3.1 3.9"/><path d="M3 11h18v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z"/></svg>',statsNum(_pSalas.size),'salas');
+  progBody+=statTile('p_acess','prog','<svg width="14" height="14" viewBox="0 0 24 24" style="stroke:currentColor;stroke-width:1.75;fill:none;stroke-linecap:round;stroke-linejoin:round;" xmlns="http://www.w3.org/2000/svg"><circle cx="11" cy="4" r="1"/><path d="m11 9 2 7h5l-1.5 3"/><path d="M9 9H7l1 7"/><path d="M13.5 19a4.5 4.5 0 1 1-9 0 4.5 4.5 0 0 1 9 0z"/></svg>',statsNum(_pAcess),'sessões acessíveis');
+  var _pOrig=_dashOrigemFilmes(_progSessoes);
+  var _icoGlobo='<svg width="20" height="20" viewBox="0 0 24 24" style="stroke:currentColor;stroke-width:1.5;fill:none;stroke-linecap:round;stroke-linejoin:round;" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="12" r="10"/><path d="M2 12h20"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>';
+  var _nGr=function(o){var n=o.grupos.length;return n+(o.rotuloGrupo==='estado'?(n===1?' estado':' estados'):(n===1?' país ou combinação':' países ou combinações'));};
+  progBody+=statTile('p_orig_br','prog',_icoGlobo,statsNum(_pOrig.br.codes.length),'filmes brasileiros',_nGr(_pOrig.br));
+  progBody+=statTile('p_orig_cop','prog',_icoGlobo,statsNum(_pOrig.cop.codes.length),'coproduções Brasil/exterior',_nGr(_pOrig.cop));
+  progBody+=statTile('p_orig_est','prog',_icoGlobo,statsNum(_pOrig.est.codes.length),'filmes estrangeiros',_nGr(_pOrig.est));
+  if(_pOrig.sem.codes.length)progBody+=statTile('p_orig_sem','prog',_icoGlobo,statsNum(_pOrig.sem.codes.length),'sem país informado','');
+  progBody+='</div>';
+  if(dashStatSelected&&dashStatSelected.scope==='prog'){progBody+=dashStatSelected.key==='p_paralelas'?parBody:renderStatDetail(dashStatSelected.key,'prog',_progSessoes,{});}
+  html+=colBlock('programacao',progLabel,progBody);
 
   // ── BLOCO: Controle de filmes ────────────────────────────────────
   // salas ativas: cinemas with sessions this week (today → +6 days) matching event filter
@@ -21412,7 +21413,7 @@ function renderDash(){
   html+=colBlock('legendagem','Legendagem',legBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 19/11/2026 às 12:45';
+  var sysUpdate='última atualização do sistema · 19/11/2026 às 14:00';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -32571,7 +32572,7 @@ function _sxcPrint(){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 19/11/2026 às 12:45</span></div>
+<div id="page-footer"><span>última atualização · 19/11/2026 às 14:00</span></div>
 
 </div>
 

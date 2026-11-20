@@ -1369,7 +1369,28 @@ td.ficha-cpl-cell{vertical-align:top;}
 .gpt-sess-entry .ap-seal{margin:2px 0;}
 /* Selo vermelho: filme programado em mais sessões que os screenings previstos no Print Traffic */
 .pt-excesso-seal{display:inline-flex;align-items:center;font-family:var(--mono);font-size:8.5px;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;background:#d32f2f;color:#fff;border-radius:2px;padding:1px 5px;line-height:1.35;white-space:nowrap;vertical-align:middle;cursor:help;flex-shrink:0;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
-/* Módulo Atividades Paralelas */
+/* HDs de armazenamento (Acervo Técnico) */
+.arm-modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:600;align-items:flex-start;justify-content:center;padding:24px 16px;overflow-y:auto;}
+.arm-box{background:var(--surface);border:1px solid var(--border);width:100%;max-width:1180px;}
+.arm-head{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--border);font-family:var(--mono);font-size:11px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:var(--accent);}
+.arm-x{background:none;border:none;color:var(--text-muted);font-size:20px;cursor:pointer;}
+.arm-sub{padding:8px 16px;font-size:12px;color:var(--text-muted);border-bottom:1px solid var(--border);}
+.arm-cols{display:flex;min-height:420px;}
+.arm-list{width:240px;flex-shrink:0;border-right:1px solid var(--border);padding:8px;display:flex;flex-direction:column;gap:4px;max-height:72vh;overflow-y:auto;}
+.arm-hd{display:flex;flex-direction:column;align-items:flex-start;gap:2px;text-align:left;padding:8px 10px;background:var(--surface2);border:1px solid var(--border);color:var(--text);cursor:pointer;font-size:12px;}
+.arm-hd span{font-family:var(--mono);font-size:10px;color:var(--text-muted);}
+.arm-hd.on{border-color:var(--accent);box-shadow:inset 3px 0 0 var(--accent);}
+.arm-hd-sem{margin-top:8px;border-style:dashed;}
+.arm-det{flex:1;min-width:0;padding:10px 14px;max-height:72vh;overflow:auto;}
+.arm-det-head{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px;font-size:13px;}
+.arm-tab{width:100%;border-collapse:collapse;font-size:12px;}
+.arm-tab th{text-align:left;font-family:var(--mono);font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--text-muted);border-bottom:1px solid var(--border);padding:5px 6px;}
+.arm-tab td{border-bottom:1px solid var(--border);padding:5px 6px;vertical-align:top;}
+.arm-cod{font-family:var(--mono);font-size:9px;color:var(--text-muted);}
+.arm-cpl{font-family:var(--mono);font-size:10px;word-break:break-all;}
+.arm-warn{color:var(--warn,#d32f2f);font-weight:600;}
+.arm-vazio{padding:16px;color:var(--text-muted);font-size:12px;}
+@media (max-width:760px){.arm-cols{flex-direction:column;}.arm-list{width:auto;border-right:none;border-bottom:1px solid var(--border);max-height:30vh;}}/* Módulo Atividades Paralelas */
 .ap-toolbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:10px 0 16px;border-bottom:1px solid var(--border);margin-bottom:14px;}
 .ap-toolbar input,.ap-toolbar select{height:32px;padding:0 10px;border:1px solid var(--border);background:var(--surface);color:var(--text);font-family:var(--mono);font-size:12px;}
 .ap-day{font-family:var(--mono);font-size:11px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:var(--accent);margin:22px 0 8px;padding-bottom:4px;border-bottom:1px solid var(--border);}
@@ -7121,6 +7142,7 @@ window.addEventListener('DOMContentLoaded',function(){
   <span class="result-count" id="resultCount"></span>
   <button class="print-btn" onclick="printBusca()" style="margin-left:auto;">⎙ Imprimir</button>
   <button class="print-btn" onclick="openAcervoRelatorio()" style="margin-left:6px;">⎙ Relatório</button>
+  <button class="print-btn" onclick="openArmHds()" style="margin-left:6px;" title="HDs de armazenamento (campo HD / Storage): o que deveria estar em cada HD + lista para o Valida HD">⛁ HDs de armazenamento</button>
   <button class="print-btn" id="btnBuscaExportEspecial" onclick="openCatExportModal('busca')" style="margin-left:6px;">⤓ Exportar especial</button>
 </div>
 <div id="filterPanel">
@@ -9278,6 +9300,99 @@ function printBusca(){
 }
 
 /* RELATÓRIO ACERVO TÉCNICO */
+/* ═══ HDs DE ARMAZENAMENTO (Acervo Técnico) ═══
+   Os HDs saem do campo livre HD / Storage das cópias (copias.storage_location, "ROCK; AMEM").
+   Para cada HD: cópias que deveriam estar nele (eventos selecionados, versões incluídas) e o botão
+   "⇩ Lista p/ Valida HD" (mesmo .olgahd.json da Distribuição, com modo:'armazenamento': no Valida HD,
+   SOBRAM vira informativo, porque HD de armazenamento guarda outros eventos). */
+var _armHdSel='';
+function _armCopias(){
+  var out=[];
+  (filmesArr||[]).forEach(function(f){if(f&&(!f.evento||_userEvSel.has(f.evento)))out.push(f);});
+  Object.keys(copiaVersaoMap||{}).forEach(function(k){var f=copiaVersaoMap[k];if(f&&(!f.evento||_userEvSel.has(f.evento)))out.push(f);});
+  return out;
+}
+function _armTags(f){return String((f&&f.hd)||'').split(/[;,\n]+/).map(function(x){return x.trim();}).filter(function(x){return x&&x!=='-';});}
+function _armKey(s){return String(s||'').trim().toUpperCase();}
+function _armMapa(){
+  var hds={},sem=[];
+  _armCopias().forEach(function(f){
+    var tg=_armTags(f);
+    if(!tg.length){sem.push(f);return;}
+    tg.forEach(function(t){var k=_armKey(t);if(!hds[k])hds[k]={nome:t,copias:[]};hds[k].copias.push(f);});
+  });
+  return{hds:hds,sem:sem};
+}
+function _armCopiaId(f){return _ehVersaoExtra(f)?(f.codigo):f.codigo;}
+function _armTituloCopia(f){var fc=_ehVersaoExtra(f)?f.film_code:f.codigo,n=versaoNome(f);return filmDisplayTitle(fc)+((_versoesDoFilme(fc).length>1)?' · '+(n||_versaoRotulo(f)):'');}
+function _armGb(f){var g=parseFloat(((f&&f.gb)||'').toString().replace(',','.'));return isNaN(g)?0:g;}
+function openArmHds(){
+  var m=document.getElementById('armHdsModal');
+  if(!m){m=document.createElement('div');m.id='armHdsModal';m.className='arm-modal';m.onclick=function(e){if(e.target===m)closeArmHds();};document.body.appendChild(m);}
+  m.style.display='flex';_armRender();
+}
+function closeArmHds(){var m=document.getElementById('armHdsModal');if(m)m.style.display='none';}
+function _armRender(){
+  var m=document.getElementById('armHdsModal');if(!m)return;
+  var mp=_armMapa(),ks=Object.keys(mp.hds).sort(function(a,b){return a.localeCompare(b,'pt-BR');});
+  if(_armHdSel&&!mp.hds[_armHdSel]&&_armHdSel!=='__sem')_armHdSel='';
+  var evs=Array.from(_userEvSel).sort().join(', ')||'todos os eventos';
+  var h='<div class="arm-box"><div class="arm-head"><span>Acervo Técnico · HDs de armazenamento</span><button class="arm-x" onclick="closeArmHds()">×</button></div>'
+    +'<div class="arm-sub">HDs tirados do campo <b>HD / Storage</b> das cópias · eventos: '+esc(evs)+'. Um HD aparece escrito do jeito que está nas cópias; grafias diferentes viram HDs diferentes.</div>'
+    +'<div class="arm-cols"><div class="arm-list">';
+  ks.forEach(function(k){
+    var x=mp.hds[k],gb=x.copias.reduce(function(t,f){return t+_armGb(f);},0);
+    h+='<button class="arm-hd'+(_armHdSel===k?' on':'')+'" onclick="_armHdSel=\''+esc(k).replace(/'/g,"\\'")+'\';_armRender()"><b>'+esc(x.nome)+'</b><span>'+x.copias.length+' cópia'+(x.copias.length===1?'':'s')+' · '+(typeof _trafGbStr==='function'?_trafGbStr(gb):Math.round(gb)+' GB')+'</span></button>';
+  });
+  if(!ks.length)h+='<div class="arm-vazio">Nenhuma cópia dos eventos selecionados tem HD / Storage preenchido.</div>';
+  h+='<button class="arm-hd arm-hd-sem'+(_armHdSel==='__sem'?' on':'')+'" onclick="_armHdSel=\'__sem\';_armRender()"><b>Sem HD de armazenamento</b><span>'+mp.sem.length+' cópia'+(mp.sem.length===1?'':'s')+'</span></button>';
+  h+='</div><div class="arm-det">';
+  if(!_armHdSel)h+='<div class="arm-vazio">Escolha um HD à esquerda.</div>';
+  else{
+    var lista=_armHdSel==='__sem'?mp.sem:mp.hds[_armHdSel].copias;
+    lista=lista.slice().sort(function(a,b){return _armTituloCopia(a).localeCompare(_armTituloCopia(b),'pt-BR');});
+    var semCpl=lista.filter(function(f){return !_trafCplsDe(f.cpl).length;}).length;
+    if(_armHdSel!=='__sem'){
+      h+='<div class="arm-det-head"><b>'+esc(mp.hds[_armHdSel].nome)+'</b> · '+lista.length+' cópia(s)'+(semCpl?' · <span class="arm-warn">'+semCpl+' sem CPL cadastrada (não serão conferidas)</span>':'')
+        +'<button class="print-btn" style="margin-left:auto;" onclick="_armValidaHd(\''+esc(_armHdSel).replace(/'/g,"\\'")+'\')">⇩ Lista p/ Valida HD</button></div>';
+    }else h+='<div class="arm-det-head"><b>Sem HD de armazenamento</b> · cópias sem o campo HD / Storage preenchido</div>';
+    h+='<table class="arm-tab"><thead><tr><th>Filme / versão</th><th>Evento</th><th>Formato</th><th>CPL</th><th>GB</th>'+(_armHdSel==='__sem'?'':'<th>Outros HDs</th>')+'</tr></thead><tbody>';
+    lista.forEach(function(f){
+      var cpls=_trafCplsDe(f.cpl).concat(_trafCplsDe(f.cplOV).map(function(c){return c+' (OV)';}));
+      var outros=_armTags(f).filter(function(t){return _armKey(t)!==_armHdSel;});
+      h+='<tr><td>'+esc(_armTituloCopia(f))+'<div class="arm-cod">'+esc(f.codigo)+'</div></td><td>'+esc(f.evento||'')+'</td><td>'+esc(f.formato||f.exhibition_format||'')+'</td>'
+        +'<td class="arm-cpl">'+(cpls.length?cpls.map(esc).join('<br>'):'<span class="arm-warn">sem CPL</span>')+'</td><td>'+(_armGb(f)||'—')+'</td>'
+        +(_armHdSel==='__sem'?'':'<td>'+(outros.length?esc(outros.join(', ')):'<span class="arm-warn">só neste HD</span>')+'</td>')+'</tr>';
+    });
+    h+='</tbody></table>';
+  }
+  h+='</div></div></div>';
+  m.innerHTML=h;
+}
+function _armValidaHd(k){
+  var mp=_armMapa(),x=mp.hds[k];if(!x)return;
+  var itens=[],vistos={};
+  function add(o){var kk=(o.cpl||'').toUpperCase()+'|'+o.codigo+'|'+o.papel;if(vistos[kk])return;vistos[kk]=1;itens.push(o);}
+  x.copias.forEach(function(f){
+    var base={codigo:f.codigo,titulo:_armTituloCopia(f),evento:f.evento||'',gb:_armGb(f)||null,origem:'',sessoes:[],
+      outros_hds:_armTags(f).filter(function(t){return _armKey(t)!==k;})};
+    var cpls=_trafCplsDe(f.cpl),ovs=_trafCplsDe(f.cplOV);
+    if(!cpls.length)add(Object.assign({},base,{cpl:'',papel:'principal'}));
+    cpls.forEach(function(c){add(Object.assign({},base,{cpl:c,papel:ovs.length?'VF':'principal'}));});
+    ovs.forEach(function(c){add(Object.assign({},base,{cpl:c,papel:'OV'}));});
+  });
+  var evs=Array.from(new Set(x.copias.map(function(f){return f.evento||'';}).filter(Boolean))).sort();
+  var man={tipo:'olga-validahd-lista',versao:1,modo:'armazenamento',origem:'OLGA Flux',
+    evento:evs.join('+'),evento_nome:evs.map(function(e){return typeof _trafEvNome==='function'?_trafEvNome(e):e;}).join(' + '),hd:x.nome,hd_id:'',destinos:[],
+    gerado_em:new Date().toISOString(),gerado_por:((window._olgaUser&&window._olgaUser.email)||'').toLowerCase(),itens:itens};
+  var nome=('OLGA_ValidaHD_ARMAZENAMENTO_'+x.nome+'_'+(evs.join('_')||'')).replace(/[^A-Za-z0-9_-]+/g,'_')+'.olgahd.json';
+  var url=URL.createObjectURL(new Blob([JSON.stringify(man,null,1)],{type:'application/json;charset=utf-8'}));
+  var a=document.createElement('a');a.href=url;a.download=nome;document.body.appendChild(a);a.click();a.remove();
+  setTimeout(function(){URL.revokeObjectURL(url);},3000);
+  var nCpl=itens.filter(function(i){return i.cpl;}).length,semCpl=itens.filter(function(i){return !i.cpl;}).length;
+  alert('Lista de ARMAZENAMENTO baixada: '+nome+'\n\n'+nCpl+' CPL(s) esperados no HD '+x.nome+(semCpl?' · '+semCpl+' cópia(s) sem CPL cadastrada (não serão conferidas)':'')+
+    '\n\nCopie o arquivo para a RAIZ do HD (o Valida HD carrega sozinho) ou abra no Valida HD em "Carregar lista do Flux…". O que estiver no HD e não estiver na lista aparece só como informação.');
+}
 function openAcervoRelatorio(){
   _acervoRelRenderTabela();
   document.getElementById('acervoRelModal').style.display='flex';
@@ -21417,7 +21532,7 @@ function renderDash(){
   html+=colBlock('legendagem','Legendagem',legBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 19/11/2026 às 15:26';
+  var sysUpdate='última atualização do sistema · 20/11/2026 às 15:50';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -32576,7 +32691,7 @@ function _sxcPrint(){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 19/11/2026 às 15:26</span></div>
+<div id="page-footer"><span>última atualização · 20/11/2026 às 15:50</span></div>
 
 </div>
 

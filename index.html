@@ -8317,6 +8317,12 @@ function _olgaPlanilhaShowBanner(filename){
   };
 })();
 
+// Fundo de modal/overlay só fecha se o clique COMEÇOU no fundo: segurar o mouse num campo,
+// selecionar texto e soltar fora da caixa não pode fechar o modal. Uso: if(_cliqueNoFundo(e))fechar();
+(function(){if(window._olgaMdGuard)return;window._olgaMdGuard=true;
+  var marca=function(e){window._olgaMdAlvo=e.target;};
+  document.addEventListener('pointerdown',marca,true);document.addEventListener('mousedown',marca,true);})();
+function _cliqueNoFundo(e){return e.target===e.currentTarget&&window._olgaMdAlvo===e.currentTarget;}
 // Interceptor de clique — captura clicks em modo leitura e mostra toast se
 // o handler aparenta ser de escrita (defesa adicional caso o CSS não pegue).
 (function _olgaInstallClickGate(){
@@ -9328,7 +9334,7 @@ function _armTituloCopia(f){var fc=_ehVersaoExtra(f)?f.film_code:f.codigo,n=vers
 function _armGb(f){var g=parseFloat(((f&&f.gb)||'').toString().replace(',','.'));return isNaN(g)?0:g;}
 function openArmHds(){
   var m=document.getElementById('armHdsModal');
-  if(!m){m=document.createElement('div');m.id='armHdsModal';m.className='arm-modal';m.onclick=function(e){if(e.target===m)closeArmHds();};document.body.appendChild(m);}
+  if(!m){m=document.createElement('div');m.id='armHdsModal';m.className='arm-modal';m.onclick=function(e){if(_cliqueNoFundo(e))closeArmHds();};document.body.appendChild(m);}
   m.style.display='flex';_armRender();
 }
 function closeArmHds(){var m=document.getElementById('armHdsModal');if(m)m.style.display='none';}
@@ -14705,7 +14711,7 @@ window._legOpenExport=function(){
       '</div>'+
     '</div></div>';
   document.body.appendChild(d);
-  d.addEventListener('click',function(e){if(e.target===d)d.remove();});
+  d.addEventListener('click',function(e){if(_cliqueNoFundo(e))d.remove();});
 };
 
 /* ─── ARQUIVOS (lista de diálogos / SRT traduzido) ─── */
@@ -21532,7 +21538,7 @@ function renderDash(){
   html+=colBlock('legendagem','Legendagem',legBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 20/11/2026 às 15:50';
+  var sysUpdate='última atualização do sistema · 25/11/2026 às 09:52';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -29108,7 +29114,7 @@ async function _cfBaixarDaCopia(copiaId){
     if(l.length===1){_cfBaixar(l[0].id,l[0].chunks||1,l[0].filename,l[0].mime);return;}
     var el=document.getElementById('cfListaModal');
     if(!el){el=document.createElement('div');el.id='cfListaModal';el.className='pt-ov';document.body.appendChild(el);}
-    el.onclick=function(e){if(e.target===el)el.remove();};
+    el.onclick=function(e){if(_cliqueNoFundo(e))el.remove();};
     el.innerHTML='<div class="pt-modal" style="max-width:440px;"><div class="pt-modal-h"><span>Documentos da cópia</span><button class="pt-ico" onclick="document.getElementById(\'cfListaModal\').remove()">×</button></div><div class="pt-modal-b">'
       +l.map(function(x){var a=JSON.stringify([x.id,x.chunks||1,x.filename||'documento',x.mime||'']).replace(/"/g,'&quot;');
         return'<div class="fmt-ed-doc"><a href="javascript:void(0)" onclick="_cfBaixar.apply(null,'+a+')">📎 '+esc(x.filename||'documento')+'</a><span class="fmt-ed-hint">'+_cfTam(x.size||0)+'</span></div>';}).join('')
@@ -29329,7 +29335,7 @@ function _novaVersao(cod){
   if(!_podeCriarVersao()){alert('Sem permissão para criar versões.');return;}
   var el=document.getElementById('verNovaModal');
   if(!el){el=document.createElement('div');el.id='verNovaModal';el.className='pt-ov';document.body.appendChild(el);}
-  el.onclick=function(e){if(e.target===el)el.remove();};
+  el.onclick=function(e){if(_cliqueNoFundo(e))el.remove();};
   var fmts=['DCP','arquivo','35mm','16mm','Super 8mm','HDCAM','Outro'];
   var lex=['ORIGINAL','ELETRÔNICA EM PORTUGUÊS','ELETRÔNICA EM INGLÊS','ELETRÔNICA LSE'];
   function row(lbl,ctl){return'<div><div class="pt-lbl">'+lbl+'</div>'+ctl+'</div>';}
@@ -32691,7 +32697,7 @@ function _sxcPrint(){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 20/11/2026 às 15:50</span></div>
+<div id="page-footer"><span>última atualização · 25/11/2026 às 09:52</span></div>
 
 </div>
 
@@ -37020,7 +37026,7 @@ window._ptSrcModal=function(id,modo,c,nomeIni){
   var s=id?(_ptSources[id]||{}):{nome:nomeIni||''},can=_ptCanEdit(),ro=modo==='ver'||!can;
   var el=document.getElementById('ptSrcModal');
   if(!el){el=document.createElement('div');el.id='ptSrcModal';el.className='pt-ov';document.body.appendChild(el);}
-  el.onclick=function(e){if(e.target===el)el.remove();};
+  el.onclick=function(e){if(_cliqueNoFundo(e))el.remove();};
   var h='<div class="pt-modal"><div class="pt-modal-h"><span>'+esc(id?(s.nome||'Fonte'):'Nova fonte')+'</span><button class="pt-ico" onclick="document.getElementById(\'ptSrcModal\').remove()">×</button></div><div class="pt-modal-b"><div class="pt-form">';
   _PT_SRC_CAMPOS.forEach(function(fd){
     var k=fd[0],v=s[k]||'',lst=fd[2]==='cat'?' list="ptCatList"':(fd[2]==='pais'?' list="ptPaisList"':''),inner;
@@ -37858,7 +37864,7 @@ function _trafOpImprimirEscolher(){
   function todos(cls,on){return'<a href="#" style="color:var(--text-muted);font-size:11px;margin-left:8px;" onclick="event.preventDefault();document.querySelectorAll(\'.'+cls+'\').forEach(function(x){x.checked='+on+';})">'+(on?'todos':'nenhum')+'</a>';}
   var ov=document.createElement('div');ov.id='trafPrOverlay';
   ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px;';
-  ov.onclick=function(e){if(e.target===ov)ov.remove();};
+  ov.onclick=function(e){if(_cliqueNoFundo(e))ov.remove();};
   ov.innerHTML='<div style="background:var(--surface);border:1px solid var(--border);color:var(--text);width:100%;max-width:520px;max-height:85vh;overflow:auto;padding:20px 22px;">'+
     '<div style="font-family:var(--mono);font-size:13px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:var(--accent);margin-bottom:14px;">Imprimir operação</div>'+
     '<div style="display:flex;gap:24px;flex-wrap:wrap;">'+

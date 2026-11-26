@@ -3992,6 +3992,13 @@ mark{background:rgba(255,186,32,0.28);color:var(--accent);border-radius:2px;padd
 .vinheta-sess-time{font-family:var(--mono);font-size:10px;font-weight:600;color:var(--text);white-space:nowrap;min-width:44px;}
 .vinheta-sess-cinema{font-family:var(--mono);font-size:10px;color:var(--text-dim);white-space:nowrap;min-width:120px;}
 .vinheta-sess-name{font-family:var(--sans);font-size:12px;font-weight:600;color:var(--accent);flex:1;}
+.vinheta-sess-pub{font-family:var(--mono);font-size:11px;font-weight:600;color:var(--text);white-space:nowrap;min-width:80px;text-align:right;}
+.vinheta-sess-pub.vazio{color:var(--text-muted);font-weight:400;}
+.vinheta-sessions-header.vn-sh{display:flex;align-items:center;gap:12px;flex-wrap:wrap;}
+.vn-sh-resumo{margin-left:auto;letter-spacing:0.06em;color:var(--text-dim);}
+.vn-sh-resumo b{color:var(--text);}
+.vn-btn-rel{font-family:var(--mono);font-size:10px;background:none;border:1px solid var(--border2);color:var(--text-dim);padding:5px 12px;cursor:pointer;white-space:nowrap;letter-spacing:0.04em;}
+.vn-btn-rel:hover{color:var(--text);border-color:var(--accent);}
 /* print */
 @media print{
   body.print-vinhetas>*:not(#olga-app){display:none!important;}
@@ -18063,7 +18070,8 @@ function _vinRenderLista(){
   _vinListaD=_vinListaDados();
   if(!_vinListaD.order.length){vc.style.display='none';ve.style.display='flex';return;}
   ve.style.display='none';vc.style.display='block';
-  vc.innerHTML='<div class="vn-toolbar"><input class="vn-input vn-busca" type="text" id="vnBusca" placeholder="buscar por nome, código ou CPL…" value="'+esc(_vinQ)+'" oninput="_vinQ=this.value;_vinListaRows()"><span class="vn-conta" id="vnListaConta"></span></div>'
+  vc.innerHTML='<div class="vn-toolbar"><input class="vn-input vn-busca" type="text" id="vnBusca" placeholder="buscar por nome, código ou CPL…" value="'+esc(_vinQ)+'" oninput="_vinQ=this.value;_vinListaRows()"><span class="vn-conta" id="vnListaConta"></span>'
+    +'<button class="vn-btn-rel" style="margin-left:auto;" title="Relatório com todas as vinhetas da lista: salas, sessões e público atingido" onclick="_vinRelGeral()">▤ Relatório geral</button></div>'
     +'<div class="vn-tabela"><div class="vn-row vn-head"><span>Código</span><span>Vinheta</span><span>Evento</span><span>Formato</span><span>Duração</span><span>Sessões</span><span>Cinemas</span><span>Público</span><span></span></div><div id="vnListaRows"></div></div>';
   _vinListaRows();
 }
@@ -18495,7 +18503,8 @@ function openVinhetaDetail(cod){
   var allSessions=sessoesArr.filter(function(s){
     return s.vinhetas&&_vinExpandida(s.vinhetas).indexOf(cod)!==-1&&
            (!s.evento||activeEventsVinhetas.has(s.evento));
-  }).sort(function(a,b){return a.date&&b.date?a.date-b.date||0:0;});
+  }).sort(_vinSortSess);
+  var verPub=!_vinRestr('vinhetas.publico'),rs=_vinResumo(allSessions);
 
   function ds(label,val,isLink){
     if(!val||val==='-')return'';
@@ -18513,8 +18522,10 @@ function openVinhetaDetail(cod){
       '<span class="vinheta-sess-time">'+(s.time?s.time.str:'—')+'</span>'+
       '<span class="vinheta-sess-cinema">'+s.cinema+'</span>'+
       '<span class="vinheta-sess-name" title="'+esc(s.nome)+'">'+esc(stripEvPrefix(s.nome,s.evento))+'</span>'+
+      (verPub?(function(n){return'<span class="vinheta-sess-pub'+(n===null?' vazio':'')+'" title="Público da sessão">'+(n===null?'—':_vinFmtN(n))+'</span>';})(_vinPubN(s)):'')+
     '</div>';
   }).join('');
+  var safeCod=_vinJs(cod);
 
   vd.innerHTML=
     '<div style="display:flex;align-items:center;gap:12px;margin-bottom:18px;">'+
@@ -18527,9 +18538,147 @@ function openVinhetaDetail(cod){
       (info&&info.obs?'<div class="vinheta-detail-obs">'+info.obs+'</div>':'')+
     '</div>'+
     '<div class="vinheta-sessions-table">'+
-      '<div class="vinheta-sessions-header">'+allSessions.length+' '+(allSessions.length===1?'sessão':'sessões')+' programadas</div>'+
+      '<div class="vinheta-sessions-header vn-sh"><span>'+allSessions.length+' '+(allSessions.length===1?'sessão':'sessões')+' programadas</span>'+
+        '<span class="vn-sh-resumo"><b>'+rs.salas+'</b> sala'+(rs.salas===1?'':'s')+
+          (verPub?' · público <b>'+_vinFmtN(rs.pub)+'</b>'+(rs.semPub?' · '+rs.semPub+' sem público informado':''):'')+'</span>'+
+        (verPub&&allSessions.length?'<button class="vn-btn-rel" title="Relatório de público desta vinheta, para entregar ao patrocinador" onclick="_vinRelPatrocinador(\''+safeCod+'\')">▤ Relatório de público</button>':'')+
+      '</div>'+
       (sessRows||'<div style="padding:16px;font-family:var(--mono);font-size:11px;color:var(--text-muted);">Nenhuma sessão encontrada.</div>')+
     '</div>';
+}
+
+/* ═══ VINHETAS — relatórios de público ═══
+   Público de uma sessão conta inteiro para cada vinheta que passou nela (inclusive as de dentro
+   de blocos). Somar vinhetas entre si conta a mesma pessoa várias vezes: o total geral do
+   relatório usa as sessões únicas. Sessão sem público informado não soma e é avisada. */
+function _vinPubN(s){var t=String(s&&s.publico!=null?s.publico:'').replace(/\D/g,'');if(!t)return null;var n=parseInt(t,10);return isNaN(n)?null:n;}
+function _vinFmtN(n){return(n||0).toLocaleString('pt-BR');}
+function _vinRestr(k){return!!(window._olgaHasRestricao&&window._olgaHasRestricao(k));}
+function _vinSortSess(a,b){return((a.date&&b.date)?a.date-b.date:0)||((a.time?a.time.h*60+a.time.m:0)-(b.time?b.time.h*60+b.time.m:0))||String(a.cinema||'').localeCompare(String(b.cinema||''),'pt-BR',{numeric:true});}
+function _vinResumo(sessions){
+  var salas={},pub=0,com=0;
+  (sessions||[]).forEach(function(s){if(s.cinema)salas[s.cinema]=1;var n=_vinPubN(s);if(n!==null){pub+=n;com++;}});
+  return{salas:Object.keys(salas).length,sessoes:(sessions||[]).length,pub:pub,comPub:com,semPub:(sessions||[]).length-com};
+}
+function _vinDataBr(d,ano){return d?d.toLocaleDateString('pt-BR',ano?{day:'2-digit',month:'2-digit',year:'numeric'}:{weekday:'short',day:'2-digit',month:'2-digit'}):'—';}
+function _vinPeriodo(sessions){
+  var ds=(sessions||[]).filter(function(s){return s.date;}).map(function(s){return s.date;});
+  if(!ds.length)return'';
+  var a=new Date(Math.min.apply(null,ds)),b=new Date(Math.max.apply(null,ds));
+  return a-b===0?_vinDataBr(a,true):_vinDataBr(a,true)+' a '+_vinDataBr(b,true);
+}
+function _vinEvNome(ev){return ev?((window._olgaEventoNomes&&window._olgaEventoNomes[ev])||ev):'';}
+function _vinSessTit(s){
+  var t=(s.filmes||[]).map(function(c){var f=filmesMap[c];return f&&f.titulo||'';}).filter(Boolean);
+  if(t.length)return t.join(' · ');
+  return(s.name&&s.name!==s.nome)?s.name:stripEvPrefix(s.nome,s.evento);
+}
+function _vinRelAbrir(titulo,css,body){
+  var w=window.open('','_blank');if(!w){alert('Permita pop-ups para gerar o relatório.');return null;}
+  w.document.write('<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>'+esc(titulo)+'</title><style>'
+    +'@page{size:A4;margin:12mm;}*{box-sizing:border-box;}body{font-family:"Helvetica Neue",Arial,sans-serif;color:#1a1a1a;margin:0;padding:28px 34px 40px;font-size:12px;line-height:1.4;}'
+    +'.bar{position:sticky;top:0;display:flex;justify-content:flex-end;gap:8px;margin:-28px -34px 18px;padding:10px 34px;background:#f4f4f4;border-bottom:1px solid #ddd;}'
+    +'.bar button{font:600 12px Arial,sans-serif;padding:7px 16px;border:1px solid #1a1a1a;background:#1a1a1a;color:#fff;cursor:pointer;}'
+    +'.m{font-family:Consolas,monospace;font-size:10px;color:#777;}table{border-collapse:collapse;width:100%;}'
+    +'th{font-size:9.5px;text-transform:uppercase;letter-spacing:.08em;color:#666;text-align:left;font-weight:600;padding:6px 8px;border-bottom:2px solid #1a1a1a;}'
+    +'td{padding:7px 8px;border-bottom:1px solid #e2e2e2;vertical-align:top;}th.n,td.n{text-align:right;white-space:nowrap;}td.n{font-variant-numeric:tabular-nums;}'
+    +'tr{page-break-inside:avoid;}.rod{margin-top:22px;padding-top:8px;border-top:1px solid #ddd;font-size:9.5px;color:#888;}'
+    +'@media print{.bar{display:none;}body{padding:0;}}'+css
+    +'</style></head><body><div class="bar"><button onclick="window.print()">Imprimir / salvar PDF</button></div>'+body+'</body></html>');
+  w.document.close();
+  return w;
+}
+
+// Relatório geral: todas as vinhetas da lista (mesmos filtros de evento, cinema, dia e busca)
+function _vinRelGeral(){
+  var d=_vinListaD||_vinListaDados(),q=_vinQ.trim().toLowerCase();
+  var cods=d.order.filter(function(cod){var i=d.idx[cod].info;return!q||(cod+' '+(i?(i.nome||'')+' '+(i.cpl||''):'')).toLowerCase().indexOf(q)>=0;});
+  if(!cods.length){alert('Nenhuma vinheta na lista.');return;}
+  var verSess=!_vinRestr('vinhetas.sessoes'),verSalas=!_vinRestr('vinhetas.cinemas'),verPub=!_vinRestr('vinhetas.publico');
+  var unicas={},todas=[];
+  var linhas=cods.map(function(cod){
+    var e=d.idx[cod],info=e.info,r=_vinResumo(e.sessions);
+    e.sessions.forEach(function(s){var k=s._docId||s.nome;if(!unicas[k]){unicas[k]=1;todas.push(s);}});
+    var cs=JSON.stringify(cod).replace(/"/g,'&quot;');
+    return'<tr><td><a class="vn" href="#" onclick="return abrir('+cs+')">'+esc(info?info.nome||cod:cod)+'</a>'
+      +'<div class="m">'+esc(info?stripEvPrefix(cod,info.evento):cod)+(info&&info.duracao?' · '+esc(info.duracao):'')+(info&&info.evento?' · '+esc(info.evento):'')+'</div></td>'
+      +(verSalas?'<td class="n">'+r.salas+'</td>':'')
+      +(verSess?'<td class="n">'+r.sessoes+'</td>':'')
+      +(verPub?'<td class="n"><b>'+_vinFmtN(r.pub)+'</b>'+(r.semPub?'<div class="m">'+r.semPub+' sem público</div>':'')+'</td>':'')+'</tr>';
+  }).join('');
+  var tot=_vinResumo(todas);
+  var evs=_vinEvsAtivos().map(_vinEvNome);
+  var filtros=[];
+  if(vinhetasCinemaFilter)filtros.push('sala '+vinhetasCinemaFilter);
+  if(vinhetasDayFilter){var p=vinhetasDayFilter.split('-');filtros.push('dia '+_vinDataBr(new Date(+p[0],p[1]-1,+p[2]),true));}
+  if(q)filtros.push('busca "'+_vinQ.trim()+'"');
+  var body='<div class="ev">'+esc(evs.join(' · ')||'Vinhetas')+'</div>'
+    +'<h1>Vinhetas · alcance de público</h1>'
+    +'<div class="sub">'+esc(_vinPeriodo(todas))+(filtros.length?' · filtro: '+esc(filtros.join(', ')):'')+'</div>'
+    +'<div class="kpis">'
+      +'<div class="k"><div class="kv">'+cods.length+'</div><div class="kl">vinheta'+(cods.length===1?'':'s')+'</div></div>'
+      +(verSess?'<div class="k"><div class="kv">'+tot.sessoes+'</div><div class="kl">sessões com vinheta</div></div>':'')
+      +(verSalas?'<div class="k"><div class="kv">'+tot.salas+'</div><div class="kl">salas</div></div>':'')
+      +(verPub?'<div class="k"><div class="kv">'+_vinFmtN(tot.pub)+'</div><div class="kl">público dessas sessões</div></div>':'')
+    +'</div>'
+    +'<table><thead><tr><th>Vinheta</th>'+(verSalas?'<th class="n">Salas</th>':'')+(verSess?'<th class="n">Sessões</th>':'')+(verPub?'<th class="n">Público atingido</th>':'')+'</tr></thead><tbody>'+linhas+'</tbody></table>'
+    +'<div class="rod">Público de cada vinheta = soma do público das sessões em que ela foi exibida (inclusive dentro de blocos). Como várias vinhetas passam na mesma sessão, o público das vinhetas não se soma entre si; o total acima conta cada sessão uma vez.'
+    +(verPub&&tot.semPub?' '+tot.semPub+' sess'+(tot.semPub===1?'ão':'ões')+' ainda sem público informado, fora das somas.':'')
+    +'<br>Clique no nome de uma vinheta para abrir as sessões dela no Flux. · OLGA Flux · '+esc(new Date().toLocaleString('pt-BR'))+'</div>'
+    +'<script>function abrir(c){var o=window.opener;if(!o||o.closed){alert("A janela do OLGA Flux foi fechada.");return false;}try{if(o.currentMode!=="vinhetas"&&o.switchMode)o.switchMode("vinhetas");o.openVinhetaDetail(c);o.focus();}catch(e){alert("Não foi possível abrir no Flux: "+e.message);}return false;}<\/script>';
+  _vinRelAbrir('Vinhetas · alcance de público',
+    '.ev{font-size:10px;text-transform:uppercase;letter-spacing:.14em;color:#777;}h1{font-size:22px;margin:4px 0 2px;}.sub{color:#555;margin-bottom:16px;}'
+    +'.kpis{display:flex;gap:10px;margin:0 0 18px;}.k{flex:1;border:1px solid #ddd;padding:10px 12px;}.kv{font-size:22px;font-weight:700;font-variant-numeric:tabular-nums;}.kl{font-size:9.5px;text-transform:uppercase;letter-spacing:.08em;color:#777;margin-top:2px;}'
+    +'a.vn{font-size:14px;font-weight:700;color:#1a1a1a;text-decoration:none;}a.vn:hover{text-decoration:underline;}td.n b{font-size:13px;}',body);
+}
+
+// Relatório de uma vinheta, para entregar ao patrocinador: totais, por sala e sessão a sessão com público
+function _vinRelPatrocinador(cod){
+  var info=_vinInfo(cod),nome=info&&info.nome||cod;
+  var sess=sessoesArr.filter(function(s){return s.vinhetas&&_vinExpandida(s.vinhetas).indexOf(cod)!==-1&&(!s.evento||activeEventsVinhetas.has(s.evento));}).sort(_vinSortSess);
+  if(!sess.length){alert('Esta vinheta não tem sessões.');return;}
+  var r=_vinResumo(sess),porSala={},cx={};
+  sess.forEach(function(s){
+    var k=s.cinema||'—',p=porSala[k]||(porSala[k]={sala:k,n:0,pub:0,sem:0});
+    p.n++;var n=_vinPubN(s);if(n===null)p.sem++;else p.pub+=n;
+    if(s.cinema)cx[_getSalaComplexo(s.cinema)]=1;
+  });
+  var nCx=Object.keys(cx).length;
+  var evs={};sess.forEach(function(s){if(s.evento)evs[s.evento]=1;});
+  var evTxt=Object.keys(evs).map(_vinEvNome).join(' · ')||(info&&_vinEvNome(info.evento))||'';
+  var salaRows=Object.keys(porSala).map(function(k){return porSala[k];})
+    .sort(function(a,b){return b.pub-a.pub||a.sala.localeCompare(b.sala,'pt-BR',{numeric:true});})
+    .map(function(p){
+      var c=p.sala!=='—'?_getSalaComplexo(p.sala):'';
+      return'<tr><td><b>'+esc(p.sala)+'</b>'+(c&&c!==p.sala?'<div class="m">'+esc(c)+'</div>':'')+'</td><td class="n">'+p.n+'</td><td class="n"><b>'+_vinFmtN(p.pub)+'</b>'+(p.sem?'<div class="m">'+p.sem+' sem público</div>':'')+'</td></tr>';
+    }).join('');
+  var sessRows=sess.map(function(s){
+    var n=_vinPubN(s);
+    return'<tr><td style="white-space:nowrap">'+esc(_vinDataBr(s.date))+'</td><td>'+esc(s.hora||'—')+'</td><td>'+esc(s.cinema||s.local_livre||'—')+'</td><td>'+esc(_vinSessTit(s))+'</td><td class="n">'+(n===null?'<span class="m">—</span>':_vinFmtN(n))+'</td></tr>';
+  }).join('');
+  var body='<div class="ev">'+esc(evTxt)+'</div>'
+    +'<div class="tipo">Relatório de público · vinheta</div>'
+    +'<h1>'+esc(nome)+'</h1>'
+    +'<div class="sub">'+esc(_vinPeriodo(sess))+(info&&info.duracao?' · duração '+esc(info.duracao):'')+'</div>'
+    +'<div class="hero"><div class="hv">'+_vinFmtN(r.pub)+'</div><div class="hl">pessoas atingidas</div></div>'
+    +'<div class="kpis">'
+      +'<div class="k"><div class="kv">'+r.sessoes+'</div><div class="kl">sess'+(r.sessoes===1?'ão':'ões')+'</div></div>'
+      +'<div class="k"><div class="kv">'+r.salas+'</div><div class="kl">sala'+(r.salas===1?'':'s')+'</div></div>'
+      +(nCx&&nCx!==r.salas?'<div class="k"><div class="kv">'+nCx+'</div><div class="kl">cinema'+(nCx===1?'':'s')+'</div></div>':'')
+      +(r.sessoes?'<div class="k"><div class="kv">'+_vinFmtN(r.comPub?Math.round(r.pub/r.comPub):0)+'</div><div class="kl">média por sessão</div></div>':'')
+    +'</div>'
+    +'<h2>Por sala</h2><table><thead><tr><th>Sala</th><th class="n">Sessões</th><th class="n">Público</th></tr></thead><tbody>'+salaRows
+      +'<tr class="tot"><td>Total</td><td class="n">'+r.sessoes+'</td><td class="n">'+_vinFmtN(r.pub)+'</td></tr></tbody></table>'
+    +'<h2>Sessões</h2><table><thead><tr><th>Data</th><th>Hora</th><th>Sala</th><th>Programa</th><th class="n">Público</th></tr></thead><tbody>'+sessRows
+      +'<tr class="tot"><td colspan="4">Total · '+r.sessoes+' sess'+(r.sessoes===1?'ão':'ões')+'</td><td class="n">'+_vinFmtN(r.pub)+'</td></tr></tbody></table>'
+    +'<div class="rod">'+(r.semPub?r.semPub+' sess'+(r.semPub===1?'ão':'ões')+' ainda sem público informado, fora do total. ':'')
+    +'Público = espectadores presentes nas sessões em que a vinheta foi exibida. Relatório gerado em '+esc(new Date().toLocaleString('pt-BR'))+'.</div>';
+  _vinRelAbrir('Relatório de público · '+nome,
+    '.ev{font-size:10px;text-transform:uppercase;letter-spacing:.14em;color:#777;}.tipo{margin-top:14px;font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:#999;}'
+    +'h1{font-size:30px;line-height:1.1;margin:4px 0 4px;}.sub{color:#555;margin-bottom:18px;}'
+    +'.hero{border-top:3px solid #1a1a1a;border-bottom:1px solid #ddd;padding:14px 0 12px;margin-bottom:12px;}.hv{font-size:52px;font-weight:800;line-height:1;font-variant-numeric:tabular-nums;}.hl{font-size:12px;text-transform:uppercase;letter-spacing:.12em;color:#555;margin-top:4px;}'
+    +'.kpis{display:flex;gap:10px;margin:0 0 8px;}.k{flex:1;border:1px solid #ddd;padding:9px 12px;}.kv{font-size:20px;font-weight:700;font-variant-numeric:tabular-nums;}.kl{font-size:9.5px;text-transform:uppercase;letter-spacing:.08em;color:#777;margin-top:2px;}'
+    +'h2{font-size:11px;text-transform:uppercase;letter-spacing:.12em;margin:22px 0 4px;}tr.tot td{font-weight:700;border-top:2px solid #1a1a1a;border-bottom:none;}',body);
 }
 
 /* ═══ VINHETAS — CRUD ═══ */
@@ -21538,7 +21687,7 @@ function renderDash(){
   html+=colBlock('legendagem','Legendagem',legBody);
 
   // footer
-  var sysUpdate='última atualização do sistema · 25/11/2026 às 09:52';
+  var sysUpdate='última atualização do sistema · 26/11/2026 às 19:50';
   var dataUpdate='—';
   if(window._olgaDataLabel&&window._olgaDataLabel.indexOf('Firestore')===0){
     dataUpdate=window._olgaDataLabel;
@@ -32697,7 +32846,7 @@ function _sxcPrint(){
     }
   });
 </script>
-<div id="page-footer"><span>última atualização · 25/11/2026 às 09:52</span></div>
+<div id="page-footer"><span>última atualização · 26/11/2026 às 19:50</span></div>
 
 </div>
 
